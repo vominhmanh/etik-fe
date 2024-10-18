@@ -18,6 +18,7 @@ import { EyeSlash as EyeSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlas
 import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
 
+import { AuthRes } from '@/types/auth';
 import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { useUser } from '@/hooks/use-user';
@@ -34,7 +35,7 @@ const defaultValues = { email: 'sofia@devias.io', password: 'Secret1' } satisfie
 export function SignInForm(): React.JSX.Element {
   const router = useRouter();
 
-  const { checkSession } = useUser();
+  const { checkSession, setUser } = useUser();
 
   const [showPassword, setShowPassword] = React.useState<boolean>();
 
@@ -51,20 +52,21 @@ export function SignInForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { error } = await authClient.signInWithPassword(values);
+      try {
+        const res: AuthRes = await authClient.signInWithPassword({
+          username: values.email,
+          password: values.password,
+        });
 
-      if (error) {
-        setError('root', { type: 'server', message: error });
+        setUser(res.user);
+
+        await checkSession?.();
+        router.refresh();
+      } catch (error: any) {
+        setError('root', { type: 'server', message: error?.message || 'Unknown Error' });
         setIsPending(false);
         return;
       }
-
-      // Refresh the auth state
-      await checkSession?.();
-
-      // UserProvider, for this case, will not refresh the router
-      // After refresh, GuestGuard will handle the redirect
-      router.refresh();
     },
     [checkSession, router, setError]
   );

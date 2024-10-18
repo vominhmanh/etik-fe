@@ -1,5 +1,8 @@
 'use client';
 
+import AuthService from '@/services/Auth.service';
+
+import { AuthRes, LoginReq, SignUpReq } from '@/types/auth';
 import type { User } from '@/types/user';
 
 function generateToken(): string {
@@ -16,13 +19,6 @@ const user = {
   email: 'sofia@devias.io',
 } satisfies User;
 
-export interface SignUpParams {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-}
-
 export interface SignInWithOAuthParams {
   provider: 'google' | 'discord';
 }
@@ -37,34 +33,20 @@ export interface ResetPasswordParams {
 }
 
 class AuthClient {
-  async signUp(_: SignUpParams): Promise<{ error?: string }> {
-    // Make API request
-
-    // We do not handle the API, so we'll just generate a token and store it in localStorage.
-    const token = generateToken();
-    localStorage.setItem('custom-auth-token', token);
-
-    return {};
+  async signUp(data: SignUpReq): Promise<AuthRes> {
+    const res = await AuthService.register(data);
+    localStorage.setItem('accessToken', res.data.accessToken);
+    return res.data;
   }
 
   async signInWithOAuth(_: SignInWithOAuthParams): Promise<{ error?: string }> {
     return { error: 'Social authentication not implemented' };
   }
 
-  async signInWithPassword(params: SignInWithPasswordParams): Promise<{ error?: string }> {
-    const { email, password } = params;
-
-    // Make API request
-
-    // We do not handle the API, so we'll check if the credentials match with the hardcoded ones.
-    if (email !== 'sofia@devias.io' || password !== 'Secret1') {
-      return { error: 'Invalid credentials' };
-    }
-
-    const token = generateToken();
-    localStorage.setItem('custom-auth-token', token);
-
-    return {};
+  async signInWithPassword(data: LoginReq): Promise<AuthRes> {
+    const res = await AuthService.login(data);
+    localStorage.setItem('accessToken', res.data.accessToken);
+    return res.data;
   }
 
   async resetPassword(_: ResetPasswordParams): Promise<{ error?: string }> {
@@ -79,7 +61,7 @@ class AuthClient {
     // Make API request
 
     // We do not handle the API, so just check if we have a token in localStorage.
-    const token = localStorage.getItem('custom-auth-token');
+    const token = localStorage.getItem('accessToken');
 
     if (!token) {
       return { data: null };
@@ -89,7 +71,8 @@ class AuthClient {
   }
 
   async signOut(): Promise<{ error?: string }> {
-    localStorage.removeItem('custom-auth-token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('user');
 
     return {};
   }
