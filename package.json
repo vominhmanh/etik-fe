@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@emotion/cache": "11.11.0",
-    "@emotion/react": "11.11.4",
+    "@emotion/react": "^11.13.3",
     "@emotion/server": "11.11.0",
     "@emotion/styled": "11.11.5",
     "@fontsource/inter": "5.0.18",
@@ -40,6 +40,7 @@
     "react-apexcharts": "1.4.1",
     "react-dom": "18.3.1",
     "react-hook-form": "7.52.0",
+    "react-perfect-scrollbar": "^1.5.8",
     "zod": "3.23.8"
   },
   "devDependencies": {

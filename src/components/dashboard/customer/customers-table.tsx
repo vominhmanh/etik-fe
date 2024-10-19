@@ -14,8 +14,11 @@ import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
-import dayjs from 'dayjs';
+import Tooltip from '@mui/material/Tooltip';
 
+import dayjs from 'dayjs';
+import { ArrowSquareUpRight as ArrowSquareUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowSquareUpRight';
+import IconButton from '@mui/material/IconButton';
 import { useSelection } from '@/hooks/use-selection';
 
 function noop(): void {
@@ -73,17 +76,18 @@ export function CustomersTable({
                   }}
                 />
               </TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Location</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Signed Up</TableCell>
+              <TableCell>Họ tên</TableCell>
+              <TableCell>Loại vé</TableCell>
+              <TableCell>Số lượng</TableCell>
+              <TableCell>Thanh toán</TableCell>
+              <TableCell>Trạng thái</TableCell>
+              {/* Chưa gửi, Đã nhận, Đã xem, Đã xác nhận, Đã từ chối */}
+              <TableCell> </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {rows.map((row) => {
               const isSelected = selected?.has(row.id);
-
               return (
                 <TableRow hover key={row.id} selected={isSelected}>
                   <TableCell padding="checkbox">
@@ -101,7 +105,21 @@ export function CustomersTable({
                   <TableCell>
                     <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
                       <Avatar src={row.avatar} />
-                      <Typography variant="subtitle2">{row.name}</Typography>
+
+                      <Tooltip title={
+                          <Typography color="inherit">
+                            <div>
+                              <b>Email:</b> {row.email}
+                            </div>
+                            <div>
+                              <b>SĐT:</b> {row.phone}
+                            </div>
+                          </Typography>
+                      }><Typography variant="subtitle2" sx={{ textDecorationStyle: 'dotted' }}>{row.name}</Typography>
+
+                      </Tooltip>
+
+
                     </Stack>
                   </TableCell>
                   <TableCell>{row.email}</TableCell>
@@ -110,6 +128,11 @@ export function CustomersTable({
                   </TableCell>
                   <TableCell>{row.phone}</TableCell>
                   <TableCell>{dayjs(row.createdAt).format('MMM D, YYYY')}</TableCell>
+                  <TableCell>
+                    <IconButton color="primary" aria-label="add to shopping cart">
+                      <ArrowSquareUpRightIcon />
+                    </IconButton>
+                  </TableCell>
                 </TableRow>
               );
             })}

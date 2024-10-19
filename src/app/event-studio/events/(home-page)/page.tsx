@@ -1,30 +1,21 @@
 import * as React from 'react';
 import type {Metadata} from 'next';
 import Grid from '@mui/material/Unstable_Grid2';
-import dayjs from 'dayjs';
 
 import {config} from '@/config';
-// import {Budget} from '@/components/events/overview/budget';
-import {LatestOrders} from '@/components/events/overview/latest-orders';
-import {LatestProducts} from '@/components/events/overview/latest-products';
-import {Sales} from '@/components/events/overview/sales';
-import {TasksProgress} from '@/components/events/overview/tasks-progress';
-import {TotalCustomers} from '@/components/events/overview/total-customers';
-import {TotalProfit} from '@/components/events/overview/total-profit';
-import {Traffic} from '@/components/events/overview/traffic';
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import {Upload as UploadIcon} from "@phosphor-icons/react/dist/ssr/Upload";
-import {Eye as EyeIcon} from "@phosphor-icons/react/dist/ssr/Eye";
 import {Download as DownloadIcon} from "@phosphor-icons/react/dist/ssr/Download";
+import {Eye as EyeIcon} from "@phosphor-icons/react/dist/ssr/Eye";
+import {Clock as ClockIcon} from "@phosphor-icons/react/dist/ssr/Clock";
+import {MapPin as MapPinIcon} from "@phosphor-icons/react/dist/ssr/MapPin";
 import {Plus as PlusIcon} from "@phosphor-icons/react/dist/ssr/Plus";
 import Card from "@mui/material/Card";
 import {CardMedia} from "@mui/material";
 import CardContent from "@mui/material/CardContent";
-import CardActions from "@mui/material/CardActions";
 import Divider from "@mui/material/Divider";
-import {Clock as ClockIcon} from "@phosphor-icons/react/dist/ssr/Clock";
 import { EventsFilters } from '@/components/events/event/events-filters';
 
 export const metadata = {title: `Overview | Dashboard | ${config.site.name}`} satisfies Metadata;
@@ -34,7 +25,7 @@ export default function Page(): React.JSX.Element {
     <Stack spacing={3}>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{flex: '1 1 auto'}}>
-          <Typography variant="h4">Events</Typography>
+          <Typography variant="h4">Sự kiện</Typography>
           <Stack direction="row" spacing={1} sx={{alignItems: 'center'}}>
             <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)"/>}>
               Import
@@ -46,7 +37,7 @@ export default function Page(): React.JSX.Element {
         </Stack>
         <div>
           <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)"/>} variant="contained">
-            Add
+            Thêm
           </Button>
         </div>
       </Stack>
@@ -69,15 +60,15 @@ export default function Page(): React.JSX.Element {
               </Typography>
               <Stack direction="column" spacing={2} sx={{alignItems: 'left', mt: 2}}>
                 <Stack sx={{alignItems: 'left'}} direction="row" spacing={1}>
-                  <DownloadIcon fontSize="var(--icon-fontSize-sm)"/>
+                  <ClockIcon fontSize="var(--icon-fontSize-sm)"/>
                   <Typography color="text.secondary" display="inline" variant="body2">
-                    150 installs
+                    17:30 20/10/2024
                   </Typography>
                 </Stack>
                 <Stack sx={{alignItems: 'left'}} direction="row" spacing={1}>
-                  <DownloadIcon fontSize="var(--icon-fontSize-sm)"/>
+                  <MapPinIcon fontSize="var(--icon-fontSize-sm)"/>
                   <Typography color="text.secondary" display="inline" variant="body2">
-                    150 installs
+                    Số 3, đường Châu Văn Liêm, quận Nam Từ Liêm, Hà Nội
                   </Typography>
                 </Stack>
               </Stack>
@@ -85,7 +76,7 @@ export default function Page(): React.JSX.Element {
             <Divider/>
             <Stack direction="row" spacing={2} sx={{alignItems: 'center', justifyContent: 'space-between', p: 1}}>
               <Stack sx={{alignItems: 'center'}} direction="row" spacing={1}>
-                <Button href="/events/dashboard" size="small" startIcon={<EyeIcon/>}>Xem chi tiết</Button>
+                <Button href="/event-studio/events/1" size="small" startIcon={<EyeIcon/>}>Xem chi tiết</Button>
               </Stack>
               <Stack sx={{alignItems: 'center'}} direction="row" spacing={1}>
                 {/*<DownloadIcon fontSize="var(--icon-fontSize-sm)"/>*/}

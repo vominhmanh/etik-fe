@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default function Page(): never {
-  redirect('/events');
+  redirect('/event-studio/events');
 }
