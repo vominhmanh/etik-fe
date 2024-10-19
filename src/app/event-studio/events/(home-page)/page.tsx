@@ -7,8 +7,10 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import {Upload as UploadIcon} from "@phosphor-icons/react/dist/ssr/Upload";
-import {Eye as EyeIcon} from "@phosphor-icons/react/dist/ssr/Eye";
 import {Download as DownloadIcon} from "@phosphor-icons/react/dist/ssr/Download";
+import {Eye as EyeIcon} from "@phosphor-icons/react/dist/ssr/Eye";
+import {Clock as ClockIcon} from "@phosphor-icons/react/dist/ssr/Clock";
+import {MapPin as MapPinIcon} from "@phosphor-icons/react/dist/ssr/MapPin";
 import {Plus as PlusIcon} from "@phosphor-icons/react/dist/ssr/Plus";
 import Card from "@mui/material/Card";
 import {CardMedia} from "@mui/material";
@@ -35,7 +37,7 @@ export default function Page(): React.JSX.Element {
         </Stack>
         <div>
           <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)"/>} variant="contained">
-            Add
+            Thêm
           </Button>
         </div>
       </Stack>
@@ -58,15 +60,15 @@ export default function Page(): React.JSX.Element {
               </Typography>
               <Stack direction="column" spacing={2} sx={{alignItems: 'left', mt: 2}}>
                 <Stack sx={{alignItems: 'left'}} direction="row" spacing={1}>
-                  <DownloadIcon fontSize="var(--icon-fontSize-sm)"/>
+                  <ClockIcon fontSize="var(--icon-fontSize-sm)"/>
                   <Typography color="text.secondary" display="inline" variant="body2">
-                    150 installs
+                    17:30 20/10/2024
                   </Typography>
                 </Stack>
                 <Stack sx={{alignItems: 'left'}} direction="row" spacing={1}>
-                  <DownloadIcon fontSize="var(--icon-fontSize-sm)"/>
+                  <MapPinIcon fontSize="var(--icon-fontSize-sm)"/>
                   <Typography color="text.secondary" display="inline" variant="body2">
-                    150 installs
+                    Số 3, đường Châu Văn Liêm, quận Nam Từ Liêm, Hà Nội
                   </Typography>
                 </Stack>
               </Stack>
@@ -74,7 +76,7 @@ export default function Page(): React.JSX.Element {
             <Divider/>
             <Stack direction="row" spacing={2} sx={{alignItems: 'center', justifyContent: 'space-between', p: 1}}>
               <Stack sx={{alignItems: 'center'}} direction="row" spacing={1}>
-                <Button href="/events/dashboard" size="small" startIcon={<EyeIcon/>}>Xem chi tiết</Button>
+                <Button href="/event-studio/events/1" size="small" startIcon={<EyeIcon/>}>Xem chi tiết</Button>
               </Stack>
               <Stack sx={{alignItems: 'center'}} direction="row" spacing={1}>
                 {/*<DownloadIcon fontSize="var(--icon-fontSize-sm)"/>*/}

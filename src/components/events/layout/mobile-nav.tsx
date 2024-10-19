@@ -7,7 +7,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
-import Stack from '@mui/material/Stack';
+// import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { ArrowSquareUpRight as ArrowSquareUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowSquareUpRight';
 import { CaretUpDown as CaretUpDownIcon } from '@phosphor-icons/react/dist/ssr/CaretUpDown';
@@ -19,6 +19,7 @@ import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
 import { navIcons } from './nav-icons';
+import { Stack } from '@mui/material';
 
 export interface MobileNavProps {
   onClose?: () => void;
@@ -64,7 +65,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
       </Stack>
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
       <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
-        {renderNavItems({ pathname, items: navItems })}
+        <NavItem pathname={pathname} {...navItems[0]} />
       </Box>
     </Drawer>
   );

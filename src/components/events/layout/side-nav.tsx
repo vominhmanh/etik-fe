@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
-import Stack from '@mui/material/Stack';
+// import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { ArrowSquareUpRight as ArrowSquareUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowSquareUpRight';
 import { CaretUpDown as CaretUpDownIcon } from '@phosphor-icons/react/dist/ssr/CaretUpDown';
@@ -18,6 +18,7 @@ import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
 import { navIcons } from './nav-icons';
+import Stack from "@mui/material/Stack";
 
 export function SideNav(): React.JSX.Element {
   const pathname = usePathname();
@@ -42,23 +43,27 @@ export function SideNav(): React.JSX.Element {
         height: '100%',
         left: 0,
         maxWidth: '100%',
-        position: 'fixed',
+        position: 'absolute',
         scrollbarWidth: 'none',
-        top: 0,
         width: 'var(--SideNav-width)',
         zIndex: 'var(--SideNav-zIndex)',
         '&::-webkit-scrollbar': { display: 'none' },
       }}
     >
-      <Stack spacing={2} sx={{ p: 2 }}>
+      <Stack sx={{position: 'sticky', top: 0}}>
+        <Stack spacing={2} sx={{ p: 2 }}>
         <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
           <Logo color="light" height={32} width={122} />
         </Box>
       </Stack>
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
       <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
-        {renderNavItems({ pathname, items: navItems })}
+        <Stack component="ul" spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }}>
+          <NavItem pathname={pathname} {...navItems[0]} />
+        </Stack>
+        {/*{renderNavItems({ pathname, items: navItems })}*/}
       </Box>
+      </Stack>
     </Box>
   );
 }

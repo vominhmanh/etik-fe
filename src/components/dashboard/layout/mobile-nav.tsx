@@ -18,7 +18,6 @@ import { isNavItemActive } from '@/lib/is-nav-item-active';
 import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
-import { navIcons } from './nav-icons';
 
 export interface MobileNavProps {
   onClose?: () => void;

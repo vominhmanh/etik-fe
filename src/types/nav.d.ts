@@ -1,10 +1,12 @@
+import type { Icon } from '@phosphor-icons/react/dist/lib/types';
+
 export interface NavItemConfig {
   key: string;
   title?: string;
   disabled?: boolean;
   external?: boolean;
   label?: string;
-  icon?: string;
+  icon?: Icon;
   href?: string;
   items?: NavItemConfig[];
   // Matcher cannot be a function in order
