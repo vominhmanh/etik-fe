@@ -18,7 +18,7 @@ export type SignUpReq = {
 
 export type AuthRes = {
   user: User;
-  accessToken: string;
-  refreshToken: string;
+  access_token: string;
+  refresh_token: string;
   token_type: string;
 };

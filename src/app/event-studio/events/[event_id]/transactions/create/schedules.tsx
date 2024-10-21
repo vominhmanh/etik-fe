@@ -17,7 +17,7 @@ import {DotsThreeVertical as DotsThreeVerticalIcon} from '@phosphor-icons/react/
 import dayjs from 'dayjs';
 import Radio from "@mui/material/Radio";
 
-export interface Product {
+export interface Show {
   id: string;
   image: string;
   name: string;
@@ -25,11 +25,11 @@ export interface Product {
 }
 
 export interface LatestProductsProps {
-  products?: Product[];
+  shows?: Show[];
   sx?: SxProps;
 }
 
-export function Schedules({products = [], sx}: LatestProductsProps): React.JSX.Element {
+export function Schedules({shows = [], sx}: LatestProductsProps): React.JSX.Element {
   return (
     <Card sx={sx}>
       <CardHeader
@@ -41,10 +41,10 @@ export function Schedules({products = [], sx}: LatestProductsProps): React.JSX.E
         }/>
       <Divider/>
       <List>
-        {products.map((product, index) => (
+        {shows.map((show, index) => (
           <ListItem
-            divider={index < products.length - 1}
-            key={product.id}
+            divider={index < shows.length - 1}
+            key={show.id}
           >
             <Box sx={{display: 'flex', alignItems: 'center', marginRight: '10px'}}>
               <Radio
@@ -55,8 +55,8 @@ export function Schedules({products = [], sx}: LatestProductsProps): React.JSX.E
               />
             </Box>
             <ListItemAvatar>
-              {product.image ? (
-                <Box component="img" src={product.image} sx={{borderRadius: 1, height: '48px', width: '48px'}}/>
+              {show.image ? (
+                <Box component="img" src={show.image} sx={{borderRadius: 1, height: '48px', width: '48px'}}/>
               ) : (
                 <Box
                   sx={{
@@ -69,9 +69,9 @@ export function Schedules({products = [], sx}: LatestProductsProps): React.JSX.E
               )}
             </ListItemAvatar>
             <ListItemText
-              primary={product.name}
+              primary={show.name}
               primaryTypographyProps={{variant: 'subtitle1'}}
-              secondary={`Updated ${dayjs(product.updatedAt).format('MMM D, YYYY')}`}
+              secondary={`Updated ${dayjs(show.updatedAt).format('MMM D, YYYY')}`}
               secondaryTypographyProps={{variant: 'body2'}}
             />
             <IconButton edge="end">
