@@ -115,9 +115,9 @@ export function SideNav(): React.JSX.Element {
           <Stack component="ul" key={navItems[0].key} spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }}>
             <NavItem pathname={pathname} key='overview' title='Tổng quan' href='/event-studio/events/dashboard' icon={ChartPieIcon} />
             <NavItemCollapse pathname={pathname} key='configuration' title='Thiết kế sự kiện' icon={PlugsConnectedIcon} >
-              <NavItemCollapseChildItem pathname={pathname} key='configuration-event-info' title='Chi tiết sự kiện' href='/event-studio/events/1/configuration/event-detail' icon={InfoIcon} />
-              <NavItemCollapseChildItem pathname={pathname} key='configuration-date-time' title='Suất diễn' href='/event-studio/events/1/configuration/schedules' icon={CalendarDotsIcon} />
-              <NavItemCollapseChildItem pathname={pathname} key='configuration-ticket-categories' title='Loại vé' href='/event-studio/events/1/configuration/ticket-categories' icon={TicketIcon} />
+              <NavItemCollapseChildItem pathname={pathname} key='configuration-event-info' title='Chi tiết sự kiện' href='/event-studio/events/1/event-detail' icon={InfoIcon} />
+              <NavItemCollapseChildItem pathname={pathname} key='configuration-date-time' title='Suất diễn' href='/event-studio/events/1/schedules' icon={CalendarDotsIcon} />
+              <NavItemCollapseChildItem pathname={pathname} key='configuration-ticket-categories' title='Loại vé' href='/event-studio/events/1/ticket-categories' icon={TicketIcon} />
             </NavItemCollapse>
             <NavItemCollapse pathname={pathname} key='transactions' title='Bán vé & Khách hàng' icon={UsersIcon} >
               <NavItemCollapseChildItem pathname={pathname} key='transactions-list' title='Danh sách khách hàng' href='/event-studio/events/1/transactions' icon={ListDashesIcon} />

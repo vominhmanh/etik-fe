@@ -35,7 +35,7 @@ export interface ResetPasswordParams {
 class AuthClient {
   async signUp(data: SignUpReq): Promise<AuthRes> {
     const res = await AuthService.register(data);
-    localStorage.setItem('accessToken', res.data.accessToken);
+    localStorage.setItem('accessToken', res.data.access_token);
     return res.data;
   }
 
@@ -45,7 +45,7 @@ class AuthClient {
 
   async signInWithPassword(data: LoginReq): Promise<AuthRes> {
     const res = await AuthService.login(data);
-    localStorage.setItem('accessToken', res.data.accessToken);
+    localStorage.setItem('accessToken', res.data.access_token);
     return res.data;
   }
 

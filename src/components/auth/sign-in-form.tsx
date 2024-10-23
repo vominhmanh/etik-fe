@@ -65,7 +65,6 @@ export function SignInForm(): React.JSX.Element {
       } catch (error: any) {
         setError('root', { type: 'server', message: error?.message || 'Unknown Error' });
         setIsPending(false);
-        return;
       }
     },
     [checkSession, router, setError]

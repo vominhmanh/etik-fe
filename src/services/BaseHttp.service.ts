@@ -108,3 +108,6 @@ export default class BaseHttpService {
     localStorage.removeItem('accessToken');
   }
 }
+
+
+export const baseHttpServiceInstance = new BaseHttpService()

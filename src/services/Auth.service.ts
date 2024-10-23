@@ -11,7 +11,7 @@ class AuthService extends BaseHttpService {
 
   async login(data: LoginReq): Promise<AxiosResponse<AuthRes>> {
     return this.post(`/auth/login`, data, {
-      headers: {
+      headers: { 
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
