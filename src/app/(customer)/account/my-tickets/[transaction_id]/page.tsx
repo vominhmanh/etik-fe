@@ -13,7 +13,7 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Stack, Chip, MenuItem, Select } from '@mui/material';
+import { Stack, Chip, MenuItem, Select, CardMedia } from '@mui/material';
 import axios, { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { Money as MoneyIcon, Bank as BankIcon, Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
@@ -24,6 +24,9 @@ import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
 import { StackPlus as StackPlusIcon } from '@phosphor-icons/react/dist/ssr/StackPlus';
 import { SealPercent as SealPercentIcon } from '@phosphor-icons/react/dist/ssr/SealPercent';
 import { EnvelopeSimple as EnvelopeSimpleIcon } from '@phosphor-icons/react/dist/ssr/EnvelopeSimple';
+import { Clock as ClockIcon } from "@phosphor-icons/react/dist/ssr/Clock";
+import { MapPin as MapPinIcon } from "@phosphor-icons/react/dist/ssr/MapPin";
+import { HouseLine as HouseLineIcon } from "@phosphor-icons/react/dist/ssr/HouseLine";
 
 import dayjs from 'dayjs';
 
@@ -101,6 +104,19 @@ export interface Creator {
   email: string;
 }
 
+interface Event {
+  id: number;
+  name: string;
+  organizer: string;
+  description: string | null;
+  startDateTime: string | null;
+  endDateTime: string | null;
+  place: string | null;
+  locationUrl: string | null;
+  bannerUrl: string;
+  slug: string;
+  locationInstruction: string | null;
+};
 
 export interface TicketCategory {
   id: number;
@@ -119,6 +135,7 @@ export interface TicketCategory {
 export interface Transaction {
   id: number;
   eventId: number;
+  event: Event;
   customerId: number;
   email: string;
   name: string;
@@ -147,18 +164,22 @@ export interface Transaction {
   creator: Creator | null;
 }
 
+export interface ECodeResponse {
+  eCode: string;
+}
 
-export default function Page({ params }: { params: { event_id: number, transaction_id: number } }): React.JSX.Element {
+export default function Page({ params }: { params: { transaction_id: number } }): React.JSX.Element {
   const [transaction, setTransaction] = useState<Transaction | null>(null);
+  const [eCode, setECode] = useState<string | null>(null);
 
-  const { event_id, transaction_id } = params;
+  const { transaction_id } = params;
 
   // Fetch transaction details
   useEffect(() => {
     const fetchTransactionDetails = async () => {
       try {
         const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${event_id}/transactions/${transaction_id}`
+          `/account/transactions/${transaction_id}`
         );
         setTransaction(response.data);
       } catch (error) {
@@ -167,7 +188,22 @@ export default function Page({ params }: { params: { event_id: number, transacti
     };
 
     fetchTransactionDetails();
-  }, [event_id, transaction_id]);
+  }, [transaction_id]);
+
+  useEffect(() => {
+    const fetchCheckInECode = async () => {
+      try {
+        const response: AxiosResponse<ECodeResponse> = await baseHttpServiceInstance.get(
+          `/account/transactions/${transaction_id}/check-in-e-code`
+        );
+        setECode(response.data.eCode);
+      } catch (error) {
+        console.error('Error fetching ecode', error);
+      }
+    };
+
+    fetchCheckInECode();
+  }, [transaction_id]);
 
   if (!transaction) {
     return <Typography>Loading...</Typography>;
@@ -186,6 +222,43 @@ export default function Page({ params }: { params: { event_id: number, transacti
       <Grid container spacing={3}>
         <Grid lg={5} md={5} xs={12} spacing={3}>
           <Stack spacing={3}>
+            <Card>
+              <CardMedia
+                sx={{ height: 140 }}
+                image={transaction.event.bannerUrl || 'https://mui.com/static/images/cards/contemplative-reptile.jpg'}
+                title={transaction.event.name}
+              />
+              <CardContent>
+                <Typography gutterBottom variant="h5" component="div">
+                  {transaction.event.name}
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {transaction.event.description ? transaction.event.description : "Chưa có mô tả"}
+                </Typography>
+                <Stack direction="column" spacing={2} sx={{ alignItems: 'left', mt: 2 }}>
+                  <Stack direction="row" spacing={1}>
+                    <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      Đơn vị tổ chức: {transaction.event.organizer}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <ClockIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {transaction.event.startDateTime && transaction.event.endDateTime
+                        ? `${transaction.event.startDateTime} - ${transaction.event.endDateTime}`
+                        : "Chưa xác định"}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {transaction.event.place ? transaction.event.place : "Chưa xác định"}
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader title="Thanh toán" />
               <Divider />
@@ -317,7 +390,6 @@ export default function Page({ params }: { params: { event_id: number, transacti
                         <Typography variant="body1">{dayjs(transaction.paymentTransactionDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}</Typography>
                       </Grid>
                     }
-
                   </Stack>
                 </CardContent>
               </Card>
@@ -433,6 +505,7 @@ export default function Page({ params }: { params: { event_id: number, transacti
                       <FormControl fullWidth required>
                         <InputLabel>Họ và tên người tham dự {index + 1}</InputLabel>
                         <OutlinedInput
+                          disabled
                           label={`Họ và tên người tham dự ${index + 1}`}
                           value={ticket.holder}
                         // onChange={(e) => handleTicketHolderChange(index, e.target.value)}
@@ -443,65 +516,20 @@ export default function Page({ params }: { params: { event_id: number, transacti
                 </Grid>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader title="Hành động" />
-              <Divider />
-              <CardContent>
-                <Grid container justifyContent="space-between">
-                  <FormControl fullWidth required>
-                    <InputLabel>Chọn trạng thái vé:</InputLabel>
-                    <Select
-                      label="Chọn trạng thái thanh toán"
-                      name="type"
-                    >
-                      <MenuItem value="waiting_for_payment" selected>Khởi tạo</MenuItem>
-                      <MenuItem value="paid">Khả dụng</MenuItem>
-                      <MenuItem value="refund">Huỷ bởi Khách hàng</MenuItem>
-                      <MenuItem value="refund">Khoá bởi Nhân viên</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Stack spacing={2} direction={'row'}>
-                  {transaction.status === 'active' &&
-                    <Button href={transaction.paymentCheckoutUrl || ""} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                      Gửi Email vé
-                    </Button>}
-                  {transaction.status === 'initial' && transaction.paymentMethod === 'napas247' && transaction.paymentStatus === 'waiting_for_payment' &&
-                    <Button href={transaction.paymentCheckoutUrl || ""} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                      Gửi Hướng dẫn thanh toán
-                    </Button>}
-                </Stack>
-              </CardContent>
-            </Card>
-
-            {transaction.paymentMethod !== 'napas247' &&
+            {eCode &&
               <Card>
-                <CardHeader title={`Chi tiết thanh toán ${getPaymentMethodDetails(transaction.paymentMethod).label}`} />
+                <CardHeader title="Mã QR check-in" subheader='Vui lòng bảo mật mã QR check-in' />
                 <Divider />
                 <CardContent>
-                  <Stack spacing={2}>
-                    <Grid container justifyContent="space-between">
-                      <FormControl fullWidth required>
-                        <InputLabel>Chọn trạng thái thanh toán:</InputLabel>
-                        <Select
-                          label="Chọn trạng thái thanh toán"
-                          name="type"
-                        >
-                          <MenuItem value="waiting_for_payment" selected>Đang chờ thanh toán</MenuItem>
-                          <MenuItem value="paid">Đã thanh toán</MenuItem>
-                          <MenuItem value="refund">Đã hoàn tiền</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
+                  <Stack spacing={1} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <div style={{width: '100px' }}>
+                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${eCode}"`} />
+                    </div>
+                    <Typography sx={{ textAlign: 'center' }}>{eCode}</Typography>
                   </Stack>
+
                 </CardContent>
-              </Card>
-            }
-            <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-              <Button type="submit" variant="contained">
-                Lưu
-              </Button>
-            </Grid>
+              </Card>}
           </Stack>
         </Grid>
       </Grid>

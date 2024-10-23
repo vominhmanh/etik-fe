@@ -25,13 +25,22 @@ import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
 import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
 
 export type TicketCategory = {
-  id: string;
+  id: number;
   avatar: string;
   name: string;
   updatedAt: Date;
   price: number;
   type: string;
   status: string;
+}
+
+export type Show = {
+  id: number;
+  eventId: number;
+  name: string;
+  startDateTime: Date| null;
+  endDateTime: Date| null;
+  place: string | null;
 }
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
@@ -46,6 +55,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     address: '',
   });
   const [extraFee, setExtraFee] = React.useState<number>(0);
+  const [shows, setShows] = React.useState<Show[]>([]);
   const [paymentMethod, setPaymentMethod] = React.useState<string>("");
   const [ticketHolders, setTicketHolders] = React.useState<string[]>([""]);
 
@@ -65,6 +75,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       }
     }
     fetchTicketCategories();
+  }, [params.event_id]);
+
+  // Fetch shows
+  React.useEffect(() => {
+    async function fetchShows() {
+      try {
+        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/shows/`);
+        setShows(response.data);
+      } catch (error) {
+        console.error('Error fetching shows:', error);
+      }
+    }
+    fetchShows();
   }, [params.event_id]);
 
   const handleCategorySelection = (ticketCategoryId: string) => {
@@ -136,14 +159,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               onCategorySelect={handleCategorySelection}
             />
             <Schedules
-              shows={[
-                {
-                  id: 'PRD-009',
-                  name: 'Suất diễn mặc định',
-                  image: '/assets/product-5.png',
-                  updatedAt: dayjs().subtract(18, 'minutes').subtract(5, 'hour').toDate(),
-                }
-              ]}
+              shows={shows}
             />
           </Stack>
         </Grid>

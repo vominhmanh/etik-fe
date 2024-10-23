@@ -60,6 +60,7 @@ export function SideNav(): React.JSX.Element {
       <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
         <Stack component="ul" spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }}>
           <NavItem pathname={pathname} {...navItems[0]} />
+          <NavItem pathname={pathname} {...navItems[1]} />
         </Stack>
         {/*{renderNavItems({ pathname, items: navItems })}*/}
       </Box>
@@ -90,7 +91,7 @@ interface NavItemProps extends Omit<NavItemConfig, 'items'> {
 
 function NavItem({ disabled, external, href, icon, matcher, pathname, title }: NavItemProps): React.JSX.Element {
   const active = isNavItemActive({ disabled, external, href, matcher, pathname });
-  const Icon = icon ? navIcons[icon] : null;
+  const Icon = icon;
 
   return (
     <li>

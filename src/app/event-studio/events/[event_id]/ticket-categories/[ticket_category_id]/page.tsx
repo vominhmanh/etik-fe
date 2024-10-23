@@ -76,7 +76,7 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
         status: formData.status,
       });
       console.log('Ticket category updated:', response.data);
-      router.push(`/event-studio/events/${eventId}/configuration/ticket-categories`);
+      router.push(`/event-studio/events/${eventId}/ticket-categories`);
     } catch (error) {
       console.error('Error updating ticket category:', error);
     }
@@ -130,6 +130,9 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
                         name="description"
                         value={formData.description}
                         onChange={handleChange}
+                        multiline
+                        minRows={2}
+                        maxRows={10}
                       />
                     </FormControl>
                   </Grid>

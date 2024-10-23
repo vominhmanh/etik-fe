@@ -41,7 +41,9 @@
     "react-apexcharts": "1.4.1",
     "react-dom": "18.3.1",
     "react-hook-form": "7.52.0",
+    "react-media-devices": "^1.1.5",
     "react-perfect-scrollbar": "^1.5.8",
+    "react-zxing": "^2.0.2",
     "zod": "3.23.8"
   },
   "devDependencies": {

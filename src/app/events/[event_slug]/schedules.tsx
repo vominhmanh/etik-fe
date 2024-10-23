@@ -10,15 +10,14 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 import ListItemText from '@mui/material/ListItemText';
-import type { SxProps } from '@mui/material/styles';
-import { ArrowCounterClockwise as ArrowCounterClockwiseIcon } from '@phosphor-icons/react/dist/ssr/ArrowCounterClockwise';
-import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { DotsThreeVertical as DotsThreeVerticalIcon } from '@phosphor-icons/react/dist/ssr/DotsThreeVertical';
+import type {SxProps} from '@mui/material/styles';
+import {ArrowCounterClockwise as ArrowCounterClockwiseIcon} from '@phosphor-icons/react/dist/ssr/ArrowCounterClockwise';
+import {Plus as PlusIcon} from '@phosphor-icons/react/dist/ssr/Plus';
+import {DotsThreeVertical as DotsThreeVerticalIcon} from '@phosphor-icons/react/dist/ssr/DotsThreeVertical';
 import dayjs from 'dayjs';
 import Radio from "@mui/material/Radio";
 import { Clock as ClockIcon } from "@phosphor-icons/react/dist/ssr/Clock";
 import { Stack, Typography } from '@mui/material';
-
 export type Show = {
   id: number;
   eventId: number;
@@ -33,24 +32,24 @@ export interface LatestProductsProps {
   sx?: SxProps;
 }
 
-export function Schedules({ shows = [], sx }: LatestProductsProps): React.JSX.Element {
+export function Schedules({shows = [], sx}: LatestProductsProps): React.JSX.Element {
   return (
     <Card sx={sx}>
       <CardHeader
         title="Chọn suất diễn"
         action={
           <IconButton href="">
-            <ArrowCounterClockwiseIcon fontSize="var(--icon-fontSize-md)" />
+            <ArrowCounterClockwiseIcon fontSize="var(--icon-fontSize-md)"/>
           </IconButton>
-        } />
-      <Divider />
+        }/>
+      <Divider/>
       <List>
         {shows.map((show, index) => (
           <ListItem
             divider={index < shows.length - 1}
             key={show.id}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', marginRight: '10px' }}>
+            <Box sx={{display: 'flex', alignItems: 'center', marginRight: '10px'}}>
               <Radio
                 checked
                 sx={{
@@ -88,22 +87,11 @@ export function Schedules({ shows = [], sx }: LatestProductsProps): React.JSX.El
               secondaryTypographyProps={{ variant: 'body2' }}
             />
             <IconButton edge="end">
-              <DotsThreeVerticalIcon weight="bold" />
+              <DotsThreeVerticalIcon weight="bold"/>
             </IconButton>
           </ListItem>
         ))}
       </List>
-      <Divider />
-      <CardActions sx={{ justifyContent: 'flex-end' }}>
-        <Button
-          color="inherit"
-          endIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
-          size="small"
-          variant="text"
-        >
-          Suất diễn mới
-        </Button>
-      </CardActions>
     </Card>
   );
 }

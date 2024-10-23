@@ -48,7 +48,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         description: formData.description,
       });
       console.log('Ticket category created:', response.data);
-      router.push(`/event-studio/events/${eventId}/configuration/ticket-categories`);
+      router.push(`/event-studio/events/${eventId}/ticket-categories`);
     } catch (error) {
       console.error('Error creating ticket category:', error);
     }
@@ -102,6 +102,9 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                         name="description"
                         value={formData.description}
                         onChange={handleChange}
+                        multiline
+                        minRows={2}
+                        maxRows={10}
                       />
                     </FormControl>
                   </Grid>

@@ -13,9 +13,9 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import {Acorn as AdbIcon} from '@phosphor-icons/react/dist/ssr/Acorn';
+import { Link } from '@mui/material';
 
 const pages = ['Marketplace', 'Event Studio', 'Blog'];
-const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
 
 export function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
@@ -73,11 +73,12 @@ export function ResponsiveAppBar() {
               onClose={handleCloseNavMenu}
               sx={{ display: { xs: 'block', md: 'none' } }}
             >
-              {pages.map((page) => (
-                <MenuItem key={page} onClick={handleCloseNavMenu}>
-                  <Typography sx={{ textAlign: 'center' }}>{page}</Typography>
+                <MenuItem component={'a'} href='/marketplace' >
+                  <Typography sx={{ textAlign: 'center' }}>Marketplace</Typography>
                 </MenuItem>
-              ))}
+                <MenuItem component={'a'} href='/event-studio'>
+                  <Typography sx={{ textAlign: 'center' }}>Event Studio</Typography>
+                </MenuItem>
             </Menu>
           </Box>
           <Typography
@@ -95,18 +96,30 @@ export function ResponsiveAppBar() {
               textDecoration: 'none',
             }}
           >
-            LOGO
+            ETIK
           </Typography>
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex', my: 0 } }}>
-            {pages.map((page) => (
               <Button
-                key={page}
+                href='/marketplace'
                 onClick={handleCloseNavMenu}
                 sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
               >
-                {page}
+                Marketplace
               </Button>
-            ))}
+              <Button
+                href='/event-studio/events'
+                onClick={handleCloseNavMenu}
+                sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
+              >
+                Event Studio
+              </Button>
+              <Button
+                href='/blogs'
+                onClick={handleCloseNavMenu}
+                sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
+              >
+                Blogs
+              </Button>
           </Box>
           
         </Toolbar>

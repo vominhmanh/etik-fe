@@ -11,6 +11,7 @@ import Typography from '@mui/material/Typography';
 import { GearSix as GearSixIcon } from '@phosphor-icons/react/dist/ssr/GearSix';
 import { SignOut as SignOutIcon } from '@phosphor-icons/react/dist/ssr/SignOut';
 import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
+import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 
 import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
@@ -66,23 +67,29 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
       </Box>
       <Divider />
       <MenuList disablePadding sx={{ p: '8px', '& .MuiMenuItem-root': { borderRadius: 1 } }}>
-        <MenuItem component={RouterLink} href={paths.dashboard.settings} onClick={onClose}>
+        <MenuItem component={RouterLink} href={'/account/settings'} onClick={onClose}>
           <ListItemIcon>
             <GearSixIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Settings
+          Cài đặt
         </MenuItem>
-        <MenuItem component={RouterLink} href={paths.dashboard.account} onClick={onClose}>
+        <MenuItem component={RouterLink} href={'/account'} onClick={onClose}>
           <ListItemIcon>
             <UserIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Profile
+          Trang cá nhân
+        </MenuItem>
+        <MenuItem component={RouterLink} href={'/account/my-tickets'} onClick={onClose}>
+          <ListItemIcon>
+            <TicketIcon fontSize="var(--icon-fontSize-md)" />
+          </ListItemIcon>
+          Vé của tôi
         </MenuItem>
         <MenuItem onClick={handleSignOut}>
           <ListItemIcon>
             <SignOutIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Sign out
+          Đăng xuất
         </MenuItem>
       </MenuList>
     </Popover>

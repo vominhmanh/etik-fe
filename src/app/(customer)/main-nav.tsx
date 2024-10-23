@@ -14,9 +14,8 @@ import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 
 import { usePopover } from '@/hooks/use-popover';
 import { useUser } from '@/hooks/use-user';
-
-import { MobileNav } from './mobile-nav';
 import { UserPopover } from '@/components/dashboard/layout/user-popover';
+
 
 export function MainNav(): React.JSX.Element {
   const [openNav, setOpenNav] = React.useState<boolean>(false);
@@ -43,20 +42,7 @@ export function MainNav(): React.JSX.Element {
           spacing={2}
           sx={{ alignItems: 'center', justifyContent: 'space-between', minHeight: '64px', px: 2 }}
         >
-          <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-            <IconButton
-              onClick={(): void => {
-                setOpenNav(true);
-              }}
-              sx={{ display: { lg: 'none' } }}
-            >
-              <ListIcon />
-            </IconButton>
-            <Tooltip title="Search">
-              <IconButton>
-                <MagnifyingGlassIcon />
-              </IconButton>
-            </Tooltip>
+          <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>           
           </Stack>
           <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
             <Tooltip title="Contacts">
@@ -78,12 +64,7 @@ export function MainNav(): React.JSX.Element {
         </Stack>
       </Box>
       <UserPopover anchorEl={userPopover.anchorRef.current} onClose={userPopover.handleClose} open={userPopover.open} />
-      <MobileNav
-        onClose={() => {
-          setOpenNav(false);
-        }}
-        open={openNav}
-      />
+      
     </React.Fragment>
   );
 }

@@ -12,7 +12,7 @@ import { CustomersFilters } from '@/components/dashboard/customer/customers-filt
 import { Transaction, TransactionsTable } from './transactions-table';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 
-export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
   const page = 0;
   const rowsPerPage = 10;
@@ -58,6 +58,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         page={page}
         rows={paginatedCustomers}
         rowsPerPage={rowsPerPage}
+        eventId={params.event_id}
       />
     </Stack>
   );

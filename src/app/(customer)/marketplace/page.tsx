@@ -42,7 +42,7 @@ export default function Page(): React.JSX.Element {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/event-studio/events');
+        const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/marketplace/events');
         setEvents(response.data);
       } catch (error) {
         console.error('Error fetching events:', error);
@@ -53,22 +53,14 @@ export default function Page(): React.JSX.Element {
   }, []);
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={5}>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Sự kiện của tôi</Typography>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            {/* <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Import
-            </Button>
-            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Export
-            </Button> */}
-          </Stack>
+          <Typography variant="h4">Sự kiện</Typography>
         </Stack>
         <div>
           <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} variant="contained" href='/event-studio/events/create'>
-            Thêm
+            Tạo sự kiện mới
           </Button>
         </div>
       </Stack>
@@ -114,7 +106,7 @@ export default function Page(): React.JSX.Element {
               </CardContent>
               <Divider />
               <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 1 }}>
-                <Button href={`/event-studio/events/${event.id}`} size="small" startIcon={<EyeIcon />}>
+                <Button href={`/events/${event.slug}`} size="small" startIcon={<EyeIcon />}>
                   Xem chi tiết
                 </Button>
               </Stack>

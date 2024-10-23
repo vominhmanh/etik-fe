@@ -132,6 +132,7 @@ interface CustomersTableProps {
   page?: number;
   rows?: Transaction[];
   rowsPerPage?: number;
+  eventId: number;
 }
 
 const formatPrice = (price: number) => {
@@ -164,7 +165,7 @@ function stringAvatar(name: string) {
     sx: {
       bgcolor: stringToColor(name),
     },
-    children: `${name.split(' ')[0][0]}${name.split(' ')[1][0]}`,
+    children: `${name.split(' ')[0][0]}${name.split(' ').length > 1 ? name.split(' ')[1][0] : ''}`,
   };
 }
 export function TransactionsTable({
@@ -172,6 +173,7 @@ export function TransactionsTable({
   rows = [],
   page = 0,
   rowsPerPage = 10,
+  eventId = 0,
 }: CustomersTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => {
     return rows.map((transaction) => transaction.id);
@@ -290,7 +292,7 @@ export function TransactionsTable({
                   </TableCell>
                   <TableCell>{dayjs(row.createdAt).format('HH:mm:ss DD/MM/YYYY')}</TableCell>
                   <TableCell>
-                    <IconButton color="primary">
+                    <IconButton color="primary" href={`/event-studio/events/${eventId}/transactions/${row.id}`}>
                       <ArrowSquareUpRightIcon />
                     </IconButton>
                   </TableCell>
