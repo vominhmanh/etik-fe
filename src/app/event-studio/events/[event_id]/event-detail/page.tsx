@@ -5,7 +5,7 @@ import Typography from '@mui/material/Typography';
 import { Clock as ClockIcon } from "@phosphor-icons/react/dist/ssr/Clock";
 import { MapPin as MapPinIcon } from "@phosphor-icons/react/dist/ssr/MapPin";
 import { HouseLine as HouseLineIcon } from "@phosphor-icons/react/dist/ssr/HouseLine";
-import { CardMedia, MenuItem, Select } from "@mui/material";
+import { Avatar, Box, CardMedia, MenuItem, Select } from "@mui/material";
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
@@ -20,6 +20,7 @@ import { Stack, TextField } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { AxiosResponse } from 'axios';
+import { ArrowSquareIn } from '@phosphor-icons/react/dist/ssr';
 
 
 // Define the event response type
@@ -45,7 +46,48 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
   const { event_id } = params;
+  const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = React.useState<string>(event?.bannerUrl || '');
+  const [isImageSelected, setIsImageSelected] = React.useState(false);
 
+  // Handle image selection
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      setPreviewUrl(URL.createObjectURL(file)); // Generate preview URL
+      setIsImageSelected(true); // Toggle button state
+    }
+  };
+
+  // Handle saving the image
+  const handleSaveImage = async () => {
+    if (!selectedImage) return;
+
+    const formData = new FormData();
+    formData.append('file', selectedImage);
+
+    try {
+      // Call API to upload the image
+      await baseHttpServiceInstance.post(`/event-studio/events/${event?.id}/upload_banner`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // On successful upload, reload the page or handle success
+      window.location.reload(); // You can also call a function to update the state instead of reloading
+    } catch (error) {
+      console.error('Error uploading banner image:', error);
+    }
+  };
+
+  // Handle selecting another image
+  const handleSelectOther = () => {
+    setSelectedImage(null);
+    setPreviewUrl(event.bannerUrl || '');
+    setIsImageSelected(false); // Reset state
+  };
 
   // Fetch event details on component mount
   useEffect(() => {
@@ -75,6 +117,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     e.preventDefault();
     if (formValues && event_id) {
       try {
+        console.log(formValues)
         await baseHttpServiceInstance.put(`/event-studio/events/${event_id}`, formValues);
         alert('Event updated successfully!');
         // Optionally redirect or refresh the page
@@ -91,74 +134,135 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
   return (
     <Stack spacing={3}>
-      <div>
-        <Typography variant="h4">Chi tiết sự kiện</Typography>
-      </div>
       <Grid container spacing={3}>
-        <Grid lg={4} md={6} xs={12}>
-          <Card>
-            <CardMedia
-              sx={{ height: 140 }}
-              image={event.bannerUrl || 'https://mui.com/static/images/cards/contemplative-reptile.jpg'}
-              title={event.name}
+        <Grid lg={8} md={6} xs={12}>
+          <Box
+            sx={{
+              position: 'relative',
+              width: '100%',
+              aspectRatio: 16 / 6, // 16:9 aspect ratio (modify as needed)
+              overflow: 'hidden',
+              border: 'grey 1px',
+              borderRadius: '20px',
+              backgroundColor: 'gray'
+            }}
+          >
+            <img
+              src={event?.bannerUrl}
+              alt="Car"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: 'auto',
+                objectFit: 'cover', // or 'contain' depending on your preference
+              }}
             />
-            <CardContent>
-              <Typography gutterBottom variant="h5" component="div">
-                {event.name}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                {event.description ? event.description : "Chưa có mô tả"}
-              </Typography>
-              <Stack direction="column" spacing={2} sx={{ alignItems: 'left', mt: 2 }}>
+          </Box>
+        </Grid>
+        <Grid lg={4} md={6} xs={12}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <Stack direction="column" spacing={2}>
+                <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
+                  <div>
+                    <Avatar sx={{ height: '80px', width: '80px', fontSize: "2rem" }}>{event?.name[0].toUpperCase()}</Avatar>
+                  </div>
+                  <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>{event?.name}</Typography>
+                </Stack>
+
                 <Stack direction="row" spacing={1}>
                   <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
                   <Typography color="text.secondary" display="inline" variant="body2">
-                    Đơn vị tổ chức: {event.organizer}
+                    Đơn vị tổ chức: {event?.organizer}
                   </Typography>
                 </Stack>
                 <Stack direction="row" spacing={1}>
                   <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                   <Typography color="text.secondary" display="inline" variant="body2">
-                    {event.startDateTime && event.endDateTime
-                      ? `${event.startDateTime} - ${event.endDateTime}`
+                    {event?.startDateTime && event?.endDateTime
+                      ? `${event?.startDateTime} - ${event?.endDateTime}`
                       : "Chưa xác định"}
                   </Typography>
                 </Stack>
+
                 <Stack direction="row" spacing={1}>
                   <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                   <Typography color="text.secondary" display="inline" variant="body2">
-                    {event.place ? event.place : "Chưa xác định"}
+                    {event?.place ? event?.place : "Chưa xác định"}
                   </Typography>
                 </Stack>
               </Stack>
+              <div style={{ marginTop: '20px' }}>
+                <Button fullWidth variant='contained' target='_blank' href={`/events/${event?.slug}`} size="small" endIcon={<ArrowSquareIn />}>
+                  Đến trang Marketplace của sự kiện
+                </Button>
+              </div>
             </CardContent>
-            <Divider />
-            <CardActions>
-              <Button fullWidth variant="text">
-                Thay đổi ảnh bìa
-              </Button>
-            </CardActions>
           </Card>
         </Grid>
-        <Grid lg={8} md={6} xs={12}>
+      </Grid>
+      <div>
+        <Typography variant="h4">Chi tiết sự kiện</Typography>
+      </div>
+      <Grid container spacing={3}>
+        <Grid lg={4} md={6} xs={12}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader title="Thông tin sự kiện" />
+              <CardMedia sx={{ height: 140 }} image={previewUrl || ''} title={event.name} />
+              <CardContent>
+                <Typography gutterBottom variant="h5" component="div">
+                  {event.name}
+                </Typography>
+                <Stack direction="column" spacing={2} sx={{ alignItems: 'left', mt: 2 }}>
+                  <Stack direction="row" spacing={1}>
+                    <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      Đơn vị tổ chức: {event.organizer}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <ClockIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {event.startDateTime && event.endDateTime
+                        ? `${event.startDateTime} - ${event.endDateTime}`
+                        : 'Chưa xác định'}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {event.place ? event.place : 'Chưa xác định'}
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </CardContent>
+              <Divider />
+              <CardActions>
+                {isImageSelected ? (
+                  <Stack direction="row" spacing={2} sx={{ width: '100%' }}>
+                    <Button fullWidth variant="contained" onClick={handleSaveImage}>
+                      Lưu ảnh bìa
+                    </Button>
+                    <Button fullWidth variant="outlined" onClick={handleSelectOther}>
+                      Chọn ảnh khác
+                    </Button>
+                  </Stack>
+                ) : (
+                  <Button fullWidth variant="text" component="label">
+                    Thay đổi ảnh bìa
+                    <input type="file" hidden accept="image/*" onChange={handleImageChange} />
+                  </Button>
+                )}
+              </CardActions>
+            </Card>
+            <Card>
+              <CardHeader title="Đơn vị tổ chức" />
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Tên sự kiện</InputLabel>
-                      <OutlinedInput
-                        value={formValues.name}
-                        onChange={handleInputChange}
-                        label="Tên sự kiện"
-                        name="name"
-                      />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={6} xs={12}>
+                  <Grid md={12} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Đơn vị tổ chức</InputLabel>
                       <OutlinedInput
@@ -169,7 +273,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       />
                     </FormControl>
                   </Grid>
-                  <Grid md={6} xs={12}>
+                  <Grid md={12} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Email đơn vị tổ chức</InputLabel>
                       <OutlinedInput
@@ -180,7 +284,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       />
                     </FormControl>
                   </Grid>
-                  <Grid md={6} xs={12}>
+                  <Grid md={12} xs={12}>
                     <FormControl fullWidth>
                       <InputLabel>Số điện thoại đơn vị tổ chức</InputLabel>
                       <OutlinedInput
@@ -189,6 +293,30 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                         label="Số điện thoại đơn vị tổ chức"
                         name="organizerPhoneNumber"
                         type="tel"
+                      />
+                    </FormControl>
+                  </Grid>
+
+                </Grid>
+              </CardContent>
+            </Card>
+          </Stack>
+        </Grid>
+        <Grid lg={8} md={6} xs={12}>
+          <Stack spacing={3}>
+            <Card>
+              <CardHeader title="Thông tin sự kiện" />
+              <Divider />
+              <CardContent>
+                <Grid container spacing={3}>
+                  <Grid md={12} xs={12}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Tên sự kiện</InputLabel>
+                      <OutlinedInput
+                        value={formValues.name}
+                        onChange={handleInputChange}
+                        label="Tên sự kiện"
+                        name="name"
                       />
                     </FormControl>
                   </Grid>
@@ -318,7 +446,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
             </Card>
 
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-              <Button type="submit" variant="contained">
+              <Button type="submit" variant="contained" onClick={handleFormSubmit}>
                 Lưu
               </Button>
             </Grid>
