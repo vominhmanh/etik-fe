@@ -168,13 +168,34 @@ function stringAvatar(name: string) {
     children: `${name.split(' ')[0][0]}${name.split(' ').length > 1 ? name.split(' ')[1][0] : ''}`,
   };
 }
+interface CustomersTableProps {
+  count?: number;
+  page?: number;
+  rows?: Transaction[];
+  rowsPerPage?: number;
+  eventId: number;
+  onPageChange: (newPage: number) => void;
+  onRowsPerPageChange: (newRowsPerPage: number) => void;
+}
+
 export function TransactionsTable({
   count = 0,
   rows = [],
   page = 0,
   rowsPerPage = 10,
   eventId = 0,
+  onPageChange,
+  onRowsPerPageChange,
 }: CustomersTableProps): React.JSX.Element {
+
+  const handleChangePage = (event: unknown, newPage: number) => {
+    onPageChange(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    onRowsPerPageChange(parseInt(event.target.value, 10));
+  };
+
   const rowIds = React.useMemo(() => {
     return rows.map((transaction) => transaction.id);
   }, [rows]);
@@ -308,8 +329,8 @@ export function TransactionsTable({
         count={count}
         page={page}
         rowsPerPage={rowsPerPage}
-        onPageChange={noop}
-        onRowsPerPageChange={noop}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
       />
     </Card>
   );
