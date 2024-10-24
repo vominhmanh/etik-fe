@@ -63,7 +63,7 @@ type EventResponse = {
   locationInstruction: string | null;
 };
 
-export default function Page({ params }: { params: { event_slug: string } }): React.JSX.Element {
+export default function Page(): React.JSX.Element {
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [ticketCategories, setTicketCategories] = React.useState<TicketCategory[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = React.useState<string | null>(null);
@@ -78,13 +78,14 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [paymentMethod, setPaymentMethod] = React.useState<string>("");
   const [ticketHolders, setTicketHolders] = React.useState<string[]>([""]);
   const [shows, setShows] = React.useState<Show[]>([]);
-
+  const event_slug = 'etik-meeting-oki-866'
+  
   // Fetch event details on component mount
   React.useEffect(() => {
-    if (params.event_slug) {
+    if (event_slug) {
       const fetchEventDetails = async () => {
         try {
-          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(`/marketplace/events/${params.event_slug}`);
+          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(`/marketplace/events/${event_slug}`);
           setEvent(response.data);
           // setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
@@ -94,26 +95,26 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
 
       fetchEventDetails();
     }
-  }, [params.event_slug]);
+  }, [event_slug]);
 
   // Fetch shows
   React.useEffect(() => {
     async function fetchShows() {
       try {
-        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(`/marketplace/events/${params.event_slug}/shows/`);
+        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(`/marketplace/events/${event_slug}/shows/`);
         setShows(response.data);
       } catch (error) {
         console.error('Error fetching shows:', error);
       }
     }
     fetchShows();
-  }, [params.event_slug]);
+  }, [event_slug]);
 
   // Fetch ticket categories
   React.useEffect(() => {
     async function fetchTicketCategories() {
       try {
-        const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(`/marketplace/events/${params.event_slug}/ticket_categories/`);
+        const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(`/marketplace/events/${event_slug}/ticket_categories/`);
         const sortedCategories = response.data.sort((a, b) => {
           if (a.status === 'on_sale' && b.status !== 'on_sale') return -1;
           if (a.status !== 'on_sale' && b.status === 'on_sale') return 1;
@@ -125,7 +126,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       }
     }
     fetchTicketCategories();
-  }, [params.event_slug]);
+  }, [event_slug]);
 
   const handleCategorySelection = (ticketCategoryId: string) => {
     setSelectedCategoryId(ticketCategoryId);
@@ -172,7 +173,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         extraFee
       };
 
-      const response = await baseHttpServiceInstance.post(`/marketplace/events/${params.event_slug}/transactions`, transactionData);
+      const response = await baseHttpServiceInstance.post(`/marketplace/events/${event_slug}/transactions`, transactionData);
       console.log("Transaction successful:", response.data);
       alert("Transaction created successfully!");
     } catch (error) {

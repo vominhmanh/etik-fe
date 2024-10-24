@@ -79,7 +79,7 @@ export default function Page(): React.JSX.Element {
             <Card>
               <CardMedia
                 sx={{ height: 140 }}
-                image={event.bannerUrl ? event.bannerUrl : 'https://mui.com/static/images/cards/contemplative-reptile.jpg'}
+                image={event.bannerUrl ? event.bannerUrl : ''}
                 title={event.name}
               />
               <CardContent>

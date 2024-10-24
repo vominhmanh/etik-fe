@@ -14,8 +14,18 @@ import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
-  const page = 0;
-  const rowsPerPage = 10;
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleRowsPerPageChange = (newRowsPerPage: number) => {
+    setRowsPerPage(newRowsPerPage);
+    setPage(0);  // Reset to the first page whenever rows per page change
+  };
+
 
   // Fetch transactions for the event
   React.useEffect(() => {
@@ -54,11 +64,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       </Stack>
       <CustomersFilters />
       <TransactionsTable
-        count={paginatedCustomers.length}
+        count={transactions.length}
         page={page}
         rows={paginatedCustomers}
         rowsPerPage={rowsPerPage}
         eventId={params.event_id}
+        onPageChange={handlePageChange}
+        onRowsPerPageChange={handleRowsPerPageChange}
       />
     </Stack>
   );
