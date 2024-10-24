@@ -60,7 +60,13 @@ export default class BaseHttpService {
     }
     const { statusCode, message } = error?.response?.data ?? {};
     if (statusCode !== 401) {
-      throw new Error(message || error.message || 'Unknown Error');
+      throw new Error(
+        error.response?.data?.detail?.[0]?.msg ||
+          error.response?.data?.detail ||
+          message ||
+          error.message ||
+          'Unknown Error'
+      );
     } else {
       return this.handle401();
     }
@@ -109,5 +115,4 @@ export default class BaseHttpService {
   }
 }
 
-
-export const baseHttpServiceInstance = new BaseHttpService()
+export const baseHttpServiceInstance = new BaseHttpService();

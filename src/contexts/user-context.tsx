@@ -32,7 +32,6 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
     try {
       const { data, error } = await authClient.getUser();
 
-      console.log('data, error', data, error);
       if (error) {
         logger.error(error);
         setState((prev) => ({ ...prev, user: null, error: 'Something went wrong', isLoading: false }));

@@ -23,6 +23,8 @@ import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { useUser } from '@/hooks/use-user';
 
+import Popup from '../core/alert-popup';
+
 const schema = zod.object({
   fullName: zod.string().min(1, { message: 'Tên đầy đủ là bắt buộc' }),
   phoneNumber: zod.string().min(1, { message: 'Số điện thoại là bắt buộc' }),
@@ -48,6 +50,11 @@ export function SignUpForm(): React.JSX.Element {
 
   const { setUser, checkSession } = useUser();
 
+  const [popupContent, setPopupContent] = React.useState<{
+    type?: 'error' | 'success' | 'info' | 'warning';
+    message: string;
+  }>({ type: undefined, message: '' });
+
   const [isPending, setIsPending] = React.useState<boolean>(false);
 
   const {
@@ -68,7 +75,10 @@ export function SignUpForm(): React.JSX.Element {
         await checkSession?.();
         router.refresh();
       } catch (error: any) {
-        setError('root', { type: 'server', message: error?.message || 'Unknown Error' });
+        setPopupContent({
+          type: 'error',
+          message: error.message || 'Có lỗi xảy ra, vui lòng thử lại sau',
+        });
         setIsPending(false);
         return;
       }
@@ -78,6 +88,15 @@ export function SignUpForm(): React.JSX.Element {
 
   return (
     <Stack spacing={3}>
+      {!!popupContent.message && (
+        <Popup
+          message={popupContent.message}
+          open={!!popupContent.message}
+          severity={popupContent.type}
+          onClose={() => setPopupContent({ type: undefined, message: '' })}
+        />
+      )}
+
       <Stack spacing={1}>
         <Typography variant="h4">Sign up</Typography>
         <Typography color="text.secondary" variant="body2">
