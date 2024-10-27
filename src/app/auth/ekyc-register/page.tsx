@@ -13,10 +13,8 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
-import { Schedules } from './schedules';
 import axios, { AxiosResponse } from 'axios';
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, CardMedia, Container, InputAdornment } from '@mui/material';
+import { Alert, Avatar, Box, CardActions, CardMedia, Container, InputAdornment, Modal, Step, StepLabel, Stepper } from '@mui/material';
 import { TicketCategories } from './ticket-categories';
 import dayjs from 'dayjs';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
@@ -25,423 +23,594 @@ import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
 import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
 import { Clock as ClockIcon } from "@phosphor-icons/react/dist/ssr/Clock";
 import { MapPin as MapPinIcon } from "@phosphor-icons/react/dist/ssr/MapPin";
-import { HouseLine as HouseLineIcon } from "@phosphor-icons/react/dist/ssr/HouseLine";
-import { UserPlus } from '@phosphor-icons/react/dist/ssr';
-
-export type TicketCategory = {
-  id: string;
-  avatar: string;
-  name: string;
-  updatedAt: Date;
-  price: number;
-  type: string;
-  status: string;
-}
-export type Show = {
-  id: number;
-  eventId: number;
-  name: string;
-  startDateTime: Date | null;
-  endDateTime: Date | null;
-  place: string | null;
-}
-
-// Define the event response type
-type EventResponse = {
-  id: number;
-  name: string;
-  organizer: string;
-  organizerEmail: string;
-  organizerPhoneNumber: string;
-  description: string | null;
-  startDateTime: string | null;
-  endDateTime: string | null;
-  place: string | null;
-  locationUrl: string | null;
-  bannerUrl: string;
-  slug: string;
-  locationInstruction: string | null;
-};
+import { CheckCircle as CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
+import { ArrowRight, UserPlus } from '@phosphor-icons/react/dist/ssr';
+import Webcam from 'react-webcam';
+// import { initialFace, executeFace } from "@vominhmanh/etik_ai_edge_tool";
+import { kepple } from '@/styles/theme/colors';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 
 export default function Page(): React.JSX.Element {
-  const [event, setEvent] = React.useState<EventResponse | null>(null);
-  const [ticketCategories, setTicketCategories] = React.useState<TicketCategory[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = React.useState<string | null>(null);
-  const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
-  const [customer, setCustomer] = React.useState({
-    name: '',
-    email: '',
-    phoneNumber: '',
-    address: '',
-  });
-  const [extraFee, setExtraFee] = React.useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = React.useState<string>("");
-  const [ticketHolders, setTicketHolders] = React.useState<string[]>([""]);
-  const [shows, setShows] = React.useState<Show[]>([]);
-  const event_slug = 'etik-meeting-oki-866'
-  
-  // Fetch event details on component mount
-  React.useEffect(() => {
-    if (event_slug) {
-      const fetchEventDetails = async () => {
-        try {
-          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(`/marketplace/events/${event_slug}`);
-          setEvent(response.data);
-          // setFormValues(response.data); // Initialize form with the event data
-        } catch (error) {
-          console.error('Error fetching event details:', error);
-        }
-      };
+  const webcamRef = React.useRef(null);
+  const step = React.useRef(0)  // step 0: center, step 1: turn left, step 2: turn right, step 3: turn up, step 4: turn down
 
-      fetchEventDetails();
-    }
-  }, [event_slug]);
+  const initialFaceRef = React.useRef(null);
+  const executeFaceRef = React.useRef(null);
 
-  // Fetch shows
+  const [capturedCenterImage, setCapturedCenterImage] = React.useState<Blob>();
+  const [capturedLeftImage, setCapturedLeftImage] = React.useState<Blob>();
+  const [capturedRightImage, setCapturedRightImage] = React.useState<Blob>();
+  const [capturedUpImage, setCapturedUpImage] = React.useState<Blob>();
+  const [capturedDownImage, setCapturedDownImage] = React.useState<Blob>();
+  const [ekycFacePoseInstruction, setEkycFacePoseInstruction] = React.useState("Đang tải... Vui lòng chờ.")
+  const [faceDetectionMessage, setFaceDetectionMessage] = React.useState("");
+  const [open, setOpen] = React.useState(true);
+  const [startEkyc, setStartEkyc] = React.useState(false);
+  const [openWarningModal, setOpenWarningModal] = React.useState(false);
+  const [openNotFoundTransactionModal, setOpenNotFoundTransactionModal] = React.useState(false);
+  const [customerName, setCustomerName] = React.useState('');
+  const [finishLoadingModel, setFinishLoadingModel] = React.useState(false);
+  const [ekycRegisterDate, setEkycRegisterDate] = React.useState(null);
+  const [openLoadingModal, setOpenLoadingModal] = React.useState(false);
+  const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
+  const [openErrorModal, setOpenErrorModal] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState('');
+
+  const handleCloseWarningModal = () => setOpenWarningModal(false);
+
+  // Extract query parameters from the URL
+  const getQueryParams = () => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      event_slug: params.get('event_slug'),
+      response_token: params.get('response_token'),
+      transaction_id: params.get('transaction_id'),
+    };
+  };
+
+
+  // Fetch customer info on component mount
   React.useEffect(() => {
-    async function fetchShows() {
+    const { event_slug, response_token, transaction_id } = getQueryParams();
+    const fetchData = async () => {
       try {
-        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(`/marketplace/events/${event_slug}/shows/`);
-        setShows(response.data);
-      } catch (error) {
-        console.error('Error fetching shows:', error);
-      }
-    }
-    fetchShows();
-  }, [event_slug]);
-
-  // Fetch ticket categories
-  React.useEffect(() => {
-    async function fetchTicketCategories() {
-      try {
-        const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(`/marketplace/events/${event_slug}/ticket_categories/`);
-        const sortedCategories = response.data.sort((a, b) => {
-          if (a.status === 'on_sale' && b.status !== 'on_sale') return -1;
-          if (a.status !== 'on_sale' && b.status === 'on_sale') return 1;
-          return 0;
+        const response = await baseHttpServiceInstance.get('/auth/get-info-before-ekyc-register', {
+          params: { event_slug, response_token, transaction_id },
         });
-        setTicketCategories(sortedCategories);
+        const { customer_name, ekyc_register_date } = response.data;
+        setCustomerName(customer_name);
+        setEkycRegisterDate(ekyc_register_date);
+
+        // Open modal if registration date exists
+        if (ekyc_register_date) {
+          setOpenWarningModal(true);
+        }
       } catch (error) {
-        console.error('Error fetching ticket categories:', error);
+        console.error("Failed to fetch eKYC info:", error);
+        setOpenNotFoundTransactionModal(true);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleClose = (event, reason) => {
+    if (reason && reason == "backdropClick" && "escapeKeyDown")
+      return;
+    setOpen(false);
+  }
+
+  const handleOpenLoadingModal = () => setOpenLoadingModal(true);
+  const handleCloseLoadingModal = (event, reason) => {
+    if (reason && reason == "backdropClick" && "escapeKeyDown")
+      return;
+    setOpenLoadingModal(false);
+  }
+
+
+  const handleOpenSuccessModal = () => setOpenSuccessModal(true);
+  const handleCloseSuccessModal = (event, reason) => {
+    if (reason && reason == "backdropClick" && "escapeKeyDown")
+      return;
+    setOpenSuccessModal(false);
+  }
+
+  const handleOpenErrorModal = (message) => {
+    setErrorMessage(message);
+    setOpenErrorModal(true);
+  };
+  const handleCloseErrorModal = () => setOpenErrorModal(false);
+
+  const handleStartEkycBtn = () => {
+    setOpen(false);
+    setStartEkyc(true)
+  }
+
+  const handleRetryEkycBtn = () => {
+    window.location.reload();
+  };
+
+  const videoConstraints = {
+    width: 720,
+    height: 720,
+    facingMode: { exact: "user" }
+  };
+
+  const steps = [
+    '1',
+    '2',
+    '3',
+    '4',
+    '5'
+  ];
+
+
+  const executeLoop = React.useCallback(async () => {
+    if (webcamRef.current && webcamRef.current.video) {
+      // Display instructions based on current step
+      switch (step.current) {
+        case 0:
+          setEkycFacePoseInstruction("Nhìn thẳng");
+          break;
+        case 1:
+          setEkycFacePoseInstruction("Quay trái");
+          break;
+        case 2:
+          setEkycFacePoseInstruction("Quay phải");
+          break;
+        case 3:
+          setEkycFacePoseInstruction("Ngửa lên trên");
+          break;
+        case 4:
+          setEkycFacePoseInstruction("Cúi xuống");
+          break;
+        case 5:
+          setEkycFacePoseInstruction("Thành công. Vui lòng đợi...");
+          break;
+      }
+
+      const result = await executeFaceRef.current({
+        left: 50,
+        right: 40,
+        up: 20,
+        down: 16,
+        centerX_left: 40,
+        centerX_right: 30,
+        centerY_up: 15,
+        centerY_down: 12,
+      }, {}, false);
+
+      if (result.codes.length === 1 && result.codes[0] === 0) {
+        setFaceDetectionMessage('');
+
+        switch (step.current) {
+          case 0:
+            if (result.pose.yaw === 'center' && result.pose.pitch === 'center') {
+              const imageSrc = webcamRef.current.getScreenshot({ width: 448, height: 448 });
+              setCapturedCenterImage(await (await fetch(imageSrc)).blob());
+              step.current += 1;
+              setFaceDetectionMessage('');
+            }
+            break;
+          case 1:
+            if (result.pose.yaw === 'left') {
+              const imageSrc = webcamRef.current.getScreenshot({ width: 448, height: 448 });
+              setCapturedLeftImage(await (await fetch(imageSrc)).blob());
+              step.current += 1;
+              setFaceDetectionMessage('');
+            }
+            break;
+          case 2:
+            if (result.pose.yaw === 'right') {
+              const imageSrc = webcamRef.current.getScreenshot({ width: 448, height: 448 });
+              setCapturedRightImage(await (await fetch(imageSrc)).blob());
+              step.current += 1;
+              setFaceDetectionMessage('');
+            }
+            break;
+          case 3:
+            if (result.pose.pitch === 'up') {
+              const imageSrc = webcamRef.current.getScreenshot({ width: 448, height: 448 });
+              setCapturedUpImage(await (await fetch(imageSrc)).blob());
+              step.current += 1;
+              setFaceDetectionMessage('');
+            }
+            break;
+          case 4:
+            if (result.pose.pitch === 'down') {
+              const imageSrc = webcamRef.current.getScreenshot({ width: 448, height: 448 });
+              setCapturedDownImage(await (await fetch(imageSrc)).blob());
+              step.current += 1;
+              setFaceDetectionMessage('');
+            }
+            break;
+        }
+      } else {
+        setFaceDetectionMessage(result.messages[0]);
+      }
+
+      if (startEkyc) {
+        setTimeout(executeLoop, 500);
       }
     }
-    fetchTicketCategories();
-  }, [event_slug]);
+  }, [startEkyc]);
 
-  const handleCategorySelection = (ticketCategoryId: string) => {
-    setSelectedCategoryId(ticketCategoryId);
-  };
-
-  const handleTicketQuantityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const quantity = Number(event.target.value);
-    setTicketQuantity(quantity);
-    setTicketHolders(Array(quantity).fill(""));  // Dynamically update ticket holders array
-  };
-
-  const handleTicketHolderChange = (index: number, value: string) => {
-    const updatedHolders = [...ticketHolders];
-    updatedHolders[index] = value;
-    setTicketHolders(updatedHolders);
-  };
-
-  // const handleExtraFeeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-  //   const value = event.target.value.replace(/\D/g, ''); // Remove non-digit characters
-  //   setExtraFee(Number(value));
-  // };
-
-  const formatPrice = (price: number) => {
-    return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedCategoryId || !customer.name || !customer.email || ticketQuantity <= 0) {
-      alert("Please fill in the required fields.");
-      return;
+  React.useEffect(() => {
+    if (startEkyc && finishLoadingModel) {
+      setTimeout(executeLoop, 500);
     }
+  }, [startEkyc, executeLoop, finishLoadingModel]);
+
+
+  const onLoadedMetadata = async () => {
+    if (webcamRef.current && webcamRef.current.video) {
+      if (typeof window !== "undefined") {
+        const { initialFace, executeFace } = await import("@vominhmanh/etik_ai_edge_tool");
+        initialFaceRef.current = initialFace;
+        executeFaceRef.current = executeFace;
+      }
+      await initialFaceRef.current(
+        webcamRef.current.video,
+        '/model_tfjs/faceliveness_mobilenetv2_025_mymodel_3_train_01042022_export_01042022/model.json',
+      )
+      setFinishLoadingModel(true)
+    }
+  };
+  React.useEffect(() => {
+    if (
+      capturedCenterImage &&
+      capturedLeftImage &&
+      capturedRightImage &&
+      capturedUpImage &&
+      capturedDownImage
+    ) {
+      uploadImages(); // Auto-upload images when all are collected
+      setStartEkyc(false);
+    }
+  }, [capturedCenterImage, capturedLeftImage, capturedRightImage, capturedUpImage, capturedDownImage]);
+
+  // Upload images function
+  const uploadImages = async () => {
+    handleOpenLoadingModal();
+
+    const { event_slug, response_token, transaction_id } = getQueryParams();
+    const formData = new FormData();
+    capturedCenterImage && formData.append('center_image', capturedCenterImage, 'center_image.png');
+    capturedLeftImage && formData.append('left_image', capturedLeftImage, 'left_image.png');
+    capturedRightImage && formData.append('right_image', capturedRightImage, 'right_image.png');
+    capturedUpImage && formData.append('up_image', capturedUpImage, 'up_image.png');
+    capturedDownImage && formData.append('down_image', capturedDownImage, 'down_image.png');
+    formData.append('event_slug', event_slug || '');
+    formData.append('response_token', response_token || '');
+    formData.append('transaction_id', transaction_id || '');
+
 
     try {
-      const transactionData = {
-        customer: {
-          ...customer
+      const response = await baseHttpServiceInstance.post('/auth/ekyc-register', formData, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'multipart/form-data',
         },
-        ticket: {
-          ticketCategoryId: selectedCategoryId,
-          quantity: ticketQuantity,
-          ticketHolders: ticketHolders.filter(Boolean) // Ensure no empty names
-        },
-        paymentMethod,
-        extraFee
-      };
+      });
 
-      const response = await baseHttpServiceInstance.post(`/marketplace/events/${event_slug}/transactions`, transactionData);
-      console.log("Transaction successful:", response.data);
-      alert("Transaction created successfully!");
+      setOpenLoadingModal(false);
+      if (response.status === 200) {
+        handleOpenSuccessModal();
+      } else {
+        handleOpenErrorModal('Unexpected response. Please try again.');
+      }
     } catch (error) {
-      console.error("Error creating transaction:", error);
-      alert("Error creating transaction.");
+      setOpenLoadingModal(false);
+      handleOpenErrorModal(error.message || 'Failed to upload images.');
     }
   };
-
   return (
     <div style={{
       scrollBehavior: 'smooth',
       backgroundColor: '#d1f9db',
       backgroundImage: `linear-gradient(356deg, #d1f9db 0%, #fffed9 100%)`,
     }}>
-      <Container maxWidth="xl" sx={{ py: '64px' }} >
+      <Container maxWidth="xl" sx={{ py: '10px' }} >
         <Stack spacing={3}>
+          <div>
+            <Typography variant="h4">Đăng ký khuôn mặt</Typography>
+          </div>
           <Grid container spacing={3}>
-            <Grid item lg={8} md={6} xs={12}>
-              <Box
-                sx={{
-                  position: 'relative',
-                  width: '100%',
-                  aspectRatio: 16 / 6, // 16:9 aspect ratio (modify as needed)
-                  overflow: 'hidden',
-                  border: 'grey 1px',
-                  borderRadius: '20px',
-                  backgroundColor: 'gray'
-                }}
-              >
-                <img
-                  src={event?.bannerUrl}
-                  alt="Car"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: 'auto',
-                    objectFit: 'cover', // or 'contain' depending on your preference
-                  }}
-                />
-              </Box>
-            </Grid>
-            <Grid item lg={4} md={6} xs={12}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <Stack direction="column" spacing={2}>
-                    <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
-                      <div>
-                        <Avatar sx={{ height: '80px', width: '80px', fontSize: "2rem" }}>{event?.name[0].toUpperCase()}</Avatar>
-                      </div>
-                      <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>{event?.name}</Typography>
-                    </Stack>
-
-                    <Stack direction="row" spacing={1}>
-                      <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        Đơn vị tổ chức: {event?.organizer}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" spacing={1}>
-                      <ClockIcon fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.startDateTime && event?.endDateTime
-                          ? `${event?.startDateTime} - ${event?.endDateTime}`
-                          : "Chưa xác định"}
-                      </Typography>
-                    </Stack>
-
-                    <Stack direction="row" spacing={1}>
-                      <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.place ? event?.place : "Chưa xác định"}
-                      </Typography>
-                    </Stack>
-                  </Stack>
-                  <div style={{ marginTop: '20px' }}>
-                    <Button fullWidth variant='contained' href={`#registration`} size="small" startIcon={<UserPlus />}>
-                      Đăng ký ngay
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-          <Stack direction="row" spacing={3}>
-            <Grid container spacing={3}>
-              <Grid item lg={8} md={6} xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                      {event?.description ? event.description : "Chưa có mô tả"}
-                    </Typography>
-
-                  </CardContent>
-
-                </Card>
-              </Grid>
-              <Grid item lg={4} md={6} xs={12}>
-
-              </Grid>
-            </Grid>
-          </Stack>
-          <div id='registration' style={{ display: 'block', height: '100px', marginTop: '-100px', visibility: 'hidden' }}></div>
-          <Stack direction="row" spacing={3}>
-            <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-              <Typography variant="h6" >Đăng ký tham dự</Typography>
-            </Stack>
-          </Stack>
-          <Grid container spacing={3}>
-            <Grid item lg={4} md={6} xs={12}>
+            <Grid item lg={5} md={5} xs={12} spacing={3}>
               <Stack spacing={3}>
-                <TicketCategories
-                  ticketCategories={ticketCategories}
-                  onCategorySelect={handleCategorySelection}
-                />
-                <Schedules
-                  shows={shows}
-                />
-              </Stack>
-            </Grid>
-            <Grid item lg={8} md={6} xs={12}>
-              <Stack spacing={3}>
-                {/* Customer Information Card */}
                 <Card>
-                  <CardHeader subheader="Vui lòng điền các trường thông tin phía dưới." title="Thông tin người mua" />
+                  <CardHeader title="Vui lòng làm theo hướng dẫn" />
                   <Divider />
                   <CardContent>
-                    <Grid container spacing={3}>
-                      <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Họ và tên</InputLabel>
-                          <OutlinedInput label="Họ và tên" name="customer_name" value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} />
-                        </FormControl>
-                      </Grid>
-                      <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Địa chỉ Email</InputLabel>
-                          <OutlinedInput label="Địa chỉ Email" name="customer_email" type='email' value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} />
-                        </FormControl>
-                      </Grid>
-                      <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth>
-                          <InputLabel>Số điện thoại</InputLabel>
-                          <OutlinedInput label="Số điện thoại" name="customer_phone_number" type="tel" value={customer.phoneNumber} onChange={(e) => setCustomer({ ...customer, phoneNumber: e.target.value })} />
-                        </FormControl>
-                      </Grid>
-                      <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth>
-                          <InputLabel>Địa chỉ</InputLabel>
-                          <OutlinedInput label="Địa chỉ" name="customer_address" value={customer.address} onChange={(e) => setCustomer({ ...customer, address: e.target.value })} />
-                        </FormControl>
-                      </Grid>
-                    </Grid>
+                    <Webcam
+                      ref={webcamRef}
+                      audio={false}
+                      height={'100%'}
+                      screenshotFormat="image/jpeg"
+                      width={'100%'}
+                      mirrored={true}
+                      videoConstraints={videoConstraints}
+                      onLoadedMetadata={onLoadedMetadata}
+                    >
+                    </Webcam>
+                    <Stack spacing={3}>
+                      <Stepper activeStep={step.current}>
+                        {steps.map((label) => (
+                          <Step key={label}>
+                            <StepLabel>{ }</StepLabel>
+                          </Step>
+                        ))}
+                      </Stepper>
+                      <Alert variant="outlined" severity="info">
+                        {ekycFacePoseInstruction}
+                      </Alert>
+                      {faceDetectionMessage &&
+                        <Alert variant="standard" severity="warning">
+                          {faceDetectionMessage}
+                        </Alert>}
+                    </Stack>
                   </CardContent>
                 </Card>
-
-                {/* Ticket Quantity and Ticket Holders */}
-                <Card>
-                  <CardHeader
-                    title="Số lượng vé"
-                    action={<OutlinedInput sx={{ maxWidth: 180 }} type='number' value={ticketQuantity} onChange={handleTicketQuantityChange} />}
-                  />
-                  <Divider />
-                  <CardContent>
-                    <Grid container spacing={3}>
-                      {ticketHolders.map((holder, index) => (
-                        <Grid item lg={12} xs={12} key={index}>
-                          <FormControl fullWidth required>
-                            <InputLabel>Họ và tên người tham dự {index + 1}</InputLabel>
-                            <OutlinedInput
-                              label={`Họ và tên người tham dự ${index + 1}`}
-                              value={holder}
-                              onChange={(e) => handleTicketHolderChange(index, e.target.value)}
-                            />
-                          </FormControl>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </CardContent>
-                </Card>
-
-                {/* Extra Fee */}
-                {/* <Card>
-              <CardHeader
-                title="Phụ phí"
-                subheader="(nếu có)"
-                action={
-                  <OutlinedInput
-                    name="extraFee"
-                    value={extraFee.toLocaleString()} // Format as currency
-                    onChange={handleExtraFeeChange}
-                    sx={{ maxWidth: 180 }}
-                    endAdornment={<InputAdornment position="end">đ</InputAdornment>}
-                  />
-                }
-              />
-            </Card> */}
-
-                {/* Payment Method */}
-                <Card>
-                  <CardHeader
-                    title="Phương thức thanh toán"
-                    action={
-                      <FormControl sx={{ maxWidth: 180, minWidth: 180 }}>
-                        <Select
-                          name="payment_method"
-                          value={paymentMethod}
-                          onChange={(e) => setPaymentMethod(e.target.value)}
-                        >
-                          <MenuItem value="napas247" selected>Napas 247</MenuItem>
-                        </Select>
-                      </FormControl>
-                    }
-                  />
-                </Card>
-
-                {/* Payment Summary */}
-                {selectedCategoryId && ticketCategories.length > 0 && (
-                  <Card>
-                    <CardHeader title="Thanh toán" />
-                    <Divider />
-                    <CardContent>
-                      <Stack spacing={2}>
-                        <Grid item sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                            <Typography variant="body1">Loại vé:</Typography>
-                          </Stack>
-
-                          <Typography variant="body1">{ticketCategories.find(cat => cat.id === selectedCategoryId)?.name || "Chưa xác định"}</Typography>
-                        </Grid>
-                        <Grid item sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <TagIcon fontSize="var(--icon-fontSize-md)" />
-                            <Typography variant="body1">Đơn giá:</Typography>
-                          </Stack>
-                          <Typography variant="body1"></Typography>
-                          <Typography variant="body1">{formatPrice(ticketCategories.find(cat => cat.id === selectedCategoryId)?.price || 0)}</Typography>
-                        </Grid>
-                        <Grid item sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <HashIcon fontSize="var(--icon-fontSize-md)" />
-                            <Typography variant="body1">Số lượng:</Typography>
-                          </Stack>
-                          <Typography variant="body1"></Typography>
-                          <Typography variant="body1">{ticketQuantity}</Typography>
-                        </Grid>
-                        <Grid item sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <CoinsIcon fontSize="var(--icon-fontSize-md)" />
-                            <Typography variant="body1">Thành tiền:</Typography>
-                          </Stack>
-                          <Typography variant="body1">{formatPrice((ticketCategories.find(cat => cat.id === selectedCategoryId)?.price || 0) * ticketQuantity + extraFee)}</Typography>
-                        </Grid>
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                )}
-                {/* Submit Button */}
-                <Grid item sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
-                  <Button variant="contained" onClick={handleSubmit}>Mua vé</Button>
-                </Grid>
               </Stack>
+            </Grid>
+
+            <Grid item lg={7} md={7} xs={12} spacing={3}>
+              <Stack spacing={3}></Stack>
             </Grid>
           </Grid>
         </Stack>
       </Container>
+      <Modal open={openWarningModal} onClose={handleCloseWarningModal} aria-labelledby="modal-modal-title" aria-describedby="modal-modal-description">
+        <Container maxWidth="xl">
+          <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { sm: '500px', xs: '90%' }, bgcolor: 'background.paper', boxShadow: 24 }}>
+            <CardContent>
+              <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} sx={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ width: '150px', height: '150px', borderRadius: '20px' }}>
+                  <DotLottieReact src="/assets/animations/warning.lottie" loop width={'100%'} height={'100%'} style={{ borderRadius: '20px' }} autoplay />
+                </div>
+                <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Stack spacing={1}>
+                    <Typography variant='h6'>Tài khoản của bạn đã đăng ký khuôn mặt trước đây</Typography>
+                    <Typography variant='body2'>Thời gian đăng ký: {dayjs(ekycRegisterDate).format('HH:mm:ss DD/MM/YYYY')}. Bạn có chắc chắn muốn đăng ký lại không?</Typography>
+                  </Stack>
+                  <Stack style={{ marginTop: '20px' }} direction={'row'} spacing={3}>
+                    <Button variant='outlined' onClick={() => {window.close();}} size="small">Không</Button>
+                    <Button variant='outlined' onClick={handleCloseWarningModal} size="small">Thử lại</Button>
+                  </Stack>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+      <Modal open={openNotFoundTransactionModal} aria-labelledby="modal-modal-title" aria-describedby="modal-modal-description">
+        <Container maxWidth="xl">
+          <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { sm: '500px', xs: '90%' }, bgcolor: 'background.paper', boxShadow: 24 }}>
+            <CardContent>
+              <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} sx={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ width: '150px', height: '150px', borderRadius: '20px' }}>
+                  <DotLottieReact src="/assets/animations/warning.lottie" loop width={'100%'} height={'100%'} style={{ borderRadius: '20px' }} autoplay />
+                </div>
+                <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Stack spacing={1}>
+                    <Typography variant='h6'>Không tìm thấy giao dịch!</Typography>
+                    <Typography variant='body2'>Bạn vui lòng kiểm tra lại hoặc liên hệ với quản trị viên.</Typography>
+                  </Stack>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+      <Modal
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: { sm: '500px', xs: '90%' },
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+          }}>
+            <CardHeader title="Đăng ký khuôn mặt - Check-in tức thì" />
+            <CardContent>
+              <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} >
+                <div>
+                  <img src="/assets/inline-gate-curved.jpg" style={{ borderRadius: '20px', maxWidth: '200px', width: '100%' }} alt="" />
+                </div>
+                <Stack spacing={3}>
+                  <Stack spacing={1} direction={'row'}>
+                    <CheckCircleIcon fontSize="var(--icon-fontSize-lg)" color={kepple[500]} />
+                    <Typography variant='body2'>
+                      Không cần xuất trình vé.
+                    </Typography>
+                  </Stack>
+                  <Stack spacing={1} direction={'row'}>
+                    <CheckCircleIcon fontSize="var(--icon-fontSize-lg)" color={kepple[500]} />
+                    <Typography variant='body2'>
+                      Nhanh chóng, tiện lợi.
+                    </Typography>
+                  </Stack>
+                  <Stack spacing={1} direction={'row'}>
+                    <CheckCircleIcon fontSize="var(--icon-fontSize-lg)" color={kepple[500]} />
+                    <Typography variant='body2'>
+                      An toàn, bảo mật.
+                    </Typography>
+                  </Stack>
+                  <div style={{ marginTop: '20px' }}>
+                    <Button fullWidth variant='contained' onClick={handleStartEkycBtn} size="small" endIcon={<ArrowRight />}>
+                      Bắt đầu
+                    </Button>
+                  </div>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+      <Modal
+        open={openLoadingModal}
+        onClose={handleCloseLoadingModal}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: { sm: '500px', xs: '90%' },
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+          }}>
+            <CardContent>
+              <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} sx={{ display: 'flex', alignItems: 'center' }} >
+                <div style={{ width: '150px', height: '150px', borderRadius: '20px' }}>
+                  <DotLottieReact
+                    src="/assets/animations/face-scan-animation.lottie"
+                    loop
+                    width={'100%'}
+                    height={'100%'}
+                    style={{
+                      borderRadius: '20px'
+                    }}
+                    autoplay
+                  />
+                </div>
+
+                <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Stack spacing={1}>
+                    <Typography variant='h6'>
+                      Đang đăng ký khuôn mặt...
+                    </Typography>
+                    <Typography variant='body2'>
+                      Vui lòng đợi trong giây lát.
+                    </Typography>
+                  </Stack>
+
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+      <Modal
+        open={openSuccessModal}
+        onClose={handleCloseSuccessModal}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: { sm: '500px', xs: '90%' },
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+          }}>
+            <CardContent>
+              <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} sx={{ display: 'flex', alignItems: 'center' }} >
+                <div style={{ width: '150px', height: '150px', borderRadius: '20px' }}>
+                  <DotLottieReact
+                    src="/assets/animations/face-success.lottie"
+                    loop
+                    width={'100%'}
+                    height={'100%'}
+                    style={{
+                      borderRadius: '20px'
+                    }}
+                    autoplay
+                  />
+                </div>
+
+                <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Stack spacing={1}>
+                    <Typography variant='h6'>
+                      Thành công !
+                    </Typography>
+                    <Typography variant='body2'>
+                      Chúc mừng bạn đã đăng ký check-in bằng khuôn mặt thành công.
+                    </Typography>
+                    <Typography variant='body2'>
+                      Bạn có thể sử dụng khuôn mặt thay thế cho vé điện tử tại sự kiện.
+                    </Typography>
+                  </Stack>
+                  <div style={{ marginTop: '20px' }}>
+                    <Button fullWidth variant='contained' onClick={() => {window.close();}} size="small" endIcon={<ArrowRight />}>
+                      Đóng trang này
+                    </Button>
+                  </div>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+      <Modal
+        open={openErrorModal}
+        onClose={handleCloseErrorModal}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: { sm: '500px', xs: '90%' },
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+          }}>
+            <CardContent>
+              <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} sx={{ display: 'flex', alignItems: 'center' }} >
+                <div style={{ width: '150px', height: '150px', borderRadius: '20px' }}>
+                  <DotLottieReact
+                    src="/assets/animations/failure.lottie"
+                    loop
+                    width={'100%'}
+                    height={'100%'}
+                    style={{
+                      borderRadius: '20px'
+                    }}
+                    autoplay
+                  />
+                </div>
+
+                <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Stack spacing={1}>
+                    <Typography variant='h6'>
+                      Đăng ký không thành công !
+                    </Typography>
+                    <Typography variant='body2'>
+                      Bạn vui lòng thử đăng ký lại.
+                    </Typography>
+                    <Typography variant='body2' color={'danger'}>
+                      Lỗi: {errorMessage}
+                    </Typography>
+                  </Stack>
+                  <div style={{ marginTop: '20px' }}>
+                    <Button fullWidth variant='contained' onClick={handleRetryEkycBtn} size="small" endIcon={<ArrowRight />}>
+                      Thử lại
+                    </Button>
+                  </div>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+
     </div>
   );
 }
