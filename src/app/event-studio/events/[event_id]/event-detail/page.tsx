@@ -69,7 +69,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
     try {
       // Call API to upload the image
-      await baseHttpServiceInstance.post(`/event-studio/events/${event?.id}/upload_banner`, formData, {
+      await baseHttpServiceInstance.post(`/event-studio/events/${event?.id}/upload_banner/`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -94,7 +94,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     if (event_id) {
       const fetchEventDetails = async () => {
         try {
-          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(`/event-studio/events/${event_id}`);
+          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(`/event-studio/events/${event_id}/`);
           setEvent(response.data);
           setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
@@ -118,7 +118,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     if (formValues && event_id) {
       try {
         console.log(formValues)
-        await baseHttpServiceInstance.put(`/event-studio/events/${event_id}`, formValues);
+        await baseHttpServiceInstance.put(`/event-studio/events/${event_id}/`, formValues);
         alert('Event updated successfully!');
         // Optionally redirect or refresh the page
       } catch (error) {

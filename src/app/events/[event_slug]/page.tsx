@@ -84,7 +84,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     if (params.event_slug) {
       const fetchEventDetails = async () => {
         try {
-          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(`/marketplace/events/${params.event_slug}`);
+          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(`/marketplace/events/${params.event_slug}/`);
           setEvent(response.data);
           // setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
@@ -172,7 +172,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         extraFee
       };
 
-      const response = await baseHttpServiceInstance.post(`/marketplace/events/${params.event_slug}/transactions`, transactionData);
+      const response = await baseHttpServiceInstance.post(`/marketplace/events/${params.event_slug}/transactions/`, transactionData);
       console.log("Transaction successful:", response.data);
       alert("Transaction created successfully!");
     } catch (error) {
