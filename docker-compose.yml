@@ -2,8 +2,8 @@ version: '3.8'
 name: etik-front-end
 
 services:
-  etik-api:
-    image: etik/etik-fe
+  etik-fe:
+    image: etik-front-end/etik-fe
     build: .
     ports:
       - "3030:3000"
