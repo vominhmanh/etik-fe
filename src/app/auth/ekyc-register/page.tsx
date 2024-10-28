@@ -287,7 +287,7 @@ export default function Page(): React.JSX.Element {
 
 
     try {
-      const response = await baseHttpServiceInstance.post('/auth/ekyc-register/', formData, {
+      const response = await baseHttpServiceInstance.post('/auth/ekyc-register', formData, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'multipart/form-data',
