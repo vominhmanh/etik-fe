@@ -26,7 +26,7 @@ import { MapPin as MapPinIcon } from "@phosphor-icons/react/dist/ssr/MapPin";
 import { HouseLine as HouseLineIcon } from "@phosphor-icons/react/dist/ssr/HouseLine";
 import { UserPlus } from '@phosphor-icons/react/dist/ssr';
 import Webcam from 'react-webcam';
-import { initialFace, executeFace } from "etik_ai_edge_tool";
+import { initialFace, executeFace } from "@vominhmanh/etik_ai_edge_tool";
 import { v4 as uuidv4 } from 'uuid';
 
 interface Transaction {
