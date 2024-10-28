@@ -36,7 +36,7 @@
     "apexcharts": "3.49.2",
     "axios": "^1.7.7",
     "dayjs": "1.11.11",
-    "@vominhmanh/etik_ai_edge_tool": "1.0.0",
+    "@vominhmanh/etik_ai_edge_tool": "1.0.1",
     "jwt-decode": "^4.0.0",
     "lodash": "^4.17.21",
     "next": "14.2.4",

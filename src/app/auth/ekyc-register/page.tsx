@@ -15,7 +15,6 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import axios, { AxiosResponse } from 'axios';
 import { Alert, Avatar, Box, CardActions, CardMedia, Container, InputAdornment, Modal, Step, StepLabel, Stepper } from '@mui/material';
-import { TicketCategories } from './ticket-categories';
 import dayjs from 'dayjs';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
@@ -30,6 +29,7 @@ import Webcam from 'react-webcam';
 import { kepple } from '@/styles/theme/colors';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
+// import { initialFace, executeFace } from "etik_ai_edge_tool";
 
 export default function Page(): React.JSX.Element {
   const webcamRef = React.useRef(null);
