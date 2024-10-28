@@ -131,7 +131,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
     try {
       const response: AxiosResponse<UploadImageResponse> = await baseHttpServiceInstance.post(
-        `/event-studio/events/${params.event_id}/check-in/face-search/`,
+        `/event-studio/events/${params.event_id}/check-in/face-search`,
         formData,
         {
           headers: {
