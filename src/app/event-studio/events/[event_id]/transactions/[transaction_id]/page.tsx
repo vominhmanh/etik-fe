@@ -158,7 +158,7 @@ export default function Page({ params }: { params: { event_id: number, transacti
     const fetchTransactionDetails = async () => {
       try {
         const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${event_id}/transactions/${transaction_id}`
+          `/event-studio/events/${event_id}/transactions/${transaction_id}/`
         );
         setTransaction(response.data);
       } catch (error) {

@@ -1,0 +1,17 @@
+version: '3.8'
+name: etik-front-end
+
+services:
+  etik-fe:
+    image: etik-front-end/etik-fe
+    build: .
+    ports:
+      - "3030:3000"
+    env_file:
+      - .env
+    networks:
+      - etik-network
+
+networks:
+  etik-network:
+    external: true

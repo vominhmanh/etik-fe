@@ -38,7 +38,7 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
   useEffect(() => {
     const fetchTicketCategory = async () => {
       try {
-        const response: AxiosResponse = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}`);
+        const response: AxiosResponse = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}/`);
         const ticketCategory = response.data;
         setFormData({
           name: ticketCategory.name,
@@ -67,7 +67,7 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
   // Save the edited ticket category
   const handleSave = async () => {
     try {
-      const response: AxiosResponse = await baseHttpServiceInstance.put(`/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}`, {
+      const response: AxiosResponse = await baseHttpServiceInstance.put(`/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}/`, {
         name: formData.name,
         type: formData.type,
         price: formData.price,

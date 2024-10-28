@@ -179,7 +179,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
     const fetchTransactionDetails = async () => {
       try {
         const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
-          `/account/transactions/${transaction_id}`
+          `/account/transactions/${transaction_id}/`
         );
         setTransaction(response.data);
       } catch (error) {
@@ -194,7 +194,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
     const fetchCheckInECode = async () => {
       try {
         const response: AxiosResponse<ECodeResponse> = await baseHttpServiceInstance.get(
-          `/account/transactions/${transaction_id}/check-in-e-code`
+          `/account/transactions/${transaction_id}/check-in-e-code/`
         );
         setECode(response.data.eCode);
       } catch (error) {

@@ -135,7 +135,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         extraFee
       };
 
-      const response = await baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/transactions`, transactionData);
+      const response = await baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/transactions/`, transactionData);
       console.log("Transaction successful:", response.data);
       alert("Transaction created successfully!");
     } catch (error) {

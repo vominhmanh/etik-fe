@@ -120,7 +120,7 @@ export interface Transaction {
 }
 
 
-export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
 
   React.useEffect(() => {

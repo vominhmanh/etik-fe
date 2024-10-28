@@ -42,7 +42,7 @@ export default function Page(): React.JSX.Element {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/event-studio/events');
+        const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/event-studio/events/');
         setEvents(response.data);
       } catch (error) {
         console.error('Error fetching events:', error);
