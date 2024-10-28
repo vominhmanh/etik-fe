@@ -75,7 +75,7 @@ export default function Page(): React.JSX.Element {
     const { event_slug, response_token, transaction_id } = getQueryParams();
     const fetchData = async () => {
       try {
-        const response = await baseHttpServiceInstance.get('/auth/get-info-before-ekyc-register/', {
+        const response = await baseHttpServiceInstance.get('/auth/get-info-before-ekyc-register', {
           params: { event_slug, response_token, transaction_id },
         });
         const { customer_name, ekyc_register_date } = response.data;
