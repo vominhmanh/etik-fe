@@ -5,6 +5,7 @@ import Typography from "@mui/material/Typography";
 import CardContent from "@mui/material/CardContent";
 import Divider from "@mui/material/Divider";
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
@@ -23,6 +24,7 @@ import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
 import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
+import { useRouter } from 'next/navigation';
 
 export type TicketCategory = {
   id: number;
@@ -44,9 +46,9 @@ export type Show = {
 }
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
-
+  const notificationCtx = React.useContext(NotificationContext);
   const [ticketCategories, setTicketCategories] = React.useState<TicketCategory[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = React.useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = React.useState<number | null>(null);
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
   const [customer, setCustomer] = React.useState({
     name: '',
@@ -58,12 +60,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [shows, setShows] = React.useState<Show[]>([]);
   const [paymentMethod, setPaymentMethod] = React.useState<string>("");
   const [ticketHolders, setTicketHolders] = React.useState<string[]>([""]);
+  const router = useRouter(); // Use useRouter from next/navigation
 
   // Fetch ticket categories
   React.useEffect(() => {
     async function fetchTicketCategories() {
       try {
-        const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/ticket_categories/`);
+        const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/ticket_categories`);
         const sortedCategories = response.data.sort((a, b) => {
           if (a.status === 'on_sale' && b.status !== 'on_sale') return -1;
           if (a.status !== 'on_sale' && b.status === 'on_sale') return 1;
@@ -71,7 +74,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         });
         setTicketCategories(sortedCategories);
       } catch (error) {
-        console.error('Error fetching ticket categories:', error);
+        notificationCtx.error('Error fetching ticket categories:', error);
       }
     }
     fetchTicketCategories();
@@ -81,16 +84,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   React.useEffect(() => {
     async function fetchShows() {
       try {
-        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/shows/`);
+        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/shows`);
         setShows(response.data);
       } catch (error) {
-        console.error('Error fetching shows:', error);
+        notificationCtx.error('Error fetching shows:', error);
       }
     }
     fetchShows();
   }, [params.event_id]);
 
-  const handleCategorySelection = (ticketCategoryId: string) => {
+  const handleCategorySelection = (ticketCategoryId: number) => {
     setSelectedCategoryId(ticketCategoryId);
   };
 
@@ -117,7 +120,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleSubmit = async () => {
     if (!selectedCategoryId || !customer.name || !customer.email || ticketQuantity <= 0) {
-      alert("Please fill in the required fields.");
+      notificationCtx.warning("Please fill in the required fields.");
       return;
     }
 
@@ -135,12 +138,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         extraFee
       };
 
-      const response = await baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/transactions/`, transactionData);
-      console.log("Transaction successful:", response.data);
-      alert("Transaction created successfully!");
+      const response = await baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/transactions`, transactionData);
+      const newTransaction = response.data
+      router.push(`/event-studio/events/${params.event_id}/transactions/${newTransaction.id}`); // Navigate to a different page on success
+      
+      notificationCtx.success("Transaction created successfully!");
     } catch (error) {
-      console.error("Error creating transaction:", error);
-      alert("Error creating transaction.");
+      notificationCtx.error("Error creating transaction:", error);
     }
   };
 

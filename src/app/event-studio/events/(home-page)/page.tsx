@@ -20,6 +20,8 @@ import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import { AxiosResponse } from 'axios';
+import NotificationContext from '@/contexts/notification-context';
+import React from 'react';
 
 // Define response type for the events
 type EventResponse = {
@@ -40,16 +42,17 @@ type EventResponse = {
 export default function Page(): React.JSX.Element {
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const notificationCtx = React.useContext(NotificationContext);
 
   // Fetch all events on component mount
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         setIsLoading(true);
-        const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/event-studio/events/');
+        const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/event-studio/events');
         setEvents(response.data);
       } catch (error) {
-        console.error('Error fetching events:', error);
+        notificationCtx.error('Error fetching events:', error);
       } finally {
         setIsLoading(false);
       }

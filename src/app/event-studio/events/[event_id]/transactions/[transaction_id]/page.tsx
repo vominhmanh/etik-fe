@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import { useEffect, useState } from 'react';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
@@ -150,7 +151,7 @@ export interface Transaction {
 
 export default function Page({ params }: { params: { event_id: number, transaction_id: number } }): React.JSX.Element {
   const [transaction, setTransaction] = useState<Transaction | null>(null);
-
+  const notificationCtx = React.useContext(NotificationContext);
   const { event_id, transaction_id } = params;
 
   // Fetch transaction details
@@ -158,11 +159,11 @@ export default function Page({ params }: { params: { event_id: number, transacti
     const fetchTransactionDetails = async () => {
       try {
         const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${event_id}/transactions/${transaction_id}/`
+          `/event-studio/events/${event_id}/transactions/${transaction_id}`
         );
         setTransaction(response.data);
       } catch (error) {
-        console.error('Error fetching transaction details:', error);
+        notificationCtx.error('Error fetching transaction details:', error);
       }
     };
 

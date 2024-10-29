@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import Typography from '@mui/material/Typography';
 import { Clock as ClockIcon } from "@phosphor-icons/react/dist/ssr/Clock";
 import { MapPin as MapPinIcon } from "@phosphor-icons/react/dist/ssr/MapPin";
@@ -17,11 +18,12 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Stack, TextField } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { AxiosResponse } from 'axios';
 import { ArrowSquareIn } from '@phosphor-icons/react/dist/ssr';
-
+import ReactQuill, { Quill } from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 // Define the event response type
 type EventResponse = {
@@ -42,13 +44,16 @@ type EventResponse = {
   displayOnMarketplace: boolean;
 };
 
-export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
   const { event_id } = params;
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string>(event?.bannerUrl || '');
   const [isImageSelected, setIsImageSelected] = React.useState(false);
+  const [description, setDescription] = useState<string>('');
+  const reactQuillRef = React.useRef<ReactQuill>(null);
+  const notificationCtx = React.useContext(NotificationContext);
 
   // Handle image selection
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,7 +74,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
     try {
       // Call API to upload the image
-      await baseHttpServiceInstance.post(`/event-studio/events/${event?.id}/upload_banner/`, formData, {
+      await baseHttpServiceInstance.post(`/event-studio/events/${event?.id}/upload_banner`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -78,30 +83,30 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       // On successful upload, reload the page or handle success
       window.location.reload(); // You can also call a function to update the state instead of reloading
     } catch (error) {
-      console.error('Error uploading banner image:', error);
+      notificationCtx.error('Error uploading banner image:', error);
     }
   };
 
   // Handle selecting another image
   const handleSelectOther = () => {
     setSelectedImage(null);
-    setPreviewUrl(event.bannerUrl || '');
+    setPreviewUrl(event?.bannerUrl || '');
     setIsImageSelected(false); // Reset state
   };
 
-  // Fetch event details on component mount
+
   useEffect(() => {
     if (event_id) {
       const fetchEventDetails = async () => {
         try {
-          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(`/event-studio/events/${event_id}/`);
+          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(`/event-studio/events/${event_id}`);
           setEvent(response.data);
-          setFormValues(response.data); // Initialize form with the event data
+          setFormValues(response.data);
+          setDescription(response.data.description || '');
         } catch (error) {
-          console.error('Error fetching event details:', error);
+          notificationCtx.error('Error fetching event details:', error);
         }
       };
-
       fetchEventDetails();
     }
   }, [event_id]);
@@ -112,21 +117,75 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     setFormValues((prevValues) => prevValues ? { ...prevValues, [name]: value } : null);
   };
 
-  // Handle form submission (PUT request)
+  const handleDescriptionChange = (value: string) => {
+    setDescription(value);
+    setFormValues((prevValues) => prevValues ? { ...prevValues, description: value } : null);
+  };
+
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (formValues && event_id) {
       try {
-        console.log(formValues)
-        await baseHttpServiceInstance.put(`/event-studio/events/${event_id}/`, formValues);
-        alert('Event updated successfully!');
-        // Optionally redirect or refresh the page
+        await baseHttpServiceInstance.put(`/event-studio/events/${event_id}`, { ...formValues, description });
+        notificationCtx.success('Event updated successfully!');
       } catch (error) {
-        console.error('Error updating event:', error);
-        alert('Failed to update event.');
+        notificationCtx.error('Error updating event:', error);
       }
     }
   };
+
+
+  // Image Upload Handler
+  const handleImageUpload = useCallback(() => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          // Upload the image to the server
+          const response = await baseHttpServiceInstance.post(`/event-studio/events/${event_id}/upload_image`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+
+          const imageUrl = response.data.imageUrl; // Adjust based on response
+          const quill = reactQuillRef.current;
+          if (quill) {
+            const range = quill.getEditorSelection();
+            range && quill.getEditor().insertEmbed(range.index, "image", imageUrl);
+          }
+        } catch (error) {
+          notificationCtx.error('Image upload failed:', error);
+        }
+      }
+    };
+  }, []);
+
+  // Custom Toolbar Options
+  const modules = {
+    toolbar: {
+      container: [
+        [{ 'header': '1' }, { 'header': '2' }, { 'font': [] }],
+        [{ 'size': [] }],
+        ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+        ['link', 'image'],
+        ['clean']
+      ],
+      handlers: {
+        image: handleImageUpload,   // <- 
+      },
+    },
+    clipboard: {
+      matchVisual: false,
+    },
+  }
 
   if (!event || !formValues) {
     return <Typography>Loading...</Typography>;
@@ -321,19 +380,13 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     </FormControl>
                   </Grid>
                   <Grid md={12} xs={12}>
-                    <FormControl fullWidth >
-                      <InputLabel>Mô tả</InputLabel>
-                      <OutlinedInput
-                        value={formValues.description || ''}
-                        onChange={handleInputChange}
-                        label="Mô tả"
-                        name="description"
-                        type="text"
-                        multiline
-                        minRows={2}
-                        maxRows={10}
-                      />
-                    </FormControl>
+                    <ReactQuill
+                      ref={reactQuillRef}
+                      value={description}
+                      onChange={handleDescriptionChange}
+                      modules={modules}
+                      placeholder="Mô tả"
+                    />
                   </Grid>
                 </Grid>
               </CardContent>

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';

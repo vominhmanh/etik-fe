@@ -1,4 +1,5 @@
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import type { Metadata } from 'next';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';

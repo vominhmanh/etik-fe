@@ -1,5 +1,6 @@
 "use client"
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Pagination from '@mui/material/Pagination';
@@ -122,16 +123,17 @@ export interface Transaction {
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
+  const notificationCtx = React.useContext(NotificationContext);
 
   React.useEffect(() => {
     const fetchTicketCategories = async () => {
       try {
         const response: AxiosResponse<Transaction[]> = await baseHttpServiceInstance.get(
-          `/account/transactions/`
+          `/account/transactions`
         );
         setTransactions(response.data);
       } catch (error) {
-        console.error('Error fetching ticket categories:', error);
+        notificationCtx.error('Error fetching ticket categories:', error);
       }
     };
 

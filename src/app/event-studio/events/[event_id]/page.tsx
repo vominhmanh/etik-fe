@@ -1,4 +1,5 @@
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import type { Metadata } from 'next';
 import Grid from '@mui/material/Unstable_Grid2';
 import dayjs from 'dayjs';
@@ -12,6 +13,8 @@ import { TasksProgress } from '@/components/dashboard/overview/tasks-progress';
 import { TotalCustomers } from '@/components/dashboard/overview/total-customers';
 import { TotalProfit } from '@/components/dashboard/overview/total-profit';
 import { Traffic } from '@/components/dashboard/overview/traffic';
+import { Refund } from '@/components/dashboard/overview/refund';
+import { CheckIn } from '@/components/dashboard/overview/check-in';
 
 export const metadata = { title: `Overview | Dashboard | ${config.site.name}` } satisfies Metadata;
 
@@ -28,8 +31,15 @@ export default function Page(): React.JSX.Element {
         <TasksProgress sx={{ height: '100%' }} value={75.5} />
       </Grid>
       <Grid lg={3} sm={6} xs={12}>
+        <CheckIn diff={12} trend="up" sx={{ height: '100%' }} value="$24k"  />
+      </Grid>
+      <Grid lg={3} sm={6} xs={12}>
         <TotalProfit sx={{ height: '100%' }} value="$15k" />
       </Grid>
+      <Grid lg={3} sm={6} xs={12}>
+        <Refund diff={12} trend="up" sx={{ height: '100%' }} value="$24k" />
+      </Grid>
+
       <Grid lg={8} xs={12}>
         <Sales
           chartSeries={[

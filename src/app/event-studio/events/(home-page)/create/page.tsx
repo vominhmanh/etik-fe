@@ -1,6 +1,8 @@
 "use client"
 
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
+
 import Grid from '@mui/material/Unstable_Grid2';
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -21,6 +23,7 @@ type EventCreatedResponse = {
 }
 
 export default function Page(): React.JSX.Element {
+  const notificationCtx = React.useContext(NotificationContext);
   const [formData, setFormData] = useState({
     name: '',
     organizer: '',
@@ -43,20 +46,20 @@ export default function Page(): React.JSX.Element {
     const token = localStorage.getItem('accessToken'); // Assuming the token is stored under 'authToken'
 
     if (!token) {
-      console.error('No authentication token found');
+      notificationCtx.error('No authentication token found');
       return;
     }
 
     try {
-      const response: AxiosResponse<EventCreatedResponse> = await baseHttpServiceInstance.post('/event-studio/events/', formData);
+      const response: AxiosResponse<EventCreatedResponse> = await baseHttpServiceInstance.post('/event-studio/events', formData);
       if (response.data) {
-        console.log('Event created successfully:', response.data);
+        notificationCtx.success('Event created successfully:', response.data);
         router.push('/event-studio/events/'); // Navigate to a different page on success
       } else {
-        console.error('Error creating event:', response.statusText);
+        notificationCtx.error('Error creating event:', response.statusText);
       }
     } catch (error) {
-      console.error('Error:', error);
+      notificationCtx.error('Error:', error);
     }
   };
 

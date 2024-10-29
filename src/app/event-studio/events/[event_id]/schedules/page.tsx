@@ -1,5 +1,6 @@
 "use client"
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Pagination from '@mui/material/Pagination';
@@ -58,15 +59,16 @@ export type Show = {
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   const { event_id } = params;
   const [shows, setShows] = React.useState<Show[]>([]);
+  const notificationCtx = React.useContext(NotificationContext);
 
   // Fetch shows
   React.useEffect(() => {
     async function fetchShows() {
       try {
-        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/shows/`);
+        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/shows`);
         setShows(response.data);
       } catch (error) {
-        console.error('Error fetching shows:', error);
+        notificationCtx.error('Error fetching shows:', error);
       }
     }
     fetchShows();

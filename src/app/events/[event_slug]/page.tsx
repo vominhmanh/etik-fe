@@ -5,6 +5,7 @@ import Typography from "@mui/material/Typography";
 import CardContent from "@mui/material/CardContent";
 import Divider from "@mui/material/Divider";
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
@@ -78,17 +79,18 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [paymentMethod, setPaymentMethod] = React.useState<string>("");
   const [ticketHolders, setTicketHolders] = React.useState<string[]>([""]);
   const [shows, setShows] = React.useState<Show[]>([]);
+  const notificationCtx = React.useContext(NotificationContext);
 
   // Fetch event details on component mount
   React.useEffect(() => {
     if (params.event_slug) {
       const fetchEventDetails = async () => {
         try {
-          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(`/marketplace/events/${params.event_slug}/`);
+          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(`/marketplace/events/${params.event_slug}`);
           setEvent(response.data);
           // setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
-          console.error('Error fetching event details:', error);
+          notificationCtx.error('Error fetching event details:', error);
         }
       };
 
@@ -100,10 +102,10 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   React.useEffect(() => {
     async function fetchShows() {
       try {
-        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(`/marketplace/events/${params.event_slug}/shows/`);
+        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(`/marketplace/events/${params.event_slug}/shows`);
         setShows(response.data);
       } catch (error) {
-        console.error('Error fetching shows:', error);
+        notificationCtx.error('Error fetching shows:', error);
       }
     }
     fetchShows();
@@ -113,7 +115,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   React.useEffect(() => {
     async function fetchTicketCategories() {
       try {
-        const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(`/marketplace/events/${params.event_slug}/ticket_categories/`);
+        const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(`/marketplace/events/${params.event_slug}/ticket_categories`);
         const sortedCategories = response.data.sort((a, b) => {
           if (a.status === 'on_sale' && b.status !== 'on_sale') return -1;
           if (a.status !== 'on_sale' && b.status === 'on_sale') return 1;
@@ -121,7 +123,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         });
         setTicketCategories(sortedCategories);
       } catch (error) {
-        console.error('Error fetching ticket categories:', error);
+        notificationCtx.error('Error fetching ticket categories:', error);
       }
     }
     fetchTicketCategories();
@@ -154,7 +156,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
 
   const handleSubmit = async () => {
     if (!selectedCategoryId || !customer.name || !customer.email || ticketQuantity <= 0) {
-      alert("Please fill in the required fields.");
+      notificationCtx.warning("Please fill in the required fields.");
       return;
     }
 
@@ -172,12 +174,10 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         extraFee
       };
 
-      const response = await baseHttpServiceInstance.post(`/marketplace/events/${params.event_slug}/transactions/`, transactionData);
-      console.log("Transaction successful:", response.data);
-      alert("Transaction created successfully!");
+      const response = await baseHttpServiceInstance.post(`/marketplace/events/${params.event_slug}/transactions`, transactionData);
+      notificationCtx.success("Transaction created successfully!");
     } catch (error) {
-      console.error("Error creating transaction:", error);
-      alert("Error creating transaction.");
+      notificationCtx.error("Error creating transaction.", error);
     }
   };
 
@@ -263,10 +263,19 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
               <Grid item lg={8} md={6} xs={12}>
                 <Card>
                   <CardContent>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                      {event?.description ? event.description : "Chưa có mô tả"}
-                    </Typography>
-
+                    {event?.description ?
+                      <Box sx={{
+                        margin: 0, padding: 0,
+                        "& img": {
+                          maxWidth: "100%", // Set images to scale down if they exceed container width
+                          height: "auto", // Maintain aspect ratio
+                        },
+                      }} dangerouslySetInnerHTML={{ __html: event?.description }} />
+                      :
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        Chưa có mô tả
+                      </Typography>
+                    }
                   </CardContent>
 
                 </Card>
