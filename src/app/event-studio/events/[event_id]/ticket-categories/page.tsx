@@ -1,5 +1,6 @@
 "use client"
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Pagination from '@mui/material/Pagination';
@@ -47,7 +48,7 @@ const typeMap = {
 };
 
 const colorMap = {
-  0: deepOrange[500], 
+  0: deepOrange[500],
   1: deepPurple[500],
   2: green[500],
   3: cyan[500],
@@ -59,16 +60,17 @@ const colorMap = {
 
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   const [ticketCategories, setTicketCategories] = React.useState<TicketCategory[]>([]);
+  const notificationCtx = React.useContext(NotificationContext);
 
   React.useEffect(() => {
     const fetchTicketCategories = async () => {
       try {
         const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${params.event_id}/ticket_categories/`
+          `/event-studio/events/${params.event_id}/ticket_categories`
         );
         setTicketCategories(response.data);
       } catch (error) {
-        console.error('Error fetching ticket categories:', error);
+        notificationCtx.error('Error fetching ticket categories:', error);
       }
     };
 
@@ -117,7 +119,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                         {ticketCategory.name}
                       </Typography>
                       <Typography align="left" variant="body2">
-                        {ticketCategory.price.toLocaleString('vi-VN', {style : 'currency', currency : 'VND'})}
+                        {ticketCategory.price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
                       </Typography>
                     </Stack>
                   </Stack>
@@ -125,9 +127,19 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     Số lượng: {ticketCategory.quantity} - Đã bán: {ticketCategory.sold} - Còn lại:{' '}
                     {ticketCategory.quantity - ticketCategory.sold}
                   </Typography>
-                  <Typography align="left" variant="body2">
-                    {ticketCategory.description ? ticketCategory.description : "Chưa có mô tả"}
-                  </Typography>
+                  {ticketCategory?.description ?
+                    <Box sx={{
+                      margin: 0, padding: 0,
+                      "& img": {
+                        maxWidth: "100%", // Set images to scale down if they exceed container width
+                        height: "auto", // Maintain aspect ratio
+                      },
+                    }} dangerouslySetInnerHTML={{ __html: ticketCategory?.description }} />
+                    :
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      Chưa có mô tả
+                    </Typography>
+                  }
                 </Stack>
               </CardContent>
               <Divider />

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import axios, { AxiosResponse } from 'axios';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
@@ -16,7 +17,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
-
+  const notificationCtx = React.useContext(NotificationContext);
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
   };
@@ -31,10 +32,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   React.useEffect(() => {
     async function fetchTransactions() {
       try {
-        const response: AxiosResponse<Transaction[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/transactions/`);
+        const response: AxiosResponse<Transaction[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/transactions`);
         setTransactions(response.data);
       } catch (error) {
-        console.error('Error fetching transactions:', error);
+        notificationCtx.error('Error fetching transactions:', error);
       }
     }
     fetchTransactions();

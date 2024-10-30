@@ -1,4 +1,5 @@
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import type { Metadata } from 'next';
 
 import { config } from '@/config';

@@ -21,7 +21,7 @@ import { Avatar } from '@mui/material';
 import { cyan, deepOrange, deepPurple, green, indigo, pink, yellow } from '@mui/material/colors';
 
 export interface TicketCategory {
-  id: string;
+  id: number;
   avatar: string;
   name: string;
   updatedAt: Date;
@@ -32,7 +32,7 @@ export interface TicketCategory {
 
 interface TicketCategoriesProps {
   ticketCategories: TicketCategory[];
-  onCategorySelect: (ticketCategoryId: string) => void; // Pass selected category to parent
+  onCategorySelect: (ticketCategoryId: number) => void; // Pass selected category to parent
 }
 
 
@@ -48,7 +48,7 @@ const colorMap = {
 };
 
 export function TicketCategories({ ticketCategories, onCategorySelect }: TicketCategoriesProps): React.JSX.Element {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // Track the selected category
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null); // Track the selected category
 
 
   const formatPrice = (price: number) => {
@@ -60,7 +60,7 @@ export function TicketCategories({ ticketCategories, onCategorySelect }: TicketC
     public: 'Công khai'
   };
 
-  const handleSelect = (id: string) => {
+  const handleSelect = (id: number) => {
     const ticketCategory = ticketCategories.find((t) => t.id === id)
     if (ticketCategory && ticketCategory?.status === 'on_sale') {
       setSelectedCategory(id);

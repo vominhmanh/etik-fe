@@ -20,6 +20,9 @@ import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import { AxiosResponse } from 'axios';
+import NotificationContext from '@/contexts/notification-context';
+import React from 'react';
+import dayjs from 'dayjs';
 
 // Define response type for the events
 type EventResponse = {
@@ -40,16 +43,17 @@ type EventResponse = {
 export default function Page(): React.JSX.Element {
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const notificationCtx = React.useContext(NotificationContext);
 
   // Fetch all events on component mount
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         setIsLoading(true);
-        const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/event-studio/events/');
+        const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/event-studio/events');
         setEvents(response.data);
       } catch (error) {
-        console.error('Error fetching events:', error);
+        notificationCtx.error('Error fetching events:', error);
       } finally {
         setIsLoading(false);
       }
@@ -102,9 +106,6 @@ export default function Page(): React.JSX.Element {
                 <Typography gutterBottom variant="h5" component="div">
                   {event.name}
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  {event.description ? event.description : 'Chưa có mô tả'}
-                </Typography>
                 <Stack direction="column" spacing={2} sx={{ alignItems: 'left', mt: 2 }}>
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
@@ -116,7 +117,7 @@ export default function Page(): React.JSX.Element {
                     <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event.startDateTime && event.endDateTime
-                        ? `${event.startDateTime} - ${event.endDateTime}`
+                        ? `${dayjs(event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
                         : 'Chưa xác định'}
                     </Typography>
                   </Stack>

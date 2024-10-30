@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import axios, { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { useMediaDevices } from "react-media-devices";
@@ -87,6 +88,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [trxn, setTrxn] = React.useState<Transaction>();
   const [confirmCheckin, setConfirmCheckin] = React.useState(false);
   const [tickets, setTickets] = React.useState<Ticket[]>([]);
+  const notificationCtx = React.useContext(NotificationContext);
 
   const { devices } = useMediaDevices({ constraints });
   const deviceId = devices?.[0]?.deviceId;
@@ -118,7 +120,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           ref.current.srcObject = stream;
         }
       } catch (err) {
-        console.error("Error accessing webcam:", err);
+        notificationCtx.error("Error accessing webcam:", err);
       }
     };
 

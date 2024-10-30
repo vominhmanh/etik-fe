@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import { useEffect, useState } from 'react';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
@@ -79,10 +80,8 @@ const getPaymentStatusDetails = (paymentStatus: string) => {
 // Function to map row statuses to corresponding labels and colors
 const getRowStatusDetails = (status: string) => {
   switch (status) {
-    case 'initial':
-      return { label: 'Khởi tạo', color: 'default' };
-    case 'active':
-      return { label: 'Khả dụng', color: 'success' };
+    case 'normal':
+      return { label: 'Bình thường', color: 'default' };
     case 'customer_cancelled':
       return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
     case 'staff_locked':
@@ -171,19 +170,19 @@ export interface ECodeResponse {
 export default function Page({ params }: { params: { transaction_id: number } }): React.JSX.Element {
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [eCode, setECode] = useState<string | null>(null);
-
   const { transaction_id } = params;
+  const notificationCtx = React.useContext(NotificationContext);
 
   // Fetch transaction details
   useEffect(() => {
     const fetchTransactionDetails = async () => {
       try {
         const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
-          `/account/transactions/${transaction_id}/`
+          `/account/transactions/${transaction_id}`
         );
         setTransaction(response.data);
       } catch (error) {
-        console.error('Error fetching transaction details:', error);
+        notificationCtx.error('Error fetching transaction details:', error);
       }
     };
 
@@ -194,11 +193,11 @@ export default function Page({ params }: { params: { transaction_id: number } })
     const fetchCheckInECode = async () => {
       try {
         const response: AxiosResponse<ECodeResponse> = await baseHttpServiceInstance.get(
-          `/account/transactions/${transaction_id}/check-in-e-code/`
+          `/account/transactions/${transaction_id}/check-in-e-code`
         );
         setECode(response.data.eCode);
       } catch (error) {
-        console.error('Error fetching ecode', error);
+        notificationCtx.error('Error fetching ecode', error);
       }
     };
 
@@ -246,7 +245,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {transaction.event.startDateTime && transaction.event.endDateTime
-                        ? `${transaction.event.startDateTime} - ${transaction.event.endDateTime}`
+                        ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
                         : "Chưa xác định"}
                     </Typography>
                   </Stack>
@@ -522,7 +521,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                 <Divider />
                 <CardContent>
                   <Stack spacing={1} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <div style={{width: '100px' }}>
+                    <div style={{ width: '100px' }}>
                       <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${eCode}"`} />
                     </div>
                     <Typography sx={{ textAlign: 'center' }}>{eCode}</Typography>

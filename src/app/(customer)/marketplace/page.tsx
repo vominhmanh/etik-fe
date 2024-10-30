@@ -18,6 +18,9 @@ import CardContent from "@mui/material/CardContent";
 import Divider from "@mui/material/Divider";
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { AxiosResponse } from 'axios';
+import React from 'react';
+import NotificationContext from '@/contexts/notification-context';
+import dayjs from 'dayjs';
 
 // Define response type for the events
 type EventResponse = {
@@ -37,15 +40,16 @@ type EventResponse = {
 
 export default function Page(): React.JSX.Element {
   const [events, setEvents] = useState<EventResponse[]>([]);
+  const notificationCtx = React.useContext(NotificationContext);
 
   // Fetch all events on component mount
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/marketplace/events/');
+        const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/marketplace/events');
         setEvents(response.data);
       } catch (error) {
-        console.error('Error fetching events:', error);
+        notificationCtx.error('Error fetching events:', error);
       }
     };
 
@@ -92,7 +96,7 @@ export default function Page(): React.JSX.Element {
                     <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event.startDateTime && event.endDateTime
-                        ? `${event.startDateTime} - ${event.endDateTime}`
+                        ? `${dayjs(event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
                         : "Chưa xác định"}
                     </Typography>
                   </Stack>

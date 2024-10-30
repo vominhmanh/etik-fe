@@ -1,16 +1,18 @@
 "use client";
+
+import OutlinedInput from '@mui/material/OutlinedInput';
 import Grid from '@mui/material/Unstable_Grid2';
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import OutlinedInput from '@mui/material/OutlinedInput';
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import { InputAdornment } from '@mui/material';
@@ -18,11 +20,14 @@ import axios, { AxiosResponse } from 'axios';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
+import ReactQuill from 'react-quill'; // Import ReactQuill
+import 'react-quill/dist/quill.snow.css'; // Import Quill styles
 
 export default function Page({ params }: { params: { event_id: number, ticket_category_id: number } }): React.JSX.Element {
   const eventId = params.event_id;
   const ticketCategoryId = params.ticket_category_id;
-  
+  const notificationCtx = React.useContext(NotificationContext);
+
   const [formData, setFormData] = useState({
     name: '',
     type: 'public',
@@ -38,7 +43,7 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
   useEffect(() => {
     const fetchTicketCategory = async () => {
       try {
-        const response: AxiosResponse = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}/`);
+        const response: AxiosResponse = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}`);
         const ticketCategory = response.data;
         setFormData({
           name: ticketCategory.name,
@@ -50,7 +55,7 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
           sold: ticketCategory.sold,
         });
       } catch (error) {
-        console.error('Error fetching ticket category:', error);
+        notificationCtx.error('Error fetching ticket category:', error);
       }
     };
     fetchTicketCategory();
@@ -67,7 +72,7 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
   // Save the edited ticket category
   const handleSave = async () => {
     try {
-      const response: AxiosResponse = await baseHttpServiceInstance.put(`/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}/`, {
+      const response: AxiosResponse = await baseHttpServiceInstance.put(`/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}`, {
         name: formData.name,
         type: formData.type,
         price: formData.price,
@@ -75,10 +80,10 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
         description: formData.description,
         status: formData.status,
       });
-      console.log('Ticket category updated:', response.data);
+      notificationCtx.success('Ticket category updated:', response.data);
       router.push(`/event-studio/events/${eventId}/ticket-categories`);
     } catch (error) {
-      console.error('Error updating ticket category:', error);
+      notificationCtx.error('Error updating ticket category:', error);
     }
   };
 
@@ -124,15 +129,10 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
                   </Grid>
                   <Grid md={12} xs={12}>
                     <FormControl fullWidth>
-                      <InputLabel>Mô tả</InputLabel>
-                      <OutlinedInput
-                        label="Mô tả"
-                        name="description"
+                      <ReactQuill
                         value={formData.description}
-                        onChange={handleChange}
-                        multiline
-                        minRows={2}
-                        maxRows={10}
+                        onChange={(value) => setFormData((prev) => ({ ...prev, description: value }))}
+                        placeholder="Nhập mô tả sự kiện..."
                       />
                     </FormControl>
                   </Grid>

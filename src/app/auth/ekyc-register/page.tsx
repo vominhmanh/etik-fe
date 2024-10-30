@@ -5,6 +5,7 @@ import Typography from "@mui/material/Typography";
 import CardContent from "@mui/material/CardContent";
 import Divider from "@mui/material/Divider";
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
@@ -56,6 +57,7 @@ export default function Page(): React.JSX.Element {
   const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
   const [openErrorModal, setOpenErrorModal] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState('');
+  const notificationCtx = React.useContext(NotificationContext);
 
   const handleCloseWarningModal = () => setOpenWarningModal(false);
 
@@ -87,7 +89,7 @@ export default function Page(): React.JSX.Element {
           setOpenWarningModal(true);
         }
       } catch (error) {
-        console.error("Failed to fetch eKYC info:", error);
+        notificationCtx.error("Failed to fetch eKYC info:", error);
         setOpenNotFoundTransactionModal(true);
       }
     };

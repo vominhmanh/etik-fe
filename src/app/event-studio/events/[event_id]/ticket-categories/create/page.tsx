@@ -1,16 +1,18 @@
 "use client";
+
+import OutlinedInput from '@mui/material/OutlinedInput';
 import Grid from '@mui/material/Unstable_Grid2';
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import CardContent from "@mui/material/CardContent";
 import Divider from "@mui/material/Divider";
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
-import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import { InputAdornment } from '@mui/material';
@@ -18,6 +20,8 @@ import axios, { AxiosResponse } from 'axios';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
+import ReactQuill from 'react-quill'; // Import ReactQuill
+import 'react-quill/dist/quill.snow.css'; // Import styles for ReactQuill
 
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   const eventId = params.event_id;
@@ -26,9 +30,10 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     type: 'public',
     price: 0,
     quantity: 1,
-    description: '',
+    description: '', // Ensure this is part of the state
   });
   const router = useRouter();
+  const notificationCtx = React.useContext(NotificationContext);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value } = e.target;
@@ -38,19 +43,26 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     }));
   };
 
+  const handleDescriptionChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      description: value, // Update description state
+    }));
+  };
+
   const handleSubmit = async () => {
     try {
-      const response: AxiosResponse = await baseHttpServiceInstance.post(`/event-studio/events/${eventId}/ticket_categories/`, {
+      const response: AxiosResponse = await baseHttpServiceInstance.post(`/event-studio/events/${eventId}/ticket_categories`, {
         name: formData.name,
         type: formData.type,
         price: formData.price,
         quantity: formData.quantity,
         description: formData.description,
       });
-      console.log('Ticket category created:', response.data);
+      notificationCtx.success('Ticket category created:', response.data);
       router.push(`/event-studio/events/${eventId}/ticket-categories`);
     } catch (error) {
-      console.error('Error creating ticket category:', error);
+      notificationCtx.error('Error creating ticket category:', error);
     }
   };
 
@@ -96,15 +108,10 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   </Grid>
                   <Grid md={12} xs={12}>
                     <FormControl fullWidth>
-                      <InputLabel>Mô tả</InputLabel>
-                      <OutlinedInput
-                        label="Mô tả"
-                        name="description"
+                      <ReactQuill
                         value={formData.description}
-                        onChange={handleChange}
-                        multiline
-                        minRows={2}
-                        maxRows={10}
+                        onChange={handleDescriptionChange}
+                        placeholder="Mô tả"
                       />
                     </FormControl>
                   </Grid>
@@ -119,7 +126,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     sx={{ maxWidth: 180 }}
                     type='text'
                     value={formData.quantity.toLocaleString('vi-VN')}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, quantity: parseFloat(e.target.value.replace(/\./g, '')) || 0  }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, quantity: parseFloat(e.target.value.replace(/\./g, '')) || 0  })) }
                   />
                 }
               />
@@ -131,7 +138,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     type="text"
                     sx={{ maxWidth: 180 }}
                     value={formData.price.toLocaleString('vi-VN')}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, price: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, price: parseFloat(e.target.value.replace(/\./g, '')) || 0 })) }
                     endAdornment={<InputAdornment position="end">đ</InputAdornment>}
                   />
                 }

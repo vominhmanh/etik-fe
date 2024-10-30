@@ -1,5 +1,6 @@
 "use client"
 import * as React from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Pagination from '@mui/material/Pagination';
@@ -22,6 +23,7 @@ import { deepPurple, deepOrange, indigo, cyan, green, pink, yellow } from '@mui/
 import { Clock as ClockIcon } from "@phosphor-icons/react/dist/ssr/Clock";
 import { MapPin as MapPinIcon } from "@phosphor-icons/react/dist/ssr/MapPin";
 import { HouseLine as HouseLineIcon } from "@phosphor-icons/react/dist/ssr/HouseLine";
+import dayjs from 'dayjs';
 
 const statusMap = {
   not_opened_for_sale: { label: 'Chưa mở bán', color: 'secondary' },
@@ -58,15 +60,16 @@ export type Show = {
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   const { event_id } = params;
   const [shows, setShows] = React.useState<Show[]>([]);
+  const notificationCtx = React.useContext(NotificationContext);
 
   // Fetch shows
   React.useEffect(() => {
     async function fetchShows() {
       try {
-        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/shows/`);
+        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/shows`);
         setShows(response.data);
       } catch (error) {
-        console.error('Error fetching shows:', error);
+        notificationCtx.error('Error fetching shows:', error);
       }
     }
     fetchShows();
@@ -110,7 +113,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {show.startDateTime && show.endDateTime
-                        ? `${show.startDateTime} - ${show.endDateTime}`
+                        ? `${dayjs(show.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(show.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
                         : "Chưa xác định"}
                     </Typography>
                   </Stack>
