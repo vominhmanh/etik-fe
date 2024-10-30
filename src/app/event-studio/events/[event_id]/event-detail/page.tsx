@@ -1,29 +1,33 @@
 'use client';
 
 import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
-import Typography from '@mui/material/Typography';
-import { Clock as ClockIcon } from "@phosphor-icons/react/dist/ssr/Clock";
-import { MapPin as MapPinIcon } from "@phosphor-icons/react/dist/ssr/MapPin";
-import { HouseLine as HouseLineIcon } from "@phosphor-icons/react/dist/ssr/HouseLine";
-import { Avatar, Box, CardMedia, MenuItem, Select } from "@mui/material";
+import { useCallback, useEffect, useState } from 'react';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
+import { Avatar, Box, CardMedia, MenuItem, Select, Stack, TextField } from '@mui/material';
+import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
+import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
+import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Stack, TextField } from '@mui/material';
-import { useCallback, useEffect, useState } from 'react';
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { AxiosResponse } from 'axios';
 import { ArrowSquareIn } from '@phosphor-icons/react/dist/ssr';
+import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
+import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
+import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
+import { AxiosResponse } from 'axios';
 import ReactQuill, { Quill } from 'react-quill';
+
+import NotificationContext from '@/contexts/notification-context';
+
 import 'react-quill/dist/quill.snow.css';
+
 import dayjs from 'dayjs';
 
 // Define the event response type
@@ -55,6 +59,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [description, setDescription] = useState<string>('');
   const reactQuillRef = React.useRef<ReactQuill>(null);
   const notificationCtx = React.useContext(NotificationContext);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Handle image selection
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,6 +80,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
     try {
       // Call API to upload the image
+      setIsLoading(true);
       await baseHttpServiceInstance.post(`/event-studio/events/${event?.id}/upload_banner`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -85,6 +91,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       window.location.reload(); // You can also call a function to update the state instead of reloading
     } catch (error) {
       notificationCtx.error('Error uploading banner image:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -95,17 +103,21 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     setIsImageSelected(false); // Reset state
   };
 
-
   useEffect(() => {
     if (event_id) {
       const fetchEventDetails = async () => {
         try {
-          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(`/event-studio/events/${event_id}`);
+          setIsLoading(true);
+          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
+            `/event-studio/events/${event_id}`
+          );
           setEvent(response.data);
           setFormValues(response.data);
           setDescription(response.data.description || '');
         } catch (error) {
           notificationCtx.error('Error fetching event details:', error);
+        } finally {
+          setIsLoading(false);
         }
       };
       fetchEventDetails();
@@ -115,26 +127,28 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   // Handle form value changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormValues((prevValues) => prevValues ? { ...prevValues, [name]: value } : null);
+    setFormValues((prevValues) => (prevValues ? { ...prevValues, [name]: value } : null));
   };
 
   const handleDescriptionChange = (value: string) => {
     setDescription(value);
-    setFormValues((prevValues) => prevValues ? { ...prevValues, description: value } : null);
+    setFormValues((prevValues) => (prevValues ? { ...prevValues, description: value } : null));
   };
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (formValues && event_id) {
       try {
+        setIsLoading(true);
         await baseHttpServiceInstance.put(`/event-studio/events/${event_id}`, { ...formValues, description });
         notificationCtx.success('Event updated successfully!');
       } catch (error) {
         notificationCtx.error('Error updating event:', error);
+      } finally {
+        setIsLoading(false);
       }
     }
   };
-
 
   // Image Upload Handler
   const handleImageUpload = useCallback(() => {
@@ -151,18 +165,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
         try {
           // Upload the image to the server
-          const response = await baseHttpServiceInstance.post(`/event-studio/events/${event_id}/upload_image`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
+          setIsLoading(true);
+          const response = await baseHttpServiceInstance.post(
+            `/event-studio/events/${event_id}/upload_image`,
+            formData,
+            {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            }
+          );
 
           const imageUrl = response.data.imageUrl; // Adjust based on response
           const quill = reactQuillRef.current;
           if (quill) {
             const range = quill.getEditorSelection();
-            range && quill.getEditor().insertEmbed(range.index, "image", imageUrl);
+            range && quill.getEditor().insertEmbed(range.index, 'image', imageUrl);
           }
         } catch (error) {
           notificationCtx.error('Image upload failed:', error);
+        } finally {
+          setIsLoading(false);
         }
       }
     };
@@ -172,21 +193,21 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const modules = {
     toolbar: {
       container: [
-        [{ 'header': '1' }, { 'header': '2' }, { 'font': [] }],
-        [{ 'size': [] }],
+        [{ header: '1' }, { header: '2' }, { font: [] }],
+        [{ size: [] }],
         ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+        [{ list: 'ordered' }, { list: 'bullet' }],
         ['link', 'image'],
-        ['clean']
+        ['clean'],
       ],
       handlers: {
-        image: handleImageUpload,   // <- 
+        image: handleImageUpload, // <-
       },
     },
     clipboard: {
       matchVisual: false,
     },
-  }
+  };
 
   if (!event || !formValues) {
     return <Typography>Loading...</Typography>;
@@ -194,6 +215,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   return (
     <Stack spacing={3}>
+      <Backdrop
+        open={isLoading}
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          marginLeft: '0px !important',
+        }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
       <Grid container spacing={3}>
         <Grid lg={8} md={6} xs={12}>
           <Box
@@ -204,7 +235,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               overflow: 'hidden',
               border: 'grey 1px',
               borderRadius: '20px',
-              backgroundColor: 'gray'
+              backgroundColor: 'gray',
             }}
           >
             <img
@@ -223,13 +254,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Grid>
         <Grid lg={4} md={6} xs={12}>
           <Card sx={{ height: '100%' }}>
-            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <CardContent
+              sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+            >
               <Stack direction="column" spacing={2}>
                 <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
                   <div>
-                    <Avatar sx={{ height: '80px', width: '80px', fontSize: "2rem" }}>{event?.name[0].toUpperCase()}</Avatar>
+                    <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
+                      {event?.name[0].toUpperCase()}
+                    </Avatar>
                   </div>
-                  <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>{event?.name}</Typography>
+                  <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
+                    {event?.name}
+                  </Typography>
                 </Stack>
 
                 <Stack direction="row" spacing={1}>
@@ -243,19 +280,26 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <Typography color="text.secondary" display="inline" variant="body2">
                     {event?.startDateTime && event?.endDateTime
                       ? `${dayjs(event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
-                      : "Chưa xác định"}
+                      : 'Chưa xác định'}
                   </Typography>
                 </Stack>
 
                 <Stack direction="row" spacing={1}>
                   <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                   <Typography color="text.secondary" display="inline" variant="body2">
-                    {event?.place ? event?.place : "Chưa xác định"}
+                    {event?.place ? event?.place : 'Chưa xác định'}
                   </Typography>
                 </Stack>
               </Stack>
               <div style={{ marginTop: '20px' }}>
-                <Button fullWidth variant='contained' target='_blank' href={`/events/${event?.slug}`} size="small" endIcon={<ArrowSquareIn />}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  target="_blank"
+                  href={`/events/${event?.slug}`}
+                  size="small"
+                  endIcon={<ArrowSquareIn />}
+                >
                   Đến trang Marketplace của sự kiện
                 </Button>
               </div>
@@ -356,7 +400,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       />
                     </FormControl>
                   </Grid>
-
                 </Grid>
               </CardContent>
             </Card>
@@ -452,9 +495,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         label="Thời gian kết thúc"
                         type="datetime-local"
                         value={formValues.endDateTime || ''}
-                        onChange={(e) =>
-                          handleInputChange({ target: { name: 'endDateTime', value: e.target.value } })
-                        }
+                        onChange={(e) => handleInputChange({ target: { name: 'endDateTime', value: e.target.value } })}
                         InputLabelProps={{ shrink: true }}
                       />
                     </FormControl>

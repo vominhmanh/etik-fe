@@ -1,26 +1,28 @@
-"use client"
+'use client';
 
 import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
-
-import Grid from '@mui/material/Unstable_Grid2';
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import CardContent from "@mui/material/CardContent";
-import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import OutlinedInput from '@mui/material/OutlinedInput';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Unstable_Grid2';
 import { AxiosResponse } from 'axios';
+import Backdrop from '@mui/material/Backdrop';
+import CircularProgress from '@mui/material/CircularProgress';
+
+import NotificationContext from '@/contexts/notification-context';
 
 type EventCreatedResponse = {
   eventId: number;
   message: string;
-}
+};
 
 export default function Page(): React.JSX.Element {
   const notificationCtx = React.useContext(NotificationContext);
@@ -28,15 +30,16 @@ export default function Page(): React.JSX.Element {
     name: '',
     organizer: '',
     organizerEmail: '',
-    organizerPhoneNumber: ''
+    organizerPhoneNumber: '',
   });
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const router = useRouter(); // Use useRouter from next/navigation
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -51,7 +54,11 @@ export default function Page(): React.JSX.Element {
     }
 
     try {
-      const response: AxiosResponse<EventCreatedResponse> = await baseHttpServiceInstance.post('/event-studio/events', formData);
+      setIsLoading(true);
+      const response: AxiosResponse<EventCreatedResponse> = await baseHttpServiceInstance.post(
+        '/event-studio/events',
+        formData
+      );
       if (response.data) {
         notificationCtx.success('Event created successfully:', response.data);
         router.push('/event-studio/events/'); // Navigate to a different page on success
@@ -60,11 +67,23 @@ export default function Page(): React.JSX.Element {
       }
     } catch (error) {
       notificationCtx.error('Error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <Stack spacing={3}>
+      <Backdrop
+        open={isLoading}
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          marginLeft: '0px !important',
+        }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Tạo sự kiện</Typography>
@@ -79,12 +98,7 @@ export default function Page(): React.JSX.Element {
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Tên sự kiện</InputLabel>
-                      <OutlinedInput
-                        label="Tên sự kiện"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                      />
+                      <OutlinedInput label="Tên sự kiện" name="name" value={formData.name} onChange={handleChange} />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>

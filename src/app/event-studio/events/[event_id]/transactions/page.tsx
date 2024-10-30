@@ -1,17 +1,21 @@
-"use client"
+'use client';
 
 import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
-import axios, { AxiosResponse } from 'axios';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
+import axios, { AxiosResponse } from 'axios';
+
+import NotificationContext from '@/contexts/notification-context';
 import { CustomersFilters } from '@/components/dashboard/customer/customers-filters';
+
 import { Transaction, TransactionsTable } from './transactions-table';
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
+import Backdrop from '@mui/material/Backdrop';
+import CircularProgress from '@mui/material/CircularProgress';
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
@@ -21,21 +25,26 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
   };
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
   const handleRowsPerPageChange = (newRowsPerPage: number) => {
     setRowsPerPage(newRowsPerPage);
-    setPage(0);  // Reset to the first page whenever rows per page change
+    setPage(0); // Reset to the first page whenever rows per page change
   };
-
 
   // Fetch transactions for the event
   React.useEffect(() => {
     async function fetchTransactions() {
       try {
-        const response: AxiosResponse<Transaction[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/transactions`);
+        setIsLoading(true);
+        const response: AxiosResponse<Transaction[]> = await baseHttpServiceInstance.get(
+          `/event-studio/events/${params.event_id}/transactions`
+        );
         setTransactions(response.data);
       } catch (error) {
         notificationCtx.error('Error fetching transactions:', error);
+      } finally {
+        setIsLoading(false);
       }
     }
     fetchTransactions();
@@ -45,6 +54,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   return (
     <Stack spacing={3}>
+      <Backdrop
+        open={isLoading}
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          marginLeft: '0px !important',
+        }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>{' '}
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Bán vé & Khách hàng</Typography>
@@ -58,7 +77,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           </Stack>
         </Stack>
         <div>
-          <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} href="transactions/create" variant="contained">
+          <Button
+            startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
+            href="transactions/create"
+            variant="contained"
+          >
             Thêm
           </Button>
         </div>

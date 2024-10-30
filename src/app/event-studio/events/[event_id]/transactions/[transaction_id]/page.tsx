@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
 import { useEffect, useState } from 'react';
-import Typography from '@mui/material/Typography';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
+import { Chip, MenuItem, Select, Stack } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
@@ -13,20 +13,23 @@ import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
+import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Stack, Chip, MenuItem, Select } from '@mui/material';
-import axios, { AxiosResponse } from 'axios';
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Money as MoneyIcon, Bank as BankIcon, Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
-import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
-import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
-import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
-import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
-import { StackPlus as StackPlusIcon } from '@phosphor-icons/react/dist/ssr/StackPlus';
-import { SealPercent as SealPercentIcon } from '@phosphor-icons/react/dist/ssr/SealPercent';
-import { EnvelopeSimple as EnvelopeSimpleIcon } from '@phosphor-icons/react/dist/ssr/EnvelopeSimple';
+import { Bank as BankIcon, Lightning as LightningIcon, Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
 
+import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
+import { EnvelopeSimple as EnvelopeSimpleIcon } from '@phosphor-icons/react/dist/ssr/EnvelopeSimple';
+import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
+import { SealPercent as SealPercentIcon } from '@phosphor-icons/react/dist/ssr/SealPercent';
+import { StackPlus as StackPlusIcon } from '@phosphor-icons/react/dist/ssr/StackPlus';
+import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
+import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
+import axios, { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
+import Backdrop from '@mui/material/Backdrop';
+import CircularProgress from '@mui/material/CircularProgress';
+
+import NotificationContext from '@/contexts/notification-context';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -100,7 +103,6 @@ export interface Creator {
   email: string;
 }
 
-
 export interface TicketCategory {
   id: number;
   name: string;
@@ -146,22 +148,25 @@ export interface Transaction {
   creator: Creator | null;
 }
 
-
-export default function Page({ params }: { params: { event_id: number, transaction_id: number } }): React.JSX.Element {
+export default function Page({ params }: { params: { event_id: number; transaction_id: number } }): React.JSX.Element {
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const notificationCtx = React.useContext(NotificationContext);
   const { event_id, transaction_id } = params;
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Fetch transaction details
   useEffect(() => {
     const fetchTransactionDetails = async () => {
       try {
+        setIsLoading(true);
         const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
           `/event-studio/events/${event_id}/transactions/${transaction_id}`
         );
         setTransaction(response.data);
       } catch (error) {
         notificationCtx.error('Error fetching transaction details:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -179,6 +184,16 @@ export default function Page({ params }: { params: { event_id: number, transacti
 
   return (
     <Stack spacing={3}>
+      <Backdrop
+        open={isLoading}
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          marginLeft: '0px !important',
+        }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
       <div>
         <Typography variant="h4">Chi tiết vé của {transaction.name}</Typography>
       </div>
@@ -192,24 +207,15 @@ export default function Page({ params }: { params: { event_id: number, transacti
                 <Stack spacing={2}>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Trạng thái vé:</Typography>
-                    <Chip
-                      color={statusDetails.color}
-                      label={statusDetails.label}
-                    />
+                    <Chip color={statusDetails.color} label={statusDetails.label} />
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Phương thức thanh toán:</Typography>
-                    <Chip
-                      icon={paymentMethodDetails.icon}
-                      label={paymentMethodDetails.label}
-                    />
+                    <Chip icon={paymentMethodDetails.icon} label={paymentMethodDetails.label} />
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Trạng thái thanh toán:</Typography>
-                    <Chip
-                      label={paymentStatusDetails.label}
-                      color={paymentStatusDetails.color}
-                    />
+                    <Chip label={paymentStatusDetails.label} color={paymentStatusDetails.color} />
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Tổng số tiền:</Typography>
@@ -233,9 +239,7 @@ export default function Page({ params }: { params: { event_id: number, transacti
                       <TicketIcon fontSize="var(--icon-fontSize-md)" />
                       <Typography variant="body1">Loại vé:</Typography>
                     </Stack>
-                    <Typography variant="body1">
-                      {transaction.ticketCategory?.name || 'Chưa xác định'}
-                    </Typography>
+                    <Typography variant="body1">{transaction.ticketCategory?.name || 'Chưa xác định'}</Typography>
                   </Grid>
 
                   {/* Unit Price */}
@@ -285,7 +289,7 @@ export default function Page({ params }: { params: { event_id: number, transacti
                 </Stack>
               </CardContent>
             </Card>
-            {transaction.paymentMethod === 'napas247' &&
+            {transaction.paymentMethod === 'napas247' && (
               <Card>
                 <CardHeader title="Chi tiết thanh toán Napas 247" />
                 <Divider />
@@ -295,32 +299,40 @@ export default function Page({ params }: { params: { event_id: number, transacti
                       <Typography variant="body1">Payment order code:</Typography>
                       <Typography variant="body1">{transaction.paymentOrderCode}</Typography>
                     </Grid>
-                    {transaction.paymentStatus === 'waiting_for_payment' &&
+                    {transaction.paymentStatus === 'waiting_for_payment' && (
                       <>
                         <Grid container justifyContent="space-between">
                           <Typography variant="body1">Hạn thanh toán:</Typography>
-                          <Typography variant="body1">{dayjs(transaction.paymentDueDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}</Typography>
+                          <Typography variant="body1">
+                            {dayjs(transaction.paymentDueDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}
+                          </Typography>
                         </Grid>
                         <Grid container justifyContent="space-between">
                           <Typography variant="body1">Trang thanh toán:</Typography>
                           <Typography variant="body1">
-                            <Button href={transaction.paymentCheckoutUrl || ""} size="small" startIcon={<LightningIcon />}>
+                            <Button
+                              href={transaction.paymentCheckoutUrl || ''}
+                              size="small"
+                              startIcon={<LightningIcon />}
+                            >
                               Đến trang thanh toán
                             </Button>
                           </Typography>
                         </Grid>
-                      </>}
-                    {transaction.paymentStatus === 'paid' &&
+                      </>
+                    )}
+                    {transaction.paymentStatus === 'paid' && (
                       <Grid container justifyContent="space-between">
                         <Typography variant="body1">Thời gian thanh toán:</Typography>
-                        <Typography variant="body1">{dayjs(transaction.paymentTransactionDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}</Typography>
+                        <Typography variant="body1">
+                          {dayjs(transaction.paymentTransactionDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}
+                        </Typography>
                       </Grid>
-                    }
-
+                    )}
                   </Stack>
                 </CardContent>
               </Card>
-            }
+            )}
             <Card>
               <CardHeader title="Thông tin khác" />
               <Divider />
@@ -340,27 +352,19 @@ export default function Page({ params }: { params: { event_id: number, transacti
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">Người khởi tạo:</Typography>
                     </Stack>
-                    <Typography variant="body1">
-                      {transaction.creator?.fullName || 'Không có thông tin'}
-                    </Typography>
+                    <Typography variant="body1">{transaction.creator?.fullName || 'Không có thông tin'}</Typography>
                   </Grid>
                   {/* Created source */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">Nguồn khởi tạo:</Typography>
                     </Stack>
-                    <Typography variant="body1">
-                      {createdSource.label || 'Chưa xác định'}
-                    </Typography>
+                    <Typography variant="body1">{createdSource.label || 'Chưa xác định'}</Typography>
                   </Grid>
                 </Stack>
               </CardContent>
             </Card>
-
-
-
           </Stack>
-
         </Grid>
         <Grid lg={7} md={7} xs={12} spacing={3}>
           <Stack spacing={3}>
@@ -372,41 +376,25 @@ export default function Page({ params }: { params: { event_id: number, transacti
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Tên người mua</InputLabel>
-                      <OutlinedInput
-                        value={transaction.name}
-                        disabled
-                        label="Tên người mua"
-                      />
+                      <OutlinedInput value={transaction.name} disabled label="Tên người mua" />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Email</InputLabel>
-                      <OutlinedInput
-                        value={transaction.email}
-                        disabled
-                        label="Email"
-                      />
+                      <OutlinedInput value={transaction.email} disabled label="Email" />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth>
                       <InputLabel>Số điện thoại</InputLabel>
-                      <OutlinedInput
-                        value={transaction.phoneNumber}
-                        disabled
-                        label="Số điện thoại"
-                      />
+                      <OutlinedInput value={transaction.phoneNumber} disabled label="Số điện thoại" />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth>
                       <InputLabel>Địa chỉ</InputLabel>
-                      <OutlinedInput
-                        value={transaction.address}
-                        disabled
-                        label="Địa chỉ"
-                      />
+                      <OutlinedInput value={transaction.address} disabled label="Địa chỉ" />
                     </FormControl>
                   </Grid>
                 </Grid>
@@ -416,12 +404,7 @@ export default function Page({ params }: { params: { event_id: number, transacti
               <CardHeader
                 title="Số lượng vé"
                 action={
-                  <OutlinedInput
-                    disabled
-                    sx={{ maxWidth: 180 }}
-                    type="number"
-                    value={transaction.ticketQuantity}
-                  />
+                  <OutlinedInput disabled sx={{ maxWidth: 180 }} type="number" value={transaction.ticketQuantity} />
                 }
               />
               <Divider />
@@ -434,7 +417,7 @@ export default function Page({ params }: { params: { event_id: number, transacti
                         <OutlinedInput
                           label={`Họ và tên người tham dự ${index + 1}`}
                           value={ticket.holder}
-                        // onChange={(e) => handleTicketHolderChange(index, e.target.value)}
+                          // onChange={(e) => handleTicketHolderChange(index, e.target.value)}
                         />
                       </FormControl>
                     </Grid>
@@ -449,11 +432,10 @@ export default function Page({ params }: { params: { event_id: number, transacti
                 <Grid container justifyContent="space-between">
                   <FormControl fullWidth required>
                     <InputLabel>Chọn trạng thái vé:</InputLabel>
-                    <Select
-                      label="Chọn trạng thái thanh toán"
-                      name="type"
-                    >
-                      <MenuItem value="waiting_for_payment" selected>Khởi tạo</MenuItem>
+                    <Select label="Chọn trạng thái thanh toán" name="type">
+                      <MenuItem value="waiting_for_payment" selected>
+                        Khởi tạo
+                      </MenuItem>
                       <MenuItem value="paid">Khả dụng</MenuItem>
                       <MenuItem value="refund">Huỷ bởi Khách hàng</MenuItem>
                       <MenuItem value="refund">Khoá bởi Nhân viên</MenuItem>
@@ -461,19 +443,27 @@ export default function Page({ params }: { params: { event_id: number, transacti
                   </FormControl>
                 </Grid>
                 <Stack spacing={2} direction={'row'}>
-                  {transaction.status === 'normal' &&
-                    <Button href={transaction.paymentCheckoutUrl || ""} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                  {transaction.status === 'normal' && (
+                    <Button href={transaction.paymentCheckoutUrl || ''} size="small" startIcon={<EnvelopeSimpleIcon />}>
                       Gửi Email vé
-                    </Button>}
-                  {transaction.status === 'normal' && transaction.paymentMethod === 'napas247' && transaction.paymentStatus === 'waiting_for_payment' &&
-                    <Button href={transaction.paymentCheckoutUrl || ""} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                      Gửi Hướng dẫn thanh toán
-                    </Button>}
+                    </Button>
+                  )}
+                  {transaction.status === 'normal' &&
+                    transaction.paymentMethod === 'napas247' &&
+                    transaction.paymentStatus === 'waiting_for_payment' && (
+                      <Button
+                        href={transaction.paymentCheckoutUrl || ''}
+                        size="small"
+                        startIcon={<EnvelopeSimpleIcon />}
+                      >
+                        Gửi Hướng dẫn thanh toán
+                      </Button>
+                    )}
                 </Stack>
               </CardContent>
             </Card>
 
-            {transaction.paymentMethod !== 'napas247' &&
+            {transaction.paymentMethod !== 'napas247' && (
               <Card>
                 <CardHeader title={`Chi tiết thanh toán ${getPaymentMethodDetails(transaction.paymentMethod).label}`} />
                 <Divider />
@@ -482,11 +472,10 @@ export default function Page({ params }: { params: { event_id: number, transacti
                     <Grid container justifyContent="space-between">
                       <FormControl fullWidth required>
                         <InputLabel>Chọn trạng thái thanh toán:</InputLabel>
-                        <Select
-                          label="Chọn trạng thái thanh toán"
-                          name="type"
-                        >
-                          <MenuItem value="waiting_for_payment" selected>Đang chờ thanh toán</MenuItem>
+                        <Select label="Chọn trạng thái thanh toán" name="type">
+                          <MenuItem value="waiting_for_payment" selected>
+                            Đang chờ thanh toán
+                          </MenuItem>
                           <MenuItem value="paid">Đã thanh toán</MenuItem>
                           <MenuItem value="refund">Đã hoàn tiền</MenuItem>
                         </Select>
@@ -495,7 +484,7 @@ export default function Page({ params }: { params: { event_id: number, transacti
                   </Stack>
                 </CardContent>
               </Card>
-            }
+            )}
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
               <Button type="submit" variant="contained">
                 Lưu
@@ -505,8 +494,5 @@ export default function Page({ params }: { params: { event_id: number, transacti
         </Grid>
       </Grid>
     </Stack>
-
-
-
   );
 }

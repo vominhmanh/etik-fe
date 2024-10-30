@@ -10,8 +10,8 @@ import Popover from '@mui/material/Popover';
 import Typography from '@mui/material/Typography';
 import { GearSix as GearSixIcon } from '@phosphor-icons/react/dist/ssr/GearSix';
 import { SignOut as SignOutIcon } from '@phosphor-icons/react/dist/ssr/SignOut';
-import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
+import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
 
 import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
@@ -44,7 +44,7 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
       await checkSession?.();
 
       // UserProvider, for this case, will not refresh the router and we need to do it manually
-      router.refresh();
+      router.push(paths.auth.signIn); // After refresh, AuthGuard will handle the redirect
       // After refresh, AuthGuard will handle the redirect
     } catch (err) {
       logger.error('Sign out error', err);

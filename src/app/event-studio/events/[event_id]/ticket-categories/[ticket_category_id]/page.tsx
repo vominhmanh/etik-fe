@@ -1,32 +1,41 @@
-"use client";
+'use client';
 
-import OutlinedInput from '@mui/material/OutlinedInput';
-import Grid from '@mui/material/Unstable_Grid2';
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import CardContent from '@mui/material/CardContent';
-import Divider from '@mui/material/Divider';
 import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
+import { InputAdornment } from '@mui/material';
+import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
-import Select from '@mui/material/Select';
+import CircularProgress from '@mui/material/CircularProgress';
+import Divider from '@mui/material/Divider';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
-import { InputAdornment } from '@mui/material';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Unstable_Grid2';
 import axios, { AxiosResponse } from 'axios';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import ReactQuill from 'react-quill'; // Import ReactQuill
+
+import NotificationContext from '@/contexts/notification-context';
+
 import 'react-quill/dist/quill.snow.css'; // Import Quill styles
 
-export default function Page({ params }: { params: { event_id: number, ticket_category_id: number } }): React.JSX.Element {
+export default function Page({
+  params,
+}: {
+  params: { event_id: number; ticket_category_id: number };
+}): React.JSX.Element {
   const eventId = params.event_id;
   const ticketCategoryId = params.ticket_category_id;
   const notificationCtx = React.useContext(NotificationContext);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -43,7 +52,10 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
   useEffect(() => {
     const fetchTicketCategory = async () => {
       try {
-        const response: AxiosResponse = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}`);
+        setIsLoading(true);
+        const response: AxiosResponse = await baseHttpServiceInstance.get(
+          `/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}`
+        );
         const ticketCategory = response.data;
         setFormData({
           name: ticketCategory.name,
@@ -56,12 +68,14 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
         });
       } catch (error) {
         notificationCtx.error('Error fetching ticket category:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchTicketCategory();
   }, [eventId, ticketCategoryId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -72,23 +86,39 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
   // Save the edited ticket category
   const handleSave = async () => {
     try {
-      const response: AxiosResponse = await baseHttpServiceInstance.put(`/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}`, {
-        name: formData.name,
-        type: formData.type,
-        price: formData.price,
-        quantity: formData.quantity,
-        description: formData.description,
-        status: formData.status,
-      });
+      setIsLoading(true);
+      const response: AxiosResponse = await baseHttpServiceInstance.put(
+        `/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}`,
+        {
+          name: formData.name,
+          type: formData.type,
+          price: formData.price,
+          quantity: formData.quantity,
+          description: formData.description,
+          status: formData.status,
+        }
+      );
       notificationCtx.success('Ticket category updated:', response.data);
       router.push(`/event-studio/events/${eventId}/ticket-categories`);
     } catch (error) {
       notificationCtx.error('Error updating ticket category:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <Stack spacing={3}>
+      <Backdrop
+        open={isLoading}
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          marginLeft: '0px !important',
+        }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Xem chi tiết loại vé "{formData.name}"</Typography>
@@ -105,12 +135,7 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Tên loại vé</InputLabel>
-                      <OutlinedInput
-                        label="Tên loại vé"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                      />
+                      <OutlinedInput label="Tên loại vé" name="name" value={formData.name} onChange={handleChange} />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
@@ -120,7 +145,7 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
                         label="Phân loại"
                         name="type"
                         value={formData.type}
-                        onChange={handleChange}
+                        onChange={(event: any) => handleChange(event)}
                       >
                         <MenuItem value="private">Nội bộ</MenuItem>
                         <MenuItem value="public">Công khai</MenuItem>
@@ -160,7 +185,7 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
                         label="Trạng thái"
                         name="status"
                         value={formData.status}
-                        onChange={handleChange}
+                        onChange={handleChange as (event: SelectChangeEvent<string>, child: React.ReactNode) => void}
                       >
                         <MenuItem value="on_sale">Đang mở bán</MenuItem>
                         <MenuItem value="not_opened_for_sale">Chưa mở bán</MenuItem>
@@ -178,9 +203,11 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
                 action={
                   <OutlinedInput
                     sx={{ maxWidth: 180 }}
-                    type='text'
+                    type="text"
                     value={formData.quantity.toLocaleString('vi-VN')}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, quantity: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, quantity: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))
+                    }
                   />
                 }
               />
@@ -192,15 +219,19 @@ export default function Page({ params }: { params: { event_id: number, ticket_ca
                     type="text"
                     sx={{ maxWidth: 180 }}
                     value={formData.price.toLocaleString('vi-VN')}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, price: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, price: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))
+                    }
                     endAdornment={<InputAdornment position="end">đ</InputAdornment>}
                   />
                 }
               />
             </Card>
-            
+
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
-              <Button variant="contained" onClick={handleSave}>Lưu</Button>
+              <Button variant="contained" onClick={handleSave}>
+                Lưu
+              </Button>
             </Grid>
           </Stack>
         </Grid>

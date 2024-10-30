@@ -38,7 +38,7 @@ export function ResponsiveAppBar() {
   };
 
   return (
-    <AppBar position="sticky"s>
+    <AppBar position="sticky">
       <Container maxWidth="xl">
         <Toolbar disableGutters variant="dense"  sx={{ minHeight: 30, height: 30 }}>
           <Typography

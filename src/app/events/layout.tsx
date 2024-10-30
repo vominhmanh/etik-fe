@@ -1,10 +1,11 @@
 import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import GlobalStyles from '@mui/material/GlobalStyles';
 
+import NotificationContext from '@/contexts/notification-context';
 import { AuthGuard } from '@/components/auth/auth-guard';
+
 import { MainNav } from './main-nav';
 
 interface LayoutProps {
@@ -37,9 +38,7 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
       >
         <Box sx={{ display: 'flex', flex: '1 1 auto', flexDirection: 'column', pl: { lg: 'var(--SideNav-width)' } }}>
           <MainNav />
-          <main>
-            {children}
-          </main>
+          <main>{children}</main>
         </Box>
       </Box>
     </>

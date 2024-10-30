@@ -1,26 +1,30 @@
-"use client";
+'use client';
 
-import OutlinedInput from '@mui/material/OutlinedInput';
-import Grid from '@mui/material/Unstable_Grid2';
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import CardContent from "@mui/material/CardContent";
-import Divider from "@mui/material/Divider";
 import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
+import { InputAdornment } from '@mui/material';
+import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
+import CircularProgress from '@mui/material/CircularProgress';
+import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
-import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import { InputAdornment } from '@mui/material';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import Select from '@mui/material/Select';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Unstable_Grid2';
 import axios, { AxiosResponse } from 'axios';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import ReactQuill from 'react-quill'; // Import ReactQuill
+
+import NotificationContext from '@/contexts/notification-context';
+
 import 'react-quill/dist/quill.snow.css'; // Import styles for ReactQuill
 
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
@@ -34,6 +38,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   });
   const router = useRouter();
   const notificationCtx = React.useContext(NotificationContext);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value } = e.target;
@@ -52,22 +57,38 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
   const handleSubmit = async () => {
     try {
-      const response: AxiosResponse = await baseHttpServiceInstance.post(`/event-studio/events/${eventId}/ticket_categories`, {
-        name: formData.name,
-        type: formData.type,
-        price: formData.price,
-        quantity: formData.quantity,
-        description: formData.description,
-      });
+      setIsLoading(true);
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${eventId}/ticket_categories`,
+        {
+          name: formData.name,
+          type: formData.type,
+          price: formData.price,
+          quantity: formData.quantity,
+          description: formData.description,
+        }
+      );
       notificationCtx.success('Ticket category created:', response.data);
       router.push(`/event-studio/events/${eventId}/ticket-categories`);
     } catch (error) {
       notificationCtx.error('Error creating ticket category:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <Stack spacing={3}>
+      <Backdrop
+        open={isLoading}
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          marginLeft: '0px !important',
+        }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Loại vé mới</Typography>
@@ -84,23 +105,13 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Tên loại vé</InputLabel>
-                      <OutlinedInput
-                        label="Tên loại vé"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                      />
+                      <OutlinedInput label="Tên loại vé" name="name" value={formData.name} onChange={handleChange} />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Phân loại</InputLabel>
-                      <Select
-                        label="Phân loại"
-                        name="type"
-                        value={formData.type}
-                        onChange={handleChange}
-                      >
+                      <Select label="Phân loại" name="type" value={formData.type} onChange={handleChange}>
                         <MenuItem value="private">Nội bộ</MenuItem>
                         <MenuItem value="public">Công khai</MenuItem>
                       </Select>
@@ -108,11 +119,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   </Grid>
                   <Grid md={12} xs={12}>
                     <FormControl fullWidth>
-                      <ReactQuill
-                        value={formData.description}
-                        onChange={handleDescriptionChange}
-                        placeholder="Mô tả"
-                      />
+                      <ReactQuill value={formData.description} onChange={handleDescriptionChange} placeholder="Mô tả" />
                     </FormControl>
                   </Grid>
                 </Grid>
@@ -124,9 +131,11 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 action={
                   <OutlinedInput
                     sx={{ maxWidth: 180 }}
-                    type='text'
+                    type="text"
                     value={formData.quantity.toLocaleString('vi-VN')}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, quantity: parseFloat(e.target.value.replace(/\./g, '')) || 0  })) }
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, quantity: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))
+                    }
                   />
                 }
               />
@@ -138,14 +147,18 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     type="text"
                     sx={{ maxWidth: 180 }}
                     value={formData.price.toLocaleString('vi-VN')}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, price: parseFloat(e.target.value.replace(/\./g, '')) || 0 })) }
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, price: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))
+                    }
                     endAdornment={<InputAdornment position="end">đ</InputAdornment>}
                   />
                 }
               />
             </Card>
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
-              <Button variant="contained" onClick={handleSubmit}>Tạo</Button>
+              <Button variant="contained" onClick={handleSubmit}>
+                Tạo
+              </Button>
             </Grid>
           </Stack>
         </Grid>

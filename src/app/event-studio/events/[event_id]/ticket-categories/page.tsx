@@ -1,26 +1,30 @@
-"use client"
+'use client';
+
 import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
+import Avatar from '@mui/material/Avatar';
+import Backdrop from '@mui/material/Backdrop';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
+import { cyan, deepOrange, deepPurple, green, indigo, pink, yellow } from '@mui/material/colors';
+import Divider from '@mui/material/Divider';
 import Pagination from '@mui/material/Pagination';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
+import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
+import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
-import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
-import Avatar from '@mui/material/Avatar';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Divider from '@mui/material/Divider';
-import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
-import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import axios, { AxiosResponse } from 'axios';
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import Chip from '@mui/material/Chip';
-import { deepPurple, deepOrange, indigo, cyan, green, pink, yellow } from '@mui/material/colors';
+
+import NotificationContext from '@/contexts/notification-context';
+import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
 
 type TicketCategory = {
   id: number;
@@ -61,16 +65,20 @@ const colorMap = {
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   const [ticketCategories, setTicketCategories] = React.useState<TicketCategory[]>([]);
   const notificationCtx = React.useContext(NotificationContext);
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     const fetchTicketCategories = async () => {
       try {
+        setIsLoading(true);
         const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(
           `/event-studio/events/${params.event_id}/ticket_categories`
         );
         setTicketCategories(response.data);
       } catch (error) {
         notificationCtx.error('Error fetching ticket categories:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -79,6 +87,16 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
   return (
     <Stack spacing={3}>
+      <Backdrop
+        open={isLoading}
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          marginLeft: '0px !important',
+        }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Loại vé</Typography>
@@ -92,7 +110,11 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           </Stack>
         </Stack>
         <div>
-          <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} variant="contained" href="ticket-categories/create">
+          <Button
+            startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
+            variant="contained"
+            href="ticket-categories/create"
+          >
             Thêm
           </Button>
         </div>
@@ -108,7 +130,13 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     <Box sx={{ display: 'flex', justifyContent: 'center', mr: 2, width: '50px', height: '50px' }}>
                       <Avatar
                         href={ticketCategory.avatar}
-                        sx={{ height: '45px', width: '45px', fontSize: '2rem', borderRadius: '5px', bgcolor: colorMap[ticketCategory.id % 8] }}
+                        sx={{
+                          height: '45px',
+                          width: '45px',
+                          fontSize: '2rem',
+                          borderRadius: '5px',
+                          bgcolor: colorMap[ticketCategory.id % 8],
+                        }}
                         variant="square"
                       >
                         {ticketCategory.avatar ? '' : ticketCategory.name[0]}
@@ -127,19 +155,23 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     Số lượng: {ticketCategory.quantity} - Đã bán: {ticketCategory.sold} - Còn lại:{' '}
                     {ticketCategory.quantity - ticketCategory.sold}
                   </Typography>
-                  {ticketCategory?.description ?
-                    <Box sx={{
-                      margin: 0, padding: 0,
-                      "& img": {
-                        maxWidth: "100%", // Set images to scale down if they exceed container width
-                        height: "auto", // Maintain aspect ratio
-                      },
-                    }} dangerouslySetInnerHTML={{ __html: ticketCategory?.description }} />
-                    :
+                  {ticketCategory?.description ? (
+                    <Box
+                      sx={{
+                        margin: 0,
+                        padding: 0,
+                        '& img': {
+                          maxWidth: '100%', // Set images to scale down if they exceed container width
+                          height: 'auto', // Maintain aspect ratio
+                        },
+                      }}
+                      dangerouslySetInnerHTML={{ __html: ticketCategory?.description }}
+                    />
+                  ) : (
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                       Chưa có mô tả
                     </Typography>
-                  }
+                  )}
                 </Stack>
               </CardContent>
               <Divider />
@@ -157,7 +189,11 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   />
                 </Stack>
                 <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
-                  <Button href={`/event-studio/events/${params.event_id}/ticket-categories/${ticketCategory.id}`} size="small" startIcon={<EyeIcon />}>
+                  <Button
+                    href={`/event-studio/events/${params.event_id}/ticket-categories/${ticketCategory.id}`}
+                    size="small"
+                    startIcon={<EyeIcon />}
+                  >
                     Xem chi tiết
                   </Button>
                 </Stack>

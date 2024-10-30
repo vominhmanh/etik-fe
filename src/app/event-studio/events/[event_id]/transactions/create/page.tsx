@@ -1,30 +1,35 @@
-"use client"
-import Grid from '@mui/material/Unstable_Grid2';
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import CardContent from "@mui/material/CardContent";
-import Divider from "@mui/material/Divider";
+'use client';
+
 import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
+import { useRouter } from 'next/navigation';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
+import { InputAdornment } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
+import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
-import { Schedules } from './schedules';
-import axios, { AxiosResponse } from 'axios';
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { InputAdornment } from '@mui/material';
-import { TicketCategories } from './ticket-categories';
-import dayjs from 'dayjs';
-import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
-import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Unstable_Grid2';
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
 import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
-import { useRouter } from 'next/navigation';
+import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
+import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
+import axios, { AxiosResponse } from 'axios';
+import dayjs from 'dayjs';
+
+import NotificationContext from '@/contexts/notification-context';
+
+import { Schedules } from './schedules';
+import { TicketCategories } from './ticket-categories';
+import Backdrop from '@mui/material/Backdrop';
+import CircularProgress from '@mui/material/CircularProgress';
 
 export type TicketCategory = {
   id: number;
@@ -34,16 +39,16 @@ export type TicketCategory = {
   price: number;
   type: string;
   status: string;
-}
+};
 
 export type Show = {
   id: number;
   eventId: number;
   name: string;
-  startDateTime: Date| null;
-  endDateTime: Date| null;
+  startDateTime: Date | null;
+  endDateTime: Date | null;
   place: string | null;
-}
+};
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const notificationCtx = React.useContext(NotificationContext);
@@ -58,15 +63,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   });
   const [extraFee, setExtraFee] = React.useState<number>(0);
   const [shows, setShows] = React.useState<Show[]>([]);
-  const [paymentMethod, setPaymentMethod] = React.useState<string>("");
-  const [ticketHolders, setTicketHolders] = React.useState<string[]>([""]);
+  const [paymentMethod, setPaymentMethod] = React.useState<string>('');
+  const [ticketHolders, setTicketHolders] = React.useState<string[]>(['']);
   const router = useRouter(); // Use useRouter from next/navigation
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
   // Fetch ticket categories
   React.useEffect(() => {
     async function fetchTicketCategories() {
       try {
-        const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/ticket_categories`);
+        setIsLoading(true);
+        const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(
+          `/event-studio/events/${params.event_id}/ticket_categories`
+        );
         const sortedCategories = response.data.sort((a, b) => {
           if (a.status === 'on_sale' && b.status !== 'on_sale') return -1;
           if (a.status !== 'on_sale' && b.status === 'on_sale') return 1;
@@ -75,6 +84,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         setTicketCategories(sortedCategories);
       } catch (error) {
         notificationCtx.error('Error fetching ticket categories:', error);
+      } finally {
+        setIsLoading(false);
       }
     }
     fetchTicketCategories();
@@ -84,10 +95,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   React.useEffect(() => {
     async function fetchShows() {
       try {
-        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/shows`);
+        setIsLoading(true);
+        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(
+          `/event-studio/events/${params.event_id}/shows`
+        );
         setShows(response.data);
       } catch (error) {
         notificationCtx.error('Error fetching shows:', error);
+      } finally {
+        setIsLoading(false);
       }
     }
     fetchShows();
@@ -100,7 +116,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const handleTicketQuantityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const quantity = Number(event.target.value);
     setTicketQuantity(quantity);
-    setTicketHolders(Array(quantity).fill(""));  // Dynamically update ticket holders array
+    setTicketHolders(Array(quantity).fill('')); // Dynamically update ticket holders array
   };
 
   const handleTicketHolderChange = (index: number, value: string) => {
@@ -120,36 +136,52 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleSubmit = async () => {
     if (!selectedCategoryId || !customer.name || !customer.email || ticketQuantity <= 0) {
-      notificationCtx.warning("Please fill in the required fields.");
+      notificationCtx.warning('Please fill in the required fields.');
       return;
     }
 
     try {
+      setIsLoading(true);
       const transactionData = {
         customer: {
-          ...customer
+          ...customer,
         },
         ticket: {
           ticketCategoryId: selectedCategoryId,
           quantity: ticketQuantity,
-          ticketHolders: ticketHolders.filter(Boolean) // Ensure no empty names
+          ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
         },
         paymentMethod,
-        extraFee
+        extraFee,
       };
 
-      const response = await baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/transactions`, transactionData);
-      const newTransaction = response.data
+      const response = await baseHttpServiceInstance.post(
+        `/event-studio/events/${params.event_id}/transactions`,
+        transactionData
+      );
+      const newTransaction = response.data;
       router.push(`/event-studio/events/${params.event_id}/transactions/${newTransaction.id}`); // Navigate to a different page on success
-      
-      notificationCtx.success("Transaction created successfully!");
+
+      notificationCtx.success('Transaction created successfully!');
     } catch (error) {
-      notificationCtx.error("Error creating transaction:", error);
+      notificationCtx.error('Error creating transaction:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <Stack spacing={3}>
+      <Backdrop
+        open={isLoading}
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          marginLeft: '0px !important',
+        }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Tạo vé mới</Typography>
@@ -158,13 +190,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       <Grid container spacing={3}>
         <Grid lg={4} md={6} xs={12}>
           <Stack spacing={3}>
-            <TicketCategories
-              ticketCategories={ticketCategories}
-              onCategorySelect={handleCategorySelection}
-            />
-            <Schedules
-              shows={shows}
-            />
+            <TicketCategories ticketCategories={ticketCategories} onCategorySelect={handleCategorySelection} />
+            <Schedules shows={shows} />
           </Stack>
         </Grid>
         <Grid lg={8} md={6} xs={12}>
@@ -178,25 +205,47 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Họ và tên</InputLabel>
-                      <OutlinedInput label="Họ và tên" name="customer_name" value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} />
+                      <OutlinedInput
+                        label="Họ và tên"
+                        name="customer_name"
+                        value={customer.name}
+                        onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
+                      />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Địa chỉ Email</InputLabel>
-                      <OutlinedInput label="Địa chỉ Email" name="customer_email" type='email' value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} />
+                      <OutlinedInput
+                        label="Địa chỉ Email"
+                        name="customer_email"
+                        type="email"
+                        value={customer.email}
+                        onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
+                      />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth>
                       <InputLabel>Số điện thoại</InputLabel>
-                      <OutlinedInput label="Số điện thoại" name="customer_phone_number" type="tel" value={customer.phoneNumber} onChange={(e) => setCustomer({ ...customer, phoneNumber: e.target.value })} />
+                      <OutlinedInput
+                        label="Số điện thoại"
+                        name="customer_phone_number"
+                        type="tel"
+                        value={customer.phoneNumber}
+                        onChange={(e) => setCustomer({ ...customer, phoneNumber: e.target.value })}
+                      />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth>
                       <InputLabel>Địa chỉ</InputLabel>
-                      <OutlinedInput label="Địa chỉ" name="customer_address" value={customer.address} onChange={(e) => setCustomer({ ...customer, address: e.target.value })} />
+                      <OutlinedInput
+                        label="Địa chỉ"
+                        name="customer_address"
+                        value={customer.address}
+                        onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
+                      />
                     </FormControl>
                   </Grid>
                 </Grid>
@@ -207,7 +256,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <Card>
               <CardHeader
                 title="Số lượng vé"
-                action={<OutlinedInput sx={{ maxWidth: 180 }} type='number' value={ticketQuantity} onChange={handleTicketQuantityChange} />}
+                action={
+                  <OutlinedInput
+                    sx={{ maxWidth: 180 }}
+                    type="number"
+                    value={ticketQuantity}
+                    onChange={handleTicketQuantityChange}
+                  />
+                }
               />
               <Divider />
               <CardContent>
@@ -280,7 +336,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           <Typography variant="body1">Loại vé:</Typography>
                         </Stack>
 
-                        <Typography variant="body1">{ticketCategories.find(cat => cat.id === selectedCategoryId)?.name || "Chưa xác định"}</Typography>
+                        <Typography variant="body1">
+                          {ticketCategories.find((cat) => cat.id === selectedCategoryId)?.name || 'Chưa xác định'}
+                        </Typography>
                       </Grid>
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
@@ -288,7 +346,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           <Typography variant="body1">Đơn giá:</Typography>
                         </Stack>
                         <Typography variant="body1"></Typography>
-                        <Typography variant="body1">{formatPrice(ticketCategories.find(cat => cat.id === selectedCategoryId)?.price || 0)}</Typography>
+                        <Typography variant="body1">
+                          {formatPrice(ticketCategories.find((cat) => cat.id === selectedCategoryId)?.price || 0)}
+                        </Typography>
                       </Grid>
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
@@ -303,7 +363,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           <CoinsIcon fontSize="var(--icon-fontSize-md)" />
                           <Typography variant="body1">Thành tiền:</Typography>
                         </Stack>
-                        <Typography variant="body1">{formatPrice((ticketCategories.find(cat => cat.id === selectedCategoryId)?.price || 0) * ticketQuantity + extraFee)}</Typography>
+                        <Typography variant="body1">
+                          {formatPrice(
+                            (ticketCategories.find((cat) => cat.id === selectedCategoryId)?.price || 0) *
+                              ticketQuantity +
+                              extraFee
+                          )}
+                        </Typography>
                       </Grid>
                     </>
                   )}
@@ -313,7 +379,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
             {/* Submit Button */}
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
-              <Button variant="contained" onClick={handleSubmit}>Tạo</Button>
+              <Button variant="contained" onClick={handleSubmit}>
+                Tạo
+              </Button>
             </Grid>
           </Stack>
         </Grid>
