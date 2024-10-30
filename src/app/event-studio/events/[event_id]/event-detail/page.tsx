@@ -24,6 +24,7 @@ import { AxiosResponse } from 'axios';
 import { ArrowSquareIn } from '@phosphor-icons/react/dist/ssr';
 import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import dayjs from 'dayjs';
 
 // Define the event response type
 type EventResponse = {
@@ -241,7 +242,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                   <Typography color="text.secondary" display="inline" variant="body2">
                     {event?.startDateTime && event?.endDateTime
-                      ? `${event?.startDateTime} - ${event?.endDateTime}`
+                      ? `${dayjs(event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
                       : "Chưa xác định"}
                   </Typography>
                 </Stack>
@@ -285,7 +286,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event.startDateTime && event.endDateTime
-                        ? `${event.startDateTime} - ${event.endDateTime}`
+                        ? `${dayjs(event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
                         : 'Chưa xác định'}
                     </Typography>
                   </Stack>

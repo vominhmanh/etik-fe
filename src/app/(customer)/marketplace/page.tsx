@@ -20,6 +20,7 @@ import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios 
 import { AxiosResponse } from 'axios';
 import React from 'react';
 import NotificationContext from '@/contexts/notification-context';
+import dayjs from 'dayjs';
 
 // Define response type for the events
 type EventResponse = {
@@ -95,7 +96,7 @@ export default function Page(): React.JSX.Element {
                     <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event.startDateTime && event.endDateTime
-                        ? `${event.startDateTime} - ${event.endDateTime}`
+                        ? `${dayjs(event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
                         : "Chưa xác định"}
                     </Typography>
                   </Stack>

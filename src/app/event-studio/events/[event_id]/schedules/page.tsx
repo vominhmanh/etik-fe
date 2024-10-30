@@ -23,6 +23,7 @@ import { deepPurple, deepOrange, indigo, cyan, green, pink, yellow } from '@mui/
 import { Clock as ClockIcon } from "@phosphor-icons/react/dist/ssr/Clock";
 import { MapPin as MapPinIcon } from "@phosphor-icons/react/dist/ssr/MapPin";
 import { HouseLine as HouseLineIcon } from "@phosphor-icons/react/dist/ssr/HouseLine";
+import dayjs from 'dayjs';
 
 const statusMap = {
   not_opened_for_sale: { label: 'Chưa mở bán', color: 'secondary' },
@@ -112,7 +113,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {show.startDateTime && show.endDateTime
-                        ? `${show.startDateTime} - ${show.endDateTime}`
+                        ? `${dayjs(show.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(show.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
                         : "Chưa xác định"}
                     </Typography>
                   </Stack>

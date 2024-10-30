@@ -77,10 +77,8 @@ const getPaymentStatusDetails = (paymentStatus: string) => {
 // Function to map row statuses to corresponding labels and colors
 const getRowStatusDetails = (status: string) => {
   switch (status) {
-    case 'initial':
-      return { label: 'Khởi tạo', color: 'default' };
-    case 'active':
-      return { label: 'Khả dụng', color: 'success' };
+    case 'normal':
+      return { label: 'Bình thường', color: 'default' };
     case 'customer_cancelled':
       return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
     case 'staff_locked':
@@ -463,11 +461,11 @@ export default function Page({ params }: { params: { event_id: number, transacti
                   </FormControl>
                 </Grid>
                 <Stack spacing={2} direction={'row'}>
-                  {transaction.status === 'active' &&
+                  {transaction.status === 'normal' &&
                     <Button href={transaction.paymentCheckoutUrl || ""} size="small" startIcon={<EnvelopeSimpleIcon />}>
                       Gửi Email vé
                     </Button>}
-                  {transaction.status === 'initial' && transaction.paymentMethod === 'napas247' && transaction.paymentStatus === 'waiting_for_payment' &&
+                  {transaction.status === 'normal' && transaction.paymentMethod === 'napas247' && transaction.paymentStatus === 'waiting_for_payment' &&
                     <Button href={transaction.paymentCheckoutUrl || ""} size="small" startIcon={<EnvelopeSimpleIcon />}>
                       Gửi Hướng dẫn thanh toán
                     </Button>}

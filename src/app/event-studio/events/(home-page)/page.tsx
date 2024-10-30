@@ -22,6 +22,7 @@ import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import { AxiosResponse } from 'axios';
 import NotificationContext from '@/contexts/notification-context';
 import React from 'react';
+import dayjs from 'dayjs';
 
 // Define response type for the events
 type EventResponse = {
@@ -105,9 +106,6 @@ export default function Page(): React.JSX.Element {
                 <Typography gutterBottom variant="h5" component="div">
                   {event.name}
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  {event.description ? event.description : 'Chưa có mô tả'}
-                </Typography>
                 <Stack direction="column" spacing={2} sx={{ alignItems: 'left', mt: 2 }}>
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
@@ -119,7 +117,7 @@ export default function Page(): React.JSX.Element {
                     <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event.startDateTime && event.endDateTime
-                        ? `${event.startDateTime} - ${event.endDateTime}`
+                        ? `${dayjs(event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
                         : 'Chưa xác định'}
                     </Typography>
                   </Stack>

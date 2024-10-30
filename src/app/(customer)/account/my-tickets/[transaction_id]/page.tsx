@@ -80,10 +80,8 @@ const getPaymentStatusDetails = (paymentStatus: string) => {
 // Function to map row statuses to corresponding labels and colors
 const getRowStatusDetails = (status: string) => {
   switch (status) {
-    case 'initial':
-      return { label: 'Khởi tạo', color: 'default' };
-    case 'active':
-      return { label: 'Khả dụng', color: 'success' };
+    case 'normal':
+      return { label: 'Bình thường', color: 'default' };
     case 'customer_cancelled':
       return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
     case 'staff_locked':
@@ -247,7 +245,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {transaction.event.startDateTime && transaction.event.endDateTime
-                        ? `${transaction.event.startDateTime} - ${transaction.event.endDateTime}`
+                        ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
                         : "Chưa xác định"}
                     </Typography>
                   </Stack>

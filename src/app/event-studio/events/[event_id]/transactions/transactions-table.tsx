@@ -59,10 +59,8 @@ const getPaymentStatusDetails = (paymentStatus: string) => {
 // Function to map row statuses to corresponding labels and colors
 const getRowStatusDetails = (status: string) => {
   switch (status) {
-    case 'initial':
-      return { label: 'Khởi tạo', color: 'default' };
-    case 'active':
-      return { label: 'Khả dụng', color: 'success' };
+    case 'normal':
+      return { label: 'Bình thường', color: 'default' };
     case 'customer_cancelled':
       return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
     case 'staff_locked':

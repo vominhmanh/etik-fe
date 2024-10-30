@@ -36,7 +36,7 @@ export function Schedules({shows = [], sx}: LatestProductsProps): React.JSX.Elem
   return (
     <Card sx={sx}>
       <CardHeader
-        title="Chọn suất diễn"
+        title="Chọn lịch"
         action={
           <IconButton href="">
             <ArrowCounterClockwiseIcon fontSize="var(--icon-fontSize-md)"/>
@@ -79,7 +79,7 @@ export function Schedules({shows = [], sx}: LatestProductsProps): React.JSX.Elem
                   <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                   <Typography color="text.secondary" display="inline" variant="body2">
                     {show.startDateTime && show.endDateTime
-                      ? `${show.startDateTime} - ${show.endDateTime}`
+                      ? `${dayjs(show.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(show.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
                       : "Chưa xác định"}
                   </Typography>
                 </Stack>
