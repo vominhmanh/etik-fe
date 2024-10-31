@@ -28,6 +28,7 @@ import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import axios, { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 import NotificationContext from '@/contexts/notification-context';
 
@@ -87,6 +88,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
+  const captchaRef = React.useRef<ReCAPTCHA | null>(null);
   // Fetch event details on component mount
   React.useEffect(() => {
     if (params.event_slug) {
@@ -177,6 +179,20 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
 
   const handleSubmit = async () => {
     if (!selectedCategoryId || !customer.name || !customer.email || ticketQuantity <= 0) {
+      notificationCtx.warning('Please fill in the required fields.');
+      return;
+    }
+
+    const captchaValue = captchaRef.current?.getValue();
+
+    console.log('captchaValue', captchaValue);
+    if (!captchaValue) {
+      notificationCtx.warning('Please verify the reCAPTCHA!');
+      return;
+    }
+    // TODO: Need to verify on backend side. Ref: https://clerk.com/blog/implementing-recaptcha-in-react
+
+    if (!captchaRef?.current) {
       notificationCtx.warning('Please fill in the required fields.');
       return;
     }
@@ -527,6 +543,14 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 )}
                 {/* Submit Button */}
                 <Grid item sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
+                  <ReCAPTCHA
+                    sitekey="6Lch1nEqAAAAAPRJeBZpZ0GQ3Ja7hD1rwzSY1U2X"
+                    onChange={() => {
+                      console.log('Are kris ok');
+                    }}
+                    ref={captchaRef}
+                  />
+
                   <Button variant="contained" onClick={handleSubmit}>
                     Mua vé
                   </Button>
