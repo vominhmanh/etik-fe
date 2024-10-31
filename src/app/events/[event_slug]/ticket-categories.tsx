@@ -19,20 +19,12 @@ import dayjs from 'dayjs';
 import Radio from "@mui/material/Radio";
 import { Avatar } from '@mui/material';
 import { cyan, deepOrange, deepPurple, green, indigo, pink, yellow } from '@mui/material/colors';
+import { Show } from './page';
 
-export interface TicketCategory {
-  id: string;
-  avatar: string;
-  name: string;
-  updatedAt: Date;
-  price: number;
-  type: string;
-  status: string;
-}
 
 interface TicketCategoriesProps {
-  ticketCategories: TicketCategory[];
-  onCategorySelect: (ticketCategoryId: string) => void; // Pass selected category to parent
+  show: Show;
+  onCategorySelect: (ticketCategoryId: number) => void; // Pass selected category to parent
 }
 
 
@@ -47,8 +39,9 @@ const colorMap = {
   7: deepPurple[300],
 };
 
-export function TicketCategories({ ticketCategories, onCategorySelect }: TicketCategoriesProps): React.JSX.Element {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // Track the selected category
+export function TicketCategories({ show, onCategorySelect }: TicketCategoriesProps): React.JSX.Element {
+  const showTicketCategories = show.showTicketCategories
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null); // Track the selected category
 
 
   const formatPrice = (price: number) => {
@@ -60,9 +53,9 @@ export function TicketCategories({ ticketCategories, onCategorySelect }: TicketC
     public: 'Công khai'
   };
 
-  const handleSelect = (id: string) => {
-    const ticketCategory = ticketCategories.find((t) => t.id === id)
-    if (ticketCategory && ticketCategory?.status === 'on_sale') {
+  const handleSelect = (id: number) => {
+    const showTicketCategory = showTicketCategories.find((t) => t.ticketCategory.id === id)
+    if (showTicketCategory && showTicketCategory?.ticketCategory.status === 'on_sale') {
       setSelectedCategory(id);
       onCategorySelect(id);
     }
@@ -71,7 +64,7 @@ export function TicketCategories({ ticketCategories, onCategorySelect }: TicketC
   return (
     <Card>
       <CardHeader
-        title="Chọn loại vé"
+        title={`Chọn loại vé cho ${show.name}`}
         action={
           <IconButton>
             <ArrowCounterClockwiseIcon fontSize="var(--icon-fontSize-md)" />
@@ -80,41 +73,41 @@ export function TicketCategories({ ticketCategories, onCategorySelect }: TicketC
       />
       <Divider />
       <List>
-        {ticketCategories.map((ticketCategory, index) => (
+        {showTicketCategories.map((showTicketCategory, index) => (
           <ListItem
-            divider={index < ticketCategories.length - 1}
-            key={ticketCategory.id}
+            divider={index < showTicketCategories.length - 1}
+            key={showTicketCategory.ticketCategory.id}
             sx={{ cursor: 'pointer' }} // Change cursor to pointer to indicate it's clickable
           >
             <Box
               sx={{ display: 'flex', alignItems: 'center', marginRight: '10px' }}
-              onClick={() => handleSelect(ticketCategory.id)}
+              onClick={() => handleSelect(showTicketCategory.ticketCategory.id)}
             >
               <Radio
                 sx={{ display: 'block' }}
-                checked={selectedCategory === ticketCategory.id} // Controlled radio button
-                disabled={ticketCategory.status !== 'on_sale'}
+                checked={selectedCategory === showTicketCategory.ticketCategory.id} // Controlled radio button
+                disabled={showTicketCategory.ticketCategory.status !== 'on_sale'}
               />
             </Box>
             <ListItemAvatar
-              onClick={() => handleSelect(ticketCategory.id)} // Set selected when the whole item is clicked
+              onClick={() => handleSelect(showTicketCategory.ticketCategory.id)} // Set selected when the whole item is clicked
             >
-              {ticketCategory.avatar ? (
-                <Box component="img" src={ticketCategory.avatar} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
+              {showTicketCategory.ticketCategory.avatar ? (
+                <Box component="img" src={showTicketCategory.ticketCategory.avatar} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
               ) : (
                 <Avatar
-                  sx={{ height: '48px', width: '48px', fontSize: '2rem', borderRadius: '5px', bgcolor: colorMap[ticketCategory.id % 8] }}
+                  sx={{ height: '48px', width: '48px', fontSize: '2rem', borderRadius: '5px', bgcolor: colorMap[showTicketCategory.ticketCategory.id % 8] }}
                   variant="square"
                 >
-                  {ticketCategory.name[0]}
+                  {showTicketCategory.ticketCategory.name[0]}
                 </Avatar>
               )}
             </ListItemAvatar>
             <ListItemText
-              onClick={() => handleSelect(ticketCategory.id)} // Set selected when the whole item is clicked
-              primary={ticketCategory.name}
+              onClick={() => handleSelect(showTicketCategory.ticketCategory.id)} // Set selected when the whole item is clicked
+              primary={showTicketCategory.ticketCategory.name}
               primaryTypographyProps={{ variant: 'subtitle1' }}
-              secondary={`${formatPrice(ticketCategory.price)}`}
+              secondary={`${formatPrice(showTicketCategory.ticketCategory.price)} | Còn ${showTicketCategory.quantity - showTicketCategory.sold}/${showTicketCategory.quantity} vé`}
               secondaryTypographyProps={{ variant: 'body2' }}
             />
             <IconButton edge="end" onClick={() => { return }}>

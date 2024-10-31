@@ -1,94 +1,60 @@
-import React from 'react';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
-import CardHeader from '@mui/material/CardHeader';
-import Divider from '@mui/material/Divider';
-import IconButton from '@mui/material/IconButton';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemAvatar from '@mui/material/ListItemAvatar';
-import ListItemText from '@mui/material/ListItemText';
-import type {SxProps} from '@mui/material/styles';
-import {ArrowCounterClockwise as ArrowCounterClockwiseIcon} from '@phosphor-icons/react/dist/ssr/ArrowCounterClockwise';
-import {Plus as PlusIcon} from '@phosphor-icons/react/dist/ssr/Plus';
-import {DotsThreeVertical as DotsThreeVerticalIcon} from '@phosphor-icons/react/dist/ssr/DotsThreeVertical';
+import React, { useState } from 'react';
+import { Checkbox, Card, CardHeader, Divider, List, ListItem, Box, ListItemAvatar, ListItemText, IconButton, Typography, Stack } from '@mui/material';
 import dayjs from 'dayjs';
-import Radio from "@mui/material/Radio";
-import { Clock as ClockIcon } from "@phosphor-icons/react/dist/ssr/Clock";
-import { Stack, Typography } from '@mui/material';
-export type Show = {
-  id: number;
-  eventId: number;
-  name: string;
-  startDateTime: Date | null;
-  endDateTime: Date | null;
-  place: string | null;
-}
+import { Show } from './page';
 
 export interface LatestProductsProps {
   shows?: Show[];
-  sx?: SxProps;
+  onSelectionChange: (selectedShows: Show[]) => void;  // New prop for selection handling
 }
 
-export function Schedules({shows = [], sx}: LatestProductsProps): React.JSX.Element {
+export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps): React.JSX.Element {
+  const [selectedShows, setSelectedShows] = useState<Show[]>([]);
+
+  const handleItemClick = (show: Show) => {
+    const updatedSelectedShows = selectedShows.includes(show)
+      ? selectedShows.filter((s) => s.id !== show.id)
+      : [...selectedShows, show];
+
+    setSelectedShows(updatedSelectedShows);
+    onSelectionChange(updatedSelectedShows);
+  };
+
+
   return (
-    <Card sx={sx}>
-      <CardHeader
-        title="Chọn lịch"
-        action={
-          <IconButton href="">
-            <ArrowCounterClockwiseIcon fontSize="var(--icon-fontSize-md)"/>
-          </IconButton>
-        }/>
-      <Divider/>
+    <Card>
+      <CardHeader title="Chọn lịch" />
+      <Divider />
       <List>
-        {shows.map((show, index) => (
+        {shows.map((show) => (
           <ListItem
-            divider={index < shows.length - 1}
             key={show.id}
+            divider
+            onClick={() => handleItemClick(show)} // Handle toggle on item click
+            sx={{ cursor: 'pointer' }} // Add pointer cursor for UX
           >
-            <Box sx={{display: 'flex', alignItems: 'center', marginRight: '10px'}}>
-              <Radio
-                checked
-                sx={{
-                  display: 'block',
-                }}
+            <Box sx={{ display: 'flex', alignItems: 'center', marginRight: '10px' }}>
+              <Checkbox
+                checked={selectedShows.includes(show)}
+                onClick={(e) => e.stopPropagation()} // Prevent checkbox click from bubbling up
+                onChange={() => handleItemClick(show)}
               />
             </Box>
             <ListItemAvatar>
-              {true ? (
-                <Box component="img" src={'/assets/product-5.png'} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
-              ) : (
-                <Box
-                  sx={{
-                    borderRadius: 1,
-                    backgroundColor: 'var(--mui-palette-neutral-200)',
-                    height: '48px',
-                    width: '48px',
-                  }}
-                />
-              )}
+              <Box component="img" src={'/assets/product-5.png'} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
             </ListItemAvatar>
             <ListItemText
               primary={show.name}
-              primaryTypographyProps={{ variant: 'subtitle1' }}
               secondary={
                 <Stack direction="row" spacing={1}>
-                  <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                   <Typography color="text.secondary" display="inline" variant="body2">
                     {show.startDateTime && show.endDateTime
-                      ? `${dayjs(show.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(show.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
+                      ? `${dayjs(show.startDateTime).format('HH:mm')} - ${dayjs(show.endDateTime).format('HH:mm ngày DD/MM/YYYY')}`
                       : "Chưa xác định"}
                   </Typography>
                 </Stack>
               }
-              secondaryTypographyProps={{ variant: 'body2' }}
             />
-            <IconButton edge="end">
-              <DotsThreeVerticalIcon weight="bold"/>
-            </IconButton>
           </ListItem>
         ))}
       </List>

@@ -36,31 +36,33 @@ import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 
 export type TicketCategory = {
-  id: string;
-  avatar: string;
+  id: number;
+  avatar: string | null;
   name: string;
-  updatedAt: Date;
   price: number;
-  type: string;
+  description: string;
   status: string;
 };
-export type Show = {
-  id: number;
-  eventId: number;
-  name: string;
-  startDateTime: Date | null;
-  endDateTime: Date | null;
-  place: string | null;
+
+export type ShowTicketCategory = {
+  quantity: number;
+  sold: number;
+  disabled: boolean;
+  ticketCategory: TicketCategory;
 };
 
-// Define the event response type
-type EventResponse = {
+export type Show = {
   id: number;
   name: string;
+  startDateTime: string; // backend response provides date as string
+  endDateTime: string; // backend response provides date as string
+  showTicketCategories: ShowTicketCategory[];
+};
+
+export type EventResponse = {
+  name: string;
   organizer: string;
-  organizerEmail: string;
-  organizerPhoneNumber: string;
-  description: string | null;
+  description: string;
   startDateTime: string | null;
   endDateTime: string | null;
   place: string | null;
@@ -68,12 +70,12 @@ type EventResponse = {
   bannerUrl: string;
   slug: string;
   locationInstruction: string | null;
+  shows: Show[];
 };
 
 export default function Page({ params }: { params: { event_slug: string } }): React.JSX.Element {
   const [event, setEvent] = React.useState<EventResponse | null>(null);
-  const [ticketCategories, setTicketCategories] = React.useState<TicketCategory[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = React.useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
   const [customer, setCustomer] = React.useState({
     name: '',
@@ -84,11 +86,11 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [extraFee, setExtraFee] = React.useState<number>(0);
   const [paymentMethod, setPaymentMethod] = React.useState<string>('');
   const [ticketHolders, setTicketHolders] = React.useState<string[]>(['']);
-  const [shows, setShows] = React.useState<Show[]>([]);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
-
+  const [selectedSchedules, setSelectedSchedules] = React.useState<Show[]>([]);
   const captchaRef = React.useRef<ReCAPTCHA | null>(null);
+
   // Fetch event details on component mount
   React.useEffect(() => {
     if (params.event_slug) {
@@ -111,49 +113,21 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     }
   }, [params.event_slug]);
 
-  // Fetch shows
-  React.useEffect(() => {
-    async function fetchShows() {
-      try {
-        setIsLoading(true);
-        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(
-          `/marketplace/events/${params.event_slug}/shows`
-        );
-        setShows(response.data);
-      } catch (error) {
-        notificationCtx.error('Error fetching shows:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchShows();
-  }, [params.event_slug]);
 
-  // Fetch ticket categories
-  React.useEffect(() => {
-    async function fetchTicketCategories() {
-      try {
-        setIsLoading(true);
-        const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(
-          `/marketplace/events/${params.event_slug}/ticket_categories`
-        );
-        const sortedCategories = response.data.sort((a, b) => {
-          if (a.status === 'on_sale' && b.status !== 'on_sale') return -1;
-          if (a.status !== 'on_sale' && b.status === 'on_sale') return 1;
-          return 0;
-        });
-        setTicketCategories(sortedCategories);
-      } catch (error) {
-        notificationCtx.error('Error fetching ticket categories:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchTicketCategories();
-  }, [params.event_slug]);
+  const handleCategorySelection = (showId: number, categoryId: number) => {
+    setSelectedCategories(prevCategories => ({
+      ...prevCategories,
+      [showId]: categoryId,
+    }));
+  };
 
-  const handleCategorySelection = (ticketCategoryId: string) => {
-    setSelectedCategoryId(ticketCategoryId);
+  const handleSelectionChange = (selected: Show[]) => {
+    setSelectedSchedules(selected);
+    const tmpObj = {}
+    selected.forEach((s) => {tmpObj[s.id] = selectedCategories[s.id] || null})
+
+    setSelectedCategories(tmpObj);
+    console.log(selectedCategories)
   };
 
   const handleTicketQuantityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,61 +142,62 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     setTicketHolders(updatedHolders);
   };
 
-  // const handleExtraFeeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-  //   const value = event.target.value.replace(/\D/g, ''); // Remove non-digit characters
-  //   setExtraFee(Number(value));
-  // };
-
-  const formatPrice = (price: number) => {
-    return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
-  };
-
   const handleSubmit = async () => {
-    if (!selectedCategoryId || !customer.name || !customer.email || ticketQuantity <= 0) {
+    if (!customer.name || !customer.email || ticketQuantity <= 0) {
       notificationCtx.warning('Please fill in the required fields.');
       return;
     }
 
     const captchaValue = captchaRef.current?.getValue();
-
-    console.log('captchaValue', captchaValue);
     if (!captchaValue) {
       notificationCtx.warning('Please verify the reCAPTCHA!');
       return;
     }
-    // TODO: Need to verify on backend side. Ref: https://clerk.com/blog/implementing-recaptcha-in-react
 
-    if (!captchaRef?.current) {
-      notificationCtx.warning('Please fill in the required fields.');
+    if (Object.keys(selectedCategories).length == 0) {
+      notificationCtx.warning('Vui lòng chọn ít nhất 1 loại vé');
       return;
     }
 
+
+    const emptyTicketShowIds = Object.entries(selectedCategories).filter(([showId, ticketCategoryId]) => (ticketCategoryId == null)).map(([showId, ticketCategoryId]) => (Number.parseInt(showId)));
+    if (emptyTicketShowIds.length > 0) {
+      const emptyTicketNames = event?.shows.filter(show => emptyTicketShowIds.includes(show.id)).map(show => show.name)
+      notificationCtx.warning(`Vui lòng chọn loại vé cho ${emptyTicketNames?.join(', ')}`);
+      return;
+    }
     try {
       setIsLoading(true);
+
+      const tickets = Object.entries(selectedCategories).map(([showId, ticketCategoryId]) => ({
+        showId: parseInt(showId),
+        ticketCategoryId,
+      }));
+
       const transactionData = {
-        customer: {
-          ...customer,
-        },
-        ticket: {
-          ticketCategoryId: selectedCategoryId,
-          quantity: ticketQuantity,
-          ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
-        },
+        customer,
+        tickets,
         paymentMethod,
-        extraFee,
+        ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
+        quantity: ticketQuantity,
       };
+
       const response = await baseHttpServiceInstance.post(
         `/marketplace/events/${params.event_slug}/transactions`,
         transactionData
       );
       notificationCtx.success('Transaction created successfully!');
+
+      // Redirect to the payment checkout URL
+      if (response.data.paymentCheckoutUrl) {
+        window.location.href = response.data.paymentCheckoutUrl;
+      }
     } catch (error) {
       notificationCtx.error('Error creating transaction.', error);
     } finally {
       setIsLoading(false);
     }
   };
-
   return (
     <div
       style={{
@@ -358,8 +333,11 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
           <Grid container spacing={3}>
             <Grid item lg={4} md={6} xs={12}>
               <Stack spacing={3}>
-                <TicketCategories ticketCategories={ticketCategories} onCategorySelect={handleCategorySelection} />
-                <Schedules shows={shows} />
+                <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
+                {selectedSchedules && selectedSchedules.map(show => (
+                  <TicketCategories key={show.id} show={show} onCategorySelect={(categoryId) => handleCategorySelection(show.id, categoryId)}
+                  />
+                ))}
               </Stack>
             </Grid>
             <Grid item lg={8} md={6} xs={12}>
@@ -394,7 +372,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                         </FormControl>
                       </Grid>
                       <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth>
+                        <FormControl fullWidth required>
                           <InputLabel>Số điện thoại</InputLabel>
                           <OutlinedInput
                             label="Số điện thoại"
@@ -406,7 +384,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                         </FormControl>
                       </Grid>
                       <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth>
+                        <FormControl fullWidth required>
                           <InputLabel>Địa chỉ</InputLabel>
                           <OutlinedInput
                             label="Địa chỉ"
@@ -423,13 +401,15 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 {/* Ticket Quantity and Ticket Holders */}
                 <Card>
                   <CardHeader
-                    title="Số lượng vé"
+                    title="Số lượng người tham dự"
+                    subheader='Tối đa 2 người'
                     action={
                       <OutlinedInput
-                        sx={{ maxWidth: 180 }}
+                        sx={{ maxWidth: 130 }}
                         type="number"
                         value={ticketQuantity}
                         onChange={handleTicketQuantityChange}
+                        inputProps={{ min: 1, max: 2 }}
                       />
                     }
                   />
@@ -490,7 +470,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 </Card>
 
                 {/* Payment Summary */}
-                {selectedCategoryId && ticketCategories.length > 0 && (
+                {/* {selectedCategoryId && ticketCategories.length > 0 && (
                   <Card>
                     <CardHeader title="Thanh toán" />
                     <Divider />
@@ -540,7 +520,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                       </Stack>
                     </CardContent>
                   </Card>
-                )}
+                )} */}
                 {/* Submit Button */}
                 <Grid item sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
                   <ReCAPTCHA

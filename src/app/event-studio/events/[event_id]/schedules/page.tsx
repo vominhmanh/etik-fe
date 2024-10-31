@@ -59,32 +59,18 @@ export type Show = {
   name: string;
   startDateTime: Date | null;
   endDateTime: Date | null;
-  place: string | null;
 };
 
-export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
-  const { event_id } = params;
-  const [shows, setShows] = React.useState<Show[]>([]);
+interface ShowListProps {
+  shows: Show[];
+}
+
+export default function Page({ params }: { params: { event_id: string, props: ShowListProps } }): React.JSX.Element {
+  const { event_id, props } = params;
+  const shows = props.shows
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  // Fetch shows
-  React.useEffect(() => {
-    async function fetchShows() {
-      try {
-        setIsLoading(true);
-        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${params.event_id}/shows`
-        );
-        setShows(response.data);
-      } catch (error) {
-        notificationCtx.error('Error fetching shows:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchShows();
-  }, [params.event_id]);
+  console.log(shows)
 
   return (
     <Stack spacing={3}>
@@ -130,7 +116,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     </Box>
                     <Stack spacing={1}>
                       <Typography align="left" variant="h6">
-                        Suất diễn mặc định
+                        {shows[0]}
                       </Typography>
                       <Typography align="left" variant="body2">
                         Được tạo tự động
@@ -144,12 +130,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                         {show.startDateTime && show.endDateTime
                           ? `${dayjs(show.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(show.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
                           : 'Chưa xác định'}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" spacing={1}>
-                      <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        {show.place ? show.place : 'Chưa xác định'}
                       </Typography>
                     </Stack>
                   </Stack>
