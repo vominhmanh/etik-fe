@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, CardMedia, Container, InputAdornment } from '@mui/material';
+import { Avatar, Box, CardMedia, Container, FormHelperText, InputAdornment } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -83,8 +83,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     phoneNumber: '',
     address: '',
   });
-  const [extraFee, setExtraFee] = React.useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = React.useState<string>('');
+  const [paymentMethod, setPaymentMethod] = React.useState<string>('napas247');
   const [ticketHolders, setTicketHolders] = React.useState<string[]>(['']);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -124,7 +123,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const handleSelectionChange = (selected: Show[]) => {
     setSelectedSchedules(selected);
     const tmpObj = {}
-    selected.forEach((s) => {tmpObj[s.id] = selectedCategories[s.id] || null})
+    selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || null })
 
     setSelectedCategories(tmpObj);
     console.log(selectedCategories)
@@ -140,6 +139,10 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     const updatedHolders = [...ticketHolders];
     updatedHolders[index] = value;
     setTicketHolders(updatedHolders);
+  };
+
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
   };
 
   const handleSubmit = async () => {
@@ -180,6 +183,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         paymentMethod,
         ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
         quantity: ticketQuantity,
+        captchaValue,
       };
 
       const response = await baseHttpServiceInstance.post(
@@ -453,20 +457,22 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 <Card>
                   <CardHeader
                     title="Phương thức thanh toán"
-                    action={
-                      <FormControl sx={{ maxWidth: 180, minWidth: 180 }}>
-                        <Select
-                          name="payment_method"
-                          value={paymentMethod}
-                          onChange={(e) => setPaymentMethod(e.target.value)}
-                        >
-                          <MenuItem value="napas247" selected>
-                            Napas 247
-                          </MenuItem>
-                        </Select>
-                      </FormControl>
-                    }
                   />
+                  <Divider />
+                  <CardContent>
+                    <FormControl fullWidth>
+                      <Select
+                        name="payment_method"
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                      >
+                        <MenuItem value="napas247" selected={true}>
+                          Chuyển khoản nhanh Napas 247
+                        </MenuItem>
+                      </Select>
+                      <FormHelperText>Tự động xuất vé khi thanh toán thành công</FormHelperText>
+                    </FormControl>
+                  </CardContent>
                 </Card>
 
                 {/* Payment Summary */}
@@ -521,19 +527,70 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                     </CardContent>
                   </Card>
                 )} */}
-                {/* Submit Button */}
-                <Grid item sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
-                  <ReCAPTCHA
-                    sitekey="6Lch1nEqAAAAAPRJeBZpZ0GQ3Ja7hD1rwzSY1U2X"
-                    onChange={() => {
-                      console.log('Are kris ok');
-                    }}
-                    ref={captchaRef}
-                  />
+                {/* Payment Summary */}
+                {Object.keys(selectedCategories).length > 0 && (
+                  <Card>
+                    <CardHeader title="Thanh toán" />
+                    <Divider />
+                    <CardContent>
+                      <Stack spacing={2}>
+                        {Object.entries(selectedCategories).map(([showId, category]) => {
+                          const show = event?.shows.find((show) => show.id === parseInt(showId));
+                          const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
 
-                  <Button variant="contained" onClick={handleSubmit}>
-                    Mua vé
-                  </Button>
+                          return (
+                            <Stack direction={{ xs: 'column', sm: 'row' }} key={showId} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                                <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {showTicketCategory?.ticketCategory.name || 'Chưa rõ loại vé'}</Typography>
+                              </Stack>
+                              <Stack spacing={2} direction={'row'}>
+                                <Typography variant="body1">Giá: {formatPrice(showTicketCategory?.ticketCategory.price || 0)}</Typography>
+                                <Typography variant="body1">SL: {ticketQuantity || 0}</Typography>
+                                <Typography variant="body1">
+                                  Thành tiền: {formatPrice((showTicketCategory?.ticketCategory.price || 0) * (ticketQuantity || 0))}
+                                </Typography>
+                              </Stack>
+                            </Stack>
+                          );
+                        })}
+
+                        {/* Total Amount */}
+                        <Grid item sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng:</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                            {formatPrice(
+                              Object.entries(selectedCategories).reduce((total, [showId, category]) => {
+                                const show = event?.shows.find((show) => show.id === parseInt(showId));
+                                const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
+                                return total + (showTicketCategory?.ticketCategory?.price || 0) * (ticketQuantity || 0);
+                              }, 0)
+                            )}
+                          </Typography>
+                        </Grid>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                )}
+                {/* Submit Button */}
+                <Grid spacing={3} container sx={{ alignItems: 'center', mt: '3' }}>
+                  <Grid item sm={9} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
+                    <ReCAPTCHA
+                      sitekey="6Lch1nEqAAAAAPRJeBZpZ0GQ3Ja7hD1rwzSY1U2X"
+                      onChange={() => {
+                        console.log('Are kris ok');
+                      }}
+                      ref={captchaRef}
+                    />
+                  </Grid>
+                  <Grid item sm={3} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
+                    <div>
+                      <Button variant="contained" onClick={handleSubmit}>
+                        Mua vé
+                      </Button>
+                    </div>
+                  </Grid>
+
                 </Grid>
               </Stack>
             </Grid>
