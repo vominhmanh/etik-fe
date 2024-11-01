@@ -21,6 +21,9 @@ import axios, { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import Chip from '@mui/material/Chip';
 import { deepPurple, deepOrange, indigo, cyan, green, pink, yellow } from '@mui/material/colors';
+import dayjs from 'dayjs';
+import { MapPin } from '@phosphor-icons/react/dist/ssr';
+import { CardMedia } from '@mui/material';
 
 const statusMap = {
   not_opened_for_sale: { label: 'Chưa mở bán', color: 'secondary' },
@@ -35,7 +38,7 @@ const typeMap = {
 };
 
 const colorMap = {
-  0: deepOrange[500], 
+  0: deepOrange[500],
   1: deepPurple[500],
   2: green[500],
   3: cyan[500],
@@ -45,90 +48,64 @@ const colorMap = {
   7: deepPurple[300],
 };
 
-export interface Ticket {
-  id: number;
-  holder: string;
-  createdAt: string;
-  checkInAt: string | null;
-}
-
-export interface Creator {
-  id: number;
-  fullName: string;
-  email: string;
-}
-
-
-// Define the event response type
-interface Event {
-  id: number;
+export interface ListTransactionEventResponse {
+  slug: string;
   name: string;
   organizer: string;
-  description: string | null;
-  startDateTime: string | null;
-  endDateTime: string | null;
-  place: string | null;
-  locationUrl: string | null;
-  bannerUrl: string;
-  slug: string;
-  locationInstruction: string | null;
-};
-
-export interface TicketCategory {
-  id: number;
-  name: string;
-  type: string;
-  price: number;
-  avatar: string | null;
-  quantity: number;
-  sold: number;
-  description: string | null;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
+  startDateTime?: Date;
+  endDateTime?: Date;
+  place?: string;
+  bannerUrl?: string;
 }
 
-export interface Transaction {
+
+export interface TransactionResponse {
   id: number;
-  eventId: number;
-  event: Event;
-  customerId: number;
-  email: string;
-  name: string;
-  gender: string;
-  phoneNumber: string;
-  address: string;
-  dob: string | null;
-  ticketCategory: TicketCategory;
   ticketQuantity: number;
-  netPricePerOne: number;
-  extraFee: number;
-  discount: number;
-  totalAmount: number;
   paymentMethod: string;
   paymentStatus: string;
-  paymentOrderCode: string | null;
-  paymentDueDatetime: string | null;
-  paymentCheckoutUrl: string | null;
-  paymentTransactionDatetime: string | null;
-  note: string | null;
   status: string;
-  createdBy: number | null;
-  createdAt: string;
-  tickets: Ticket[];
-  createdSource: string;
-  creator: Creator | null;
+  createdAt: Date;
+  event: ListTransactionEventResponse;
 }
 
 
+// Function to map payment statuses to corresponding labels and colors
+const getPaymentStatusDetails = (paymentStatus: string) => {
+  switch (paymentStatus) {
+    case 'waiting_for_payment':
+      return { label: 'Đang chờ thanh toán', color: 'warning' };
+    case 'paid':
+      return { label: 'Đã thanh toán', color: 'success' };
+    case 'refund':
+      return { label: 'Đã hoàn tiền', color: 'secondary' };
+    default:
+      return { label: 'Unknown', color: 'default' };
+  }
+};
+
+// Function to map row statuses to corresponding labels and colors
+const getRowStatusDetails = (status: string) => {
+  switch (status) {
+    case 'normal':
+      return { label: 'Trạng thái: Bình thường', color: 'default' };
+    case 'customer_cancelled':
+      return { label: 'Trạng thái: Huỷ bởi KH', color: 'error' }; // error for danger
+    case 'staff_locked':
+      return { label: 'Trạng thái: Khoá bởi NV', color: 'error' };
+    default:
+      return { label: 'Unknown', color: 'default' };
+  }
+};
+
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
-  const [transactions, setTransactions] = React.useState<Transaction[]>([]);
+  const [transactions, setTransactions] = React.useState<TransactionResponse[]>([]);
   const notificationCtx = React.useContext(NotificationContext);
 
   React.useEffect(() => {
     const fetchTicketCategories = async () => {
       try {
-        const response: AxiosResponse<Transaction[]> = await baseHttpServiceInstance.get(
+        const response: AxiosResponse<TransactionResponse[]> = await baseHttpServiceInstance.get(
           `/account/transactions`
         );
         setTransactions(response.data);
@@ -145,10 +122,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Vé của tôi</Typography>
-         
+
         </Stack>
         <div>
-          
+
         </div>
       </Stack>
       <CompaniesFilters />
@@ -156,6 +133,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         {transactions.map((transaction) => (
           <Grid key={transaction.id} lg={4} md={6} xs={12}>
             <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <CardMedia
+                sx={{ height: 140 }}
+                image={transaction.event.bannerUrl || ''}
+                title={transaction.event.name}>
+              </CardMedia>
               <CardContent sx={{ flex: '1 1 auto' }}>
                 <Stack spacing={2}>
                   <Stack spacing={1} direction={'row'}>
@@ -165,26 +147,42 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         sx={{ height: '45px', width: '45px', fontSize: '2rem', borderRadius: '5px', bgcolor: colorMap[transaction.id % 8] }}
                         variant="square"
                       >
-                        A
-                        {/* {transaction.avatar ? '' : ticketCategory.name[0]} */}
+                        {transaction.event.name[0]}
                       </Avatar>
                     </Box>
-                    <Stack spacing={0}>
+                    <Stack spacing={2}>
                       <Typography align="left" variant="h6">
                         {transaction.event.name}
                       </Typography>
-                      <Typography align="left" variant="body1">
-                        {transaction.totalAmount.toLocaleString('vi-VN', {style : 'currency', currency : 'VND'})}
-                      </Typography>
+                      <Stack direction="row" spacing={1}>
+                        <ClockIcon fontSize="var(--icon-fontSize-sm)" />
+                        <Typography color="text.secondary" display="inline" variant="body2">
+                          {transaction.event.startDateTime && transaction.event.endDateTime
+                            ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
+                            : 'Chưa xác định'}
+                        </Typography>
+                        </Stack>
+                        <Stack direction="row" spacing={1}>
+                          <MapPin fontSize="var(--icon-fontSize-sm)" />
+                          <Typography color="text.secondary" display="inline" variant="body2">
+                            {transaction.event.place ? transaction.event.place : 'Chưa xác định'}
+                          </Typography>
+                        </Stack>
+                      </Stack>
                     </Stack>
                   </Stack>
-                  <Typography align="left" variant="body1">
-                    Số lượng: {transaction.ticketQuantity}
-                  </Typography>
-                  {/* <Typography align="left" variant="body1">
-                    {ticketCategory.description ? ticketCategory.description : "Chưa có mô tả"}
-                  </Typography> */}
-                </Stack>
+
+                  <Stack spacing={2} direction={'row'} sx={{mt: 2}}>
+                    <Chip color='primary' label={`${transaction.ticketQuantity} vé`} />
+                    <Chip 
+                      color={getPaymentStatusDetails(transaction.paymentStatus).color}
+                      label={getPaymentStatusDetails(transaction.paymentStatus).label}
+                    />
+                    <Chip 
+                      color={getRowStatusDetails(transaction.status).color}
+                      label={getRowStatusDetails(transaction.status).label}
+                    />
+                  </Stack>
               </CardContent>
               <Divider />
               <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 2 }}>

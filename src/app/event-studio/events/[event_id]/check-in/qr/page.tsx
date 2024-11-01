@@ -6,93 +6,120 @@ import axios, { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { useMediaDevices } from "react-media-devices";
 import { useZxing } from "react-zxing";
-import { Card, CardActions, CardContent, CardHeader, Container, FormControl, FormControlLabel, InputLabel, MenuItem, OutlinedInput, Select, styled, SwipeableDrawer, Tooltip } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Card, CardActions, CardContent, CardHeader, Container, FormControl, FormControlLabel, InputLabel, MenuItem, OutlinedInput, Select, styled, SwipeableDrawer, Tooltip } from '@mui/material';
 import { Drawer, Stack, Grid, Typography, Checkbox, Button, Divider } from '@mui/material';
 import dayjs from 'dayjs';
 import { Info as InfoIcon } from '@phosphor-icons/react/dist/ssr/Info';
 import { grey } from '@mui/material/colors';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
-import { Lightning } from '@phosphor-icons/react/dist/ssr';
+import { ArrowDown, CaretDown, Lightning } from '@phosphor-icons/react/dist/ssr';
+import { Schedules } from './schedules';
+import { TicketCategories } from './ticket-categories';
 
 const iOS =
   typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-export interface TransactionTicket {
-  id: number;
-  holder: string;
-  createdAt: string;
-  checkInAt: string | null;
-}
 
+// Ticket.ts
 export interface Ticket {
   id: number;
   holder: string;
-  checkInAt: string | null;
-  disabled: boolean;
-  checked: boolean;
+  checkInAt: Date | null;
 }
 
-export interface TicketCategory {
-  id: number;
-  name: string;
-  type: string;
-  price: number;
-  avatar: string | null;
-  quantity: number;
-  sold: number;
-  description: string | null;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
+// TransactionShowTicketCategory.ts
+export interface TransactionShowTicketCategory {
+  netPricePerOne: number;
+  tickets: Ticket[];
+  showTicketCategory: ShowTicketCategory;
 }
 
+// TransactionResponse.ts
 export interface Transaction {
   id: number;
-  eventId: number;
-  customerId: number;
   email: string;
   name: string;
-  gender: string;
   phoneNumber: string;
   address: string;
-  dob: string | null;
-  ticketCategory: TicketCategory;
+  transactionShowTicketCategories: TransactionShowTicketCategory[];
   ticketQuantity: number;
-  netPricePerOne: number;
   extraFee: number;
   discount: number;
   totalAmount: number;
   paymentMethod: string;
   paymentStatus: string;
-  paymentOrderCode: string | null;
-  paymentDueDatetime: string | null;
-  paymentCheckoutUrl: string | null;
-  paymentTransactionDatetime: string | null;
-  note: string | null;
   status: string;
-  createdBy: number;
-  createdAt: string;
-  tickets: TransactionTicket[];
+  createdAt: Date;
 }
+
+
+
+
+export type TicketCategory = {
+  id: number;
+  avatar: string | null;
+  name: string;
+  price: number;
+  description: string;
+  status: string;
+};
+
+export type ShowTicketCategory = {
+  quantity: number;
+  sold: number;
+  disabled: boolean;
+  ticketCategory: TicketCategory;
+  show: Show;
+};
+
+export type Show = {
+  id: number;
+  name: string;
+  startDateTime: string; // backend response provides date as string
+  endDateTime: string; // backend response provides date as string
+  showTicketCategories: ShowTicketCategory[];
+};
+
+export type EventResponse = {
+  name: string;
+  organizer: string;
+  description: string;
+  startDateTime: string | null;
+  endDateTime: string | null;
+  place: string | null;
+  locationUrl: string | null;
+  bannerUrl: string;
+  slug: string;
+  locationInstruction: string | null;
+  shows: Show[];
+};
+
 const constraints: MediaStreamConstraints = {
   video: true,
   audio: false,
+};
+type MyDynamicObject = {
+  [key: string]: boolean; // key is a string, and value is also a string
 };
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   const [qrManualInput, setQrManualInput] = React.useState<string>('');
   const [eCode, setECode] = React.useState<string>('');
   const [isCheckinControllerOpen, setIsCheckinControllerOpen] = React.useState(false);
   const [isSuccessful, setIsSuccessful] = React.useState(false);
-  const [error, setError] = React.useState();
+  const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [trxn, setTrxn] = React.useState<Transaction>();
   const [confirmCheckin, setConfirmCheckin] = React.useState(false);
-  const [tickets, setTickets] = React.useState<Ticket[]>([]);
   const notificationCtx = React.useContext(NotificationContext);
+  const [selectedSchedule, setSelectedSchedule] = React.useState<Show>();
+  const [selectedCategories, setSelectedCategories] = React.useState<number[]>([]);
+  const [event, setEvent] = React.useState<EventResponse | null>(null);
+  const [accordionState, setAccordionState] = React.useState<MyDynamicObject>({});
+  const [ticketDisabledState, setTicketDisabledState] = React.useState<MyDynamicObject>({});
+  const [ticketCheckboxState, setTicketCheckboxState] = React.useState<MyDynamicObject>({});
 
   const { devices } = useMediaDevices({ constraints });
   const deviceId = devices?.[0]?.deviceId;
-  const ticketsToCheckInCount = React.useMemo(() => tickets.filter(ticket => ticket.checked).length, [tickets])
   const { ref } = useZxing({
     paused: !deviceId,
     deviceId,
@@ -105,6 +132,53 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   });
 
   // const videoRef = React.useRef<HTMLVideoElement>(null);
+
+
+  const handleCategorySelection = (categoryIds: number[]) => {
+    setSelectedCategories(categoryIds);
+  };
+
+  const handleSelectionChange = (selected: Show) => {
+    setSelectedSchedule(selected);
+  };
+  // Define the toggleExpand function
+  const toggleExpand = (key: string) => {
+    setAccordionState((prevState) => ({
+      ...prevState,
+      [key]: !prevState[key], // Toggle the value for the specific accordion key
+    }));
+  };
+
+  // Handler for checkbox change
+  const handleCheckboxChange = (key: string) => {
+    setTicketCheckboxState((prevState) => ({
+      ...prevState,
+      [key]: !prevState[key], // Toggle the value for the specific accordion key
+    }));
+  };
+
+
+  // Fetch event details on component mount
+  React.useEffect(() => {
+    if (params.event_id) {
+      const fetchEventDetails = async () => {
+        try {
+          setIsLoading(true);
+          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
+            `/event-studio/events/${params.event_id}/transactions/get-info-to-create-transaction`
+          );
+          setEvent(response.data);
+          // setFormValues(response.data); // Initialize form with the event data
+        } catch (error) {
+          notificationCtx.error('Error fetching event details:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchEventDetails();
+    }
+  }, [params.event_id]);
 
 
   React.useEffect(() => {
@@ -138,19 +212,44 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     try {
       setIsLoading(true);
       const transactionResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance
-        .get(`/event-studio/events/${params.event_id}/check-in/`, { params: { check_in_e_code: eCode } });
+        .get(`/event-studio/events/${params.event_id}/check-in`, { params: { check_in_e_code: eCode } });
       const dataTrxn = transactionResponse.data
       setTrxn(dataTrxn);
 
-      // Map trxn.tickets to the new Ticket interface
-      const ticketData: Ticket[] = dataTrxn.tickets.map((ticket) => ({
-        id: ticket.id,
-        holder: ticket.holder,
-        disabled: ticket.checkInAt !== null,
-        checkInAt: ticket.checkInAt,
-        checked: false,
-      }));
-      setTickets(ticketData);
+      const accordState: MyDynamicObject = {}
+      const ticCheckboxState: MyDynamicObject = {}
+      const ticDisabledState: MyDynamicObject = {}
+
+      dataTrxn.transactionShowTicketCategories.forEach(transactionShowTicketCategory => {
+        const accordionKey = `${transactionShowTicketCategory.showTicketCategory.show.id}-${transactionShowTicketCategory.showTicketCategory.ticketCategory.id}`
+        accordState[accordionKey] = false
+        if (transactionShowTicketCategory.showTicketCategory.show.id == selectedSchedule?.id && selectedCategories.includes(transactionShowTicketCategory.showTicketCategory.ticketCategory.id)) {
+          accordState[accordionKey] = true
+        }
+      })
+      setAccordionState(accordState)
+
+      dataTrxn.transactionShowTicketCategories.forEach(transactionShowTicketCategory => {
+        transactionShowTicketCategory.tickets.forEach((ticket) => {
+          const ticketKey = `${ticket.id}-${transactionShowTicketCategory.showTicketCategory.show.id}-${transactionShowTicketCategory.showTicketCategory.ticketCategory.id}`
+          ticDisabledState[ticketKey] = false
+          ticCheckboxState[ticketKey] = false
+
+          if (ticket.checkInAt != null) {
+            ticDisabledState[ticketKey] = true
+            ticCheckboxState[ticketKey] = true
+          } else {
+            if (transactionShowTicketCategory.showTicketCategory.show.id == selectedSchedule?.id && selectedCategories.includes(transactionShowTicketCategory.showTicketCategory.ticketCategory.id)) {
+              ticCheckboxState[ticketKey] = true
+            } else {
+              ticDisabledState[ticketKey] = true
+            }
+          }
+        })
+      })
+
+      setTicketDisabledState(ticDisabledState)
+      setTicketCheckboxState(ticCheckboxState)
 
       setIsSuccessful(true);
       setError(null);
@@ -161,42 +260,56 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       setIsLoading(false);
     }
   };
-
   const sendCheckinRequest = (eCode: string) => {
     if (trxn) {
       setIsLoading(true);
-      const ticketIds = tickets
-        .filter(ticket => ticket.checked)
-        .map(t => t.id);
-      let checkInAll = false
-      if (ticketIds.length === tickets.length) {
-        checkInAll = true
-      }
-
-      baseHttpServiceInstance
-        .post(`/event-studio/events/${params.event_id}/check-in/`, {
+  
+      // Collect check-in details by filtering tickets with true checkbox state and false disabled state
+      const ticketsToCheckIn: { [key: string]: number[] } = {};
+  
+      Object.keys(ticketCheckboxState).forEach(ticketKey => {
+        if (ticketCheckboxState[ticketKey] && !ticketDisabledState[ticketKey]) {
+          const [ticketId, showId, ticketCategoryId] = ticketKey.split('-').map(Number);
+  
+          const key = `${showId}-${ticketCategoryId}`;
+          if (!ticketsToCheckIn[key]) {
+            ticketsToCheckIn[key] = [];
+          }
+          ticketsToCheckIn[key].push(ticketId);
+        }
+      });
+  
+      // Loop through each show/ticketCategory group and send requests
+      const requests = Object.entries(ticketsToCheckIn).map(([key, ticketIds]) => {
+        const [showId, ticketCategoryId] = key.split('-').map(Number);
+        const checkInAll = ticketIds.length === trxn.transactionShowTicketCategories.find(
+          category => category.showTicketCategory.show.id === showId &&
+                      category.showTicketCategory.ticketCategory.id === ticketCategoryId
+        )?.tickets.length;
+  
+        return baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/check-in`, {
           eCode,
+          showId,
+          ticketCategoryId,
           checkInAll,
           checkInCustomerIds: checkInAll ? [] : ticketIds,
+        });
+      });
+  
+      // Execute all requests and update UI state
+      Promise.all(requests)
+        .then(() => {
+          getTransactionByECode(eCode); // Refresh data after check-in
+          setIsSuccessful(true);
         })
-        .then(function (response) {
-          getTransactionByECode(eCode);
-        })
-        .catch(function (error) {
+        .catch(error => {
           setError(error);
+          setIsSuccessful(false);
         })
-        .finally(function () {
+        .finally(() => {
           setIsLoading(false);
         });
     }
-  };
-
-  const handleEditCheckedTicket = (index: number) => {
-    setConfirmCheckin(false);
-    const updatedTickets = tickets.map((ticket, i) =>
-      i === index ? { ...ticket, checked: !ticket.checked } : ticket
-    );
-    setTickets(updatedTickets);
   };
 
   const handleManualCheckIn = (e: React.FormEvent<HTMLFormElement>) => {
@@ -220,7 +333,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       backgroundColor: grey[900],
     }),
   }));
-  const renderTooltip = (checkInAt: string) => (
+  const renderTooltip = (checkInAt: string | null) => (
     <Tooltip title={
       <Stack spacing={1}>
         <Typography variant='body2'>Đã check-in lúc {dayjs(checkInAt).format('HH:mm:ss DD/MM/YYYY')}</Typography>
@@ -229,16 +342,27 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       <InfoIcon />
     </Tooltip>
   );
+
   return (
     <>
       <Stack spacing={3}>
         <div>
           <Typography variant="h4">Check-in sự kiện</Typography>
-
         </div>
         <Grid container spacing={3}>
           <Grid item lg={5} md={5} xs={12} spacing={3}>
             <Stack spacing={3}>
+              <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
+              {selectedSchedule &&
+                <TicketCategories show={selectedSchedule} onCategorySelect={(categoryIds: number[]) => handleCategorySelection(categoryIds)} />
+              }
+
+            </Stack>
+          </Grid>
+
+          <Grid item lg={7} md={7} xs={12} spacing={3}>
+            <Stack spacing={3}>
+
               <Card>
                 <CardHeader subheader="Vui lòng hướng mã QR về phía camera." title="Quét mã QR" />
                 <Divider />
@@ -249,11 +373,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   <Button startIcon={<Lightning />}>Flash</Button>
                 </CardActions>
               </Card>
-            </Stack>
-          </Grid>
 
-          <Grid item lg={7} md={7} xs={12} spacing={3}>
-            <Stack spacing={3}>
               <Card>
                 <CardHeader subheader="Vui lòng nhập mã để check-in thủ công nếu không quét được mã QR." title="Check-in thủ công" />
                 <Divider />
@@ -311,16 +431,64 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   </Grid>
                   <Divider />
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Loại vé:</Typography>
-                    <Typography variant="body1">{trxn?.ticketCategory.name || "Chưa xác định"}</Typography>
-                  </Grid>
-                  <Grid container justifyContent="space-between">
                     <Typography variant="body1">Số lượng vé:</Typography>
                     <Typography variant="body1">{trxn?.ticketQuantity}</Typography>
                   </Grid>
 
+                  <div>
+                    {trxn?.transactionShowTicketCategories?.map((category) => {
+                      const accordionKey = `${category.showTicketCategory.show.id}-${category.showTicketCategory.ticketCategory.id}`;
 
-                  <Stack>
+                      return (
+                        <Accordion
+                          key={accordionKey}
+                          disableGutters
+                          expanded={accordionState[accordionKey]}
+                          onChange={() => toggleExpand(accordionKey)} // Use toggleExpand here
+                        >
+                          <AccordionSummary sx={{ backgroundColor: 'light' }} expandIcon={<CaretDown />}>
+                            <Grid container justifyContent="space-between">
+                              <Typography variant="body1">Show:</Typography>
+                              <Typography variant="body1">
+                                {category.showTicketCategory.show.name} - {category.showTicketCategory.ticketCategory.name}
+                              </Typography>
+                            </Grid>
+                          </AccordionSummary>
+
+                          <AccordionDetails>
+                            {category.tickets.map((ticket) => {
+                              const ticketKey = `${ticket.id}-${category.showTicketCategory.show.id}-${category.showTicketCategory.ticketCategory.id}`
+
+
+                              return (
+                                <FormControlLabel
+                                  key={ticketKey}
+                                  control={
+                                    <Checkbox
+                                      checked={ticketCheckboxState[ticketKey]}
+                                      onChange={() => handleCheckboxChange(ticketKey)}
+                                      disabled={ticketDisabledState[ticketKey]}
+                                    />
+                                  }
+                                  label={
+                                    <Stack direction="row" alignItems="center">
+                                      <Typography variant="body2">{ticket.holder}</Typography>
+                                      {ticketDisabledState[ticketKey] && ticket.checkInAt != null && renderTooltip(ticket.checkInAt)}
+                                    </Stack>
+                                  }
+                                  sx={{ display: 'flex', alignItems: 'center', marginLeft: 2 }}
+                                />
+                              );
+                            })}
+                          </AccordionDetails>
+                        </Accordion>
+                      );
+                    })}
+                  </div>
+
+
+
+                  {/* <Stack>
                     {tickets.map((ticket, index) => (
                       <Grid container key={ticket.id}>
                         <Grid item xs={12}>
@@ -341,19 +509,17 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                         </Grid>
                       </Grid>
                     ))}
-                  </Stack>
+                  </Stack> */}
 
                   <Button
                     variant="contained"
-                    disabled={tickets.filter(ticket => ticket.checked).length === 0}
+                    // disabled={tickets.filter(ticket => ticket.checked).length === 0}
                     onClick={() => {
                       setConfirmCheckin(true);
                       sendCheckinRequest(eCode);
                     }}
                   >
-                    {ticketsToCheckInCount > 0 && ticketsToCheckInCount !== tickets.length && `Check-in ${ticketsToCheckInCount} vé`}
-                    {ticketsToCheckInCount === tickets.length && 'Check-in tất cả'}
-                    {ticketsToCheckInCount === 0 && 'Check-in'}
+                    {'Check-in'}
                   </Button>
                 </Stack>
               </>

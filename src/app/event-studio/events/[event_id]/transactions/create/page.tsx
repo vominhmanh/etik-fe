@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { InputAdornment } from '@mui/material';
+import { Box, InputAdornment } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -33,85 +33,98 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 export type TicketCategory = {
   id: number;
-  avatar: string;
+  avatar: string | null;
   name: string;
-  updatedAt: Date;
+
   price: number;
   type: string;
+  description: string;
   status: string;
+};
+
+export type ShowTicketCategory = {
+  quantity: number;
+  sold: number;
+  disabled: boolean;
+  ticketCategory: TicketCategory;
 };
 
 export type Show = {
   id: number;
-  eventId: number;
   name: string;
-  startDateTime: Date | null;
-  endDateTime: Date | null;
+  startDateTime: string; // backend response provides date as string
+  endDateTime: string; // backend response provides date as string
+  showTicketCategories: ShowTicketCategory[];
+};
+
+export type EventResponse = {
+  name: string;
+  organizer: string;
+  description: string;
+  startDateTime: string | null;
+  endDateTime: string | null;
   place: string | null;
+  locationUrl: string | null;
+  bannerUrl: string;
+  slug: string;
+  locationInstruction: string | null;
+  shows: Show[];
 };
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
-  const notificationCtx = React.useContext(NotificationContext);
-  const [ticketCategories, setTicketCategories] = React.useState<TicketCategory[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = React.useState<number | null>(null);
+  const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
+  const [extraFee, setExtraFee] = React.useState<number>(0);
+  const router = useRouter(); // Use useRouter from next/navigation
+  const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
   const [customer, setCustomer] = React.useState({
     name: '',
     email: '',
     phoneNumber: '',
     address: '',
   });
-  const [extraFee, setExtraFee] = React.useState<number>(0);
-  const [shows, setShows] = React.useState<Show[]>([]);
-  const [paymentMethod, setPaymentMethod] = React.useState<string>('');
+  const [paymentMethod, setPaymentMethod] = React.useState<string>('napas247');
   const [ticketHolders, setTicketHolders] = React.useState<string[]>(['']);
-  const router = useRouter(); // Use useRouter from next/navigation
+  const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [selectedSchedules, setSelectedSchedules] = React.useState<Show[]>([]);
 
-  // Fetch ticket categories
+  // Fetch event details on component mount
   React.useEffect(() => {
-    async function fetchTicketCategories() {
-      try {
-        setIsLoading(true);
-        const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${params.event_id}/ticket_categories`
-        );
-        const sortedCategories = response.data.sort((a, b) => {
-          if (a.status === 'on_sale' && b.status !== 'on_sale') return -1;
-          if (a.status !== 'on_sale' && b.status === 'on_sale') return 1;
-          return 0;
-        });
-        setTicketCategories(sortedCategories);
-      } catch (error) {
-        notificationCtx.error('Error fetching ticket categories:', error);
-      } finally {
-        setIsLoading(false);
-      }
+    if (params.event_id) {
+      const fetchEventDetails = async () => {
+        try {
+          setIsLoading(true);
+          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
+            `/event-studio/events/${params.event_id}/transactions/get-info-to-create-transaction`
+          );
+          setEvent(response.data);
+          // setFormValues(response.data); // Initialize form with the event data
+        } catch (error) {
+          notificationCtx.error('Error fetching event details:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchEventDetails();
     }
-    fetchTicketCategories();
   }, [params.event_id]);
 
-  // Fetch shows
-  React.useEffect(() => {
-    async function fetchShows() {
-      try {
-        setIsLoading(true);
-        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${params.event_id}/shows`
-        );
-        setShows(response.data);
-      } catch (error) {
-        notificationCtx.error('Error fetching shows:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchShows();
-  }, [params.event_id]);
-
-  const handleCategorySelection = (ticketCategoryId: number) => {
-    setSelectedCategoryId(ticketCategoryId);
+  const handleCategorySelection = (showId: number, categoryId: number) => {
+    setSelectedCategories(prevCategories => ({
+      ...prevCategories,
+      [showId]: categoryId,
+    }));
   };
+
+  const handleSelectionChange = (selected: Show[]) => {
+    setSelectedSchedules(selected);
+    const tmpObj = {}
+    selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || null })
+    setSelectedCategories(tmpObj);
+  };
+
 
   const handleTicketQuantityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const quantity = Number(event.target.value);
@@ -135,23 +148,37 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const handleSubmit = async () => {
-    if (!selectedCategoryId || !customer.name || !customer.email || ticketQuantity <= 0) {
+    if (!customer.name || !customer.email || ticketQuantity <= 0) {
       notificationCtx.warning('Please fill in the required fields.');
       return;
     }
 
+    if (Object.keys(selectedCategories).length == 0) {
+      notificationCtx.warning('Vui lòng chọn ít nhất 1 loại vé');
+      return;
+    }
+
+
+    const emptyTicketShowIds = Object.entries(selectedCategories).filter(([showId, ticketCategoryId]) => (ticketCategoryId == null)).map(([showId, ticketCategoryId]) => (Number.parseInt(showId)));
+    if (emptyTicketShowIds.length > 0) {
+      const emptyTicketNames = event?.shows.filter(show => emptyTicketShowIds.includes(show.id)).map(show => show.name)
+      notificationCtx.warning(`Vui lòng chọn loại vé cho ${emptyTicketNames?.join(', ')}`);
+      return;
+    }
     try {
       setIsLoading(true);
+
+      const tickets = Object.entries(selectedCategories).map(([showId, ticketCategoryId]) => ({
+        showId: parseInt(showId),
+        ticketCategoryId,
+      }));
+
       const transactionData = {
-        customer: {
-          ...customer,
-        },
-        ticket: {
-          ticketCategoryId: selectedCategoryId,
-          quantity: ticketQuantity,
-          ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
-        },
+        customer,
+        tickets,
         paymentMethod,
+        ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
+        quantity: ticketQuantity,
         extraFee,
       };
 
@@ -161,7 +188,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       );
       const newTransaction = response.data;
       router.push(`/event-studio/events/${params.event_id}/transactions/${newTransaction.id}`); // Navigate to a different page on success
-
       notificationCtx.success('Transaction created successfully!');
     } catch (error) {
       notificationCtx.error('Error creating transaction:', error);
@@ -190,8 +216,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       <Grid container spacing={3}>
         <Grid lg={4} md={6} xs={12}>
           <Stack spacing={3}>
-            <TicketCategories ticketCategories={ticketCategories} onCategorySelect={handleCategorySelection} />
-            <Schedules shows={shows} />
+            <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
+            {selectedSchedules && selectedSchedules.map(show => (
+              <TicketCategories key={show.id} show={show} onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
+              />
+            ))}
           </Stack>
         </Grid>
         <Grid lg={8} md={6} xs={12}>
@@ -322,61 +351,54 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               />
             </Card>
 
-            {/* Payment Summary */}
-            <Card>
-              <CardHeader title="Thanh toán" />
-              <Divider />
-              <CardContent>
-                <Stack spacing={0}>
-                  {selectedCategoryId && ticketCategories.length > 0 && (
-                    <>
-                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1">Loại vé:</Typography>
-                        </Stack>
+            {Object.keys(selectedCategories).length > 0 && (
+              <Card>
+                <CardHeader title="Thanh toán" />
+                <Divider />
+                <CardContent>
+                  <Stack spacing={2}>
+                    {Object.entries(selectedCategories).map(([showId, category]) => {
+                      const show = event?.shows.find((show) => show.id === parseInt(showId));
+                      const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
 
-                        <Typography variant="body1">
-                          {ticketCategories.find((cat) => cat.id === selectedCategoryId)?.name || 'Chưa xác định'}
-                        </Typography>
-                      </Grid>
-                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <TagIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1">Đơn giá:</Typography>
+                      return (
+                        <Stack direction={{ xs: 'column', sm: 'row' }} key={showId} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                            <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {showTicketCategory?.ticketCategory.name || 'Chưa rõ loại vé'}</Typography>
+                          </Stack>
+                          <Stack spacing={2} direction={'row'}>
+                            <Typography variant="body1">Giá: {formatPrice(showTicketCategory?.ticketCategory.price || 0)}</Typography>
+                            <Typography variant="body1">SL: {ticketQuantity || 0}</Typography>
+                            <Typography variant="body1">
+                              Thành tiền: {formatPrice((showTicketCategory?.ticketCategory.price || 0) * (ticketQuantity || 0))}
+                            </Typography>
+                          </Stack>
                         </Stack>
-                        <Typography variant="body1"></Typography>
-                        <Typography variant="body1">
-                          {formatPrice(ticketCategories.find((cat) => cat.id === selectedCategoryId)?.price || 0)}
-                        </Typography>
-                      </Grid>
-                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <HashIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1">Số lượng:</Typography>
-                        </Stack>
-                        <Typography variant="body1"></Typography>
-                        <Typography variant="body1">{ticketQuantity}</Typography>
-                      </Grid>
-                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <CoinsIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1">Thành tiền:</Typography>
-                        </Stack>
-                        <Typography variant="body1">
-                          {formatPrice(
-                            (ticketCategories.find((cat) => cat.id === selectedCategoryId)?.price || 0) *
-                              ticketQuantity +
-                              extraFee
-                          )}
-                        </Typography>
-                      </Grid>
-                    </>
-                  )}
-                </Stack>
-              </CardContent>
-            </Card>
+                      );
+                    })}
 
+                    {/* Total Amount */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body1">Phụ phí:</Typography>
+                      <Typography variant="body1">{formatPrice(extraFee)}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                        {formatPrice(
+                          Object.entries(selectedCategories).reduce((total, [showId, category]) => {
+                            const show = event?.shows.find((show) => show.id === parseInt(showId));
+                            const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
+                            return total + (showTicketCategory?.ticketCategory?.price || 0) * (ticketQuantity || 0);
+                          }, 0) + extraFee
+                        )}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            )}
             {/* Submit Button */}
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
               <Button variant="contained" onClick={handleSubmit}>

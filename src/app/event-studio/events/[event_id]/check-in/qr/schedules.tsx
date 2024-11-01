@@ -1,23 +1,19 @@
 import React, { useState } from 'react';
-import { Checkbox, Card, CardHeader, Divider, List, ListItem, Box, ListItemAvatar, ListItemText, IconButton, Typography, Stack, CardContent } from '@mui/material';
+import { Checkbox, Card, CardHeader, Divider, List, ListItem, Box, ListItemAvatar, ListItemText, IconButton, Typography, Stack, CardContent, Radio } from '@mui/material';
 import dayjs from 'dayjs';
 import { Show } from './page';
 
 export interface LatestProductsProps {
   shows?: Show[];
-  onSelectionChange: (selectedShows: Show[]) => void;  // New prop for selection handling
+  onSelectionChange: (selectedShow: Show) => void;  // New prop for selection handling
 }
 
 export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps): React.JSX.Element {
-  const [selectedShows, setSelectedShows] = useState<Show[]>([]);
+  const [selectedShow, setSelectedShow] = useState<Show | null>();
 
   const handleItemClick = (show: Show) => {
-    const updatedSelectedShows = selectedShows.includes(show)
-      ? selectedShows.filter((s) => s.id !== show.id)
-      : [...selectedShows, show];
-
-    setSelectedShows(updatedSelectedShows);
-    onSelectionChange(updatedSelectedShows);
+    setSelectedShow(show);
+    onSelectionChange(show);
   };
 
 
@@ -34,8 +30,8 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
             sx={{ cursor: 'pointer' }} // Add pointer cursor for UX
           >
             <Box sx={{ display: 'flex', alignItems: 'center', marginRight: '10px' }}>
-              <Checkbox
-                checked={selectedShows.includes(show)}
+              <Radio
+                checked={show.id === selectedShow?.id}
                 onClick={(e) => e.stopPropagation()} // Prevent checkbox click from bubbling up
                 onChange={() => handleItemClick(show)}
               />

@@ -75,56 +75,18 @@ function noop(): void {
   // do nothing
 }
 
-export interface Ticket {
-  id: number;
-  holder: string;
-  createdAt: string;
-  checkInAt: string | null;
-}
-
-export interface TicketCategory {
-  id: number;
-  name: string;
-  type: string;
-  price: number;
-  avatar: string | null;
-  quantity: number;
-  sold: number;
-  description: string | null;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface Transaction {
   id: number;
-  eventId: number;
-  customerId: number;
   email: string;
   name: string;
-  gender: string;
   phoneNumber: string;
-  address: string;
-  dob: string | null;
-  ticketCategory: TicketCategory;
   ticketQuantity: number;
-  netPricePerOne: number;
-  extraFee: number;
-  discount: number;
   totalAmount: number;
   paymentMethod: string;
   paymentStatus: string;
-  paymentOrderCode: string | null;
-  paymentDueDatetime: string | null;
-  paymentCheckoutUrl: string | null;
-  paymentTransactionDatetime: string | null;
-  note: string | null;
   status: string;
-  createdBy: number;
   createdAt: string;
-  tickets: Ticket[];
 }
-
 
 interface CustomersTableProps {
   count?: number;
@@ -224,7 +186,6 @@ export function TransactionsTable({
                 />
               </TableCell>
               <TableCell>Họ tên</TableCell>
-              <TableCell>Loại vé</TableCell>
               <TableCell>Số lượng</TableCell>
               <TableCell>Thanh toán</TableCell>
               <TableCell>Trạng thái</TableCell>
@@ -255,6 +216,7 @@ export function TransactionsTable({
                         <Stack spacing={1}>
                           <Typography variant='body2'>Email: {row.email}</Typography>
                           <Typography variant='body2'>SĐT: {row.phoneNumber}</Typography>
+                          <Typography>ID: {row.id}</Typography>
                         </Stack>
                       }>
                         <Avatar {...stringAvatar(row.name)} />
@@ -263,6 +225,7 @@ export function TransactionsTable({
                         <Stack spacing={1}>
                           <Typography>Email: {row.email}</Typography>
                           <Typography>SĐT: {row.phoneNumber}</Typography>
+                          <Typography>ID: {row.id}</Typography>
                         </Stack>
                       }>
                         <Typography variant="subtitle2">{row.name}</Typography>
@@ -270,19 +233,13 @@ export function TransactionsTable({
 
                     </Stack>
                   </TableCell>
-                  <TableCell>{row.ticketCategory.name}</TableCell>
                   <TableCell>{row.ticketQuantity}</TableCell>
 
                   <TableCell>
                     <Tooltip
                       title={
                         <Stack spacing={1}>
-                          <Typography variant="body2">
-                            Giá gốc: {formatPrice(row.netPricePerOne * row.ticketQuantity)}
-                          </Typography>
-                          <Typography variant="body2">
-                            Phụ phí: {formatPrice(row.extraFee)}
-                          </Typography>
+                          
                           <Typography variant="body2">
                             Phương thức thanh toán: {getPaymentMethodDetails(row.paymentMethod).label}
                           </Typography>

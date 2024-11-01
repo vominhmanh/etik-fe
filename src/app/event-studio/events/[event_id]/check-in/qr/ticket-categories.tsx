@@ -17,14 +17,14 @@ import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { DotsThreeVertical as DotsThreeVerticalIcon } from '@phosphor-icons/react/dist/ssr/DotsThreeVertical';
 import dayjs from 'dayjs';
 import Radio from "@mui/material/Radio";
-import { Avatar } from '@mui/material';
+import { Avatar, Checkbox } from '@mui/material';
 import { cyan, deepOrange, deepPurple, green, indigo, pink, yellow } from '@mui/material/colors';
 import { Show } from './page';
 
 
 interface TicketCategoriesProps {
   show: Show;
-  onCategorySelect: (ticketCategoryId: number) => void; // Pass selected category to parent
+  onCategorySelect: (selectedIds: number[]) => void;
 }
 
 
@@ -40,33 +40,28 @@ const colorMap = {
 };
 
 export function TicketCategories({ show, onCategorySelect }: TicketCategoriesProps): React.JSX.Element {
-  const showTicketCategories = show.showTicketCategories
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null); // Track the selected category
-
+  const showTicketCategories = show.showTicketCategories;
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]); // Track selected categories
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
   };
 
-  const typeMap: { [key: string]: string } = {
-    private: 'Nội bộ',
-    public: 'Công khai'
-  };
-
   const handleSelect = (id: number) => {
-    const showTicketCategory = showTicketCategories.find((t) => t.ticketCategory.id === id)
-    if (showTicketCategory?.ticketCategory.status !== 'on_sale' || showTicketCategory.quantity <= showTicketCategory.sold || showTicketCategory.disabled) {
-      return
-    }
-    setSelectedCategory(id);
-    onCategorySelect(id);
-    
+    setSelectedCategories(prevSelected => {
+      const isSelected = prevSelected.includes(id);
+      const newSelected = isSelected
+        ? prevSelected.filter(categoryId => categoryId !== id) // Remove if already selected
+        : [...prevSelected, id]; // Add if not selected
+      onCategorySelect(newSelected); // Pass the updated selection to the parent
+      return newSelected;
+    });
   };
 
   return (
     <Card>
       <CardHeader
-        title={`Chọn loại vé cho ${show.name}`}
+        title={`Chọn loại vé để check-in cho ${show.name}`}
         action={
           <IconButton>
             <ArrowCounterClockwiseIcon fontSize="var(--icon-fontSize-md)" />
@@ -79,20 +74,19 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
           <ListItem
             divider={index < showTicketCategories.length - 1}
             key={showTicketCategory.ticketCategory.id}
-            sx={{ cursor: 'pointer' }} // Change cursor to pointer to indicate it's clickable
+            sx={{ cursor: 'pointer' }}
           >
             <Box
               sx={{ display: 'flex', alignItems: 'center', marginRight: '10px' }}
               onClick={() => handleSelect(showTicketCategory.ticketCategory.id)}
             >
-              <Radio
+              <Checkbox
                 sx={{ display: 'block' }}
-                checked={selectedCategory === showTicketCategory.ticketCategory.id} // Controlled radio button
-                disabled={showTicketCategory.ticketCategory.status !== 'on_sale' || showTicketCategory.quantity <= showTicketCategory.sold || showTicketCategory.disabled}
+                checked={selectedCategories.includes(showTicketCategory.ticketCategory.id)} // Check if the category is selected
               />
             </Box>
             <ListItemAvatar
-              onClick={() => handleSelect(showTicketCategory.ticketCategory.id)} // Set selected when the whole item is clicked
+              onClick={() => handleSelect(showTicketCategory.ticketCategory.id)} // Select when the whole item is clicked
             >
               {showTicketCategory.ticketCategory.avatar ? (
                 <Box component="img" src={showTicketCategory.ticketCategory.avatar} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
@@ -106,14 +100,14 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
               )}
             </ListItemAvatar>
             <ListItemText
-              onClick={() => handleSelect(showTicketCategory.ticketCategory.id)} // Set selected when the whole item is clicked
+              onClick={() => handleSelect(showTicketCategory.ticketCategory.id)} // Select when the whole item is clicked
               primary={showTicketCategory.ticketCategory.name}
               primaryTypographyProps={{ variant: 'subtitle1' }}
-              secondary={ showTicketCategory.ticketCategory.status !== 'on_sale' ? 'Chưa mở bán' : showTicketCategory.quantity <= showTicketCategory.sold ? 'Đã hết' : showTicketCategory.disabled ? 'Không khả dụng' : `${formatPrice(showTicketCategory.ticketCategory.price)} | Còn ${showTicketCategory.quantity - showTicketCategory.sold}/${showTicketCategory.quantity} vé`}
+              secondary={`${formatPrice(showTicketCategory.ticketCategory.price)} | Đã bán ${showTicketCategory.sold}/${showTicketCategory.quantity} vé`}
               secondaryTypographyProps={{ variant: 'body2' }}
             />
             <IconButton edge="end" onClick={() => { return }}>
-              <DotsThreeVerticalIcon weight="bold" />
+              <DotsThreeVerticalIcon />
             </IconButton>
           </ListItem>
         ))}

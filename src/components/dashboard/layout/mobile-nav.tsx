@@ -109,7 +109,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             pathname={pathname}
             key="overview"
             title="Tổng quan"
-            href="/event-studio/events/dashboard"
+            href={`/event-studio/events/${dynamicId}`}
             icon={ChartPieIcon}
           />
           <NavItemCollapse pathname={pathname} key="configuration" title="Thiết kế sự kiện" icon={PlugsConnectedIcon}>
@@ -134,6 +134,13 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               href={`/event-studio/events/${dynamicId}/ticket-categories`}
               icon={TicketIcon}
             />
+            <NavItemCollapseChildItem
+                pathname={pathname}
+                key="configuration-ticket-categories"
+                title="Loại vé theo suất diễn"
+                href={`/event-studio/events/${dynamicId}/shows-ticket-categories`}
+                icon={TicketIcon}
+              />
           </NavItemCollapse>
           <NavItemCollapse pathname={pathname} key="transactions" title="Bán vé & Khách hàng" icon={UsersIcon}>
             <NavItemCollapseChildItem

@@ -45,15 +45,10 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
             </ListItemAvatar>
             <ListItemText
               primary={show.name}
-              secondary={
-                <Stack direction="row" spacing={1}>
-                  <Typography color="text.secondary" display="inline" variant="body2">
-                    {show.startDateTime && show.endDateTime
-                      ? `${dayjs(show.startDateTime).format('HH:mm')} - ${dayjs(show.endDateTime).format('HH:mm ngày DD/MM/YYYY')}`
-                      : "Chưa xác định"}
-                  </Typography>
-                </Stack>
-              }
+              secondary={show.startDateTime && show.endDateTime
+                ? `${dayjs(show.startDateTime).format('HH:mm')} - ${dayjs(show.endDateTime).format('HH:mm ngày DD/MM/YYYY')}`
+                : "Chưa xác định"}
+              secondaryTypographyProps={{ variant: 'body2' }}
             />
           </ListItem>
         ))}

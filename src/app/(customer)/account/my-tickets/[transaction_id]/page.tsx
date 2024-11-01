@@ -93,78 +93,79 @@ const getRowStatusDetails = (status: string) => {
       return { label: 'Unknown', color: 'default' };
   }
 };
+
 export interface Ticket {
-  id: number;
-  holder: string;
-  createdAt: string;
-  checkInAt: string | null;
+  id: number;             // Unique identifier for the ticket
+  holder: string;        // Name of the ticket holder
+  // createdAt: string;   // The date the ticket was created
+  // checkInAt: string | null; // The date/time the ticket was checked in, nullable
 }
 
-export interface Creator {
-  id: number;
-  fullName: string;
-  email: string;
-}
-
-interface Event {
-  id: number;
-  name: string;
-  organizer: string;
-  description: string | null;
-  startDateTime: string | null;
-  endDateTime: string | null;
-  place: string | null;
-  locationUrl: string | null;
-  bannerUrl: string;
-  slug: string;
-  locationInstruction: string | null;
+export interface Show {
+  id: number;            // Unique identifier for the show
+  name: string;          // Name of the show
 }
 
 export interface TicketCategory {
-  id: number;
-  name: string;
-  type: string;
-  price: number;
-  avatar: string | null;
-  quantity: number;
-  sold: number;
-  description: string | null;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
+  id: number;            // Unique identifier for the ticket category
+  name: string;          // Name of the ticket category
+  // type: string;        // Type of the ticket
+  // price: number;       // Price of the ticket category
+  // avatar: string | null; // Optional avatar URL for the category
+  // quantity: number;    // Total available quantity of tickets
+  // sold: number;        // Number of tickets sold
+  // description: string | null; // Optional description of the ticket category
+  // status: string;      // Current status of the ticket category
+  // createdAt: string;   // The date the ticket category was created
+  // updatedAt: string;   // The date the ticket category was last updated
+}
+
+export interface ShowTicketCategory {
+  show: Show;                       // Show information
+  ticketCategory: TicketCategory;    // Ticket category information
+}
+
+export interface TransactionShowTicketCategory {
+  netPricePerOne: number;           // Net price per ticket
+  tickets: Ticket[];                 // Array of related tickets
+  showTicketCategory: ShowTicketCategory; // Related show and ticket category information
+}
+
+export interface Creator {
+  id: number;                        // Unique identifier for the creator
+  fullName: string;                 // Full name of the creator
+  email: string;                    // Email of the creator
 }
 
 export interface Transaction {
-  id: number;
-  eventId: number;
-  event: Event;
-  customerId: number;
-  email: string;
-  name: string;
-  gender: string;
-  phoneNumber: string;
-  address: string;
-  dob: string | null;
-  ticketCategory: TicketCategory;
-  ticketQuantity: number;
-  netPricePerOne: number;
-  extraFee: number;
-  discount: number;
-  totalAmount: number;
-  paymentMethod: string;
-  paymentStatus: string;
-  paymentOrderCode: string | null;
-  paymentDueDatetime: string | null;
-  paymentCheckoutUrl: string | null;
-  paymentTransactionDatetime: string | null;
-  note: string | null;
-  status: string;
-  createdBy: number | null;
-  createdAt: string;
-  tickets: Ticket[];
-  createdSource: string;
-  creator: Creator | null;
+  id: number;                       // Unique identifier for the transaction
+  eventId: number;                  // ID of the related event
+  customerId: number;               // ID of the customer who made the transaction
+  email: string;                    // Email of the customer
+  name: string;                     // Name of the customer
+  gender: string;                   // Gender of the customer
+  phoneNumber: string;              // Customer's phone number
+  address: string | null;           // Customer's address, nullable
+  dob: string | null;               // Date of birth, nullable
+  transactionShowTicketCategories: TransactionShowTicketCategory[]; // List of ticket categories in the transaction
+  ticketQuantity: number;           // Number of tickets purchased
+  extraFee: number;                 // Extra fees for the transaction
+  discount: number;                 // Discount applied to the transaction
+  totalAmount: number;              // Total amount for the transaction
+  paymentMethod: string;            // Payment method used
+  paymentStatus: string;            // Current status of the payment
+  paymentOrderCode: number | null;  // Order code for the payment, nullable
+  paymentDueDatetime: string | null; // Due date for the payment, nullable
+  paymentCheckoutUrl: string | null; // URL for payment checkout, nullable
+  paymentTransactionDatetime: string | null; // Date of the payment transaction, nullable
+  note: string | null;              // Optional note for the transaction, nullable
+  status: string;                   // Current status of the transaction
+  createdBy: number | null;         // ID of the user who created the transaction, nullable
+  createdAt: string;                // The date the transaction was created
+  createdSource: string;            // Source of the transaction creation
+  creator: Creator | null;          // Related creator of the transaction, nullable
 }
+
 
 export interface ECodeResponse {
   eCode: string;
@@ -205,7 +206,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
         );
         setECode(response.data.eCode);
       } catch (error) {
-        notificationCtx.error('Error fetching ecode', error);
+        // notificationCtx.error('Error fetching ecode', error);
       } finally {
         setIsLoading(false);
       }
@@ -240,45 +241,8 @@ export default function Page({ params }: { params: { transaction_id: number } })
         <Typography variant="h4">Chi tiết vé của {transaction.name}</Typography>
       </div>
       <Grid container spacing={3}>
-        <Grid lg={5} md={5} xs={12} spacing={3}>
+      <Grid lg={5} md={5} xs={12} spacing={3}>
           <Stack spacing={3}>
-            <Card>
-              <CardMedia
-                sx={{ height: 140 }}
-                image={transaction.event.bannerUrl || 'https://mui.com/static/images/cards/contemplative-reptile.jpg'}
-                title={transaction.event.name}
-              />
-              <CardContent>
-                <Typography gutterBottom variant="h5" component="div">
-                  {transaction.event.name}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  {transaction.event.description ? transaction.event.description : 'Chưa có mô tả'}
-                </Typography>
-                <Stack direction="column" spacing={2} sx={{ alignItems: 'left', mt: 2 }}>
-                  <Stack direction="row" spacing={1}>
-                    <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      Đơn vị tổ chức: {transaction.event.organizer}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" spacing={1}>
-                    <ClockIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {transaction.event.startDateTime && transaction.event.endDateTime
-                        ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
-                        : 'Chưa xác định'}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" spacing={1}>
-                    <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {transaction.event.place ? transaction.event.place : 'Chưa xác định'}
-                    </Typography>
-                  </Stack>
-                </Stack>
-              </CardContent>
-            </Card>
             <Card>
               <CardHeader title="Thanh toán" />
               <Divider />
@@ -308,38 +272,64 @@ export default function Page({ params }: { params: { transaction_id: number } })
               </CardContent>
             </Card>
             <Card>
-              <CardHeader title="Chi tiết" />
+              <CardHeader
+                title="Số lượng vé"
+                action={
+                  <OutlinedInput disabled sx={{ maxWidth: 180 }} type="number" value={transaction.ticketQuantity} />
+                }
+              />
               <Divider />
               <CardContent>
                 <Stack spacing={0}>
-                  {/* Ticket Category */}
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">Loại vé:</Typography>
-                    </Stack>
-                    <Typography variant="body1">{transaction.ticketCategory?.name || 'Chưa xác định'}</Typography>
-                  </Grid>
+                  {/* Loop through each transactionShowTicketCategory */}
+                  {transaction.transactionShowTicketCategories.map((category, categoryIndex) => (
+                    <div key={categoryIndex}>
+                      {/* Show Name */}
+                      <Grid sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Show:</Typography>
+                        </Stack>
+                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{category.showTicketCategory.show.name}</Typography>
+                      </Grid>
 
-                  {/* Unit Price */}
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <TagIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">Đơn giá:</Typography>
-                    </Stack>
-                    <Typography variant="body1">{formatPrice(transaction.ticketCategory?.price || 0)}</Typography>
-                  </Grid>
+                      {/* Ticket Category Name */}
+                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body1">Loại vé:</Typography>
+                        </Stack>
+                        <Typography variant="body1">{category.showTicketCategory.ticketCategory.name}</Typography>
+                      </Grid>
 
-                  {/* Ticket Quantity */}
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <HashIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">Số lượng:</Typography>
-                    </Stack>
-                    <Typography variant="body1">{transaction.ticketQuantity}</Typography>
-                  </Grid>
+                      {/* Loop through tickets for this category */}
+                      {category.tickets.map((ticket, ticketIndex) => (
+                        <Grid key={ticketIndex} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Typography variant="body1">Người tham dự {ticketIndex + 1}:</Typography>
+                          </Stack>
+                          <Typography variant="body1">{ticket.holder}</Typography>
+                        </Grid>
+                      ))}
+                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <TagIcon fontSize="var(--icon-fontSize-md)" />
+                          <Typography variant="body1">Đơn giá:</Typography>
+                        </Stack>
+                        <Typography variant="body1">{formatPrice(category.netPricePerOne || 0)}</Typography>
+                      </Grid>
 
-                  {/* Extra Fee */}
+                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <HashIcon fontSize="var(--icon-fontSize-md)" />
+                          <Typography variant="body1">Số lượng:</Typography>
+                        </Stack>
+                        <Typography variant="body1">{category.tickets.length}</Typography>
+                      </Grid>
+
+                      <Divider sx={{ marginY: 2 }} />
+                    </div>
+                  ))}
+                  {/* Additional details for this category */}
+
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <StackPlusIcon fontSize="var(--icon-fontSize-md)" />
@@ -348,7 +338,6 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     <Typography variant="body1">{formatPrice(transaction.extraFee || 0)}</Typography>
                   </Grid>
 
-                  {/* Discount */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
@@ -357,7 +346,6 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
                   </Grid>
 
-                  {/* Total Amount */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <CoinsIcon fontSize="var(--icon-fontSize-md)" />
@@ -479,32 +467,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                 </Grid>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader
-                title="Số lượng vé"
-                action={
-                  <OutlinedInput disabled sx={{ maxWidth: 180 }} type="number" value={transaction.ticketQuantity} />
-                }
-              />
-              <Divider />
-              <CardContent>
-                <Grid container spacing={3}>
-                  {transaction.tickets.map((ticket, index) => (
-                    <Grid md={12} xs={12} key={index}>
-                      <FormControl fullWidth required>
-                        <InputLabel>Họ và tên người tham dự {index + 1}</InputLabel>
-                        <OutlinedInput
-                          disabled
-                          label={`Họ và tên người tham dự ${index + 1}`}
-                          value={ticket.holder}
-                          // onChange={(e) => handleTicketHolderChange(index, e.target.value)}
-                        />
-                      </FormControl>
-                    </Grid>
-                  ))}
-                </Grid>
-              </CardContent>
-            </Card>
+            
             {eCode && (
               <Card>
                 <CardHeader title="Mã QR check-in" subheader="Vui lòng bảo mật mã QR check-in" />

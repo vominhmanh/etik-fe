@@ -100,7 +100,6 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
             `/marketplace/events/${params.event_slug}`
           );
           setEvent(response.data);
-          // setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
           notificationCtx.error('Error fetching event details:', error);
         } finally {
@@ -124,9 +123,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     setSelectedSchedules(selected);
     const tmpObj = {}
     selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || null })
-
     setSelectedCategories(tmpObj);
-    console.log(selectedCategories)
   };
 
   const handleTicketQuantityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -339,7 +336,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
               <Stack spacing={3}>
                 <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
                 {selectedSchedules && selectedSchedules.map(show => (
-                  <TicketCategories key={show.id} show={show} onCategorySelect={(categoryId) => handleCategorySelection(show.id, categoryId)}
+                  <TicketCategories key={show.id} show={show} onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
                   />
                 ))}
               </Stack>
@@ -474,59 +471,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                     </FormControl>
                   </CardContent>
                 </Card>
-
-                {/* Payment Summary */}
-                {/* {selectedCategoryId && ticketCategories.length > 0 && (
-                  <Card>
-                    <CardHeader title="Thanh toán" />
-                    <Divider />
-                    <CardContent>
-                      <Stack spacing={2}>
-                        <Grid item sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                            <Typography variant="body1">Loại vé:</Typography>
-                          </Stack>
-
-                          <Typography variant="body1">
-                            {ticketCategories.find((cat) => cat.id === selectedCategoryId)?.name || 'Chưa xác định'}
-                          </Typography>
-                        </Grid>
-                        <Grid item sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <TagIcon fontSize="var(--icon-fontSize-md)" />
-                            <Typography variant="body1">Đơn giá:</Typography>
-                          </Stack>
-                          <Typography variant="body1"></Typography>
-                          <Typography variant="body1">
-                            {formatPrice(ticketCategories.find((cat) => cat.id === selectedCategoryId)?.price || 0)}
-                          </Typography>
-                        </Grid>
-                        <Grid item sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <HashIcon fontSize="var(--icon-fontSize-md)" />
-                            <Typography variant="body1">Số lượng:</Typography>
-                          </Stack>
-                          <Typography variant="body1"></Typography>
-                          <Typography variant="body1">{ticketQuantity}</Typography>
-                        </Grid>
-                        <Grid item sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <CoinsIcon fontSize="var(--icon-fontSize-md)" />
-                            <Typography variant="body1">Thành tiền:</Typography>
-                          </Stack>
-                          <Typography variant="body1">
-                            {formatPrice(
-                              (ticketCategories.find((cat) => cat.id === selectedCategoryId)?.price || 0) *
-                                ticketQuantity +
-                                extraFee
-                            )}
-                          </Typography>
-                        </Grid>
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                )} */}
+                
                 {/* Payment Summary */}
                 {Object.keys(selectedCategories).length > 0 && (
                   <Card>
