@@ -13,6 +13,7 @@ import { SignOut as SignOutIcon } from '@phosphor-icons/react/dist/ssr/SignOut';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
 
+import { User } from '@/types/auth';
 import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
@@ -26,8 +27,16 @@ export interface UserPopoverProps {
 
 export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): React.JSX.Element {
   const { checkSession, getUser } = useUser();
+  const [user, setUser] = React.useState<User | null>(null);
 
-  const user = getUser();
+  React.useEffect(() => {
+    const fetchUser = async () => {
+      const fetchedUser = getUser();
+      setUser(fetchedUser);
+    };
+
+    fetchUser();
+  }, [getUser]);
 
   const router = useRouter();
 

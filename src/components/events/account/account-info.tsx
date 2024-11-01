@@ -8,11 +8,22 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
+import { User } from '@/types/auth';
 import { useUser } from '@/hooks/use-user';
 
 export function AccountInfo(): React.JSX.Element {
+  const [user, setUser] = React.useState<User | null>(null);
+
   const { getUser } = useUser();
-  const user = getUser();
+
+  React.useEffect(() => {
+    const fetchUser = async () => {
+      const fetchedUser = getUser();
+      setUser(fetchedUser);
+    };
+
+    fetchUser();
+  }, [getUser]);
 
   return (
     <Card>

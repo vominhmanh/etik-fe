@@ -12,6 +12,7 @@ import { List as ListIcon } from '@phosphor-icons/react/dist/ssr/List';
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 
+import { User } from '@/types/auth';
 import { usePopover } from '@/hooks/use-popover';
 import { useUser } from '@/hooks/use-user';
 
@@ -20,11 +21,20 @@ import { UserPopover } from './user-popover';
 
 export function MainNav(): React.JSX.Element {
   const [openNav, setOpenNav] = React.useState<boolean>(false);
+  const [user, setUser] = React.useState<User | null>(null);
 
   const userPopover = usePopover<HTMLDivElement>();
 
   const { getUser } = useUser();
-  const user = getUser();
+
+  React.useEffect(() => {
+    const fetchUser = async () => {
+      const fetchedUser = getUser();
+      setUser(fetchedUser);
+    };
+
+    fetchUser();
+  }, [getUser]);
 
   return (
     <React.Fragment>
