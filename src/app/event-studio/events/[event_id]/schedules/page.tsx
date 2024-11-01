@@ -61,16 +61,29 @@ export type Show = {
   endDateTime: Date | null;
 };
 
-interface ShowListProps {
-  shows: Show[];
-}
-
-export default function Page({ params }: { params: { event_id: string, props: ShowListProps } }): React.JSX.Element {
-  const { event_id, props } = params;
-  const shows = props.shows
+export default function Page({ params }: { params: { event_id: string} }): React.JSX.Element {
+  const { event_id } = params;
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  console.log(shows)
+  const [shows, setShows] = React.useState<Show[]>([]);
+
+  React.useEffect(() => {
+    const fetchTicketCategories = async () => {
+      try {
+        setIsLoading(true);
+        const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(
+          `/event-studio/events/${params.event_id}/shows`
+        );
+        setShows(response.data);
+      } catch (error) {
+        notificationCtx.error('Error fetching ticket categories:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTicketCategories();
+  }, [params.event_id]);
 
   return (
     <Stack spacing={3}>
@@ -116,7 +129,7 @@ export default function Page({ params }: { params: { event_id: string, props: Sh
                     </Box>
                     <Stack spacing={1}>
                       <Typography align="left" variant="h6">
-                        {shows[0]}
+                        {show.name}
                       </Typography>
                       <Typography align="left" variant="body2">
                         Được tạo tự động
@@ -128,7 +141,7 @@ export default function Page({ params }: { params: { event_id: string, props: Sh
                       <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
                         {show.startDateTime && show.endDateTime
-                          ? `${dayjs(show.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(show.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
+                          ? `${dayjs(show.startDateTime || 0).format('HH:mm')} - ${dayjs(show.endDateTime || 0).format('HH:mm ngày DD/MM/YYYY')}`
                           : 'Chưa xác định'}
                       </Typography>
                     </Stack>

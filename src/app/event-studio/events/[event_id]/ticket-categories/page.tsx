@@ -63,9 +63,9 @@ const colorMap = {
 };
 
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
-  const [ticketCategories, setTicketCategories] = React.useState<TicketCategory[]>([]);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [ticketCategories, setTicketCategories] = React.useState<TicketCategory[]>([]);
 
   React.useEffect(() => {
     const fetchTicketCategories = async () => {
