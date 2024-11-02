@@ -617,17 +617,17 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                       Bạn cần bật vị trí để tiếp tục đăng ký.
                     </Typography>
                     <Typography variant='body2'>
-                      Vui lòng cho phép sử dụng vị trí trên thiết bị này để tiếp tục/
+                      Vui lòng cho phép sử dụng vị trí để tiếp tục
                     </Typography>
                     <Typography variant='body2' color={'danger'}>
 
                     </Typography>
                   </Stack>
-                  <div style={{ marginTop: '20px' }}>
+                  {/* <div style={{ marginTop: '20px' }}>
                     <Button fullWidth variant='contained' onClick={() => { handleAllowGeolocation }} size="small" endIcon={<ArrowRight />}>
                       Cho phép
                     </Button>
-                  </div>
+                  </div> */}
                 </Stack>
               </Stack>
             </CardContent>
