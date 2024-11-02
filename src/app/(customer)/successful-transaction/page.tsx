@@ -185,7 +185,7 @@ export default function Page(): React.JSX.Element {
   // Fetch transaction details
   useEffect(() => {
     const fetchTransactionDetails = async () => {
-      if (!token || !transactionId) return; // Ensure token exists before making the request
+      if (!token || !transactionId) return <React.Suspense fallback={<div>Loading...</div>}></React.Suspense>; // Ensure token exists before making the request
 
       try {
         setIsLoading(true);
@@ -206,7 +206,7 @@ export default function Page(): React.JSX.Element {
   // Fetch check-in eCode
   useEffect(() => {
     const fetchCheckInECode = async () => {
-      if (!token || !transactionId) return; // Ensure token exists before making the request
+      if (!token || !transactionId) return <React.Suspense fallback={<div>Loading...</div>}></React.Suspense>; // Ensure token exists before making the request
       try {
         setIsLoading(true);
         const response: AxiosResponse<ECodeResponse> = await baseHttpServiceInstance.get(
