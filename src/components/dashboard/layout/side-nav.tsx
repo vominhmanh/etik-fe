@@ -1,7 +1,5 @@
 'use client';
 
-import 'react-perfect-scrollbar/dist/css/styles.css';
-
 import * as React from 'react';
 import RouterLink from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -28,7 +26,6 @@ import { ScanSmiley as ScanSmileyIcon } from '@phosphor-icons/react/dist/ssr/Sca
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
-import PerfectScrollbar from 'react-perfect-scrollbar';
 
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
