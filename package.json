@@ -33,7 +33,6 @@
     "@mui/x-date-pickers": "7.7.1",
     "@phosphor-icons/react": "2.1.6",
     "@types/lodash": "^4.17.10",
-    "@vominhmanh/etik_ai_edge_tool": "1.0.2",
     "apexcharts": "3.49.2",
     "axios": "^1.7.7",
     "dayjs": "1.11.11",
