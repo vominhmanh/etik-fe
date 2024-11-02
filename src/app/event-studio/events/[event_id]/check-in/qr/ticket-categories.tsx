@@ -24,7 +24,7 @@ import { Show } from './page';
 
 interface TicketCategoriesProps {
   show: Show;
-  onCategorySelect: (selectedIds: number[]) => void;
+  onCategoriesSelect: (selectedIds: number[]) => void;
 }
 
 
@@ -39,7 +39,7 @@ const colorMap = {
   7: deepPurple[300],
 };
 
-export function TicketCategories({ show, onCategorySelect }: TicketCategoriesProps): React.JSX.Element {
+export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesProps): React.JSX.Element {
   const showTicketCategories = show.showTicketCategories;
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]); // Track selected categories
 
@@ -53,10 +53,13 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
       const newSelected = isSelected
         ? prevSelected.filter(categoryId => categoryId !== id) // Remove if already selected
         : [...prevSelected, id]; // Add if not selected
-      onCategorySelect(newSelected); // Pass the updated selection to the parent
       return newSelected;
     });
   };
+
+  useEffect(() => {
+    onCategoriesSelect(selectedCategories)
+  }, [selectedCategories])
 
   return (
     <Card>

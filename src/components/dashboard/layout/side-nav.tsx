@@ -157,7 +157,7 @@ export function SideNav(): React.JSX.Element {
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
-                key="configuration-ticket-categories"
+                key="configuration-shows-ticket-categories"
                 title="Loại vé theo suất diễn"
                 href={`/event-studio/events/${dynamicId}/shows-ticket-categories`}
                 icon={TicketIcon}
@@ -179,17 +179,17 @@ export function SideNav(): React.JSX.Element {
                 icon={PlusIcon}
               />
             </NavItemCollapse>
-            <NavItemCollapse pathname={pathname} key="transactions" title="Soát vé" icon={DoorIcon}>
+            <NavItemCollapse pathname={pathname} key="check-in" title="Soát vé" icon={DoorIcon}>
               <NavItemCollapseChildItem
                 pathname={pathname}
-                key="transactions-list"
+                key="check-in-qr"
                 title="Soát vé bằng mã QR"
                 href={`/event-studio/events/${dynamicId}/check-in/qr`}
                 icon={BarcodeIcon}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
-                key="transactions-create"
+                key="check-in-face"
                 title="Soát vé bằng khuôn mặt"
                 href={`/event-studio/events/${dynamicId}/check-in/face`}
                 icon={ScanSmileyIcon}

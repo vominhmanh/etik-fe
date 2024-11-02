@@ -136,7 +136,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             />
             <NavItemCollapseChildItem
                 pathname={pathname}
-                key="configuration-ticket-categories"
+                key="configuration-shows-ticket-categories"
                 title="Loại vé theo suất diễn"
                 href={`/event-studio/events/${dynamicId}/shows-ticket-categories`}
                 icon={TicketIcon}

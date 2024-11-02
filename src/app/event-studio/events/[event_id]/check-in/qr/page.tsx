@@ -95,12 +95,13 @@ export type EventResponse = {
 };
 
 const constraints: MediaStreamConstraints = {
-  video: true,
+  video: { facingMode: 'environment' },
   audio: false,
 };
 type MyDynamicObject = {
   [key: string]: boolean; // key is a string, and value is also a string
 };
+
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   const [qrManualInput, setQrManualInput] = React.useState<string>('');
   const [eCode, setECode] = React.useState<string>('');
@@ -118,22 +119,20 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [ticketDisabledState, setTicketDisabledState] = React.useState<MyDynamicObject>({});
   const [ticketCheckboxState, setTicketCheckboxState] = React.useState<MyDynamicObject>({});
 
-  const { devices } = useMediaDevices({ constraints });
-  const deviceId = devices?.[0]?.deviceId;
-  const { ref } = useZxing({
-    paused: !deviceId,
-    deviceId,
+  const { ref, torch: { on, off, isOn, isAvailable } } = useZxing({
     onDecodeResult(result) {
-      setIsCheckinControllerOpen(true);
-      setECode(result.getText());
-      getTransactionByECode(result.getText());
+      if (!isCheckinControllerOpen) {
+        setIsCheckinControllerOpen(true);
+        setECode(result.getText());
+        getTransactionByECode(result.getText());
+      }
     },
     timeBetweenDecodingAttempts: 50,
   });
 
-  // const videoRef = React.useRef<HTMLVideoElement>(null);
-
-
+  const handleCloseDrawer = () => {
+    setIsCheckinControllerOpen(false)
+  }
   const handleCategorySelection = (categoryIds: number[]) => {
     setSelectedCategories(categoryIds);
   };
@@ -263,14 +262,14 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const sendCheckinRequest = (eCode: string) => {
     if (trxn) {
       setIsLoading(true);
-  
+
       // Collect check-in details by filtering tickets with true checkbox state and false disabled state
       const ticketsToCheckIn: { [key: string]: number[] } = {};
-  
+
       Object.keys(ticketCheckboxState).forEach(ticketKey => {
         if (ticketCheckboxState[ticketKey] && !ticketDisabledState[ticketKey]) {
           const [ticketId, showId, ticketCategoryId] = ticketKey.split('-').map(Number);
-  
+
           const key = `${showId}-${ticketCategoryId}`;
           if (!ticketsToCheckIn[key]) {
             ticketsToCheckIn[key] = [];
@@ -278,15 +277,15 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           ticketsToCheckIn[key].push(ticketId);
         }
       });
-  
+
       // Loop through each show/ticketCategory group and send requests
       const requests = Object.entries(ticketsToCheckIn).map(([key, ticketIds]) => {
         const [showId, ticketCategoryId] = key.split('-').map(Number);
         const checkInAll = ticketIds.length === trxn.transactionShowTicketCategories.find(
           category => category.showTicketCategory.show.id === showId &&
-                      category.showTicketCategory.ticketCategory.id === ticketCategoryId
+            category.showTicketCategory.ticketCategory.id === ticketCategoryId
         )?.tickets.length;
-  
+
         return baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/check-in`, {
           eCode,
           showId,
@@ -295,7 +294,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           checkInCustomerIds: checkInAll ? [] : ticketIds,
         });
       });
-  
+
       // Execute all requests and update UI state
       Promise.all(requests)
         .then(() => {
@@ -354,7 +353,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
             <Stack spacing={3}>
               <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
               {selectedSchedule &&
-                <TicketCategories show={selectedSchedule} onCategorySelect={(categoryIds: number[]) => handleCategorySelection(categoryIds)} />
+                <TicketCategories show={selectedSchedule} onCategoriesSelect={(categoryIds: number[]) => handleCategorySelection(categoryIds)} />
               }
 
             </Stack>
@@ -367,10 +366,10 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 <CardHeader subheader="Vui lòng hướng mã QR về phía camera." title="Quét mã QR" />
                 <Divider />
                 <CardContent>
-                  <video ref={ref} autoPlay playsInline width="100%" />
+                  <video ref={ref} />
                 </CardContent>
                 <CardActions>
-                  <Button startIcon={<Lightning />}>Flash</Button>
+                  <Button disabled={!isAvailable} onClick={() => (isOn ? off() : on())} startIcon={<Lightning />}>Flash</Button>
                 </CardActions>
               </Card>
 
@@ -404,7 +403,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           </Grid>
         </Grid>
       </Stack>
-      <SwipeableDrawer disableBackdropTransition={!iOS} disableDiscovery={iOS} open={isCheckinControllerOpen} onOpen={() => setIsCheckinControllerOpen(true)} onClose={() => setIsCheckinControllerOpen(false)} anchor="bottom">
+      <SwipeableDrawer disableBackdropTransition={!iOS} disableDiscovery={iOS} open={isCheckinControllerOpen} onOpen={() => setIsCheckinControllerOpen(true)} onClose={handleCloseDrawer} anchor="bottom">
         <Puller />
         <Container maxWidth="xl">
           <Stack spacing={2} sx={{ mt: 3 }}>
