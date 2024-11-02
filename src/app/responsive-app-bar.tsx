@@ -16,7 +16,7 @@ import MenuItem from '@mui/material/MenuItem';
 import {Acorn as AdbIcon} from '@phosphor-icons/react/dist/ssr/Acorn';
 import { Link } from '@mui/material';
 
-const pages = ['Marketplace', 'Event Studio', 'Blog'];
+const pages = ['Sự kiện mới', 'Event Studio', 'Blog'];
 
 export function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
@@ -75,7 +75,7 @@ export function ResponsiveAppBar() {
               sx={{ display: { xs: 'block', md: 'none' } }}
             >
                 <MenuItem component={'a'} href='/marketplace' >
-                  <Typography sx={{ textAlign: 'center' }}>Marketplace</Typography>
+                  <Typography sx={{ textAlign: 'center' }}>Sự kiện mới</Typography>
                 </MenuItem>
                 <MenuItem component={'a'} href='/event-studio'>
                   <Typography sx={{ textAlign: 'center' }}>Event Studio</Typography>
@@ -105,14 +105,14 @@ export function ResponsiveAppBar() {
                 onClick={handleCloseNavMenu}
                 sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
               >
-                Marketplace
+                Sự kiện hot
               </Button>
               <Button
                 href='/event-studio/events'
                 onClick={handleCloseNavMenu}
                 sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
               >
-                Event Studio
+                Tạo sự kiện của tôi
               </Button>
               <Button
                 href='/blogs'

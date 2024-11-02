@@ -4,6 +4,7 @@ import AuthService from '@/services/Auth.service';
 
 import { AuthRes, LoginReq, SignUpReq } from '@/types/auth';
 import type { User } from '@/types/user';
+import { AxiosResponse } from 'axios';
 
 function generateToken(): string {
   const arr = new Uint8Array(12);
@@ -35,7 +36,6 @@ export interface ResetPasswordParams {
 class AuthClient {
   async signUp(data: SignUpReq): Promise<AuthRes> {
     const res = await AuthService.register(data);
-    localStorage.setItem('accessToken', res.data.access_token);
     return res.data;
   }
 
@@ -73,8 +73,29 @@ class AuthClient {
   async signOut(): Promise<{ error?: string }> {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
-
     return {};
+  }
+
+  // New method to verify OTP
+  async verifyOtp(email: string, otp: string): Promise<AuthRes> {
+    try {
+      const res: AxiosResponse<AuthRes> = await AuthService.verify({ email, otp });
+      localStorage.setItem('accessToken', res.data.access_token);
+      // Optionally handle any specific logic after verification
+      return res.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // New method to resend OTP
+  async resendOtp(email: string): Promise<{ error?: string }> {
+    try {
+      await AuthService.resendOtp(email);
+      return { error: undefined };
+    } catch (error) {
+      return { error: error.response?.data?.message || 'Resend OTP failed' };
+    }
   }
 }
 

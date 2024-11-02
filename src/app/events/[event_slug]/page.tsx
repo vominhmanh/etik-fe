@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, CardMedia, Container, FormHelperText, InputAdornment } from '@mui/material';
+import { Avatar, Box, CardMedia, Container, FormHelperText, InputAdornment, Modal } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -18,7 +18,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { UserPlus } from '@phosphor-icons/react/dist/ssr';
+import { ArrowRight, UserPlus } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
 import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
@@ -34,6 +34,7 @@ import NotificationContext from '@/contexts/notification-context';
 
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 export type TicketCategory = {
   id: number;
@@ -73,6 +74,12 @@ export type EventResponse = {
   shows: Show[];
 };
 
+const options = {
+  enableHighAccuracy: true,
+  timeout: 5000,
+  maximumAge: 0,
+};
+
 export default function Page({ params }: { params: { event_slug: string } }): React.JSX.Element {
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
@@ -89,6 +96,51 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [selectedSchedules, setSelectedSchedules] = React.useState<Show[]>([]);
   const captchaRef = React.useRef<ReCAPTCHA | null>(null);
+  const [position, setPosition] = React.useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
+  const [openErrorModal, setOpenErrorModal] = React.useState(false);
+  const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
+
+  const totalAmount = React.useMemo(() => {
+    return Object.entries(selectedCategories).reduce((total, [showId, category]) => {
+      const show = event?.shows.find((show) => show.id === parseInt(showId));
+      const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
+      return total + (showTicketCategory?.ticketCategory?.price || 0) * (ticketQuantity || 0);
+    }, 0)
+  }, [selectedCategories])
+
+  const handleCloseErrorModal = (event, reason) => {
+    if (reason && reason == "backdropClick" && "escapeKeyDown")
+      return;
+    setOpenErrorModal(false);
+  }
+
+  const handleCloseSuccessModal = (event, reason) => {
+    if (reason && reason == "backdropClick" && "escapeKeyDown")
+      return;
+  }
+
+  const success = (pos: GeolocationPosition) => {
+    const crd = pos.coords;
+
+    setPosition({
+      latitude: crd.latitude,
+      longitude: crd.longitude,
+      accuracy: crd.accuracy,
+    });
+    setOpenErrorModal(false)
+  };
+
+  const handleErrorGeolocation = (err: GeolocationPositionError) => {
+    setOpenErrorModal(true)
+  };
+
+  React.useEffect(() => {
+    navigator.geolocation.getCurrentPosition(success, handleErrorGeolocation, options);
+  }, []);
+
+  const handleAllowGeolocation = () => {
+    navigator.geolocation.getCurrentPosition(success, handleErrorGeolocation, options);
+  }
 
   // Fetch event details on component mount
   React.useEffect(() => {
@@ -181,13 +233,16 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
         quantity: ticketQuantity,
         captchaValue,
+        "latitude": position?.latitude,
+        "longitude": position?.longitude
       };
 
       const response = await baseHttpServiceInstance.post(
         `/marketplace/events/${params.event_slug}/transactions`,
         transactionData
       );
-      notificationCtx.success('Transaction created successfully!');
+      // notificationCtx.success('Transaction created successfully!');
+      setOpenSuccessModal(true)
 
       // Redirect to the payment checkout URL
       if (response.data.paymentCheckoutUrl) {
@@ -433,45 +488,29 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   </CardContent>
                 </Card>
 
-                {/* Extra Fee */}
-                {/* <Card>
-              <CardHeader
-                title="Phụ phí"
-                subheader="(nếu có)"
-                action={
-                  <OutlinedInput
-                    name="extraFee"
-                    value={extraFee.toLocaleString()} // Format as currency
-                    onChange={handleExtraFeeChange}
-                    sx={{ maxWidth: 180 }}
-                    endAdornment={<InputAdornment position="end">đ</InputAdornment>}
-                  />
-                }
-              />
-            </Card> */}
-
                 {/* Payment Method */}
-                <Card>
-                  <CardHeader
-                    title="Phương thức thanh toán"
-                  />
-                  <Divider />
-                  <CardContent>
-                    <FormControl fullWidth>
-                      <Select
-                        name="payment_method"
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                      >
-                        <MenuItem value="napas247" selected={true}>
-                          Chuyển khoản nhanh Napas 247
-                        </MenuItem>
-                      </Select>
-                      <FormHelperText>Tự động xuất vé khi thanh toán thành công</FormHelperText>
-                    </FormControl>
-                  </CardContent>
-                </Card>
-                
+                {totalAmount > 0 &&
+                  <Card>
+                    <CardHeader
+                      title="Phương thức thanh toán"
+                    />
+                    <Divider />
+                    <CardContent>
+                      <FormControl fullWidth>
+                        <Select
+                          name="payment_method"
+                          value={paymentMethod}
+                          onChange={(e) => setPaymentMethod(e.target.value)}
+                        >
+                          <MenuItem value="napas247" selected={true}>
+                            Chuyển khoản nhanh Napas 247
+                          </MenuItem>
+                        </Select>
+                        <FormHelperText>Tự động xuất vé khi thanh toán thành công</FormHelperText>
+                      </FormControl>
+                    </CardContent>
+                  </Card>
+                }
                 {/* Payment Summary */}
                 {Object.keys(selectedCategories).length > 0 && (
                   <Card>
@@ -504,13 +543,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                         <Grid item sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                           <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng:</Typography>
                           <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                            {formatPrice(
-                              Object.entries(selectedCategories).reduce((total, [showId, category]) => {
-                                const show = event?.shows.find((show) => show.id === parseInt(showId));
-                                const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
-                                return total + (showTicketCategory?.ticketCategory?.price || 0) * (ticketQuantity || 0);
-                              }, 0)
-                            )}
+                            {formatPrice(totalAmount)}
                           </Typography>
                         </Grid>
                       </Stack>
@@ -521,7 +554,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 <Grid spacing={3} container sx={{ alignItems: 'center', mt: '3' }}>
                   <Grid item sm={9} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
                     <ReCAPTCHA
-                      sitekey="6Lch1nEqAAAAAPRJeBZpZ0GQ3Ja7hD1rwzSY1U2X"
+                      sitekey="6LdRnq4aAAAAAFT6htBYNthM-ksGymg70CsoYqHR"
                       onChange={() => {
                         console.log('Are kris ok');
                       }}
@@ -531,7 +564,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   <Grid item sm={3} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
                     <div>
                       <Button variant="contained" onClick={handleSubmit}>
-                        Mua vé
+                        Đăng ký
                       </Button>
                     </div>
                   </Grid>
@@ -542,6 +575,114 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
           </Grid>
         </Stack>
       </Container>
+      <Modal
+        open={openErrorModal}
+        onClose={handleCloseErrorModal}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: { sm: '500px', xs: '90%' },
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+          }}>
+            <CardContent>
+              <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} sx={{ display: 'flex', alignItems: 'center' }} >
+                <div style={{ width: '150px', height: '150px', borderRadius: '20px' }}>
+                  <DotLottieReact
+                    src="/assets/animations/failure.lottie"
+                    loop
+                    width={'100%'}
+                    height={'100%'}
+                    style={{
+                      borderRadius: '20px'
+                    }}
+                    autoplay
+                  />
+                </div>
+
+                <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Stack spacing={1}>
+                    <Typography variant='h6'>
+                      Bạn cần bật vị trí để tiếp tục đăng ký.
+                    </Typography>
+                    <Typography variant='body2'>
+                      Vui lòng cho phép sử dụng vị trí trên thiết bị này để tiếp tục/
+                    </Typography>
+                    <Typography variant='body2' color={'danger'}>
+
+                    </Typography>
+                  </Stack>
+                  <div style={{ marginTop: '20px' }}>
+                    <Button fullWidth variant='contained' onClick={() => { handleAllowGeolocation }} size="small" endIcon={<ArrowRight />}>
+                      Cho phép
+                    </Button>
+                  </div>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+      <Modal
+        open={openSuccessModal}
+        onClose={handleCloseSuccessModal}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card sx={{
+            scrollBehavior: 'smooth',
+            backgroundColor: '#d1f9db',
+            backgroundImage: `linear-gradient(356deg, #d1f9db 0%, #fffed9 100%)`,
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: { sm: '500px', xs: '90%' },
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+          }}>
+            <CardContent>
+              <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} sx={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <div style={{ width: '150px', height: '150px', borderRadius: '20px', }}>
+                    <DotLottieReact
+                      src="/assets/animations/ticket-gold.lottie"
+                      loop
+                      width={'100%'}
+                      height={'100%'}
+                      style={{
+                        borderRadius: '20px'
+                      }}
+                      autoplay
+                    />
+                  </div>
+                </div>
+
+                <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
+                  <Typography variant="h5">Đăng ký thành công !</Typography>
+                  <Typography variant="body1" sx={{ textAlign: 'justify' }}>Vé của quý khách đang trong trạng thái chờ duyệt.</Typography>
+                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Ban tổ chức sẽ gửi vé qua Email nếu vé của quý khách được duyệt.</Typography>
+                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn quý khách đã sử dụng ETIK. Nếu quý khách cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
+                </Stack>
+              </Stack>
+              <div style={{ marginTop: '20px', justifyContent: 'center' }}>
+                <Button fullWidth variant='contained' size="small" endIcon={<ArrowRight />} onClick={() => window.location.href = "https://www.facebook.com/MixiGaming"}>
+                  Khám phá trang thông tin sự kiện.
+                </Button>
+              </div>
+
+            </CardContent>
+          </Card>
+
+        </Container>
+      </Modal>
     </div>
   );
 }

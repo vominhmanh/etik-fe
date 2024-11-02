@@ -104,9 +104,6 @@ export default function Page(): React.JSX.Element {
                 <Typography gutterBottom variant="h5" component="div">
                   {event.name}
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  {event.description ? event.description : 'Chưa có mô tả'}
-                </Typography>
                 <Stack direction="column" spacing={2} sx={{ alignItems: 'left', mt: 2 }}>
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />

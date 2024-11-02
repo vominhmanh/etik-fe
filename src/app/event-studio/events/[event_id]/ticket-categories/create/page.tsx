@@ -59,7 +59,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     try {
       setIsLoading(true);
       const response: AxiosResponse = await baseHttpServiceInstance.post(
-        `/event-studio/events/${eventId}/ticket_categories`,
+        `/event-studio/events/${eventId}/ticket-categories`,
         {
           name: formData.name,
           type: formData.type,

@@ -33,8 +33,6 @@ type TicketCategory = {
   type: string;
   price: number;
   avatar: string;
-  quantity: number;
-  sold: number;
   description: string;
   status: string;
 };
@@ -72,7 +70,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       try {
         setIsLoading(true);
         const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${params.event_id}/ticket_categories`
+          `/event-studio/events/${params.event_id}/ticket-categories`
         );
         setTicketCategories(response.data);
       } catch (error) {
@@ -151,10 +149,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       </Typography>
                     </Stack>
                   </Stack>
-                  <Typography align="left" variant="body2">
-                    Số lượng: {ticketCategory.quantity} - Đã bán: {ticketCategory.sold} - Còn lại:{' '}
-                    {ticketCategory.quantity - ticketCategory.sold}
-                  </Typography>
                   {ticketCategory?.description ? (
                     <Box
                       sx={{

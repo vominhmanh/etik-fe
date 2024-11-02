@@ -19,13 +19,12 @@ import NotificationContext from '@/contexts/notification-context';
 import { usePopover } from '@/hooks/use-popover';
 import { useUser } from '@/hooks/use-user';
 import { UserPopover } from '@/components/dashboard/layout/user-popover';
+import { width } from '@mui/system';
 
 export function MainNav(): React.JSX.Element {
   const [openNav, setOpenNav] = React.useState<boolean>(false);
   const [user, setUser] = React.useState<User | null>(null);
-
   const userPopover = usePopover<HTMLDivElement>();
-
   const { getUser } = useUser();
 
   React.useEffect(() => {
@@ -54,7 +53,11 @@ export function MainNav(): React.JSX.Element {
           spacing={2}
           sx={{ alignItems: 'center', justifyContent: 'space-between', minHeight: '64px', px: 2 }}
         >
-          <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}></Stack>
+          <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+            <div style={{width: '45px'}}>
+              <img src='/assets/etik-logo.png' style={{width: '100%'}}></img>
+            </div>
+          </Stack>
           {user ? (
             <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
               <Tooltip title="Contacts">

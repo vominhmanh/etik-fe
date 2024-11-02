@@ -21,7 +21,7 @@ type Values = zod.infer<typeof schema>;
 
 const defaultValues = { email: '' } satisfies Values;
 
-export function ResetPasswordForm(): React.JSX.Element {
+export function OTPVerification(): React.JSX.Element {
   const [isPending, setIsPending] = React.useState<boolean>(false);
 
   const {
@@ -52,15 +52,16 @@ export function ResetPasswordForm(): React.JSX.Element {
 
   return (
     <Stack spacing={4}>
-      <Typography variant="h5">Khôi phục mật khẩu</Typography>
+      <Typography variant="h5">Xác thực địa chỉ email</Typography>
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack spacing={2}>
+          <Typography variant='body2'>Kiểm tra email của bạn và điền mã OTP để hoàn tất đăng ký.</Typography>
           <Controller
             control={control}
             name="email"
             render={({ field }) => (
               <FormControl error={Boolean(errors.email)}>
-                <InputLabel>Địa chỉ email</InputLabel>
+                <InputLabel>Mã OTP</InputLabel>
                 <OutlinedInput {...field} label="Email address" type="email" />
                 {errors.email ? <FormHelperText>{errors.email.message}</FormHelperText> : null}
               </FormControl>
@@ -68,7 +69,7 @@ export function ResetPasswordForm(): React.JSX.Element {
           />
           {errors.root ? <Alert color="error">{errors.root.message}</Alert> : null}
           <Button disabled={isPending} type="submit" variant="contained">
-            Gửi đường dẫn đặt lại mật khẩu
+            Xác thực
           </Button>
         </Stack>
       </form>

@@ -17,6 +17,8 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
+import { Modal, Card, CardContent } from '@mui/material';
+import { Container } from '@mui/system';
 
 import { AuthRes } from '@/types/auth';
 import { paths } from '@/paths';
@@ -28,10 +30,8 @@ import Popup from '../core/alert-popup';
 const schema = zod.object({
   fullName: zod.string().min(1, { message: 'Tên đầy đủ là bắt buộc' }),
   phoneNumber: zod.string().min(1, { message: 'Số điện thoại là bắt buộc' }),
-  // phoneNumber: zod.string().regex(/^(0[1-9]{1}[0-9]{8})$/, { message: 'Số điện thoại không hợp lệ' }),
   email: zod.string().email({ message: 'Email không hợp lệ' }),
-  password: zod
-    .string()
+  password: zod.string()
     .min(8, { message: 'Mật khẩu phải có ít nhất 8 ký tự' })
     .max(64, { message: 'Mật khẩu không được dài hơn 64 ký tự' })
     .regex(/[A-Z]/, { message: 'Mật khẩu phải chứa ít nhất một chữ cái viết hoa' })
@@ -39,143 +39,184 @@ const schema = zod.object({
     .regex(/\d/, { message: 'Mật khẩu phải chứa ít nhất một chữ số' })
     .regex(/[^a-zA-Z0-9]/, { message: 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt' }),
   terms: zod.boolean().refine((value) => value, 'Bạn phải chấp nhận điều khoản và điều kiện'),
+  otp: zod.string().optional(), // For OTP input
 });
 
 type Values = zod.infer<typeof schema>;
 
-const defaultValues = { fullName: '', phoneNumber: '', email: '', password: '', terms: false } satisfies Values;
+const defaultValues = { fullName: '', phoneNumber: '', email: '', password: '', terms: false, otp: '' } satisfies Values;
 
 export function SignUpForm(): React.JSX.Element {
   const router = useRouter();
-
   const { setUser, checkSession } = useUser();
-
-  const [popupContent, setPopupContent] = React.useState<{
-    type?: 'error' | 'success' | 'info' | 'warning';
-    message: string;
-  }>({ type: undefined, message: '' });
-
+  const [popupContent, setPopupContent] = React.useState<{ type?: 'error' | 'success' | 'info' | 'warning'; message: string; }>({ type: undefined, message: '' });
   const [isPending, setIsPending] = React.useState<boolean>(false);
+  const [isOtpModalOpen, setIsOtpModalOpen] = React.useState<boolean>(false); // State to manage OTP modal visibility
 
-  const {
-    control,
-    handleSubmit,
-    setError,
-    formState: { errors },
-  } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
+  const { control, handleSubmit, setError, formState: { errors } } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
 
   const onSubmit = React.useCallback(
     async (values: Values): Promise<void> => {
-      // setIsPending(true);
-
+      setIsPending(true);
       try {
         const res: AuthRes = await authClient.signUp(values);
-        setUser(res.user);
-
-        await checkSession?.();
-        router.refresh();
+        // setUser(res.user);
+        setIsOtpModalOpen(true); // Open OTP modal on successful signup
+        // await checkSession?.();
+        // router.refresh();
       } catch (error: any) {
-        setPopupContent({
-          type: 'error',
-          message: error.message || 'Có lỗi xảy ra, vui lòng thử lại sau',
-        });
+        setPopupContent({ type: 'error', message: error.message || 'Có lỗi xảy ra, vui lòng thử lại sau' });
+      } finally {
         setIsPending(false);
-        return;
       }
     },
-    [checkSession, router, setError]
+    [checkSession, router, setUser]
   );
 
-  return (
-    <Stack spacing={3}>
-      {!!popupContent.message && (
-        <Popup
-          message={popupContent.message}
-          open={!!popupContent.message}
-          severity={popupContent.type}
-          onClose={() => setPopupContent({ type: undefined, message: '' })}
-        />
-      )}
+  const handleResendOtp = async (email: string) => {
+    try {
+      await authClient.resendOtp(email); // Call resend OTP API
+      setPopupContent({ type: 'success', message: 'OTP đã được gửi lại' });
+    } catch (error: any) {
+      setPopupContent({ type: 'error', message: error.message || 'Có lỗi xảy ra khi gửi lại OTP' });
+    }
+  };
 
-      <Stack spacing={1}>
-        <Typography variant="h4">Sign up</Typography>
-        <Typography color="text.secondary" variant="body2">
-          Already have an account?{' '}
-          <Link component={RouterLink} href={paths.auth.signIn} underline="hover" variant="subtitle2">
-            Sign in
-          </Link>
-        </Typography>
-      </Stack>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <Stack spacing={2}>
-          <Controller
-            control={control}
-            name="fullName"
-            render={({ field }) => (
-              <FormControl error={Boolean(errors.fullName)}>
-                <InputLabel>Full name</InputLabel>
-                <OutlinedInput {...field} label="Full name" />
-                {errors.fullName ? <FormHelperText>{errors.fullName.message}</FormHelperText> : null}
-              </FormControl>
-            )}
+  const handleVerifyOtp = async (values: Values) => {
+    setIsPending(true);
+    try {
+      const res: AuthRes = await authClient.verifyOtp( values.email, values.otp || ""); // Call verify API
+      setUser(res.user);
+      await checkSession?.();
+      router.refresh();
+    } catch (error: any) {
+      setError("otp", { type: "manual", message: error.message || 'Xác thực OTP không thành công' });
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return (
+    <>
+      <Stack spacing={3}>
+        {!!popupContent.message && (
+          <Popup
+            message={popupContent.message}
+            open={!!popupContent.message}
+            severity={popupContent.type}
+            onClose={() => setPopupContent({ type: undefined, message: '' })}
           />
-          <Controller
-            control={control}
-            name="phoneNumber"
-            render={({ field }) => (
-              <FormControl error={Boolean(errors.phoneNumber)}>
-                <InputLabel>Phone number</InputLabel>
-                <OutlinedInput {...field} label="Last name" />
-                {errors.phoneNumber ? <FormHelperText>{errors.phoneNumber.message}</FormHelperText> : null}
-              </FormControl>
-            )}
-          />
-          <Controller
-            control={control}
-            name="email"
-            render={({ field }) => (
-              <FormControl error={Boolean(errors.email)}>
-                <InputLabel>Email address</InputLabel>
-                <OutlinedInput {...field} label="Email address" type="email" />
-                {errors.email ? <FormHelperText>{errors.email.message}</FormHelperText> : null}
-              </FormControl>
-            )}
-          />
-          <Controller
-            control={control}
-            name="password"
-            render={({ field }) => (
-              <FormControl error={Boolean(errors.password)}>
-                <InputLabel>Password</InputLabel>
-                <OutlinedInput {...field} label="Password" type="password" />
-                {errors.password ? <FormHelperText>{errors.password.message}</FormHelperText> : null}
-              </FormControl>
-            )}
-          />
-          <Controller
-            control={control}
-            name="terms"
-            render={({ field }) => (
-              <div>
-                <FormControlLabel
-                  control={<Checkbox {...field} />}
-                  label={
-                    <React.Fragment>
-                      I have read the <Link>terms and conditions</Link>
-                    </React.Fragment>
-                  }
-                />
-                {errors.terms ? <FormHelperText error>{errors.terms.message}</FormHelperText> : null}
-              </div>
-            )}
-          />
-          {errors.root ? <Alert color="error">{errors.root.message}</Alert> : null}
-          <Button disabled={isPending} type="submit" variant="contained">
-            Sign up
-          </Button>
+        )}
+
+        <Stack spacing={1}>
+          <Typography variant="h4">Đăng ký</Typography>
+          <Typography color="text.secondary" variant="body2">
+            Bạn đã có tài khoản?{' '}
+            <Link component={RouterLink} href={paths.auth.signIn} underline="hover" variant="subtitle2">
+              Đăng nhập
+            </Link>
+          </Typography>
         </Stack>
-      </form>
-      <Alert color="warning">Created users are not persisted</Alert>
-    </Stack>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Stack spacing={2}>
+            <Controller
+              control={control}
+              name="fullName"
+              render={({ field }) => (
+                <FormControl error={Boolean(errors.fullName)}>
+                  <InputLabel>Tên đầy đủ</InputLabel>
+                  <OutlinedInput {...field} label="Tên đầy đủ" />
+                  {errors.fullName ? <FormHelperText>{errors.fullName.message}</FormHelperText> : null}
+                </FormControl>
+              )}
+            />
+            <Controller
+              control={control}
+              name="phoneNumber"
+              render={({ field }) => (
+                <FormControl error={Boolean(errors.phoneNumber)}>
+                  <InputLabel>Số điện thoại</InputLabel>
+                  <OutlinedInput {...field} label="Số điện thoại" />
+                  {errors.phoneNumber ? <FormHelperText>{errors.phoneNumber.message}</FormHelperText> : null}
+                </FormControl>
+              )}
+            />
+            <Controller
+              control={control}
+              name="email"
+              render={({ field }) => (
+                <FormControl error={Boolean(errors.email)}>
+                  <InputLabel>Địa chỉ email</InputLabel>
+                  <OutlinedInput {...field} label="Địa chỉ email" type="email" />
+                  {errors.email ? <FormHelperText>{errors.email.message}</FormHelperText> : null}
+                </FormControl>
+              )}
+            />
+            <Controller
+              control={control}
+              name="password"
+              render={({ field }) => (
+                <FormControl error={Boolean(errors.password)}>
+                  <InputLabel>Mật khẩu</InputLabel>
+                  <OutlinedInput {...field} label="Mật khẩu" type="password" />
+                  {errors.password ? <FormHelperText>{errors.password.message}</FormHelperText> : null}
+                </FormControl>
+              )}
+            />
+            <Controller
+              control={control}
+              name="terms"
+              render={({ field }) => (
+                <div>
+                  <FormControlLabel
+                    control={<Checkbox {...field} />}
+                    label={<React.Fragment>Tôi đã đọc và đồng ý với <Link>điều khoản và điều kiện</Link></React.Fragment>}
+                  />
+                  {errors.terms ? <FormHelperText error>{errors.terms.message}</FormHelperText> : null}
+                </div>
+              )}
+            />
+            {errors.root ? <Alert color="error">{errors.root.message}</Alert> : null}
+            <Button disabled={isPending} type="submit" variant="contained">
+              Đăng ký
+            </Button>
+          </Stack>
+        </form>
+      </Stack>
+
+      <Modal open={isOtpModalOpen} onClose={() => setIsOtpModalOpen(false)}>
+        <Container maxWidth="xl">
+          <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { sm: '500px', xs: '90%' }, bgcolor: 'background.paper', boxShadow: 24 }}>
+            <CardContent>
+              <Stack spacing={4}>
+                <Typography variant="h5">Xác thực địa chỉ email</Typography>
+                <form onSubmit={handleSubmit(handleVerifyOtp)}>
+                  <Stack spacing={2}>
+                    <Typography variant='body2'>Kiểm tra email của bạn và điền mã OTP để hoàn tất đăng ký.</Typography>
+                    <Controller
+                      control={control}
+                      name="otp"
+                      render={({ field }) => (
+                        <FormControl error={Boolean(errors.otp)}>
+                          <InputLabel>Nhập mã OTP</InputLabel>
+                          <OutlinedInput {...field} label="Nhập mã OTP" />
+                          {errors.otp ? <FormHelperText>{errors.otp.message}</FormHelperText> : null}
+                        </FormControl>
+                      )}
+                    />
+                    <Button variant="contained" type="submit" disabled={isPending}>
+                      Xác thực
+                    </Button>
+                    {/* <Button variant="outlined" disabled={isPending}>
+                      Gửi lại
+                    </Button> */}
+                  </Stack>
+                </form>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+    </>
   );
 }

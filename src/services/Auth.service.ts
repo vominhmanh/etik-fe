@@ -40,6 +40,15 @@ class AuthService extends BaseHttpService {
       }
     );
   }
+
+  async verify(data: { email: string; otp: string }): Promise<AxiosResponse<AuthRes>> {
+    return this.post(`/auth/verify-otp`, data);
+  }
+
+  async resendOtp(email: string): Promise<void> {
+    return this.post(`/auth/resend-otp`, { email });
+  }
+
 }
 
 export default new AuthService();

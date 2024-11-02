@@ -41,10 +41,8 @@ export default function Page({
     name: '',
     type: 'public',
     price: 0,
-    quantity: 1,
     description: '',
     status: 'on_sale',
-    sold: 0,
   });
   const router = useRouter();
 
@@ -54,17 +52,15 @@ export default function Page({
       try {
         setIsLoading(true);
         const response: AxiosResponse = await baseHttpServiceInstance.get(
-          `/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}`
+          `/event-studio/events/${eventId}/ticket-categories/${ticketCategoryId}`
         );
         const ticketCategory = response.data;
         setFormData({
           name: ticketCategory.name,
           type: ticketCategory.type,
           price: ticketCategory.price,
-          quantity: ticketCategory.quantity,
           description: ticketCategory.description || '',
-          status: ticketCategory.status,
-          sold: ticketCategory.sold,
+          status: ticketCategory.status
         });
       } catch (error) {
         notificationCtx.error('Error fetching ticket category:', error);
@@ -88,7 +84,7 @@ export default function Page({
     try {
       setIsLoading(true);
       const response: AxiosResponse = await baseHttpServiceInstance.put(
-        `/event-studio/events/${eventId}/ticket_categories/${ticketCategoryId}`,
+        `/event-studio/events/${eventId}/ticket-categories/${ticketCategoryId}`,
         {
           name: formData.name,
           type: formData.type,
@@ -167,18 +163,7 @@ export default function Page({
             <Card>
               <CardContent>
                 <Grid container spacing={3}>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Đã bán</InputLabel>
-                      <OutlinedInput
-                        label="Đã bán"
-                        name="sold"
-                        disabled
-                        value={formData.sold.toLocaleString('vi-VN')}
-                      />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={6} xs={12}>
+                  <Grid md={12} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Trạng thái</InputLabel>
                       <Select
@@ -198,19 +183,6 @@ export default function Page({
               </CardContent>
             </Card>
             <Card>
-              <CardHeader
-                title="Số lượng vé"
-                action={
-                  <OutlinedInput
-                    sx={{ maxWidth: 180 }}
-                    type="text"
-                    value={formData.quantity.toLocaleString('vi-VN')}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, quantity: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))
-                    }
-                  />
-                }
-              />
               <CardHeader
                 title="Giá vé"
                 action={
