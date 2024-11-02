@@ -97,7 +97,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [selectedSchedules, setSelectedSchedules] = React.useState<Show[]>([]);
   const captchaRef = React.useRef<ReCAPTCHA | null>(null);
   const [position, setPosition] = React.useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
-  const [openErrorModal, setOpenErrorModal] = React.useState(false);
+  const [openErrorPositionModal, setOpenErrorPositionModal] = React.useState(false);
   const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
 
   const totalAmount = React.useMemo(() => {
@@ -108,10 +108,10 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     }, 0)
   }, [selectedCategories])
 
-  const handleCloseErrorModal = (event, reason) => {
+  const handleCloseErrorPositionModal = (event, reason) => {
     if (reason && reason == "backdropClick" && "escapeKeyDown")
       return;
-    setOpenErrorModal(false);
+    setOpenErrorPositionModal(false);
   }
 
   const handleCloseSuccessModal = (event, reason) => {
@@ -127,11 +127,11 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       longitude: crd.longitude,
       accuracy: crd.accuracy,
     });
-    setOpenErrorModal(false)
+    setOpenErrorPositionModal(false)
   };
 
   const handleErrorGeolocation = (err: GeolocationPositionError) => {
-    setOpenErrorModal(true)
+    setOpenErrorPositionModal(true)
   };
 
   React.useEffect(() => {
@@ -208,6 +208,11 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
 
     if (Object.keys(selectedCategories).length == 0) {
       notificationCtx.warning('Vui lòng chọn ít nhất 1 loại vé');
+      return;
+    }
+
+    if (position?.latitude == null || position?.longitude == null) {
+      setOpenErrorPositionModal(true)
       return;
     }
 
@@ -576,8 +581,8 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         </Stack>
       </Container>
       <Modal
-        open={openErrorModal}
-        onClose={handleCloseErrorModal}
+        open={openErrorPositionModal}
+        onClose={handleCloseErrorPositionModal}
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description"
       >
