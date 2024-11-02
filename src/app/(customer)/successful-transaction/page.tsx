@@ -523,6 +523,6 @@ export default function Page(): React.JSX.Element {
             </Grid>
           </>}
       </Stack>
-    </Suspense>
+    </React.Suspense>
   );
 }
