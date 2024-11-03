@@ -153,7 +153,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
           );
           setEvent(response.data);
         } catch (error) {
-          notificationCtx.error('Error fetching event details:', error);
+          notificationCtx.error('Lỗi:', error);
         } finally {
           setIsLoading(false);
         }
@@ -195,14 +195,14 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   };
 
   const handleSubmit = async () => {
-    if (!customer.name || !customer.email || ticketQuantity <= 0) {
-      notificationCtx.warning('Please fill in the required fields.');
+    if (!customer.name || !customer.email || !customer.address || ticketQuantity <= 0) {
+      notificationCtx.warning('Vui lòng điền các trường thông tin bắt buộc');
       return;
     }
 
     const captchaValue = captchaRef.current?.getValue();
     if (!captchaValue) {
-      notificationCtx.warning('Please verify the reCAPTCHA!');
+      notificationCtx.warning('Vui lòng xác nhận reCAPTCHA!');
       return;
     }
 
@@ -235,7 +235,8 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         customer,
         tickets,
         paymentMethod,
-        ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
+        // ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
+        ticketHolders: [customer.name], 
         quantity: ticketQuantity,
         captchaValue,
         "latitude": position?.latitude,
@@ -254,7 +255,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         window.location.href = response.data.paymentCheckoutUrl;
       }
     } catch (error) {
-      notificationCtx.error('Error creating transaction.', error);
+      notificationCtx.error('Lỗi:', error);
     } finally {
       setIsLoading(false);
     }
@@ -463,19 +464,19 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 <Card>
                   <CardHeader
                     title="Số lượng người tham dự"
-                    subheader='Tối đa 2 người'
+                    subheader='Tối đa 1 người'
                     action={
                       <OutlinedInput
                         sx={{ maxWidth: 130 }}
                         type="number"
                         value={ticketQuantity}
                         onChange={handleTicketQuantityChange}
-                        inputProps={{ min: 1, max: 2 }}
+                        inputProps={{ min: 1, max: 1 }}
                       />
                     }
                   />
-                  <Divider />
-                  <CardContent>
+                  {/* <Divider /> */}
+                  {/* <CardContent>
                     <Grid container spacing={3}>
                       {ticketHolders.map((holder, index) => (
                         <Grid item lg={12} xs={12} key={index}>
@@ -490,7 +491,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                         </Grid>
                       ))}
                     </Grid>
-                  </CardContent>
+                  </CardContent> */}
                 </Card>
 
                 {/* Payment Method */}
@@ -672,8 +673,8 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
 
                 <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
                   <Typography variant="h5">Đăng ký thành công !</Typography>
-                  <Typography variant="body1" sx={{ textAlign: 'justify' }}>Vé của quý khách đang trong trạng thái chờ duyệt.</Typography>
-                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Ban tổ chức sẽ gửi vé qua Email nếu vé của quý khách được duyệt.</Typography>
+                  <Typography variant="body1" sx={{ textAlign: 'justify' }}>Để đảm bảo chất lượng trải nghiệm và tổ chức được tốt nhất, chúng tôi sẽ thực hiện việc chọn lọc từ danh sách đăng ký để gửi vé mời.</Typography>
+                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Ban Tổ Chức sẽ xác nhận thông tin với những bạn may mắn nhận được vé qua email. Mong các bạn thông cảm và tiếp tục theo dõi để không bỏ lỡ các cập nhật thú vị tiếp theo của giải đấu!</Typography>
                   <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn quý khách đã sử dụng ETIK. Nếu quý khách cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
                 </Stack>
               </Stack>
