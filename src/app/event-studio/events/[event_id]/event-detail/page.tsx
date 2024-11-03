@@ -43,6 +43,7 @@ type EventResponse = {
   place: string | null;
   locationUrl: string | null;
   bannerUrl: string;
+  avatarUrl: string;
   slug: string;
   secureApiKey: string;
   locationInstruction: string | null;
@@ -54,25 +55,70 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
   const { event_id } = params;
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = React.useState<string>(event?.bannerUrl || '');
+  const [previewBannerUrl, setPreviewBannerUrl] = React.useState<string>(event?.bannerUrl || '');
   const [isImageSelected, setIsImageSelected] = React.useState(false);
   const [description, setDescription] = useState<string>('');
   const reactQuillRef = React.useRef<ReactQuill>(null);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
+  const [previewAvatarUrl, setPreviewAvatarUrl] = useState<string>(event?.avatarUrl || '');
+  const [isAvatarSelected, setIsAvatarSelected] = useState(false);
+
+  // Handle avatar selection
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedAvatar(file);
+      setPreviewAvatarUrl(URL.createObjectURL(file)); // Generate preview URL
+      setIsAvatarSelected(true); // Toggle button state
+    }
+  };
+
+  // Handle saving the avatar
+  const handleSaveAvatar = async () => {
+    if (!selectedAvatar) return;
+
+    const formData = new FormData();
+    formData.append('file', selectedAvatar);
+
+    try {
+      // Call API to upload the avatar
+      setIsLoading(true);
+      await baseHttpServiceInstance.post(`/event-studio/events/${event?.id}/upload-avatar`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // On successful upload, reload the page or update the avatar state
+      window.location.reload(); // Optionally, you could call a function to update the state instead of reloading
+    } catch (error) {
+      notificationCtx.error('Error uploading avatar image:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle selecting another avatar
+  const handleSelectOtherAvatar = () => {
+    setSelectedAvatar(null);
+    setPreviewAvatarUrl(event?.avatarUrl || '');
+    setIsAvatarSelected(false); // Reset state
+  };
 
   // Handle image selection
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedImage(file);
-      setPreviewUrl(URL.createObjectURL(file)); // Generate preview URL
+      setPreviewBannerUrl(URL.createObjectURL(file)); // Generate preview URL
       setIsImageSelected(true); // Toggle button state
     }
   };
 
   // Handle saving the image
-  const handleSaveImage = async () => {
+  const handleSaveBannerImage = async () => {
     if (!selectedImage) return;
 
     const formData = new FormData();
@@ -97,9 +143,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   // Handle selecting another image
-  const handleSelectOther = () => {
+  const handleSelectBannerOther = () => {
     setSelectedImage(null);
-    setPreviewUrl(event?.bannerUrl || '');
+    setPreviewBannerUrl(event?.bannerUrl || '');
     setIsImageSelected(false); // Reset state
   };
 
@@ -260,9 +306,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <Stack direction="column" spacing={2}>
                 <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
                   <div>
-                    <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
-                      {event?.name[0].toUpperCase()}
-                    </Avatar>
+                    {event?.avatarUrl ?
+                      <img src={event?.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                      :
+                      <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
+                        {event?.name[0].toUpperCase()}
+                      </Avatar>}
                   </div>
                   <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
                     {event?.name}
@@ -314,49 +363,50 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Grid lg={4} md={6} xs={12}>
           <Stack spacing={3}>
             <Card>
-              <CardMedia sx={{ height: 140 }} image={previewUrl || ''} title={event.name} />
-              <CardContent>
-                <Typography gutterBottom variant="h5" component="div">
-                  {event.name}
-                </Typography>
-                <Stack direction="column" spacing={2} sx={{ alignItems: 'left', mt: 2 }}>
-                  <Stack direction="row" spacing={1}>
-                    <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      Đơn vị tổ chức: {event.organizer}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" spacing={1}>
-                    <ClockIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {event.startDateTime && event.endDateTime
-                        ? `${dayjs(event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
-                        : 'Chưa xác định'}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" spacing={1}>
-                    <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {event.place ? event.place : 'Chưa xác định'}
-                    </Typography>
-                  </Stack>
-                </Stack>
-              </CardContent>
-              <Divider />
+              {previewBannerUrl ??
+                <>
+                  <CardMedia sx={{ height: 140 }} image={previewBannerUrl || ''} title={event.name} />
+                  <Divider />
+                </>}
               <CardActions>
                 {isImageSelected ? (
                   <Stack direction="row" spacing={2} sx={{ width: '100%' }}>
-                    <Button fullWidth variant="contained" onClick={handleSaveImage}>
+                    <Button fullWidth variant="contained" onClick={handleSaveBannerImage}>
                       Lưu ảnh bìa
                     </Button>
-                    <Button fullWidth variant="outlined" onClick={handleSelectOther}>
+                    <Button fullWidth variant="outlined" onClick={handleSelectBannerOther}>
                       Chọn ảnh khác
                     </Button>
                   </Stack>
                 ) : (
                   <Button fullWidth variant="text" component="label">
                     Thay đổi ảnh bìa
-                    <input type="file" hidden accept="image/*" onChange={handleImageChange} />
+                    <input type="file" hidden accept="image/*" onChange={handleBannerImageChange} />
+                  </Button>
+                )}
+              </CardActions>
+            </Card>
+            <Card>
+              {previewAvatarUrl &&
+                <>
+                  <CardMedia sx={{ height: 80, width: 80, justifyContent: 'center', display: 'flex' }} image={previewAvatarUrl || ''} title={event.name} />
+                  <Divider />
+                </>}
+
+              <CardActions>
+                {isAvatarSelected ? (
+                  <Stack direction="row" spacing={2} sx={{ width: '100%' }}>
+                    <Button fullWidth variant="contained" onClick={handleSaveAvatar}>
+                      Lưu ảnh đại diện
+                    </Button>
+                    <Button fullWidth variant="outlined" onClick={handleSelectOtherAvatar}>
+                      Chọn ảnh khác
+                    </Button>
+                  </Stack>
+                ) : (
+                  <Button fullWidth variant="text" component="label">
+                    Thay đổi ảnh đại diện
+                    <input type="file" hidden accept="image/*" onChange={handleAvatarChange} />
                   </Button>
                 )}
               </CardActions>
