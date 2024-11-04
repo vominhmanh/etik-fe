@@ -109,7 +109,7 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
               onClick={() => handleSelect(showTicketCategory.ticketCategory.id)} // Set selected when the whole item is clicked
               primary={showTicketCategory.ticketCategory.name}
               primaryTypographyProps={{ variant: 'subtitle1' }}
-              secondary={ showTicketCategory.ticketCategory.status !== 'on_sale' ? 'Chưa mở bán' : showTicketCategory.quantity <= showTicketCategory.sold ? 'Đã hết' : showTicketCategory.disabled ? 'Không khả dụng' : `${formatPrice(showTicketCategory.ticketCategory.price)}`}
+              secondary={ showTicketCategory.ticketCategory.status !== 'on_sale' ? 'Chưa mở bán' : showTicketCategory.quantity <= showTicketCategory.sold ? 'Đã hết' : showTicketCategory.disabled ? 'Không khả dụng' : `${formatPrice(showTicketCategory.ticketCategory.price)} | Còn ${showTicketCategory.quantity - showTicketCategory.sold}/${showTicketCategory.quantity} vé`}
               secondaryTypographyProps={{ variant: 'body2' }}
             />
             <IconButton edge="end" onClick={() => { return }}>

@@ -127,7 +127,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
             </Card>
             <Card>
               <CardHeader
-                title="Số lượng vé"
+                title="Số lượng vé mỗi suất diễn"
                 action={
                   <OutlinedInput
                     sx={{ maxWidth: 180 }}

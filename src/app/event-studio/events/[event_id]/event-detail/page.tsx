@@ -187,7 +187,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       try {
         setIsLoading(true);
         await baseHttpServiceInstance.put(`/event-studio/events/${event_id}`, { ...formValues, description });
-        notificationCtx.success('Event updated successfully!');
+        notificationCtx.success('Sửa thành công. Sẽ hiển thị lên trang chủ sau 2 phút.');
       } catch (error) {
         notificationCtx.error('Error updating event:', error);
       } finally {
@@ -363,7 +363,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Grid lg={4} md={6} xs={12}>
           <Stack spacing={3}>
             <Card>
-              {previewBannerUrl ??
+              {previewBannerUrl &&
                 <>
                   <CardMedia sx={{ height: 140 }} image={previewBannerUrl || ''} title={event.name} />
                   <Divider />

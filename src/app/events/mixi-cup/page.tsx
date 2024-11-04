@@ -81,7 +81,8 @@ const options = {
   maximumAge: 0,
 };
 
-export default function Page({ params }: { params: { event_slug: string } }): React.JSX.Element {
+export default function Page(): React.JSX.Element {
+  const params = {event_slug: 'mixi-cup'}
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
@@ -91,6 +92,16 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     phoneNumber: '',
     address: '',
   });
+  const [additionalAnswers, setAdditionalAnswers] = React.useState({
+    province: '',
+    arrivalTime: '',
+    doMixiFullName: '',
+    teamPlayers: '',
+    licensePlate: '',
+    reason: '',
+    messageToOrganizer: ''
+  });
+
   const [paymentMethod, setPaymentMethod] = React.useState<string>('napas247');
   const [ticketHolders, setTicketHolders] = React.useState<string[]>(['']);
   const notificationCtx = React.useContext(NotificationContext);
@@ -98,7 +109,74 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [selectedSchedules, setSelectedSchedules] = React.useState<Show[]>([]);
   const captchaRef = React.useRef<ReCAPTCHA | null>(null);
   const [position, setPosition] = React.useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
+  const [openErrorPositionModal, setOpenErrorPositionModal] = React.useState(false);
   const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
+
+  const provinces = [
+    { value: 'An Giang', label: 'An Giang' },
+    { value: 'Bà Rịa Vũng Tàu', label: 'Bà Rịa Vũng Tàu' },
+    { value: 'Bạc Liêu', label: 'Bạc Liêu' },
+    { value: 'Bắc Giang', label: 'Bắc Giang' },
+    { value: 'Bắc Kạn', label: 'Bắc Kạn' },
+    { value: 'Bắc Ninh', label: 'Bắc Ninh' },
+    { value: 'Bến Tre', label: 'Bến Tre' },
+    { value: 'Bình Dương', label: 'Bình Dương' },
+    { value: 'Bình Định', label: 'Bình Định' },
+    { value: 'Bình Phước', label: 'Bình Phước' },
+    { value: 'Bình Thuận', label: 'Bình Thuận' },
+    { value: 'Cà Mau', label: 'Cà Mau' },
+    { value: 'Cao Bằng', label: 'Cao Bằng' },
+    { value: 'Cần Thơ', label: 'Cần Thơ' },
+    { value: 'Đà Nẵng', label: 'Đà Nẵng' },
+    { value: 'Đắk Lắk', label: 'Đắk Lắk' },
+    { value: 'Đắk Nông', label: 'Đắk Nông' },
+    { value: 'Điện Biên', label: 'Điện Biên' },
+    { value: 'Đồng Nai', label: 'Đồng Nai' },
+    { value: 'Đồng Tháp', label: 'Đồng Tháp' },
+    { value: 'Gia Lai', label: 'Gia Lai' },
+    { value: 'Hà Giang', label: 'Hà Giang' },
+    { value: 'Hà Nam', label: 'Hà Nam' },
+    { value: 'Hà Nội', label: 'Hà Nội' },
+    { value: 'Hà Tĩnh', label: 'Hà Tĩnh' },
+    { value: 'Hải Dương', label: 'Hải Dương' },
+    { value: 'Hải Phòng', label: 'Hải Phòng' },
+    { value: 'Hậu Giang', label: 'Hậu Giang' },
+    { value: 'Hòa Bình', label: 'Hòa Bình' },
+    { value: 'Hưng Yên', label: 'Hưng Yên' },
+    { value: 'Khánh Hòa', label: 'Khánh Hòa' },
+    { value: 'Kiên Giang', label: 'Kiên Giang' },
+    { value: 'Kon Tum', label: 'Kon Tum' },
+    { value: 'Lai Châu', label: 'Lai Châu' },
+    { value: 'Lạng Sơn', label: 'Lạng Sơn' },
+    { value: 'Lào Cai', label: 'Lào Cai' },
+    { value: 'Lâm Đồng', label: 'Lâm Đồng' },
+    { value: 'Long An', label: 'Long An' },
+    { value: 'Nam Định', label: 'Nam Định' },
+    { value: 'Nghệ An', label: 'Nghệ An' },
+    { value: 'Ninh Bình', label: 'Ninh Bình' },
+    { value: 'Ninh Thuận', label: 'Ninh Thuận' },
+    { value: 'Phú Thọ', label: 'Phú Thọ' },
+    { value: 'Phú Yên', label: 'Phú Yên' },
+    { value: 'Quảng Bình', label: 'Quảng Bình' },
+    { value: 'Quảng Nam', label: 'Quảng Nam' },
+    { value: 'Quảng Ngãi', label: 'Quảng Ngãi' },
+    { value: 'Quảng Ninh', label: 'Quảng Ninh' },
+    { value: 'Quảng Trị', label: 'Quảng Trị' },
+    { value: 'Sóc Trăng', label: 'Sóc Trăng' },
+    { value: 'Sơn La', label: 'Sơn La' },
+    { value: 'Tây Ninh', label: 'Tây Ninh' },
+    { value: 'Thái Bình', label: 'Thái Bình' },
+    { value: 'Thái Nguyên', label: 'Thái Nguyên' },
+    { value: 'Thanh Hóa', label: 'Thanh Hóa' },
+    { value: 'Thừa Thiên Huế', label: 'Thừa Thiên Huế' },
+    { value: 'Tiền Giang', label: 'Tiền Giang' },
+    { value: 'TP Hồ Chí Minh', label: 'TP Hồ Chí Minh' },
+    { value: 'Trà Vinh', label: 'Trà Vinh' },
+    { value: 'Tuyên Quang', label: 'Tuyên Quang' },
+    { value: 'Vĩnh Long', label: 'Vĩnh Long' },
+    { value: 'Vĩnh Phúc', label: 'Vĩnh Phúc' },
+    { value: 'Yên Bái', label: 'Yên Bái' },
+  ] as const;
 
   const totalAmount = React.useMemo(() => {
     return Object.entries(selectedCategories).reduce((total, [showId, category]) => {
@@ -108,9 +186,37 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     }, 0)
   }, [selectedCategories])
 
+  const handleCloseErrorPositionModal = (event, reason) => {
+    if (reason && reason == "backdropClick" && "escapeKeyDown")
+      return;
+    setOpenErrorPositionModal(false);
+  }
   const handleCloseSuccessModal = (event, reason) => {
     if (reason && reason == "backdropClick" && "escapeKeyDown")
       return;
+  }
+
+  const success = (pos: GeolocationPosition) => {
+    const crd = pos.coords;
+
+    setPosition({
+      latitude: crd.latitude,
+      longitude: crd.longitude,
+      accuracy: crd.accuracy,
+    });
+    setOpenErrorPositionModal(false)
+  };
+
+  const handleErrorGeolocation = (err: GeolocationPositionError) => {
+    setOpenErrorPositionModal(true)
+  };
+
+  React.useEffect(() => {
+    navigator.geolocation.getCurrentPosition(success, handleErrorGeolocation, options);
+  }, []);
+
+  const handleAllowGeolocation = () => {
+    navigator.geolocation.getCurrentPosition(success, handleErrorGeolocation, options);
   }
 
   // Fetch event details on component mount
@@ -140,6 +246,11 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       ...prevCategories,
       [showId]: categoryId,
     }));
+  };
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setAdditionalAnswers(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSelectionChange = (selected: Show[]) => {
@@ -182,6 +293,12 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       return;
     }
 
+    if (position?.latitude == null || position?.longitude == null) {
+      setOpenErrorPositionModal(true)
+      return;
+    }
+
+
     const emptyTicketShowIds = Object.entries(selectedCategories).filter(([showId, ticketCategoryId]) => (ticketCategoryId == null)).map(([showId, ticketCategoryId]) => (Number.parseInt(showId)));
     if (emptyTicketShowIds.length > 0) {
       const emptyTicketNames = event?.shows.filter(show => emptyTicketShowIds.includes(show.id)).map(show => show.name)
@@ -205,11 +322,12 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         quantity: ticketQuantity,
         captchaValue,
         "latitude": position?.latitude,
-        "longitude": position?.longitude
+        "longitude": position?.longitude,
+        additionalAnswers
       };
 
       const response = await baseHttpServiceInstance.post(
-        `/marketplace/events/${params.event_slug}/transactions`,
+        `/marketplace/special_events/${params.event_slug}/transactions`,
         transactionData
       );
       // notificationCtx.success('Transaction created successfully!');
@@ -259,8 +377,8 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 }}
               >
                 <img
-                  src={event?.bannerUrl || ''}
-                  alt="Sự kiện"
+                  src={event?.bannerUrl}
+                  alt="Car"
                   style={{
                     position: 'absolute',
                     top: 0,
@@ -310,7 +428,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                     <Stack direction="row" spacing={1}>
                       <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.place ? `${event?.place} ${event.locationUrl && <a href={event.locationUrl}>(Xem bản đồ)</a>}` : 'Chưa xác định'}
+                      {event?.place ? `${event?.place}` : 'Chưa xác định'} { event?.locationUrl && <a target='_blank' href={event?.locationUrl}>Xem bản đồ</a>}
                       </Typography>
                     </Stack>
                   </Stack>
@@ -378,7 +496,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   <Divider />
                   <CardContent>
                     <Grid container spacing={3}>
-                      <Grid item lg={6} xs={12}>
+                      <Grid item lg={12} xs={12}>
                         <FormControl fullWidth required>
                           <InputLabel>Họ và tên</InputLabel>
                           <OutlinedInput
@@ -413,17 +531,146 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                           />
                         </FormControl>
                       </Grid>
-
                       <Grid item lg={6} xs={12}>
                         <FormControl fullWidth required>
-                          <InputLabel>Địa chỉ</InputLabel>
+                          <InputLabel>Địa chỉ thường trú</InputLabel>
                           <OutlinedInput
-                            label="Địa chỉ"
+                            label="Địa chỉ thường trú"
                             name="customer_address"
                             value={customer.address}
+                            placeholder='Vui lòng nhập chính xác theo CCCD'
                             onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
                           />
                         </FormControl>
+                      </Grid>
+                      <Grid item md={6} xs={12}>
+                        <FormControl fullWidth required>
+                          <InputLabel>Tỉnh thành thường trú</InputLabel>
+                          <Select defaultValue="" label="Tỉnh thành thường trú" name="province" variant="outlined" onChange={(e) => setAdditionalAnswers({ ...additionalAnswers, province: e.target.value })}>
+                            {provinces.map((option) => (
+                              <MenuItem key={option.value} value={option.value}>
+                                {option.label}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+
+                    </Grid>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader title="Câu hỏi bổ sung" subheader="Vui lòng dành thời gian trả lời một số câu hỏi sau đây." />
+                  <Divider />
+                  <CardContent>
+                    <Grid container spacing={3}>
+                      {/* Question 1 */}
+
+                      <Grid item xs={12}>
+                        <Typography variant="body2">Thời gian dự kiến bạn có mặt tại Sân vận động Bà Rịa?</Typography>
+                        <FormControl fullWidth required>
+                          <InputLabel>Chọn một phương án</InputLabel>
+                          <Select
+                            label="Chọn một phương án"
+                            name="arrivalTime"
+                            value={additionalAnswers.arrivalTime}
+                            onChange={handleInputChange}
+                          >
+                            <MenuItem value={'15:30'}>15:30</MenuItem>
+                            <MenuItem value={'16:30'}>16:30</MenuItem>
+                            <MenuItem value={'17:30'}>17:30</MenuItem>
+                            <MenuItem value={'18:30'}>18:30</MenuItem>
+                            <MenuItem value={'19:30'}>19:30</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+
+                      {/* Question 2 */}
+                      <Grid item xs={12}>
+                        <Typography variant="body2">Hãy viết họ và tên đầy đủ của Tộc trưởng Độ Mixi?</Typography>
+                        <FormControl fullWidth required>
+                          <InputLabel>Câu trả lời của bạn</InputLabel>
+                          <OutlinedInput
+                            label="Câu trả lời của bạn"
+                            name="doMixiFullName"
+                            value={additionalAnswers.doMixiFullName}
+                            onChange={handleInputChange}
+                          />
+                        </FormControl>
+                      </Grid>
+
+                      {/* Question 3 */}
+                      <Grid item xs={12}>
+                        <Typography variant="body2">Mixi Cup thi đấu theo thể thức mỗi đội có bao nhiêu người trên sân?</Typography>
+                        <FormControl fullWidth required>
+                          <InputLabel>Chọn một phương án</InputLabel>
+                          <Select
+                            label="Số lượng người"
+                            name="teamPlayers"
+                            value={additionalAnswers.teamPlayers}
+                            onChange={handleInputChange}
+                          >
+                            <MenuItem value={5}>5</MenuItem>
+                            <MenuItem value={7}>7</MenuItem>
+                            <MenuItem value={8}>8</MenuItem>
+                            <MenuItem value={11}>11</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+
+                      {/* Question 4 */}
+                      <Grid item xs={12}>
+                        <Typography variant="body2">Biển số xe ở Bà Rịa - Vũng Tàu là?</Typography>
+                        <FormControl fullWidth required>
+                          <InputLabel>Câu trả lời của bạn</InputLabel>
+                          <OutlinedInput
+                            label="Câu trả lời của bạn"
+                            name="licensePlate"
+                            type="number"
+                            value={additionalAnswers.licensePlate}
+                            onChange={handleInputChange}
+                            fullWidth
+                            required
+                          />
+                        </FormControl>
+
+
+                      </Grid>
+
+                      {/* Question 5 */}
+                      <Grid item xs={12}>
+                        <Typography variant="body2">Lí do khiến bạn muốn tham gia sự kiện này?</Typography>
+                        <FormControl fullWidth required>
+                          <InputLabel>Câu trả lời của bạn</InputLabel>
+                          <OutlinedInput
+                            label="Câu trả lời của bạn"
+                            name="reason"
+                            value={additionalAnswers.reason}
+                            onChange={handleInputChange}
+                            fullWidth
+                            required
+                          />
+                        </FormControl>
+
+                      </Grid>
+
+                      {/* Question 6 */}
+                      <Grid item xs={12}>
+                        <Typography variant="body2">Bạn có điều gì muốn gửi đến BTC hoặc 4 đội không?</Typography>
+                        <FormControl fullWidth required>
+                          <InputLabel>Câu trả lời của bạn</InputLabel>
+                          <OutlinedInput
+                            label="Câu trả lời của bạn"
+                            name="messageToOrganizer"
+                            value={additionalAnswers.messageToOrganizer}
+                            onChange={handleInputChange}
+                            multiline
+                            rows={4}
+                            fullWidth
+                          />
+                        </FormControl>
+
                       </Grid>
                     </Grid>
                   </CardContent>
@@ -433,19 +680,19 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 <Card>
                   <CardHeader
                     title="Số lượng người tham dự"
-                    subheader='Tối đa 8 người'
+                    subheader='Tối đa 1 người'
                     action={
                       <OutlinedInput
                         sx={{ maxWidth: 130 }}
                         type="number"
                         value={ticketQuantity}
                         onChange={handleTicketQuantityChange}
-                        inputProps={{ min: 1, max: 8 }}
+                        inputProps={{ min: 1, max: 1 }}
                       />
                     }
                   />
-                  <Divider />
-                  <CardContent>
+                  {/* <Divider /> */}
+                  {/* <CardContent>
                     <Grid container spacing={3}>
                       {ticketHolders.map((holder, index) => (
                         <Grid item lg={12} xs={12} key={index}>
@@ -460,7 +707,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                         </Grid>
                       ))}
                     </Grid>
-                  </CardContent>
+                  </CardContent> */}
                 </Card>
 
                 {/* Payment Method */}
@@ -530,6 +777,9 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   <Grid item sm={9} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
                     <ReCAPTCHA
                       sitekey="6LdRnq4aAAAAAFT6htBYNthM-ksGymg70CsoYqHR"
+                      onChange={() => {
+                        console.log('Are kris ok');
+                      }}
                       ref={captchaRef}
                     />
                   </Grid>
@@ -540,13 +790,67 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                       </Button>
                     </div>
                   </Grid>
+
                 </Grid>
               </Stack>
             </Grid>
           </Grid>
         </Stack>
       </Container>
+      <Modal
+        open={openErrorPositionModal}
+        onClose={handleCloseErrorPositionModal}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: { sm: '500px', xs: '90%' },
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+          }}>
+            <CardContent>
+              <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} sx={{ display: 'flex', alignItems: 'center' }} >
+                <div style={{ width: '150px', height: '150px', borderRadius: '20px' }}>
+                  <DotLottieReact
+                    src="/assets/animations/failure.lottie"
+                    loop
+                    width={'100%'}
+                    height={'100%'}
+                    style={{
+                      borderRadius: '20px'
+                    }}
+                    autoplay
+                  />
+                </div>
 
+                <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Stack spacing={1}>
+                    <Typography variant='h6'>
+                      Bạn cần bật vị trí để tiếp tục đăng ký.
+                    </Typography>
+                    <Typography variant='body2'>
+                      Vui lòng cho phép sử dụng vị trí để tiếp tục
+                    </Typography>
+                    <Typography variant='body2' color={'danger'}>
+
+                    </Typography>
+                  </Stack>
+                  {/* <div style={{ marginTop: '20px' }}>
+                    <Button fullWidth variant='contained' onClick={() => { handleAllowGeolocation }} size="small" endIcon={<ArrowRight />}>
+                      Cho phép
+                    </Button>
+                  </div> */}
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
       <Modal
         open={openSuccessModal}
         onClose={handleCloseSuccessModal}
@@ -582,8 +886,11 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                     />
                   </div>
                 </div>
+
                 <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
                   <Typography variant="h5">Đăng ký thành công !</Typography>
+                  <Typography variant="body1" sx={{ textAlign: 'justify' }}>Để đảm bảo chất lượng trải nghiệm và tổ chức được tốt nhất, chúng tôi sẽ thực hiện việc chọn lọc từ danh sách đăng ký để gửi vé mời.</Typography>
+                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Ban Tổ Chức sẽ xác nhận thông tin với những bạn may mắn nhận được vé qua email. Mong các bạn thông cảm và tiếp tục theo dõi để không bỏ lỡ các cập nhật thú vị tiếp theo của giải đấu!</Typography>
                   <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn quý khách đã sử dụng ETIK. Nếu quý khách cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
                 </Stack>
               </Stack>
@@ -592,8 +899,10 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   Khám phá trang thông tin sự kiện.
                 </Button>
               </div>
+
             </CardContent>
           </Card>
+
         </Container>
       </Modal>
     </div>
