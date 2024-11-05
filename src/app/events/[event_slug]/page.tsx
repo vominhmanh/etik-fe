@@ -55,6 +55,7 @@ export type ShowTicketCategory = {
 export type Show = {
   id: number;
   name: string;
+  avatar: string | null;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
   showTicketCategories: ShowTicketCategory[];

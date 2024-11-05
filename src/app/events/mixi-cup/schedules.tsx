@@ -41,7 +41,11 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
               />
             </Box>
             <ListItemAvatar>
-              <Box component="img" src={'/assets/product-5.png'} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
+              {show.avatar ?
+                <Box component="img" src={show.avatar} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
+                :
+                <Box component="img" src={'/assets/product-5.png'} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
+              }
             </ListItemAvatar>
             <ListItemText
               primary={show.name}
