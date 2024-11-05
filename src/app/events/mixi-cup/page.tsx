@@ -561,15 +561,15 @@ export default function Page(): React.JSX.Element {
                         </FormControl>
                       </Grid>
                       <Grid item lg={12} xs={12}>
-                        <FormControl fullWidth required>
+                      <FormControl fullWidth required>
                           <InputLabel>Link facebook cá nhân</InputLabel>
-                          <Select defaultValue="" label="Link facebook cá nhân" name="linkFacebook" variant="outlined" onChange={(e) => setAdditionalAnswers({ ...additionalAnswers, linkFacebook: e.target.value })}>
-                            {provinces.map((option) => (
-                              <MenuItem key={option.value} value={option.value}>
-                                {option.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
+                          <OutlinedInput
+                            label="Link facebook cá nhân"
+                            name="link_facebook"
+                            value={additionalAnswers.linkFacebook}
+                            placeholder='Vui lòng nhập chính xác theo CCCD'
+                            onChange={(e) => setAdditionalAnswers({ ...additionalAnswers, linkFacebook: e.target.value })}
+                          />
                         </FormControl>
                       </Grid>
 
