@@ -37,7 +37,10 @@ import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 
 export default function Page(): React.JSX.Element {
- 
+  React.useEffect(() => {
+    document.title = "Giao dịch không thành công | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
+
   return (
     <Stack spacing={3}>
       <Card sx={{

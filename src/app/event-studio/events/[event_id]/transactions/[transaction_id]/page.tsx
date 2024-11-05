@@ -165,6 +165,9 @@ export interface Transaction {
 
 
 export default function Page({ params }: { params: { event_id: number; transaction_id: number } }): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Chi tiết giao dịch | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const notificationCtx = React.useContext(NotificationContext);
   const { event_id, transaction_id } = params;

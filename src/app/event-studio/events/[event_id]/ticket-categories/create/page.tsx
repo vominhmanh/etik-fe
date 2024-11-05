@@ -28,6 +28,9 @@ import NotificationContext from '@/contexts/notification-context';
 import 'react-quill/dist/quill.snow.css'; // Import styles for ReactQuill
 
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Thêm mới loại vé | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
   const eventId = params.event_id;
   const [formData, setFormData] = useState({
     name: '',

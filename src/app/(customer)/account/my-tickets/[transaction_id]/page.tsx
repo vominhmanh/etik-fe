@@ -178,6 +178,10 @@ export default function Page({ params }: { params: { transaction_id: number } })
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  React.useEffect(() => {
+    document.title = "Vé của tôi | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
+  
   // Fetch transaction details
   useEffect(() => {
     const fetchTransactionDetails = async () => {

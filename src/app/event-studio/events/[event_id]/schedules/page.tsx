@@ -62,6 +62,9 @@ export type Show = {
 };
 
 export default function Page({ params }: { params: { event_id: string} }): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Suất diễn | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
   const { event_id } = params;
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -115,7 +118,7 @@ export default function Page({ params }: { params: { event_id: string} }): React
       <CompaniesFilters />
       <Grid container spacing={3}>
         {shows.map((show) => (
-          <Grid lg={4} md={6} xs={12}>
+          <Grid key={show.id} lg={4} md={6} xs={12}>
             <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               <CardContent sx={{ flex: '1 1 auto' }}>
                 <Stack spacing={2}>

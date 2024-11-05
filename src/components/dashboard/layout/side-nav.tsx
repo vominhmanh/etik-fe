@@ -167,7 +167,7 @@ export function SideNav(): React.JSX.Element {
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="transactions-list"
-                title="Danh sách khách hàng"
+                title="Danh sách giao dịch"
                 href={`/event-studio/events/${dynamicId}/transactions`}
                 icon={ListDashesIcon}
               />
@@ -177,6 +177,13 @@ export function SideNav(): React.JSX.Element {
                 title="Thêm mới"
                 href={`/event-studio/events/${dynamicId}/transactions/create`}
                 icon={PlusIcon}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="tickets-list"
+                title="Danh sách khách hàng & vé"
+                href={`/event-studio/events/${dynamicId}/tickets`}
+                icon={ListDashesIcon}
               />
             </NavItemCollapse>
             <NavItemCollapse pathname={pathname} key="check-in" title="Soát vé" icon={DoorIcon}>
@@ -195,6 +202,22 @@ export function SideNav(): React.JSX.Element {
                 icon={ScanSmileyIcon}
               />
             </NavItemCollapse>
+            <NavItemCollapse pathname={pathname} key="email-template" title="Email template" icon={UsersIcon}>
+            <NavItemCollapseChildItem
+              pathname={pathname}
+              key="email-template-1"
+              title="Template vé mời"
+              href={`/event-studio/events/${dynamicId}/transactions`}
+              icon={ListDashesIcon}
+            />
+            <NavItemCollapseChildItem
+              pathname={pathname}
+              key="email-template-2"
+              title="Template vé bị huỷ"
+              href={`/event-studio/events/${dynamicId}/transactions/create`}
+              icon={PlusIcon}
+            />
+          </NavItemCollapse>
           </Stack>
         </Box>
       </Stack>

@@ -12,10 +12,14 @@ import { AccountInfo } from '@/components/dashboard/account/account-info';
 export const metadata = { title: `Account | Dashboard | ${config.site.name}` } satisfies Metadata;
 
 export default function Page(): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Tài khoản của tôi | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
+
   return (
     <Stack spacing={3}>
       <div>
-        <Typography variant="h4">Account</Typography>
+        <Typography variant="h4">Tài khoản</Typography>
       </div>
       <Grid container spacing={3}>
         <Grid lg={4} md={6} xs={12}>

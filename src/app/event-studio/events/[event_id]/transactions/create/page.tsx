@@ -72,6 +72,9 @@ export type EventResponse = {
 };
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Thêm mới giao dịch | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
   const [extraFee, setExtraFee] = React.useState<number>(0);

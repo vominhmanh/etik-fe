@@ -99,6 +99,10 @@ const getRowStatusDetails = (status: string) => {
 };
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Vé của tôi | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
+
   const [transactions, setTransactions] = React.useState<TransactionResponse[]>([]);
   const notificationCtx = React.useContext(NotificationContext);
 

@@ -61,6 +61,9 @@ const colorMap = {
 };
 
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Loại vé | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [ticketCategories, setTicketCategories] = React.useState<TicketCategory[]>([]);

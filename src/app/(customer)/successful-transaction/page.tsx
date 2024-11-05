@@ -173,6 +173,10 @@ export interface ECodeResponse {
 
 
 export default function Page(): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Giao dịch thành công | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
+
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [eCode, setECode] = useState<string | null>(null);
   const notificationCtx = React.useContext(NotificationContext);

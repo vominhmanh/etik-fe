@@ -7,9 +7,10 @@ import { GuestGuard } from '@/components/auth/guest-guard';
 import { Layout } from '@/components/auth/layout';
 import { ResetPasswordForm } from '@/components/auth/reset-password-form';
 
-export const metadata = { title: `Reset password | Auth | ${config.site.name}` } satisfies Metadata;
+export const metadata = { title: `Lấy lại mật khẩu | ETIK - Vé điện tử & Quản lý sự kiện` } satisfies Metadata;
 
 export default function Page(): React.JSX.Element {
+ 
   return (
     <Layout>
       <GuestGuard>

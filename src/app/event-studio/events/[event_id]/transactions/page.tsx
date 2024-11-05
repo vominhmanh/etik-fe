@@ -18,6 +18,9 @@ import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Giao dịch | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
@@ -66,13 +69,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       </Backdrop>{' '}
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Bán vé & Khách hàng</Typography>
+          <Typography variant="h4">Danh sách giao dịch</Typography>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
+            {/* <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
               Import
-            </Button>
+            </Button> */}
             <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Export
+              Xuất file excel
             </Button>
           </Stack>
         </Stack>

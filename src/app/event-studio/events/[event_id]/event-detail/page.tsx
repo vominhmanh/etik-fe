@@ -51,6 +51,9 @@ type EventResponse = {
 };
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Chi tiết sự kiện | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
   const { event_id } = params;

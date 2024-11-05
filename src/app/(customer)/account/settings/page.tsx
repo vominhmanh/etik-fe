@@ -11,6 +11,10 @@ import { UpdatePasswordForm } from '@/components/dashboard/settings/update-passw
 export const metadata = { title: `Settings | Dashboard | ${config.site.name}` } satisfies Metadata;
 
 export default function Page(): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Cài đặt | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
+
   return (
     <Stack spacing={3}>
       <div>

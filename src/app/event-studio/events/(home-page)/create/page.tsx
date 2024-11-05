@@ -25,6 +25,10 @@ type EventCreatedResponse = {
 };
 
 export default function Page(): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Thêm sự kiện mới | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
+
   const notificationCtx = React.useContext(NotificationContext);
   const [formData, setFormData] = useState({
     name: '',

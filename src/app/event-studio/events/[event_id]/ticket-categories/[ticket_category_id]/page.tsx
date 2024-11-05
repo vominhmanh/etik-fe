@@ -32,6 +32,9 @@ export default function Page({
 }: {
   params: { event_id: number; ticket_category_id: number };
 }): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Chi tiết loại vé | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
   const eventId = params.event_id;
   const ticketCategoryId = params.ticket_category_id;
   const notificationCtx = React.useContext(NotificationContext);

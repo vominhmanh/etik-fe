@@ -100,6 +100,10 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [position, setPosition] = React.useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
   const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
 
+  React.useEffect(() => {
+    document.title = `Sự kiện ${event?.name} | ETIK - Vé điện tử & Quản lý sự kiện`;
+  }, [event]);
+  
   const totalAmount = React.useMemo(() => {
     return Object.entries(selectedCategories).reduce((total, [showId, category]) => {
       const show = event?.shows.find((show) => show.id === parseInt(showId));

@@ -95,7 +95,12 @@ export type EventResponse = {
 };
 
 const constraints: MediaStreamConstraints = {
-  video: { facingMode: 'environment' },
+  video: { 
+    width: 480,
+    height: 480,
+    facingMode: 'environment',
+    aspectRatio: 1/1
+  },
   audio: false,
 };
 type MyDynamicObject = {
@@ -103,6 +108,10 @@ type MyDynamicObject = {
 };
 
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Soát vé bằng mã QR | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
+
   const [qrManualInput, setQrManualInput] = React.useState<string>('');
   const [eCode, setECode] = React.useState<string>('');
   const [isCheckinControllerOpen, setIsCheckinControllerOpen] = React.useState(false);
@@ -164,7 +173,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         try {
           setIsLoading(true);
           const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
-            `/event-studio/events/${params.event_id}/transactions/get-info-to-create-transaction`
+            `/event-studio/events/${params.event_id}/check-in/get-shows-ticket-categories-to-check-in`
           );
           setEvent(response.data);
           // setFormValues(response.data); // Initialize form with the event data
@@ -180,33 +189,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   }, [params.event_id]);
 
 
-  React.useEffect(() => {
-    const constraints = {
-      video: true,
-      audio: false,
-    };
-
-    const startVideoStream = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        if (ref.current) {
-          ref.current.srcObject = stream;
-        }
-      } catch (err) {
-        notificationCtx.error("Error accessing webcam:", err);
-      }
-    };
-
-    startVideoStream();
-
-    return () => {
-      // Stop the stream when the component unmounts
-      if (ref.current && ref.current.srcObject) {
-        const tracks = (ref.current.srcObject as MediaStream).getTracks();
-        tracks.forEach(track => track.stop());
-      }
-    };
-  }, []);
   const getTransactionByECode = async (eCode: string) => {
     try {
       setIsLoading(true);
@@ -366,7 +348,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 <CardHeader subheader="Vui lòng hướng mã QR về phía camera." title="Quét mã QR" />
                 <Divider />
                 <CardContent>
-                  <video ref={ref} />
+                  <video ref={ref} width={'100%'} />
                 </CardContent>
                 <CardActions>
                   <Button disabled={!isAvailable} onClick={() => (isOn ? off() : on())} startIcon={<Lightning />}>Flash</Button>

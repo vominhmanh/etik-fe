@@ -87,6 +87,9 @@ const colorMap = {
   7: deepPurple[300],
 };
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = "Loại vé theo suất diễn | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [shows, setShows] = React.useState<Show[]>([]);

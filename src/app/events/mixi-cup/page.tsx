@@ -111,7 +111,9 @@ export default function Page(): React.JSX.Element {
   const [position, setPosition] = React.useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
   const [openErrorPositionModal, setOpenErrorPositionModal] = React.useState(false);
   const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
-
+  React.useEffect(() => {
+    document.title = `Sự kiện ${event?.name} | ETIK - Vé điện tử & Quản lý sự kiện`;
+  }, [event]);
   const provinces = [
     { value: 'An Giang', label: 'An Giang' },
     { value: 'Bà Rịa Vũng Tàu', label: 'Bà Rịa Vũng Tàu' },
