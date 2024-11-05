@@ -346,6 +346,7 @@ export default function Page(): React.JSX.Element {
       notificationCtx.error('Lỗi:', error);
     } finally {
       setIsLoading(false);
+      captchaRef.current?.reset()
     }
   };
   return (
