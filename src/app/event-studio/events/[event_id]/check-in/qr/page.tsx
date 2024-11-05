@@ -6,13 +6,13 @@ import axios, { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { useMediaDevices } from "react-media-devices";
 import { useZxing } from "react-zxing";
-import { Accordion, AccordionDetails, AccordionSummary, Card, CardActions, CardContent, CardHeader, Container, FormControl, FormControlLabel, InputLabel, MenuItem, OutlinedInput, Select, styled, SwipeableDrawer, Tooltip } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Card, CardActions, CardContent, CardHeader, Chip, Container, FormControl, FormControlLabel, InputLabel, MenuItem, OutlinedInput, Select, styled, SwipeableDrawer, Tooltip } from '@mui/material';
 import { Drawer, Stack, Grid, Typography, Checkbox, Button, Divider } from '@mui/material';
 import dayjs from 'dayjs';
 import { Info as InfoIcon } from '@phosphor-icons/react/dist/ssr/Info';
 import { grey } from '@mui/material/colors';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
-import { ArrowDown, CaretDown, Lightning } from '@phosphor-icons/react/dist/ssr';
+import { ArrowDown, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 
@@ -95,16 +95,72 @@ export type EventResponse = {
 };
 
 const constraints: MediaStreamConstraints = {
-  video: { 
+  video: {
     width: 480,
     height: 480,
     facingMode: 'environment',
-    aspectRatio: 1/1
+    aspectRatio: 1 / 1
   },
   audio: false,
 };
 type MyDynamicObject = {
   [key: string]: boolean; // key is a string, and value is also a string
+};
+
+// Function to map payment methods to corresponding labels and icons
+const getPaymentMethodDetails = (paymentMethod: string) => {
+  switch (paymentMethod) {
+    case 'cash':
+      return { label: 'Tiền mặt', icon: <Money /> };
+    case 'transfer':
+      return { label: 'Chuyển khoản', icon: <Bank /> };
+    case 'napas247':
+      return { label: 'Napas 247', icon: <Lightning /> };
+    default:
+      return { label: 'Unknown', icon: null };
+  }
+};
+
+// Function to map created source to label
+const getCreatedSource = (paymentMethod: string) => {
+  switch (paymentMethod) {
+    case 'event_studio':
+      return { label: 'Event Studio' };
+    case 'marketplace':
+      return { label: 'Marketplace' };
+    case 'api':
+      return { label: 'API' };
+    default:
+      return { label: 'Unknown', icon: null };
+  }
+};
+
+// Function to map payment statuses to corresponding labels and colors
+const getPaymentStatusDetails = (paymentStatus: string) => {
+  switch (paymentStatus) {
+    case 'waiting_for_payment':
+      return { label: 'Đang chờ thanh toán', color: 'warning' };
+    case 'paid':
+      return { label: 'Đã thanh toán', color: 'success' };
+    case 'refund':
+      return { label: 'Đã hoàn tiền', color: 'secondary' };
+    default:
+      return { label: 'Unknown', color: 'default' };
+  }
+};
+
+// Function to map row statuses to corresponding labels and colors
+const getRowStatusDetails = (status: string) => {
+  switch (status) {
+    case 'normal':
+      return { label: 'Bình thường', color: 'default' };
+    case 'customer_cancelled':
+      return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
+    case 'staff_locked':
+      return { label: 'Khoá bởi NV', color: 'error' };
+    default:
+      return { label: 'Unknown', color: 'default' };
+  }
 };
 
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
@@ -127,6 +183,9 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [accordionState, setAccordionState] = React.useState<MyDynamicObject>({});
   const [ticketDisabledState, setTicketDisabledState] = React.useState<MyDynamicObject>({});
   const [ticketCheckboxState, setTicketCheckboxState] = React.useState<MyDynamicObject>({});
+  const paymentMethodDetails = React.useMemo(() => getPaymentMethodDetails(trxn?.paymentMethod || ''), [trxn]);
+  const paymentStatusDetails = React.useMemo(() => getPaymentStatusDetails(trxn?.paymentStatus || ''), [trxn]);
+  const statusDetails = React.useMemo(() => getRowStatusDetails(trxn?.status || ''), [trxn]);
 
   const { ref, torch: { on, off, isOn, isAvailable } } = useZxing({
     onDecodeResult(result) {
@@ -387,7 +446,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       </Stack>
       <SwipeableDrawer disableBackdropTransition={!iOS} disableDiscovery={iOS} open={isCheckinControllerOpen} onOpen={() => setIsCheckinControllerOpen(true)} onClose={handleCloseDrawer} anchor="bottom">
         <Puller />
-        <Container maxWidth="xl">
+        <Container maxWidth="sm">
           <Stack spacing={2} sx={{ mt: 3 }}>
             <Typography variant="h6">Mã QR: {eCode}</Typography>
             <Divider />
@@ -397,7 +456,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
               <Typography color="error">KHÔNG TÌM THẤY GIAO DỊCH</Typography>
             ) : (
               <>
-                <Stack spacing={2}>
+                <Stack spacing={1}>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Họ tên:</Typography>
                     <Typography variant="body1">{trxn?.name}</Typography>
@@ -466,10 +525,26 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       );
                     })}
                   </div>
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1">Trạng thái giao dịch:</Typography>
+                    <Chip
+                      color={getRowStatusDetails(trxn?.status || '').color}
+                      label={getRowStatusDetails(trxn?.status || '').label}
+                    />
+                  </Grid>
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1">Trạng thái thanh toán:</Typography>
+                    <Chip
+                      color={getPaymentStatusDetails(trxn?.paymentStatus || '').color}
+                      label={getPaymentStatusDetails(trxn?.paymentStatus || '').label}
+                    />
+                  </Grid>
+                  <Divider />
 
 
 
-                  {/* <Stack>
+
+                {/* <Stack>
                     {tickets.map((ticket, index) => (
                       <Grid container key={ticket.id}>
                         <Grid item xs={12}>
@@ -492,22 +567,22 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     ))}
                   </Stack> */}
 
-                  <Button
-                    variant="contained"
-                    // disabled={tickets.filter(ticket => ticket.checked).length === 0}
-                    onClick={() => {
-                      setConfirmCheckin(true);
-                      sendCheckinRequest(eCode);
-                    }}
-                  >
-                    {'Check-in'}
-                  </Button>
-                </Stack>
-              </>
+                <Button
+                  variant="contained"
+                  // disabled={tickets.filter(ticket => ticket.checked).length === 0}
+                  onClick={() => {
+                    setConfirmCheckin(true);
+                    sendCheckinRequest(eCode);
+                  }}
+                >
+                  {'Check-in'}
+                </Button>
+              </Stack>
+          </>
             )}
-          </Stack>
-        </Container>
-      </SwipeableDrawer>
+        </Stack>
+      </Container>
+    </SwipeableDrawer >
 
     </>
   );

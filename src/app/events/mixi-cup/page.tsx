@@ -334,6 +334,7 @@ export default function Page(): React.JSX.Element {
       );
       // notificationCtx.success('Transaction created successfully!');
       setOpenSuccessModal(true)
+      setTimeout(() => {window.location.href = "https://www.facebook.com/MixiGaming"}, 5000) 
 
       // Redirect to the payment checkout URL
       if (response.data.paymentCheckoutUrl) {
@@ -545,7 +546,7 @@ export default function Page(): React.JSX.Element {
                           />
                         </FormControl>
                       </Grid>
-                      <Grid item md={6} xs={12}>
+                      <Grid item lg={6} xs={12}>
                         <FormControl fullWidth required>
                           <InputLabel>Tỉnh thành thường trú</InputLabel>
                           <Select defaultValue="" label="Tỉnh thành thường trú" name="province" variant="outlined" onChange={(e) => setAdditionalAnswers({ ...additionalAnswers, province: e.target.value })}>
@@ -898,7 +899,7 @@ export default function Page(): React.JSX.Element {
               </Stack>
               <div style={{ marginTop: '20px', justifyContent: 'center' }}>
                 <Button fullWidth variant='contained' size="small" endIcon={<ArrowRight />} onClick={() => window.location.href = "https://www.facebook.com/MixiGaming"}>
-                  Khám phá trang thông tin sự kiện.
+                  Khám phá trang MixiGaming (Tự động điều hướng sau 5s).
                 </Button>
               </div>
 
