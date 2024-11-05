@@ -567,7 +567,6 @@ export default function Page(): React.JSX.Element {
                             label="Link facebook cá nhân"
                             name="link_facebook"
                             value={additionalAnswers.linkFacebook}
-                            placeholder='Vui lòng nhập chính xác theo CCCD'
                             onChange={(e) => setAdditionalAnswers({ ...additionalAnswers, linkFacebook: e.target.value })}
                           />
                         </FormControl>
