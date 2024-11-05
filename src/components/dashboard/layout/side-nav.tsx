@@ -3,6 +3,8 @@
 import * as React from 'react';
 import RouterLink from 'next/link';
 import { usePathname } from 'next/navigation';
+import { EventResponse } from '@/app/events/[event_slug]/page';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Collapse from '@mui/material/Collapse';
@@ -26,10 +28,12 @@ import { ScanSmiley as ScanSmileyIcon } from '@phosphor-icons/react/dist/ssr/Sca
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
+import { AxiosResponse } from 'axios';
 
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
+import NotificationContext from '@/contexts/notification-context';
 import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
@@ -37,11 +41,29 @@ import { navItems } from './config';
 export function SideNav(): React.JSX.Element {
   const pathname = usePathname();
   const [dynamicId, setDynamicId] = React.useState<string | null>(null);
+  const [event, setEvent] = React.useState<EventResponse | null>(null);
+  const notificationCtx = React.useContext(NotificationContext);
 
   React.useEffect(() => {
     const storedEventId = localStorage.getItem('event_id');
     setDynamicId(storedEventId);
   }, []);
+
+  React.useEffect(() => {
+    if (dynamicId) {
+      const fetchEventDetails = async () => {
+        try {
+          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
+            `/event-studio/events/${dynamicId}`
+          );
+          setEvent(response.data);
+        } catch (error) {
+          notificationCtx.error('Error fetching event details:', error);
+        }
+      };
+      fetchEventDetails();
+    }
+  }, [dynamicId]);
 
   return (
     <Box
@@ -96,7 +118,7 @@ export function SideNav(): React.JSX.Element {
                 variant="subtitle1"
                 sx={{ fontSize: '0.875rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
               >
-                REFUND MEETING ĐÀ NẴNG VÔ ĐỐI
+                {event?.name || 'Untitled Event'}
               </Typography>
             </Box>
             <CaretUpDownIcon />
@@ -203,21 +225,21 @@ export function SideNav(): React.JSX.Element {
               />
             </NavItemCollapse>
             <NavItemCollapse pathname={pathname} key="email-template" title="Email template" icon={UsersIcon}>
-            <NavItemCollapseChildItem
-              pathname={pathname}
-              key="email-template-1"
-              title="Template vé mời"
-              href={`/event-studio/events/${dynamicId}/transactions`}
-              icon={ListDashesIcon}
-            />
-            <NavItemCollapseChildItem
-              pathname={pathname}
-              key="email-template-2"
-              title="Template vé bị huỷ"
-              href={`/event-studio/events/${dynamicId}/transactions/create`}
-              icon={PlusIcon}
-            />
-          </NavItemCollapse>
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="email-template-1"
+                title="Template vé mời"
+                href={`/event-studio/events/${dynamicId}/transactions`}
+                icon={ListDashesIcon}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="email-template-2"
+                title="Template vé bị huỷ"
+                href={`/event-studio/events/${dynamicId}/transactions/create`}
+                icon={PlusIcon}
+              />
+            </NavItemCollapse>
           </Stack>
         </Box>
       </Stack>

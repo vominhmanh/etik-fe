@@ -129,15 +129,7 @@ export default function Page(): React.JSX.Element {
               </CardContent>
               <Divider />
               <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 1 }}>
-                <Button
-                  onClick={() => {
-                    localStorage.setItem('event_id', event.id.toString());
-                    window.location.href = `/event-studio/events/${event.id}`;
-                  }}
-                  // href={`/event-studio/events/${event.id}`}
-                  size="small"
-                  startIcon={<EyeIcon />}
-                >
+                <Button href={`/event-studio/events/${event.id}`} size="small" startIcon={<EyeIcon />}>
                   Xem chi tiết
                 </Button>
               </Stack>
