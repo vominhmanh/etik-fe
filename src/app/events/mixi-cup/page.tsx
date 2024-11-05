@@ -94,6 +94,7 @@ export default function Page(): React.JSX.Element {
   });
   const [additionalAnswers, setAdditionalAnswers] = React.useState({
     province: '',
+    linkFacebook: '',
     arrivalTime: '',
     doMixiFullName: '',
     teamPlayers: '',
@@ -550,6 +551,18 @@ export default function Page(): React.JSX.Element {
                         <FormControl fullWidth required>
                           <InputLabel>Tỉnh thành thường trú</InputLabel>
                           <Select defaultValue="" label="Tỉnh thành thường trú" name="province" variant="outlined" onChange={(e) => setAdditionalAnswers({ ...additionalAnswers, province: e.target.value })}>
+                            {provinces.map((option) => (
+                              <MenuItem key={option.value} value={option.value}>
+                                {option.label}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item lg={12} xs={12}>
+                        <FormControl fullWidth required>
+                          <InputLabel>Link facebook cá nhân</InputLabel>
+                          <Select defaultValue="" label="Link facebook cá nhân" name="linkFacebook" variant="outlined" onChange={(e) => setAdditionalAnswers({ ...additionalAnswers, linkFacebook: e.target.value })}>
                             {provinces.map((option) => (
                               <MenuItem key={option.value} value={option.value}>
                                 {option.label}
