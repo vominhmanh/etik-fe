@@ -9,12 +9,9 @@ import { config } from '@/config';
 import { AccountDetailsForm } from '@/components/dashboard/account/account-details-form';
 import { AccountInfo } from '@/components/dashboard/account/account-info';
 
-export const metadata = { title: `Account | Dashboard | ${config.site.name}` } satisfies Metadata;
+export const metadata = { title: `Tài khoản của tôi | ${config.site.name}` } satisfies Metadata;
 
 export default function Page(): React.JSX.Element {
-  React.useEffect(() => {
-    document.title = "Tài khoản của tôi | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
 
   return (
     <Stack spacing={3}>
