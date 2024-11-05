@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { CardMedia, Chip, MenuItem, Select, Stack } from '@mui/material';
+import { CardMedia, Chip, MenuItem, Select, Stack, Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
@@ -15,7 +15,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, Lightning as LightningIcon, Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, Info, Lightning as LightningIcon, Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
 
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
@@ -97,8 +97,8 @@ const getRowStatusDetails = (status: string) => {
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
   holder: string;        // Name of the ticket holder
-  // createdAt: string;   // The date the ticket was created
-  // checkInAt: string | null; // The date/time the ticket was checked in, nullable
+  createdAt: string;   // The date the ticket was created
+  checkInAt: string | null; // The date/time the ticket was checked in, nullable
 }
 
 export interface Show {
@@ -181,7 +181,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
   React.useEffect(() => {
     document.title = "Vé của tôi | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
-  
+
   // Fetch transaction details
   useEffect(() => {
     const fetchTransactionDetails = async () => {
@@ -245,7 +245,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
         <Typography variant="h4">Chi tiết vé của {transaction.name}</Typography>
       </div>
       <Grid container spacing={3}>
-      <Grid lg={5} md={5} xs={12} spacing={3}>
+        <Grid lg={5} md={5} xs={12} spacing={3}>
           <Stack spacing={3}>
             <Card>
               <CardHeader title="Thanh toán" />
@@ -303,6 +303,13 @@ export default function Page({ params }: { params: { transaction_id: number } })
                         </Stack>
                         <Typography variant="body1">{category.showTicketCategory.ticketCategory.name}</Typography>
                       </Grid>
+                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <HashIcon fontSize="var(--icon-fontSize-md)" />
+                          <Typography variant="body1">Số lượng:</Typography>
+                        </Stack>
+                        <Typography variant="body1">{category.tickets.length}</Typography>
+                      </Grid>
 
                       {/* Loop through tickets for this category */}
                       {category.tickets.map((ticket, ticketIndex) => (
@@ -310,7 +317,17 @@ export default function Page({ params }: { params: { transaction_id: number } })
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                             <Typography variant="body1">Người tham dự {ticketIndex + 1}:</Typography>
                           </Stack>
-                          <Typography variant="body1">{ticket.holder}</Typography>
+                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Typography variant="body1">{ticket.holder}</Typography>
+                            <Tooltip title={
+                              <Stack spacing={1}>
+                                <Typography>Trạng thái check-in: {ticket.checkInAt ? `Check-in lúc ${dayjs(transaction.paymentDueDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
+                                {/* <Typography>ID giao dịch: {row.transactionId}</Typography> */}
+                              </Stack>
+                            }>
+                              <Typography variant="subtitle2"><Info /></Typography>
+                            </Tooltip>
+                          </Stack>
                         </Grid>
                       ))}
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -319,14 +336,6 @@ export default function Page({ params }: { params: { transaction_id: number } })
                           <Typography variant="body1">Đơn giá:</Typography>
                         </Stack>
                         <Typography variant="body1">{formatPrice(category.netPricePerOne || 0)}</Typography>
-                      </Grid>
-
-                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <HashIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1">Số lượng:</Typography>
-                        </Stack>
-                        <Typography variant="body1">{category.tickets.length}</Typography>
                       </Grid>
 
                       <Divider sx={{ marginY: 2 }} />
@@ -471,7 +480,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                 </Grid>
               </CardContent>
             </Card>
-            
+
             {eCode && (
               <Card>
                 <CardHeader title="Mã QR check-in" subheader="Vui lòng bảo mật mã QR check-in" />

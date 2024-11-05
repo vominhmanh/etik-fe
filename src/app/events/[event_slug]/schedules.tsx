@@ -45,7 +45,8 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
                 <Box component="img" src={show.avatar} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
                 :
                 <Box component="img" src={'/assets/product-5.png'} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
-              }            </ListItemAvatar>
+              }            
+              </ListItemAvatar>
             <ListItemText
               primary={show.name}
               secondary={show.startDateTime && show.endDateTime

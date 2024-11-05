@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { CardMedia, Chip, MenuItem, Select, Stack } from '@mui/material';
+import { CardMedia, Chip, MenuItem, Select, Stack, Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
@@ -15,7 +15,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, Lightning as LightningIcon, Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, Info, Lightning as LightningIcon, Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
 
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
@@ -97,8 +97,8 @@ const getRowStatusDetails = (status: string) => {
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
   holder: string;        // Name of the ticket holder
-  // createdAt: string;   // The date the ticket was created
-  // checkInAt: string | null; // The date/time the ticket was checked in, nullable
+  createdAt: string;   // The date the ticket was created
+  checkInAt: string | null; // The date/time the ticket was checked in, nullable
 }
 
 export interface Show {
@@ -352,13 +352,31 @@ export default function Page(): React.JSX.Element {
                             <Typography variant="body1">{category.showTicketCategory.ticketCategory.name}</Typography>
                           </Grid>
 
+                          <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                              <HashIcon fontSize="var(--icon-fontSize-md)" />
+                              <Typography variant="body1">Số lượng:</Typography>
+                            </Stack>
+                            <Typography variant="body1">{category.tickets.length}</Typography>
+                          </Grid>
+
                           {/* Loop through tickets for this category */}
                           {category.tickets.map((ticket, ticketIndex) => (
                             <Grid key={ticketIndex} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                               <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                                 <Typography variant="body1">Người tham dự {ticketIndex + 1}:</Typography>
                               </Stack>
-                              <Typography variant="body1">{ticket.holder}</Typography>
+                              <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Typography variant="body1">{ticket.holder}</Typography>
+                                <Tooltip title={
+                                  <Stack spacing={1}>
+                                    <Typography>Trạng thái check-in: {ticket.checkInAt ? `Check-in lúc ${dayjs(transaction.paymentDueDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
+                                    {/* <Typography>ID giao dịch: {row.transactionId}</Typography> */}
+                                  </Stack>
+                                }>
+                                  <Typography variant="subtitle2"><Info /></Typography>
+                                </Tooltip>
+                              </Stack>
                             </Grid>
                           ))}
                           <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -369,13 +387,7 @@ export default function Page(): React.JSX.Element {
                             <Typography variant="body1">{formatPrice(category.netPricePerOne || 0)}</Typography>
                           </Grid>
 
-                          <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                              <HashIcon fontSize="var(--icon-fontSize-md)" />
-                              <Typography variant="body1">Số lượng:</Typography>
-                            </Stack>
-                            <Typography variant="body1">{category.tickets.length}</Typography>
-                          </Grid>
+
 
                           <Divider sx={{ marginY: 2 }} />
                         </div>

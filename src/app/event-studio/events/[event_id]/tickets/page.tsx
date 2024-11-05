@@ -13,15 +13,59 @@ import axios, { AxiosResponse } from 'axios';
 import NotificationContext from '@/contexts/notification-context';
 import { CustomersFilters } from '@/components/dashboard/customer/customers-filters';
 
-import { Transaction, TransactionsTable } from './tickets-table';
+import { TicketsTable } from './tickets-table';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
+interface Show {
+  id: number;
+  eventId: number;
+  name: string;
+}
+
+interface TicketCategory {
+  id: number;
+  eventId: number;
+  name: string;
+}
+
+interface ShowTicketCategory {
+  ticketCategoryId: number;
+  showId: number;
+  show: Show;
+  ticketCategory: TicketCategory;
+}
+
+interface Transaction {
+  id: number;
+  status: string;
+  paymentStatus: string;
+}
+
+interface TransactionShowTicketCategory {
+  transactionId: number;
+  netPricePerOne: number;
+  showId: number;
+  ticketCategoryId: number;
+  showTicketCategory: ShowTicketCategory;
+  transaction: Transaction;
+}
+
+export interface Ticket {
+  id: number;
+  transactionId: number;
+  showId: number;
+  createdAt: string; // ISO date string
+  ticketCategoryId: number;
+  holder: string;
+  checkInAt?: string | null; // ISO date string or null
+  transactionShowTicketCategory: TransactionShowTicketCategory;
+}
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
-    document.title = "Giao dịch | ETIK - Vé điện tử & Quản lý sự kiện";
+    document.title = "Danh sách khách hàng & vé | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
-  const [transactions, setTransactions] = React.useState<Transaction[]>([]);
+  const [tickets, setTickets] = React.useState<Ticket[]>([]);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const notificationCtx = React.useContext(NotificationContext);
@@ -35,25 +79,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     setPage(0); // Reset to the first page whenever rows per page change
   };
 
-  // Fetch transactions for the event
+  // Fetch tickets for the event
   React.useEffect(() => {
-    async function fetchTransactions() {
+    async function fetchTickets() {
       try {
         setIsLoading(true);
-        const response: AxiosResponse<Transaction[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${params.event_id}/transactions`
+        const response: AxiosResponse<Ticket[]> = await baseHttpServiceInstance.get(
+          `/event-studio/events/${params.event_id}/tickets`
         );
-        setTransactions(response.data);
+        setTickets(response.data);
       } catch (error) {
-        notificationCtx.error('Error fetching transactions:', error);
+        notificationCtx.error('Error fetching tickets:', error);
       } finally {
         setIsLoading(false);
       }
     }
-    fetchTransactions();
+    fetchTickets();
   }, [params.event_id]);
 
-  const paginatedCustomers = applyPagination(transactions, page, rowsPerPage);
+  const paginatedCustomers = applyPagination(tickets, page, rowsPerPage);
 
   return (
     <Stack spacing={3}>
@@ -90,8 +134,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </div>
       </Stack>
       <CustomersFilters />
-      <TransactionsTable
-        count={transactions.length}
+      <TicketsTable
+        count={tickets.length}
         page={page}
         rows={paginatedCustomers}
         rowsPerPage={rowsPerPage}
@@ -103,6 +147,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   );
 }
 
-function applyPagination(rows: Transaction[], page: number, rowsPerPage: number): Transaction[] {
+function applyPagination(rows: Ticket[], page: number, rowsPerPage: number): Ticket[] {
   return rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 }

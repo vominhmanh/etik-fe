@@ -25,7 +25,7 @@ import { Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr/Light
 import IconButton from '@mui/material/IconButton';
 import { useSelection } from '@/hooks/use-selection';
 import { Chip } from '@mui/material';
-
+import { Ticket } from './page'
 
 
 // Function to map payment methods to corresponding labels and icons
@@ -75,23 +75,10 @@ function noop(): void {
   // do nothing
 }
 
-export interface Transaction {
-  id: number;
-  email: string;
-  name: string;
-  phoneNumber: string;
-  ticketQuantity: number;
-  totalAmount: number;
-  paymentMethod: string;
-  paymentStatus: string;
-  status: string;
-  createdAt: string;
-}
-
 interface CustomersTableProps {
   count?: number;
   page?: number;
-  rows?: Transaction[];
+  rows?: Ticket[];
   rowsPerPage?: number;
   eventId: number;
 }
@@ -132,14 +119,14 @@ function stringAvatar(name: string) {
 interface CustomersTableProps {
   count?: number;
   page?: number;
-  rows?: Transaction[];
+  rows?: Ticket[];
   rowsPerPage?: number;
   eventId: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
 }
 
-export function TransactionsTable({
+export function TicketsTable({
   count = 0,
   rows = [],
   page = 0,
@@ -158,7 +145,7 @@ export function TransactionsTable({
   };
 
   const rowIds = React.useMemo(() => {
-    return rows.map((transaction) => transaction.id);
+    return rows.map((ticket) => ticket.id);
   }, [rows]);
 
   const { selectAll, deselectAll, selectOne, deselectOne, selected } = useSelection(rowIds);
@@ -186,10 +173,12 @@ export function TransactionsTable({
                 />
               </TableCell>
               <TableCell>Họ tên</TableCell>
-              <TableCell>Số lượng</TableCell>
+              <TableCell>Suất diễn</TableCell>
+              <TableCell>Loại vé</TableCell>
               <TableCell>Thanh toán</TableCell>
               <TableCell>Trạng thái</TableCell>
               <TableCell>Thời gian tạo</TableCell>
+              <TableCell>Thời gian check-in</TableCell>
               <TableCell> </TableCell>
             </TableRow>
           </TableHead>
@@ -214,62 +203,47 @@ export function TransactionsTable({
                     <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
                       <Tooltip title={
                         <Stack spacing={1}>
-                          <Typography variant='body2'>Email: {row.email}</Typography>
-                          <Typography variant='body2'>SĐT: {row.phoneNumber}</Typography>
-                          <Typography>ID: {row.id}</Typography>
+                          <Typography>ID vé: {row.id}</Typography>
+                          <Typography>ID giao dịch: {row.transactionId}</Typography>
                         </Stack>
                       }>
-                        <Avatar {...stringAvatar(row.name)} />
+                        <Avatar {...stringAvatar(row.holder)} />
                       </Tooltip>
                       <Tooltip title={
                         <Stack spacing={1}>
-                          <Typography>Email: {row.email}</Typography>
-                          <Typography>SĐT: {row.phoneNumber}</Typography>
-                          <Typography>ID: {row.id}</Typography>
+                          <Typography>ID vé: {row.id}</Typography>
+                          <Typography>ID giao dịch: {row.transactionId}</Typography>
                         </Stack>
                       }>
-                        <Typography variant="subtitle2">{row.name}</Typography>
+                        <Typography variant="subtitle2">{row.holder}</Typography>
                       </Tooltip>
 
                     </Stack>
                   </TableCell>
-                  <TableCell>{row.ticketQuantity}</TableCell>
-
+                  <TableCell>{row.transactionShowTicketCategory.showTicketCategory.show.name}</TableCell>
+                  <TableCell>{row.transactionShowTicketCategory.showTicketCategory.ticketCategory.name}</TableCell>
                   <TableCell>
-                    <Tooltip
-                      title={
-                        <Stack spacing={1}>
-                          
-                          <Typography variant="body2">
-                            Phương thức thanh toán: {getPaymentMethodDetails(row.paymentMethod).label}
-                          </Typography>
-                          <Typography variant="body2">Trạng thái: {getPaymentStatusDetails(row.paymentStatus).label}</Typography>
-                        </Stack>
+                    <Chip
+                      color={getPaymentStatusDetails(row.transactionShowTicketCategory.transaction.paymentStatus).color}
+                      label={
+                        getPaymentStatusDetails(row.transactionShowTicketCategory.transaction.paymentStatus).label
                       }
-                    >
-                      <Chip
-                        color={getPaymentStatusDetails(row.paymentStatus).color}
-                        label={
-                          <>
-                            {getPaymentMethodDetails(row.paymentMethod).icon}{" "}
-                            {formatPrice(row.totalAmount)}
-                          </>
-                        }
-                        size="small"
-                      />
-                    </Tooltip>
+                      size="small"
+                    />
                   </TableCell>
+
 
                   <TableCell>
                     <Chip
-                      color={getRowStatusDetails(row.status).color}
-                      label={getRowStatusDetails(row.status).label}
+                      color={getRowStatusDetails(row.transactionShowTicketCategory.transaction.status).color}
+                      label={getRowStatusDetails(row.transactionShowTicketCategory.transaction.status).label}
                       size="small"
                     />
                   </TableCell>
                   <TableCell>{dayjs(row.createdAt).format('HH:mm:ss DD/MM/YYYY')}</TableCell>
+                  <TableCell>{row.checkInAt ? dayjs(row.checkInAt).format('HH:mm:ss DD/MM/YYYY') : ''}</TableCell>
                   <TableCell>
-                    <IconButton color="primary" href={`/event-studio/events/${eventId}/transactions/${row.id}`}>
+                    <IconButton color="primary" href={`/event-studio/events/${eventId}/transactions/${row.transactionId}`}>
                       <ArrowSquareUpRightIcon />
                     </IconButton>
                   </TableCell>
