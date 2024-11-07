@@ -35,6 +35,7 @@ import NotificationContext from '@/contexts/notification-context';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import Head from 'next/head';
 
 export type TicketCategory = {
   id: number;
@@ -350,6 +351,32 @@ export default function Page(): React.JSX.Element {
     }
   };
   return (
+    <>
+     <Head>
+        <title>Đăng ký tham gia MIXI CUP - Giải đấu giao hữu bóng đá đỉnh cao của cộng đồng streamer Việt Nam!</title>
+        <meta name="description" content="Mixi Cup là sự kiện bóng đá giao hữu đặc biệt do MixiGaming tổ chức, quy tụ các đội tuyển hàng đầu với các đội trưởng nổi tiếng: Refund Gaming - Đội trưởng: Độ Mixi, Allstar - Đội trưởng: Cris Phan, SBTC - Đội trưởng: Thầy Giáo Ba, 500Bros Media - Đội trưởng: Bomman. Giải đấu sẽ diễn ra trong hai ngày 23 và 24 tháng 11 tại Sân vận động Bà Rịa, hứa hẹn mang đến những màn tranh tài kịch tính và đầy sôi động. Khán giả có thể đăng ký nhận vé miễn phí để có cơ hội trực tiếp ủng hộ thần tượng và theo dõi các trận cầu hấp dẫn!" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Đăng ký tham gia MIXI CUP - Giải đấu giao hữu bóng đá đỉnh cao của cộng đồng streamer Việt Nam!" />
+        <meta property="og:description" content="Mixi Cup là sự kiện bóng đá giao hữu đặc biệt do MixiGaming tổ chức, quy tụ các đội tuyển hàng đầu với các đội trưởng nổi tiếng: Refund Gaming - Đội trưởng: Độ Mixi, Allstar - Đội trưởng: Cris Phan, SBTC - Đội trưởng: Thầy Giáo Ba, 500Bros Media - Đội trưởng: Bomman. Giải đấu sẽ diễn ra trong hai ngày 23 và 24 tháng 11 tại Sân vận động Bà Rịa, hứa hẹn mang đến những màn tranh tài kịch tính và đầy sôi động. Khán giả có thể đăng ký nhận vé miễn phí để có cơ hội trực tiếp ủng hộ thần tượng và theo dõi các trận cầu hấp dẫn!" />
+        <meta property="og:image" content="https://etik-media.s3.amazonaws.com/1/event_banners/64b41c29-c751-400a-a54c-f8ae6f092dec.jpg" />
+        <meta property="og:image:alt" content="MIXI CUP - Giải đấu giao hữu bóng đá đỉnh cao của cộng đồng streamer Việt Nam" />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="628" />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Đăng ký tham gia MIXI CUP - Giải đấu giao hữu bóng đá đỉnh cao của cộng đồng streamer Việt Nam!" />
+        <meta name="twitter:description" content="Mixi Cup là sự kiện bóng đá giao hữu đặc biệt do MixiGaming tổ chức, quy tụ các đội tuyển hàng đầu với các đội trưởng nổi tiếng: Refund Gaming - Đội trưởng: Độ Mixi, Allstar - Đội trưởng: Cris Phan, SBTC - Đội trưởng: Thầy Giáo Ba, 500Bros Media - Đội trưởng: Bomman. Giải đấu sẽ diễn ra trong hai ngày 23 và 24 tháng 11 tại Sân vận động Bà Rịa, hứa hẹn mang đến những màn tranh tài kịch tính và đầy sôi động. Khán giả có thể đăng ký nhận vé miễn phí để có cơ hội trực tiếp ủng hộ thần tượng và theo dõi các trận cầu hấp dẫn!" />
+        <meta name="twitter:image" content="https://etik-media.s3.amazonaws.com/1/event_banners/64b41c29-c751-400a-a54c-f8ae6f092dec.jpg" />
+        <meta name="twitter:image:alt" content="MIXI CUP - Giải đấu giao hữu bóng đá đỉnh cao của cộng đồng streamer Việt Nam" />
+        
+        {/* Favicon */}
+        <link rel="icon" href="https://etik-media.s3.amazonaws.com/1/event_avatars/9e17892e-40a4-4326-a965-944195f8f705.png" />
+      </Head>
+  
     <div
       style={{
         scrollBehavior: 'smooth',
@@ -923,5 +950,6 @@ export default function Page(): React.JSX.Element {
         </Container>
       </Modal>
     </div>
+    </>
   );
 }
