@@ -123,7 +123,7 @@ export default function Page(): React.JSX.Element {
     currentTime.setMinutes(currentTime.getMinutes() + 5); // Add 5 minutes
     const formattedTime = currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     
-    notificationCtx.warning(`Hiện tại cổng đăng ký đã đóng. Chân thành cảm ơn Quý khách đã quan tâm tới sự kiện. `);
+    notificationCtx.warning(`Vui lòng hoàn thành phiên đăng ký trước ${formattedTime}. `);
   }, []);
 
   const provinces = [
