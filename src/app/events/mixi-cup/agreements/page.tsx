@@ -397,14 +397,13 @@ export default function Page(): React.JSX.Element {
                       <CardContent>
                         <ol>
                           <li>Check-in đúng khán đài đã được ghi trên vé.</li>
-                          <li>Vé chỉ dành cho 01 người lớn trên 18 tuổi, không kèm trẻ em.</li>
+                          <li>Vé chỉ dành cho 01 người trên 16 tuổi, không kèm trẻ em.</li>
                           <li>Vui lòng xếp hàng và xuất trình mã vé điện tử tại cổng check-in. Không chen lấn, xô đẩy trước, trong và sau sự kiện.</li>
-                          <li>Khán giả vui lòng mang vòng tay của BTC phát theo quy định cho từng khu vực. Không tháo vòng tay trong suốt quá trình diễn ra sự kiện.</li>
                           <li>Vui lòng không đi vào những khu vực nội bộ, khu vực cấm trong khuôn viên sự kiện.</li>
                           <li>Không hút thuốc lá hoặc thuốc lá điện tử trong khu vực diễn ra sự kiện.</li>
                           <li>Bỏ rác đúng nơi quy định.</li>
                           <li>Trang phục lịch sự.</li>
-                          <li>Khán giả vui lòng đến đúng giờ. Khi chương trình bắt đầu, vui lòng tuân thủ ngồi đúng vị trí khán đài theo vé đã mua.</li>
+                          <li>Khán giả vui lòng đến đúng giờ.</li>
                           <li>Không mang đồ ăn, thức uống từ bên ngoài vào khuôn viên sự kiện.</li>
                           <li>Nghiêm cấm mang theo chất kích thích, chất gây nghiện, chất gây cháy nổ, vũ khí, vật liệu sắc nhọn và vật nuôi.</li>
                           <li>Vui lòng tự bảo quản tư trang vật dụng, tài sản cá nhân khi tham gia sự kiện.</li>
