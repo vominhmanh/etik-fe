@@ -38,7 +38,8 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
       >
         <Box sx={{ display: 'flex', flex: '1 1 auto', flexDirection: 'column', pl: { lg: 'var(--SideNav-width)' } }}>
           <MainNav />
-          <main>{children}</main>
+          <main>
+          <React.Suspense>{children}</React.Suspense></main>
         </Box>
       </Box>
     </>
