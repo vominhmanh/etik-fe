@@ -228,6 +228,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       notificationCtx.error('Lỗi:', error);
     } finally {
       setIsLoading(false);
+      captchaRef.current?.reset()
     }
   };
   return (
