@@ -15,7 +15,8 @@ export default function Page() {
         />
         <meta name="keywords" content="ETIK, vé điện tử, quản lý sự kiện, nền tảng sự kiện, vé sự kiện" />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://yourwebsite.com/" />
+        <link rel="canonical" href="https:etik.io.vn/" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <Box
         sx={{
@@ -53,7 +54,7 @@ export default function Page() {
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
               <Box
                 component="img"
-                alt="Widgets"
+                alt="Ảnh nền tảng Vé điện tử và Quản lý sự kiện chuyên nghiệp"
                 src="/assets/auth-widgets.png"
                 sx={{ height: 'auto', width: '100%', maxWidth: '600px' }}
               />
