@@ -227,8 +227,8 @@ export default function Page(): React.JSX.Element {
   };
 
   const goToEkycRegister = () => {
-     const redirectUrl = `https://ekyc.etik.io.vn/ekyc-register?event_slug=mixi-cup&transaction_id=${transactionId}&response_token=${token}`;
-     window.location.href = redirectUrl;
+    const redirectUrl = `https://ekyc.etik.io.vn/ekyc-register?event_slug=mixi-cup&transaction_id=${transactionId}&response_token=${token}`;
+    window.location.href = redirectUrl;
   }
 
   const handleChange = (event) => {
@@ -308,36 +308,6 @@ export default function Page(): React.JSX.Element {
               <Grid container spacing={3}>
                 <Grid lg={5} md={5} xs={12} spacing={3}>
                   <Stack spacing={3}>
-
-                    <Card>
-                      <CardHeader title="Thanh toán" />
-                      <Divider />
-                      <CardContent>
-                        <Stack spacing={2}>
-                          <Grid container justifyContent="space-between">
-                            <Typography variant="body1">Trạng thái vé:</Typography>
-                            <Chip color={statusDetails.color} label={statusDetails.label} />
-                          </Grid>
-                          <Grid container justifyContent="space-between">
-                            <Typography variant="body1">Phương thức thanh toán:</Typography>
-                            <Chip icon={paymentMethodDetails.icon} label={paymentMethodDetails.label} />
-                          </Grid>
-                          <Grid container justifyContent="space-between">
-                            <Typography variant="body1">Trạng thái thanh toán:</Typography>
-                            <Chip label={paymentStatusDetails.label} color={paymentStatusDetails.color} />
-                          </Grid>
-                          <Grid container justifyContent="space-between">
-                            <Typography variant="body1">Tổng số tiền:</Typography>
-                            <Chip
-                              icon={<MoneyIcon />}
-                              label={`${transaction.totalAmount.toLocaleString()} VND`}
-                              color="success"
-                            />
-                          </Grid>
-                        </Stack>
-                      </CardContent>
-                    </Card>
-                    
                     <Card>
                       <CardContent>
                         <Stack spacing={0}>
@@ -379,7 +349,6 @@ export default function Page(): React.JSX.Element {
                                   </Stack>
                                 </Grid>
                               ))}
-
                               <Divider sx={{ marginY: 2 }} />
                             </div>
                           ))}
@@ -426,7 +395,22 @@ export default function Page(): React.JSX.Element {
                       <CardHeader title="Quy định sự kiện" subheader="Quý khách vui lòng đọc kỹ Quy định sự kiện sau đây" />
                       <Divider />
                       <CardContent>
-
+                        <ol>
+                          <li>Check-in đúng khán đài đã được ghi trên vé.</li>
+                          <li>Vé chỉ dành cho 01 người lớn trên 18 tuổi, không kèm trẻ em.</li>
+                          <li>Vui lòng xếp hàng và xuất trình mã vé điện tử tại cổng check-in. Không chen lấn, xô đẩy trước, trong và sau sự kiện.</li>
+                          <li>Khán giả vui lòng mang vòng tay của BTC phát theo quy định cho từng khu vực. Không tháo vòng tay trong suốt quá trình diễn ra sự kiện.</li>
+                          <li>Vui lòng không đi vào những khu vực nội bộ, khu vực cấm trong khuôn viên sự kiện.</li>
+                          <li>Không hút thuốc lá hoặc thuốc lá điện tử trong khu vực diễn ra sự kiện.</li>
+                          <li>Bỏ rác đúng nơi quy định.</li>
+                          <li>Trang phục lịch sự.</li>
+                          <li>Khán giả vui lòng đến đúng giờ. Khi chương trình bắt đầu, vui lòng tuân thủ ngồi đúng vị trí khán đài theo vé đã mua.</li>
+                          <li>Không mang đồ ăn, thức uống từ bên ngoài vào khuôn viên sự kiện.</li>
+                          <li>Nghiêm cấm mang theo chất kích thích, chất gây nghiện, chất gây cháy nổ, vũ khí, vật liệu sắc nhọn và vật nuôi.</li>
+                          <li>Vui lòng tự bảo quản tư trang vật dụng, tài sản cá nhân khi tham gia sự kiện.</li>
+                          <li>Khi tham gia sự kiện đồng nghĩa với việc người tham gia đồng ý cho phép sử dụng hình ảnh của mình để khai thác cho sản phẩm ghi hình, thu âm.</li>
+                          <li>BTC có quyền từ chối sự tham gia của bất kỳ khán giả nào không tuân thủ quy định và không hoàn trả lại tiền vé.</li>
+                        </ol>
                       </CardContent>
                     </Card>
                     <FormGroup>
@@ -465,9 +449,7 @@ export default function Page(): React.JSX.Element {
                       <Grid sm={8} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
                         <ReCAPTCHA
                           sitekey="6LdRnq4aAAAAAFT6htBYNthM-ksGymg70CsoYqHR"
-                          onChange={() => {
-                            console.log('Are kris ok');
-                          }}
+                          onChange={() => {}}
                           ref={captchaRef}
                         />
                       </Grid>
@@ -480,6 +462,9 @@ export default function Page(): React.JSX.Element {
                           Nhận vé ngay
                         </Button>
                       </Grid>
+                    </Grid>
+                    <Grid spacing={3} sx={{ alignItems: 'left', mt: '3' }}>
+                      <small>Nếu Quý khách gặp lỗi, vui lòng chụp màn hình và báo lỗi <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></small>
                     </Grid>
                   </Stack>
                 </Grid>
