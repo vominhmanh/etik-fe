@@ -516,6 +516,9 @@ export default function Page(): React.JSX.Element {
                     <Button fullWidth variant='contained' onClick={goToEkycRegister} size="small" endIcon={<ArrowRight />}>
                       Bắt đầu
                     </Button>
+                    <Typography variant='body2'>
+                      <small>* Bước đăng ký khuôn mặt là <b>không bắt buộc</b>. Quý khách vẫn có thể sử dụng mã QR để check-in.</small>
+                    </Typography>
                   </div>
                 </Stack>
               </Stack>
