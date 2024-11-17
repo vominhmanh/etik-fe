@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Box, InputAdornment } from '@mui/material';
+import { Box, CardActions, IconButton, InputAdornment, styled, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -17,12 +17,9 @@ import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
-import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
-import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import axios, { AxiosResponse } from 'axios';
-import dayjs from 'dayjs';
+import * as XLSX from 'xlsx';
 
 import NotificationContext from '@/contexts/notification-context';
 
@@ -30,6 +27,7 @@ import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
+import { Download, Plus, Upload, X } from '@phosphor-icons/react/dist/ssr';
 
 export type TicketCategory = {
   id: number;
@@ -71,26 +69,68 @@ export type EventResponse = {
   shows: Show[];
 };
 
+// Define the Customer type
+type Customer = {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+};
+type CustomerExcelInput = {
+  'Họ tên': string;
+  'Email': string;
+  'Số điện thoại': string;
+  'Địa chỉ': string;
+};
+const VisuallyHiddenInput = styled('input')({
+  clip: 'rect(0 0 0 0)',
+  clipPath: 'inset(50%)',
+  height: 1,
+  overflow: 'hidden',
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  whiteSpace: 'nowrap',
+  width: 1,
+});
+
+
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
-    document.title = "Tạo đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện";
+    document.title = "Tạo đơn hàng theo lô | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
   const [extraFee, setExtraFee] = React.useState<number>(0);
   const router = useRouter(); // Use useRouter from next/navigation
   const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
-  const [customer, setCustomer] = React.useState({
-    name: '',
-    email: '',
-    phoneNumber: '',
-    address: '',
-  });
   const [paymentMethod, setPaymentMethod] = React.useState<string>('napas247');
   const [ticketHolders, setTicketHolders] = React.useState<string[]>(['']);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [selectedSchedules, setSelectedSchedules] = React.useState<Show[]>([]);
+
+  const [customers, setCustomers] = React.useState<Customer[]>([
+    { name: '', email: '', phoneNumber: '', address: '' },
+  ]);
+
+  // Handle change in customer fields
+  const handleCustomerChange = (index: number, field: keyof Customer, value: string) => {
+    const updatedCustomers = [...customers];
+    updatedCustomers[index][field] = value;
+    setCustomers(updatedCustomers);
+  };
+
+  // Add a new customer
+  const addCustomer = () => {
+    setCustomers([...customers, { name: '', email: '', phoneNumber: '', address: '' }]);
+  };
+
+  // Remove a customer
+  const removeCustomer = (index: number) => {
+    const updatedCustomers = customers.filter((_, i) => i !== index);
+    setCustomers(updatedCustomers);
+  };
 
   // Fetch event details on component mount
   React.useEffect(() => {
@@ -135,11 +175,27 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     setTicketHolders(Array(quantity).fill('')); // Dynamically update ticket holders array
   };
 
-  const handleTicketHolderChange = (index: number, value: string) => {
-    const updatedHolders = [...ticketHolders];
-    updatedHolders[index] = value;
-    setTicketHolders(updatedHolders);
+  // Handle file upload and parse the Excel file
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const parsedData = XLSX.utils.sheet_to_json<CustomerExcelInput>(sheet);
+        const formattedData: Customer[] = parsedData.map(d => ({
+          name: d['Họ tên'], email: d['Email'], phoneNumber: d['Số điện thoại'], address: d['Địa chỉ']
+        }))
+        setCustomers(formattedData);
+        event.target.value = ''
+      };
+      reader.readAsBinaryString(file);
+    }
   };
+
 
   const handleExtraFeeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value.replace(/\D/g, ''); // Remove non-digit characters
@@ -151,8 +207,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const handleSubmit = async () => {
-    if (!customer.name || !customer.email || ticketQuantity <= 0) {
-      notificationCtx.warning('Please fill in the required fields.');
+
+    const invalidCustomers = customers.filter(customer => (!customer.name || !customer.email))
+    if (invalidCustomers.length > 0) {
+      notificationCtx.warning('Vui lòng điền tất cả "Họ tên" và "Email" người mua');
       return;
     }
 
@@ -177,7 +235,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       }));
 
       const transactionData = {
-        customer,
+        customers,
         tickets,
         paymentMethod,
         ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
@@ -186,11 +244,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       };
 
       const response = await baseHttpServiceInstance.post(
-        `/event-studio/events/${params.event_id}/transactions`,
+        `/event-studio/events/${params.event_id}/transactions/create-bulk`,
         transactionData
       );
       const newTransaction = response.data;
-      router.push(`/event-studio/events/${params.event_id}/transactions/${newTransaction.id}`); // Navigate to a different page on success
+      router.push(`/event-studio/events/${params.event_id}/transactions`); // Navigate to a different page on success
       notificationCtx.success('Transaction created successfully!');
     } catch (error) {
       notificationCtx.error('Error creating transaction:', error);
@@ -213,7 +271,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Tạo đơn hàng mới</Typography>
+          <Typography variant="h4">Tạo đơn hàng theo lô</Typography>
         </Stack>
       </Stack>
       <Grid container spacing={3}>
@@ -230,90 +288,126 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           <Stack spacing={3}>
             {/* Customer Information Card */}
             <Card>
-              <CardHeader subheader="Vui lòng điền các trường thông tin phía dưới." title="Thông tin người mua" />
+              <CardHeader
+                subheader="Mỗi đơn hàng 1 dòng."
+                title="Thông tin người mua"
+                action={
+                  <Button color="inherit" component="label" role={undefined} size="small" startIcon={<Upload fontSize="var(--icon-fontSize-md)" />}>
+                    Upload excel
+                    <VisuallyHiddenInput
+                      type="file"
+                      accept=".xlsx, .xls"
+                      onInput={handleFileUpload}
+                    />
+                  </Button>
+                }
+              />
               <Divider />
-              <CardContent>
-                <Grid container spacing={3}>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Họ và tên</InputLabel>
-                      <OutlinedInput
-                        label="Họ và tên"
-                        name="customer_name"
-                        value={customer.name}
-                        onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
-                      />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Địa chỉ Email</InputLabel>
-                      <OutlinedInput
-                        label="Địa chỉ Email"
-                        name="customer_email"
-                        type="email"
-                        value={customer.email}
-                        onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
-                      />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel>Số điện thoại</InputLabel>
-                      <OutlinedInput
-                        label="Số điện thoại"
-                        name="customer_phone_number"
-                        type="tel"
-                        value={customer.phoneNumber}
-                        onChange={(e) => setCustomer({ ...customer, phoneNumber: e.target.value })}
-                      />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel>Địa chỉ</InputLabel>
-                      <OutlinedInput
-                        label="Địa chỉ"
-                        name="customer_address"
-                        value={customer.address}
-                        onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                      />
-                    </FormControl>
-                  </Grid>
-                </Grid>
+              <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 400 }}>
+                <Table sx={{ minWidth: '800px' }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ width: '20px' }}></TableCell>
+                      <TableCell>Họ tên *</TableCell>
+                      <TableCell sx={{ width: '200px' }}>Email *</TableCell>
+                      <TableCell sx={{ width: '135px' }}>Số điện thoại</TableCell>
+                      <TableCell>Địa chỉ</TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {customers.map((customer, index) => (
+                      <TableRow hover key={index}>
+                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>
+                          <FormControl fullWidth required>
+                            <OutlinedInput
+                              name={`customer_name_${index}`}
+                              value={customer.name}
+                              onChange={(e) =>
+                                handleCustomerChange(index, 'name', e.target.value)
+                              }
+                              size="small"
+                              sx={{ fontSize: '11px' }}
+                            />
+                          </FormControl>
+                        </TableCell>
+                        <TableCell>
+                          <FormControl fullWidth required>
+                            <OutlinedInput
+                              name={`customer_email_${index}`}
+                              type="email"
+                              value={customer.email}
+                              onChange={(e) =>
+                                handleCustomerChange(index, 'email', e.target.value)
+                              }
+                              size="small"
+                              sx={{ fontSize: '11px' }}
+                            />
+                          </FormControl>
+                        </TableCell>
+                        <TableCell>
+                          <FormControl fullWidth>
+                            <OutlinedInput
+                              name={`customer_phone_number_${index}`}
+                              type="tel"
+                              value={customer.phoneNumber}
+                              onChange={(e) =>
+                                handleCustomerChange(index, 'phoneNumber', e.target.value)
+                              }
+                              size="small"
+                              sx={{ fontSize: '11px' }}
+                            />
+                          </FormControl>
+                        </TableCell>
+                        <TableCell>
+                          <FormControl fullWidth>
+                            <OutlinedInput
+                              name={`customer_address_${index}`}
+                              value={customer.address}
+                              onChange={(e) =>
+                                handleCustomerChange(index, 'address', e.target.value)
+                              }
+                              size="small"
+                              sx={{ fontSize: '11px' }}
+                            />
+                          </FormControl>
+                        </TableCell>
+                        <TableCell>
+                          <IconButton onClick={() => removeCustomer(index)}>
+                            <X />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
+              <Divider />
+              <CardActions sx={{display: 'flex', justifyContent: 'space-between'}}>
+                <Button startIcon={<Plus />} size='small' onClick={addCustomer}>
+                  Thêm hàng
+                </Button>
+                <Button startIcon={<Download />} size='small' href='/assets/create-bulk-transactions-template.xlsx' download={true}>
+                  Tải file excel mẫu
+                </Button>
+              </CardActions>
             </Card>
-
             {/* Ticket Quantity and Ticket Holders */}
             <Card>
               <CardHeader
-                title="Số lượng vé"
+                title="Số lượng người tham dự"
+                subheader='Mặc định 1 người tham dự / 1 đơn hàng'
                 action={
                   <OutlinedInput
                     sx={{ maxWidth: 180 }}
                     type="number"
                     value={ticketQuantity}
                     onChange={handleTicketQuantityChange}
+                    inputProps={{ min: 1, max: 1 }}
                   />
                 }
               />
-              <Divider />
-              <CardContent>
-                <Grid container spacing={3}>
-                  {ticketHolders.map((holder, index) => (
-                    <Grid md={12} xs={12} key={index}>
-                      <FormControl fullWidth required>
-                        <InputLabel>Họ và tên người tham dự {index + 1}</InputLabel>
-                        <OutlinedInput
-                          label={`Họ và tên người tham dự ${index + 1}`}
-                          value={holder}
-                          onChange={(e) => handleTicketHolderChange(index, e.target.value)}
-                        />
-                      </FormControl>
-                    </Grid>
-                  ))}
-                </Grid>
-              </CardContent>
             </Card>
 
             {/* Extra Fee */}
@@ -356,7 +450,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
             {Object.keys(selectedCategories).length > 0 && (
               <Card>
-                <CardHeader title="Thanh toán" />
+                <CardHeader title="Thanh toán mỗi đơn hàng" />
                 <Divider />
                 <CardContent>
                   <Stack spacing={2}>

@@ -32,6 +32,7 @@ import { isNavItemActive } from '@/lib/is-nav-item-active';
 import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
+import { StackPlus } from '@phosphor-icons/react/dist/ssr';
 
 export interface MobileNavProps {
   onClose?: () => void;
@@ -145,17 +146,24 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
           <NavItemCollapse pathname={pathname} key="transactions" title="Bán vé & Khách hàng" icon={UsersIcon}>
             <NavItemCollapseChildItem
               pathname={pathname}
-              key="transactions-list"
-              title="Danh sách giao dịch"
-              href={`/event-studio/events/${dynamicId}/transactions`}
-              icon={ListDashesIcon}
+              key="transactions-create"
+              title="Tạo đơn hàng"
+              href={`/event-studio/events/${dynamicId}/transactions/create`}
+              icon={PlusIcon}
             />
             <NavItemCollapseChildItem
               pathname={pathname}
-              key="transactions-create"
-              title="Thêm mới"
-              href={`/event-studio/events/${dynamicId}/transactions/create`}
-              icon={PlusIcon}
+              key="transactions-create-bulk"
+              title="Tạo đơn hàng theo lô"
+              href={`/event-studio/events/${dynamicId}/transactions/create-bulk`}
+              icon={StackPlus}
+            />
+             <NavItemCollapseChildItem
+              pathname={pathname}
+              key="transactions-list"
+              title="Danh sách đơn hàng"
+              href={`/event-studio/events/${dynamicId}/transactions`}
+              icon={ListDashesIcon}
             />
             <NavItemCollapseChildItem
               pathname={pathname}

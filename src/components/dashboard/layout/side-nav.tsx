@@ -12,7 +12,7 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
-import { Plus } from '@phosphor-icons/react/dist/ssr';
+import { Plus, StackPlus } from '@phosphor-icons/react/dist/ssr';
 import { Barcode as BarcodeIcon } from '@phosphor-icons/react/dist/ssr/Barcode';
 import { CalendarDots as CalendarDotsIcon } from '@phosphor-icons/react/dist/ssr/CalendarDots';
 import { CaretDown as CaretDownIcon } from '@phosphor-icons/react/dist/ssr/CaretDown';
@@ -186,19 +186,27 @@ export function SideNav(): React.JSX.Element {
               />
             </NavItemCollapse>
             <NavItemCollapse pathname={pathname} key="transactions" title="Bán vé & Khách hàng" icon={UsersIcon}>
-              <NavItemCollapseChildItem
-                pathname={pathname}
-                key="transactions-list"
-                title="Danh sách giao dịch"
-                href={`/event-studio/events/${dynamicId}/transactions`}
-                icon={ListDashesIcon}
-              />
+
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="transactions-create"
-                title="Thêm mới"
+                title="Tạo đơn hàng"
                 href={`/event-studio/events/${dynamicId}/transactions/create`}
                 icon={PlusIcon}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="transactions-create-bulk"
+                title="Tạo đơn hàng theo lô"
+                href={`/event-studio/events/${dynamicId}/transactions/create-bulk`}
+                icon={StackPlus}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="transactions-list"
+                title="Danh sách đơn hàng"
+                href={`/event-studio/events/${dynamicId}/transactions`}
+                icon={ListDashesIcon}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
@@ -261,11 +269,11 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
       <Box
         {...(href
           ? {
-              component: external ? 'a' : RouterLink,
-              href,
-              target: external ? '_blank' : undefined,
-              rel: external ? 'noreferrer' : undefined,
-            }
+            component: external ? 'a' : RouterLink,
+            href,
+            target: external ? '_blank' : undefined,
+            rel: external ? 'noreferrer' : undefined,
+          }
           : { role: 'button' })}
         sx={{
           alignItems: 'center',
@@ -345,11 +353,11 @@ function NavItemCollapse({
         <Box
           {...(href
             ? {
-                component: external ? 'a' : RouterLink,
-                href,
-                target: external ? '_blank' : undefined,
-                rel: external ? 'noreferrer' : undefined,
-              }
+              component: external ? 'a' : RouterLink,
+              href,
+              target: external ? '_blank' : undefined,
+              rel: external ? 'noreferrer' : undefined,
+            }
             : { role: 'button', onClick: handleToggle, cursor: 'pointer' })}
           sx={{
             alignItems: 'center',
@@ -423,11 +431,11 @@ function NavItemCollapseChildItem({
       <Box
         {...(href
           ? {
-              component: external ? 'a' : RouterLink,
-              href,
-              target: external ? '_blank' : undefined,
-              rel: external ? 'noreferrer' : undefined,
-            }
+            component: external ? 'a' : RouterLink,
+            href,
+            target: external ? '_blank' : undefined,
+            rel: external ? 'noreferrer' : undefined,
+          }
           : { role: 'button' })}
         sx={{
           alignItems: 'center',
