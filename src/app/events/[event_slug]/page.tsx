@@ -446,7 +446,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                         type="number"
                         value={ticketQuantity}
                         onChange={handleTicketQuantityChange}
-                        inputProps={{ min: 1, max: 8 }}
+                        inputProps={{ min: 1, max: 1 }}
                       />
                     }
                   />
