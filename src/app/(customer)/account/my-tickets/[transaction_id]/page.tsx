@@ -164,6 +164,8 @@ export interface Transaction {
   createdAt: string;                // The date the transaction was created
   createdSource: string;            // Source of the transaction creation
   creator: Creator | null;          // Related creator of the transaction, nullable
+  sentTicketEmailAt: string | null
+  sentConfirmationEmailAt: string | null
 }
 
 
@@ -440,6 +442,24 @@ export default function Page({ params }: { params: { transaction_id: number } })
                       <Typography variant="body1">Nguồn khởi tạo:</Typography>
                     </Stack>
                     <Typography variant="body1">{createdSource.label || 'Chưa xác định'}</Typography>
+                  </Grid>
+                  {/* sentConfirmationEmailAt */}
+                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Typography variant="body1">Thời gian gửi email Y/C xác nhận:</Typography>
+                    </Stack>
+                    <Typography variant="body1">
+                      {transaction.sentConfirmationEmailAt ? dayjs(transaction.sentConfirmationEmailAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
+                    </Typography>
+                  </Grid>
+                  {/* sentTicketEmailAt */}
+                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Typography variant="body1">Thời gian gửi email vé:</Typography>
+                    </Stack>
+                    <Typography variant="body1">
+                      {transaction.sentTicketEmailAt ? dayjs(transaction.sentTicketEmailAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
+                    </Typography>
                   </Grid>
                 </Stack>
               </CardContent>

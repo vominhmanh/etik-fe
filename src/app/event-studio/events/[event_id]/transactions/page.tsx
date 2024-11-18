@@ -11,17 +11,21 @@ import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import axios, { AxiosResponse } from 'axios';
 
 import NotificationContext from '@/contexts/notification-context';
-import { CustomersFilters } from '@/components/dashboard/customer/customers-filters';
-
+import Card from '@mui/material/Card';
+import InputAdornment from '@mui/material/InputAdornment';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { Transaction, TransactionsTable } from './transactions-table';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
+import { debounce } from 'lodash';
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
-    document.title = "Giao dịch | ETIK - Vé điện tử & Quản lý sự kiện";
+    document.title = "Danh sách đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
+  const [querySearch, setQuerySearch] = React.useState<string>('');
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const notificationCtx = React.useContext(NotificationContext);
@@ -34,6 +38,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     setRowsPerPage(newRowsPerPage);
     setPage(0); // Reset to the first page whenever rows per page change
   };
+
+  const debounceQuerySearch = React.useCallback(debounce((value) => setQuerySearch(value), 500), [])
+
+  const handleSearchTransactions = (event: React.ChangeEvent<HTMLInputElement>) => {
+    debounceQuerySearch(event.target.value);
+  }
+
+  const filteredTransactions = React.useMemo(() => 
+    transactions.filter(trans => 
+      trans.email.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase()) ||
+      trans.name.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase()) ||
+      trans.phoneNumber.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase()) ||
+      trans.createdAt.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())
+    ),
+    [transactions, querySearch]
+  );
 
   // Fetch transactions for the event
   React.useEffect(() => {
@@ -53,7 +73,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     fetchTransactions();
   }, [params.event_id]);
 
-  const paginatedCustomers = applyPagination(transactions, page, rowsPerPage);
+  const paginatedCustomers = applyPagination(filteredTransactions, page, rowsPerPage);
 
   return (
     <Stack spacing={3}>
@@ -69,7 +89,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       </Backdrop>{' '}
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Danh sách giao dịch</Typography>
+          <Typography variant="h4">Danh sách đơn hàng</Typography>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             {/* <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
               Import
@@ -89,9 +109,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           </Button>
         </div>
       </Stack>
-      <CustomersFilters />
+      <Card sx={{ p: 2 }}>
+        <OutlinedInput
+          defaultValue=""
+          fullWidth
+          placeholder="Tìm kiếm đơn hàng"
+          startAdornment={
+            <InputAdornment position="start">
+              <MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />
+            </InputAdornment>
+          }
+          onChange={handleSearchTransactions}
+          sx={{ maxWidth: '500px' }}
+        />
+      </Card>
       <TransactionsTable
-        count={transactions.length}
+        count={filteredTransactions.length}
         page={page}
         rows={paginatedCustomers}
         rowsPerPage={rowsPerPage}

@@ -32,7 +32,7 @@ import { isNavItemActive } from '@/lib/is-nav-item-active';
 import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
-import { StackPlus } from '@phosphor-icons/react/dist/ssr';
+import { StackPlus, UserList } from '@phosphor-icons/react/dist/ssr';
 
 export interface MobileNavProps {
   onClose?: () => void;
@@ -170,7 +170,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               key="tickets-list"
               title="Danh sách khách hàng & vé"
               href={`/event-studio/events/${dynamicId}/tickets`}
-              icon={ListDashesIcon}
+              icon={UserList}
             />
           </NavItemCollapse>
           <NavItemCollapse pathname={pathname} key="check-in" title="Soát vé" icon={DoorIcon}>
@@ -194,36 +194,20 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               pathname={pathname}
               key="email-template-1"
               title="Template vé mời"
-              href={`/event-studio/events/${dynamicId}/transactions`}
+              href={`/event-studio/events/${dynamicId}/templates`}
               icon={ListDashesIcon}
             />
             <NavItemCollapseChildItem
               pathname={pathname}
               key="email-template-2"
               title="Template vé bị huỷ"
-              href={`/event-studio/events/${dynamicId}/transactions/create`}
+              href={`/event-studio/events/${dynamicId}/templates`}
               icon={PlusIcon}
             />
           </NavItemCollapse>
         </Stack>
       </Box>
     </Drawer>
-  );
-}
-
-function renderNavItems({ items = [], pathname }: { items?: NavItemConfig[]; pathname: string }): React.JSX.Element {
-  const children = items.reduce((acc: React.ReactNode[], curr: NavItemConfig): React.ReactNode[] => {
-    const { key, ...item } = curr;
-
-    acc.push(<NavItem key={key} pathname={pathname} {...item} />);
-
-    return acc;
-  }, []);
-
-  return (
-    <Stack component="ul" spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }}>
-      {children}
-    </Stack>
   );
 }
 

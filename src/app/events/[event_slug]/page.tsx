@@ -439,14 +439,14 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 <Card>
                   <CardHeader
                     title="Số lượng người tham dự"
-                    subheader='Tối đa 1 người'
+                    subheader='Tối đa 8 người'
                     action={
                       <OutlinedInput
                         sx={{ maxWidth: 130 }}
                         type="number"
                         value={ticketQuantity}
                         onChange={handleTicketQuantityChange}
-                        inputProps={{ min: 1, max: 1 }}
+                        inputProps={{ min: 1, max: 8 }}
                       />
                     }
                   />

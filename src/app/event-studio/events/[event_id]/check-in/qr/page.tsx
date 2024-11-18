@@ -6,13 +6,13 @@ import axios, { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { useMediaDevices } from "react-media-devices";
 import { useZxing } from "react-zxing";
-import { Accordion, AccordionDetails, AccordionSummary, Card, CardActions, CardContent, CardHeader, Chip, Container, FormControl, FormControlLabel, InputLabel, MenuItem, OutlinedInput, Select, styled, SwipeableDrawer, Tooltip } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Card, CardActions, CardContent, CardHeader, Chip, Container, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, OutlinedInput, Select, styled, SwipeableDrawer, Tooltip } from '@mui/material';
 import { Drawer, Stack, Grid, Typography, Checkbox, Button, Divider } from '@mui/material';
 import dayjs from 'dayjs';
 import { Info as InfoIcon } from '@phosphor-icons/react/dist/ssr/Info';
 import { grey } from '@mui/material/colors';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
-import { ArrowDown, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
+import { ArrowDown, ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 
@@ -172,7 +172,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [eCode, setECode] = React.useState<string>('');
   const [isCheckinControllerOpen, setIsCheckinControllerOpen] = React.useState(false);
   const [isSuccessful, setIsSuccessful] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [trxn, setTrxn] = React.useState<Transaction>();
   const [confirmCheckin, setConfirmCheckin] = React.useState(false);
@@ -292,9 +291,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       setTicketCheckboxState(ticCheckboxState)
 
       setIsSuccessful(true);
-      setError(null);
     } catch (error) {
-      setError(error);
+      notificationCtx.error(error);
       setIsSuccessful(false);
     } finally {
       setIsLoading(false);
@@ -343,7 +341,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           setIsSuccessful(true);
         })
         .catch(error => {
-          setError(error);
+          notificationCtx.error(error);
           setIsSuccessful(false);
         })
         .finally(() => {
@@ -463,11 +461,15 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Email:</Typography>
-                    <Typography variant="body1">{trxn?.email}</Typography>
+                    <Typography variant="body1">{trxn?.email} <IconButton size='small' target='_blank' href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}`}><ArrowSquareIn /></IconButton></Typography>
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Số điện thoại:</Typography>
                     <Typography variant="body1">{trxn?.phoneNumber}</Typography>
+                  </Grid>
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1">Địa chỉ:</Typography>
+                    <Typography variant="body1">{trxn?.address && trxn?.address.length > 30 ? trxn?.address.substring(0, 30) + '...' : trxn?.address }</Typography>
                   </Grid>
                   <Divider />
                   <Grid container justifyContent="space-between">
@@ -569,7 +571,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
                 <Button
                   variant="contained"
-                  // disabled={tickets.filter(ticket => ticket.checked).length === 0}
+                  disabled={!(trxn?.status != 'normal' && trxn?.paymentStatus != 'paid')}
                   onClick={() => {
                     setConfirmCheckin(true);
                     sendCheckinRequest(eCode);

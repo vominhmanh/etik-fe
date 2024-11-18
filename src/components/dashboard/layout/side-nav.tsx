@@ -12,7 +12,7 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
-import { Plus, StackPlus } from '@phosphor-icons/react/dist/ssr';
+import { Plus, StackPlus, UserList } from '@phosphor-icons/react/dist/ssr';
 import { Barcode as BarcodeIcon } from '@phosphor-icons/react/dist/ssr/Barcode';
 import { CalendarDots as CalendarDotsIcon } from '@phosphor-icons/react/dist/ssr/CalendarDots';
 import { CaretDown as CaretDownIcon } from '@phosphor-icons/react/dist/ssr/CaretDown';
@@ -213,7 +213,7 @@ export function SideNav(): React.JSX.Element {
                 key="tickets-list"
                 title="Danh sách khách hàng & vé"
                 href={`/event-studio/events/${dynamicId}/tickets`}
-                icon={ListDashesIcon}
+                icon={UserList}
               />
             </NavItemCollapse>
             <NavItemCollapse pathname={pathname} key="check-in" title="Soát vé" icon={DoorIcon}>
@@ -237,14 +237,14 @@ export function SideNav(): React.JSX.Element {
                 pathname={pathname}
                 key="email-template-1"
                 title="Template vé mời"
-                href={`/event-studio/events/${dynamicId}/transactions`}
+                href={`/event-studio/events/${dynamicId}/templates`}
                 icon={ListDashesIcon}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="email-template-2"
                 title="Template vé bị huỷ"
-                href={`/event-studio/events/${dynamicId}/transactions/create`}
+                href={`/event-studio/events/${dynamicId}/templates`}
                 icon={PlusIcon}
               />
             </NavItemCollapse>

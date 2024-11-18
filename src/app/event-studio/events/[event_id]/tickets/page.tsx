@@ -11,11 +11,14 @@ import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import axios, { AxiosResponse } from 'axios';
 
 import NotificationContext from '@/contexts/notification-context';
-import { CustomersFilters } from '@/components/dashboard/customer/customers-filters';
-
+import Card from '@mui/material/Card';
+import InputAdornment from '@mui/material/InputAdornment';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { TicketsTable } from './tickets-table';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
+import { debounce } from 'lodash';
 interface Show {
   id: number;
   eventId: number;
@@ -73,7 +76,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     setPage(newPage);
   };
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
-
+  const [querySearch, setQuerySearch] = React.useState<string>('');
   const handleRowsPerPageChange = (newRowsPerPage: number) => {
     setRowsPerPage(newRowsPerPage);
     setPage(0); // Reset to the first page whenever rows per page change
@@ -97,7 +100,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     fetchTickets();
   }, [params.event_id]);
 
-  const paginatedCustomers = applyPagination(tickets, page, rowsPerPage);
+
+  const debounceQuerySearch = React.useCallback(debounce((value) => setQuerySearch(value), 500), [])
+
+  const handleSearchTickets = (event: React.ChangeEvent<HTMLInputElement>) => {
+    debounceQuerySearch(event.target.value);
+  }
+
+  const filteredTickets = React.useMemo(() => 
+    tickets.filter(ticket => 
+      ticket.holder.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())
+    ),
+    [tickets, querySearch]
+  );
+
+  const paginatedCustomers = applyPagination(filteredTickets, page, rowsPerPage);
+
 
   return (
     <Stack spacing={3}>
@@ -133,9 +151,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           </Button>
         </div>
       </Stack>
-      <CustomersFilters />
-      <TicketsTable
-        count={tickets.length}
+      <Card sx={{ p: 2 }}>
+      <OutlinedInput
+        defaultValue=""
+        fullWidth
+        placeholder="Tìm kiếm khách hàng và vé..."
+        onChange={handleSearchTickets}
+        startAdornment={
+          <InputAdornment position="start">
+            <MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />
+          </InputAdornment>
+        }
+        sx={{ maxWidth: '500px' }}
+      />
+    </Card>      
+    <TicketsTable
+        count={filteredTickets.length}
         page={page}
         rows={paginatedCustomers}
         rowsPerPage={rowsPerPage}

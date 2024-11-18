@@ -210,7 +210,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
     const invalidCustomers = customers.filter(customer => (!customer.name || !customer.email))
     if (invalidCustomers.length > 0) {
-      notificationCtx.warning('Vui lòng điền tất cả "Họ tên" và "Email" người mua');
+      notificationCtx.warning('Vui lòng điền "Họ tên", "Email" và "Số điện thoại" của tất cả người mua');
       return;
     }
 
@@ -310,7 +310,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       <TableCell sx={{ width: '20px' }}></TableCell>
                       <TableCell>Họ tên *</TableCell>
                       <TableCell sx={{ width: '200px' }}>Email *</TableCell>
-                      <TableCell sx={{ width: '135px' }}>Số điện thoại</TableCell>
+                      <TableCell sx={{ width: '135px' }}>Số điện thoại *</TableCell>
                       <TableCell>Địa chỉ</TableCell>
                       <TableCell></TableCell>
                     </TableRow>
