@@ -168,7 +168,7 @@ export interface Transaction {
 
 export default function Page({ params }: { params: { event_id: number; transaction_id: number } }): React.JSX.Element {
   React.useEffect(() => {
-    document.title = "Chi tiết giao dịch | ETIK - Vé điện tử & Quản lý sự kiện";
+    document.title = "Chi tiết đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const notificationCtx = React.useContext(NotificationContext);
@@ -203,10 +203,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
       );
 
       if (response.status === 200) {
-        notificationCtx.success('Thông tin giao dịch đã được cập nhật thành công!');
+        notificationCtx.success('Thông tin đơn hàng đã được cập nhật thành công!');
       }
     } catch (error) {
-      notificationCtx.error('Có lỗi xảy ra khi cập nhật thông tin giao dịch:', error);
+      notificationCtx.error('Có lỗi xảy ra khi cập nhật thông tin đơn hàng:', error);
     }
   };
 
@@ -279,11 +279,11 @@ export default function Page({ params }: { params: { event_id: number; transacti
       );
 
       if (response.status === 200) {
-        notificationCtx.success('Trạng thái giao dịch đã được chuyển sang "Đã thanh toán" thành công!');
+        notificationCtx.success('Trạng thái đơn hàng đã được chuyển sang "Đã thanh toán" thành công!');
         window.location.reload();
       }
     } catch (error) {
-      notificationCtx.error('Có lỗi xảy ra khi cập nhật trạng thái giao dịch:', error);
+      notificationCtx.error('Có lỗi xảy ra khi cập nhật trạng thái đơn hàng:', error);
     }
   };
 
@@ -295,7 +295,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
       );
 
       if (response.status === 200) {
-        notificationCtx.success('Trạng thái giao dịch đã được chuyển sang "Đã hoàn tiền" thành công!');
+        notificationCtx.success('Trạng thái đơn hàng đã được chuyển sang "Đã hoàn tiền" thành công!');
       }
     } catch (error) {
       notificationCtx.error('Có lỗi xảy ra khi cập nhật trạng thái hoàn tiền:', error);

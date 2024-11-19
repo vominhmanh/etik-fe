@@ -74,6 +74,9 @@ interface ShowTicketCategory {
 
 interface Transaction {
   id: number;
+  email: string;
+  name: string;
+  phoneNumber: string;
   status: string;
   paymentStatus: string;
   sentTicketEmailAt?: string | null; // ISO date string or null
@@ -187,53 +190,64 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     debounceQuerySearch(event.target.value);
   }
 
-  
-const filteredTickets = React.useMemo(() => {
-  return tickets.filter((ticket) => {
-    // Search filter
-    if (querySearch && !ticket.holder.toLowerCase().includes(querySearch.toLowerCase())) {
-      return false;
-    }
+  const filteredTickets = React.useMemo(() => {
+    return tickets.filter((ticket) => {
+      // Search filter
+      if (querySearch && !ticket.holder.toLowerCase().includes(querySearch.toLowerCase())) {
+        return false;
+      }
 
-    // Show filter
-    if (filters.show && ticket.showId !== filters.show) {
-      return false;
-    }
+      if (querySearch && !ticket.transactionShowTicketCategory.transaction.email.toLowerCase().includes(querySearch.toLowerCase())) {
+        return false;
+      }
 
-    // Ticket Category filter
-    if (filters.ticketCategory && ticket.ticketCategoryId !== filters.ticketCategory) {
-      return false;
-    }
+      if (querySearch && !ticket.transactionShowTicketCategory.transaction.name.toLowerCase().includes(querySearch.toLowerCase())) {
+        return false;
+      }
 
-    // Transaction Status filter
-    if (filters.status && ticket.transactionShowTicketCategory.transaction.status !== filters.status) {
-      return false;
-    }
+      if (querySearch && !ticket.transactionShowTicketCategory.transaction.phoneNumber.toLowerCase().includes(querySearch.toLowerCase())) {
+        return false;
+      }
 
-    // Payment Status filter
-    if (filters.paymentStatus && ticket.transactionShowTicketCategory.transaction.paymentStatus !== filters.paymentStatus) {
-      return false;
-    }
+      // Show filter
+      if (filters.show && ticket.showId !== filters.show) {
+        return false;
+      }
 
-    // Sent Ticket Email Status filter
-    if (filters.sentTicketEmailStatus === 'sent' && !ticket.transactionShowTicketCategory.transaction.sentTicketEmailAt) {
-      return false;
-    }
-    if (filters.sentTicketEmailStatus === 'not_sent' && ticket.transactionShowTicketCategory.transaction.sentTicketEmailAt) {
-      return false;
-    }
+      // Ticket Category filter
+      if (filters.ticketCategory && ticket.ticketCategoryId !== filters.ticketCategory) {
+        return false;
+      }
 
-    // Check-in Status filter
-    if (filters.checkInStatus === 'checked' && !ticket.checkInAt) {
-      return false;
-    }
-    if (filters.checkInStatus === 'not_checked' && ticket.checkInAt) {
-      return false;
-    }
+      // Transaction Status filter
+      if (filters.status && ticket.transactionShowTicketCategory.transaction.status !== filters.status) {
+        return false;
+      }
 
-    return true;
-  });
-}, [tickets, querySearch, filters]);
+      // Payment Status filter
+      if (filters.paymentStatus && ticket.transactionShowTicketCategory.transaction.paymentStatus !== filters.paymentStatus) {
+        return false;
+      }
+
+      // Sent Ticket Email Status filter
+      if (filters.sentTicketEmailStatus === 'sent' && !ticket.transactionShowTicketCategory.transaction.sentTicketEmailAt) {
+        return false;
+      }
+      if (filters.sentTicketEmailStatus === 'not_sent' && ticket.transactionShowTicketCategory.transaction.sentTicketEmailAt) {
+        return false;
+      }
+
+      // Check-in Status filter
+      if (filters.checkInStatus === 'checked' && !ticket.checkInAt) {
+        return false;
+      }
+      if (filters.checkInStatus === 'not_checked' && ticket.checkInAt) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [tickets, querySearch, filters]);
 
   const paginatedCustomers = applyPagination(filteredTickets, page, rowsPerPage);
 
@@ -277,7 +291,7 @@ const filteredTickets = React.useMemo(() => {
           <Grid item xs={12} md={3}>
             <OutlinedInput
               fullWidth
-              defaultValue=""
+              defaultValue={querySearch}
               placeholder="Tìm kiếm khách hàng và vé..."
               onChange={handleSearchTickets}
               startAdornment={
@@ -314,7 +328,7 @@ const filteredTickets = React.useMemo(() => {
                   label="Suất diễn"
                   name="type"
                   onChange={(e) => handleFilterChange('show', Number(e.target.value))}
-                  >
+                >
                   <MenuItem value={undefined}></MenuItem>
                   {filterShows.map(show => (
                     <MenuItem key={show.id} value={show.id}>{show.name}</MenuItem>

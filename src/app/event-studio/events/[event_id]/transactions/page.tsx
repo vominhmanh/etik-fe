@@ -19,6 +19,36 @@ import { Transaction, TransactionsTable } from './transactions-table';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
 import { debounce } from 'lodash';
+import { ArrowCounterClockwise, X } from '@phosphor-icons/react/dist/ssr';
+import { Grid, FormControl, InputLabel, Select, MenuItem, IconButton } from '@mui/material';
+interface FilterTicketCategory {
+  id: number;
+  eventId: number;
+  name: string;
+  type: string; // or enum if `TicketCategoryType` is defined as such
+  price: number;
+  avatar?: string | null;
+  description?: string | null;
+  status: string; // or enum if `TicketCategoryStatus` is defined as such
+  createdAt: string; // ISO string format for datetime
+  updatedAt: string; // ISO string format for datetime
+}
+
+interface FilterShowTicketCategory {
+  quantity: number;
+  sold: number;
+  disabled: boolean;
+  ticketCategory: FilterTicketCategory;
+}
+
+interface FilterShow {
+  id: number;
+  eventId: number;
+  name: string;
+  startDateTime?: string | null; // ISO string format for datetime
+  endDateTime?: string | null;   // ISO string format for datetime
+  showTicketCategories: FilterShowTicketCategory[];
+}
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
@@ -29,10 +59,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const notificationCtx = React.useContext(NotificationContext);
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-  };
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [filterShows, setFilterShows] = React.useState<FilterShow[]>([]);
 
   const handleRowsPerPageChange = (newRowsPerPage: number) => {
     setRowsPerPage(newRowsPerPage);
@@ -44,34 +72,103 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const handleSearchTransactions = (event: React.ChangeEvent<HTMLInputElement>) => {
     debounceQuerySearch(event.target.value);
   }
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
 
-  const filteredTransactions = React.useMemo(() => 
-    transactions.filter(trans => 
-      trans.email.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase()) ||
-      trans.name.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase()) ||
-      trans.phoneNumber.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase()) ||
-      trans.createdAt.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())
-    ),
-    [transactions, querySearch]
-  );
+  const [filters, setFilters] = React.useState({
+    status: null,
+    paymentStatus: null,
+    sentTicketEmailStatus: null,
+  });
+
+
+  const handleFilterChange = (key: string, value: any) => {
+    setFilters((prevFilters) => ({ ...prevFilters, [key]: value }));
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      status: null,
+      paymentStatus: null,
+      sentTicketEmailStatus: null,
+    })
+  }
+
+  async function fetchTransactions() {
+    try {
+      setIsLoading(true);
+      const response: AxiosResponse<Transaction[]> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${params.event_id}/transactions`
+      );
+      setTransactions(response.data);
+    } catch (error) {
+      notificationCtx.error('Error fetching transactions:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   // Fetch transactions for the event
   React.useEffect(() => {
-    async function fetchTransactions() {
+    fetchTransactions();
+  }, [params.event_id]);
+
+  React.useEffect(() => {
+    const fetchShowsWithTicketCategories = async () => {
       try {
         setIsLoading(true);
-        const response: AxiosResponse<Transaction[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${params.event_id}/transactions`
+        const response: AxiosResponse<FilterShow[]> = await baseHttpServiceInstance.get(
+          `/event-studio/events/${params.event_id}/transactions/get-shows-and-ticket-categories`
         );
-        setTransactions(response.data);
+        setFilterShows(response.data);
       } catch (error) {
-        notificationCtx.error('Error fetching transactions:', error);
+        notificationCtx.error('Error fetching shows and ticket categories:', error);
       } finally {
         setIsLoading(false);
       }
-    }
-    fetchTransactions();
+    };
+
+    fetchShowsWithTicketCategories();
   }, [params.event_id]);
+
+  
+  const filteredTransactions = React.useMemo(() => {
+    return transactions.filter((transaction) => {
+      if (querySearch && !transaction.email.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) {
+        return false;
+      }
+      if (querySearch && !transaction.name.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) {
+        return false;
+      }
+      if (querySearch && !transaction.phoneNumber.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) {
+        return false;
+      }
+      if (querySearch && !transaction.createdAt.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) {
+        return false;
+      }
+
+      // Transaction Status filter
+      if (filters.status && transaction.status !== filters.status) {
+        return false;
+      }
+
+      // Payment Status filter
+      if (filters.paymentStatus && transaction.paymentStatus !== filters.paymentStatus) {
+        return false;
+      }
+
+      // Sent Ticket Email Status filter
+      if (filters.sentTicketEmailStatus === 'sent' && !transaction.sentTicketEmailAt) {
+        return false;
+      }
+      if (filters.sentTicketEmailStatus === 'not_sent' && transaction.sentTicketEmailAt) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [transactions, querySearch, filters]);
 
   const paginatedCustomers = applyPagination(filteredTransactions, page, rowsPerPage);
 
@@ -91,9 +188,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Danh sách đơn hàng</Typography>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            {/* <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Import
-            </Button> */}
+            <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={fetchTransactions}>
+              Tải lại
+            </Button>
             <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
               Xuất file excel
             </Button>
@@ -110,18 +207,87 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </div>
       </Stack>
       <Card sx={{ p: 2 }}>
-        <OutlinedInput
-          defaultValue=""
-          fullWidth
-          placeholder="Tìm kiếm đơn hàng"
-          startAdornment={
-            <InputAdornment position="start">
-              <MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />
-            </InputAdornment>
-          }
-          onChange={handleSearchTransactions}
-          sx={{ maxWidth: '500px' }}
-        />
+        <Grid container spacing={3} direction={'row'} sx={{ alignItems: 'center' }}>
+          <Grid item xs={12} md={3}>
+            <OutlinedInput
+              fullWidth
+              defaultValue={querySearch}
+              placeholder="Tìm kiếm đơn hàng..."
+              onChange={handleSearchTransactions}
+              startAdornment={
+                <InputAdornment position="start">
+                  <MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />
+                </InputAdornment>
+              }
+              sx={{ maxWidth: '500px' }}
+            />
+          </Grid>
+          <Grid item xs={12} md={9}>
+            <Stack spacing={1} direction={'row'} overflow={'auto'} sx={{
+              flex: '1 1 auto',
+              py: 1,
+              overflowX: 'auto',
+              '&::-webkit-scrollbar': {
+                height: '3px', // Width of the scrollbar
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: '#888', // Color of the scrollbar thumb
+                borderRadius: '8px', // Rounded corners
+              },
+              '&::-webkit-scrollbar-thumb:hover': {
+                backgroundColor: '#555', // Hover state for the scrollbar thumb
+              },
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: 'white', // Background color of the scrollbar track
+              },
+            }}>
+              <FormControl sx={{ minWidth: '200px' }}>
+                <InputLabel>Trạng thái đơn hàng</InputLabel>
+                <Select
+                  value={filters.status}
+                  label="Trạng thái đơn hàng"
+                  name="status"
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                >
+                  <MenuItem value={undefined}></MenuItem>
+                  <MenuItem value="normal">Bình thường</MenuItem>
+                  <MenuItem value="staff_locked">Khoá bởi NV</MenuItem>
+                  <MenuItem value="customer_cancelled">Huỷ bởi KH</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: '230px' }}>
+                <InputLabel>Trạng thái thanh toán</InputLabel>
+                <Select
+                  value={filters.paymentStatus}
+                  label="Trạng thái thanh toán"
+                  name="payment_status"
+                  onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
+                >
+                  <MenuItem value={undefined}></MenuItem>
+                  <MenuItem value="waiting_for_payment">Đang chờ thanh toán</MenuItem>
+                  <MenuItem value="paid">Đã thanh toán</MenuItem>
+                  <MenuItem value="refund">Đã hoàn tiền</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: '200px' }}>
+                <InputLabel>Trạng thái xuất vé</InputLabel>
+                <Select
+                  value={filters.sentTicketEmailStatus}
+                  label="Trạng thái xuất vé"
+                  name="type"
+                  onChange={(e) => handleFilterChange('sentTicketEmailStatus', e.target.value)}
+                >
+                  <MenuItem value={undefined}></MenuItem>
+                  <MenuItem value="not_sent">Chưa xuất vé</MenuItem>
+                  <MenuItem value="sent">Đã xuất vé</MenuItem>
+                </Select>
+              </FormControl>
+              <IconButton onClick={handleClearFilters}>
+                <X />
+              </IconButton>
+            </Stack>
+          </Grid>
+        </Grid>
       </Card>
       <TransactionsTable
         count={filteredTransactions.length}

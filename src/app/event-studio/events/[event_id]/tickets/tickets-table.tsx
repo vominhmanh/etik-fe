@@ -181,8 +181,8 @@ export function TicketsTable({
               <TableCell>Họ tên</TableCell>
               <TableCell>Suất diễn</TableCell>
               <TableCell>Loại vé</TableCell>
-              <TableCell>Thanh toán</TableCell>
               <TableCell>Trạng thái</TableCell>
+              <TableCell>Thanh toán</TableCell>
               <TableCell>Xuất vé</TableCell>
               <TableCell>Thời gian tạo</TableCell>
               <TableCell>Thời gian check-in</TableCell>
@@ -210,16 +210,20 @@ export function TicketsTable({
                     <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
                       <Tooltip title={
                         <Stack spacing={1}>
-                          <Typography>ID vé: {row.id}</Typography>
-                          <Typography>ID giao dịch: {row.transactionId}</Typography>
+                          <Typography>ID đơn hàng: {row.transactionId} - ID vé: {row.id}</Typography>
+                          <Typography>Tên người mua: {row.transactionShowTicketCategory.transaction.name}</Typography>
+                          <Typography>Email: {row.transactionShowTicketCategory.transaction.email}</Typography>
+                          <Typography>SĐT: {row.transactionShowTicketCategory.transaction.phoneNumber}</Typography>
                         </Stack>
                       }>
                         <Avatar {...stringAvatar(row.holder)} />
                       </Tooltip>
                       <Tooltip title={
                         <Stack spacing={1}>
-                          <Typography>ID vé: {row.id}</Typography>
-                          <Typography>ID giao dịch: {row.transactionId}</Typography>
+                          <Typography>ID đơn hàng: {row.transactionId} - ID vé: {row.id}</Typography>
+                          <Typography>Tên người mua: {row.transactionShowTicketCategory.transaction.name}</Typography>
+                          <Typography>Email: {row.transactionShowTicketCategory.transaction.email}</Typography>
+                          <Typography>SĐT: {row.transactionShowTicketCategory.transaction.phoneNumber}</Typography>
                         </Stack>
                       }>
                         <Typography variant="subtitle2">{row.holder}</Typography>
@@ -231,19 +235,17 @@ export function TicketsTable({
                   <TableCell>{row.transactionShowTicketCategory.showTicketCategory.ticketCategory.name}</TableCell>
                   <TableCell>
                     <Chip
+                      color={getRowStatusDetails(row.transactionShowTicketCategory.transaction.status).color}
+                      label={getRowStatusDetails(row.transactionShowTicketCategory.transaction.status).label}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
                       color={getPaymentStatusDetails(row.transactionShowTicketCategory.transaction.paymentStatus).color}
                       label={
                         getPaymentStatusDetails(row.transactionShowTicketCategory.transaction.paymentStatus).label
                       }
-                      size="small"
-                    />
-                  </TableCell>
-
-
-                  <TableCell>
-                    <Chip
-                      color={getRowStatusDetails(row.transactionShowTicketCategory.transaction.status).color}
-                      label={getRowStatusDetails(row.transactionShowTicketCategory.transaction.status).label}
                       size="small"
                     />
                   </TableCell>
@@ -257,7 +259,7 @@ export function TicketsTable({
                   <TableCell>{dayjs(row.createdAt).format('HH:mm:ss DD/MM/YYYY')}</TableCell>
                   <TableCell>{row.checkInAt ? dayjs(row.checkInAt).format('HH:mm:ss DD/MM/YYYY') : ''}</TableCell>
                   <TableCell>
-                    <IconButton color="primary" href={`/event-studio/events/${eventId}/transactions/${row.transactionId}`}>
+                    <IconButton color="primary" target='_blank' href={`/event-studio/events/${eventId}/transactions/${row.transactionId}`}>
                       <ArrowSquareUpRightIcon />
                     </IconButton>
                   </TableCell>

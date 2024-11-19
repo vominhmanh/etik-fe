@@ -70,6 +70,18 @@ const getRowStatusDetails = (status: string) => {
   }
 };
 
+const getSentEmailTicketStatusDetails = (status: string) => {
+  switch (status) {
+    case 'sent':
+      return { label: 'Đã xuất', color: 'success' };
+    case 'not_sent':
+      return { label: 'Chưa xuất', color: 'default' }; // error for danger
+    default:
+      return { label: 'Unknown', color: 'default' };
+  }
+};
+
+
 
 function noop(): void {
   // do nothing
@@ -86,6 +98,7 @@ export interface Transaction {
   paymentStatus: string;
   status: string;
   createdAt: string;
+  sentTicketEmailAt: string | null;
 }
 
 interface CustomersTableProps {
@@ -187,8 +200,9 @@ export function TransactionsTable({
               </TableCell>
               <TableCell>Họ tên</TableCell>
               <TableCell>Số lượng</TableCell>
-              <TableCell>Thanh toán</TableCell>
               <TableCell>Trạng thái</TableCell>
+              <TableCell>Thanh toán</TableCell>
+              <TableCell>Xuất vé</TableCell>
               <TableCell>Thời gian tạo</TableCell>
               <TableCell> </TableCell>
             </TableRow>
@@ -234,7 +248,13 @@ export function TransactionsTable({
                     </Stack>
                   </TableCell>
                   <TableCell>{row.ticketQuantity}</TableCell>
-
+                  <TableCell>
+                    <Chip
+                      color={getRowStatusDetails(row.status).color}
+                      label={getRowStatusDetails(row.status).label}
+                      size="small"
+                    />
+                  </TableCell>
                   <TableCell>
                     <Tooltip
                       title={
@@ -259,17 +279,16 @@ export function TransactionsTable({
                       />
                     </Tooltip>
                   </TableCell>
-
                   <TableCell>
                     <Chip
-                      color={getRowStatusDetails(row.status).color}
-                      label={getRowStatusDetails(row.status).label}
+                      color={getSentEmailTicketStatusDetails(row.sentTicketEmailAt ? 'sent' : 'not_sent').color}
+                      label={getSentEmailTicketStatusDetails(row.sentTicketEmailAt ? 'sent' : 'not_sent').label}
                       size="small"
                     />
                   </TableCell>
                   <TableCell>{dayjs(row.createdAt).format('HH:mm:ss DD/MM/YYYY')}</TableCell>
                   <TableCell>
-                    <IconButton color="primary" href={`/event-studio/events/${eventId}/transactions/${row.id}`}>
+                    <IconButton color="primary" target='_blank' href={`/event-studio/events/${eventId}/transactions/${row.id}`}>
                       <ArrowSquareUpRightIcon />
                     </IconButton>
                   </TableCell>

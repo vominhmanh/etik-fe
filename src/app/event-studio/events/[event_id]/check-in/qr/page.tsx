@@ -451,7 +451,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
             {isLoading ? (
               <Typography color="warning">Đang kiểm tra...</Typography>
             ) : isSuccessful === false ? (
-              <Typography color="error">KHÔNG TÌM THẤY GIAO DỊCH</Typography>
+              <Typography color="error">KHÔNG TÌM THẤY </Typography>
             ) : (
               <>
                 <Stack spacing={1}>
