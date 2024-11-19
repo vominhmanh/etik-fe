@@ -244,7 +244,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
       </Backdrop>
 
       <div>
-        <Typography variant="h4">Chi tiết vé của {transaction.name}</Typography>
+        <Typography variant="h4">Chi tiết đơn hàng của {transaction.name}</Typography>
       </div>
       <Grid container spacing={3}>
         <Grid lg={5} md={5} xs={12} spacing={3}>

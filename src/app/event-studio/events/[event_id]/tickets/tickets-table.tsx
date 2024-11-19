@@ -70,10 +70,16 @@ const getRowStatusDetails = (status: string) => {
   }
 };
 
-
-function noop(): void {
-  // do nothing
-}
+const getSentEmailTicketStatusDetails = (status: string) => {
+  switch (status) {
+    case 'sent':
+      return { label: 'Đã xuất', color: 'success' };
+    case 'not_sent':
+      return { label: 'Chưa xuất', color: 'default' }; // error for danger
+    default:
+      return { label: 'Unknown', color: 'default' };
+  }
+};
 
 interface CustomersTableProps {
   count?: number;
@@ -177,6 +183,7 @@ export function TicketsTable({
               <TableCell>Loại vé</TableCell>
               <TableCell>Thanh toán</TableCell>
               <TableCell>Trạng thái</TableCell>
+              <TableCell>Xuất vé</TableCell>
               <TableCell>Thời gian tạo</TableCell>
               <TableCell>Thời gian check-in</TableCell>
               <TableCell> </TableCell>
@@ -237,6 +244,13 @@ export function TicketsTable({
                     <Chip
                       color={getRowStatusDetails(row.transactionShowTicketCategory.transaction.status).color}
                       label={getRowStatusDetails(row.transactionShowTicketCategory.transaction.status).label}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      color={getSentEmailTicketStatusDetails(row.transactionShowTicketCategory.transaction.sentTicketEmailAt ? 'sent' : 'not_sent').color}
+                      label={getSentEmailTicketStatusDetails(row.transactionShowTicketCategory.transaction.sentTicketEmailAt ? 'sent' : 'not_sent').label}
                       size="small"
                     />
                   </TableCell>
