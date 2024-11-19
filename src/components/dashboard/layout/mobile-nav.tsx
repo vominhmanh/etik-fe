@@ -32,7 +32,7 @@ import { isNavItemActive } from '@/lib/is-nav-item-active';
 import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
-import { StackPlus, UserList } from '@phosphor-icons/react/dist/ssr';
+import { Mailbox, StackPlus, UserList } from '@phosphor-icons/react/dist/ssr';
 
 export interface MobileNavProps {
   onClose?: () => void;
@@ -117,7 +117,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             <NavItemCollapseChildItem
               pathname={pathname}
               key="configuration-event-info"
-              title="Chi tiết sự kiện"
+              title="Chỉnh sửa sự kiện"
               href={`/event-studio/events/${dynamicId}/event-detail`}
               icon={InfoIcon}
             />
@@ -136,14 +136,14 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               icon={TicketIcon}
             />
             <NavItemCollapseChildItem
-                pathname={pathname}
-                key="configuration-shows-ticket-categories"
-                title="Loại vé theo suất diễn"
-                href={`/event-studio/events/${dynamicId}/shows-ticket-categories`}
-                icon={TicketIcon}
-              />
+              pathname={pathname}
+              key="configuration-shows-ticket-categories"
+              title="Loại vé theo suất diễn"
+              href={`/event-studio/events/${dynamicId}/shows-ticket-categories`}
+              icon={TicketIcon}
+            />
           </NavItemCollapse>
-          <NavItemCollapse pathname={pathname} key="transactions" title="Bán vé & Khách hàng" icon={UsersIcon}>
+          <NavItemCollapse pathname={pathname} key="transactions" title="Bán vé & Khách hàng" icon={TicketIcon}>
             <NavItemCollapseChildItem
               pathname={pathname}
               key="transactions-create"
@@ -158,7 +158,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               href={`/event-studio/events/${dynamicId}/transactions/create-bulk`}
               icon={StackPlus}
             />
-             <NavItemCollapseChildItem
+            <NavItemCollapseChildItem
               pathname={pathname}
               key="transactions-list"
               title="Danh sách đơn hàng"
@@ -185,11 +185,18 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               pathname={pathname}
               key="check-in-face"
               title="Soát vé bằng khuôn mặt"
-              href={`/event-studio/events/${dynamicId}/check-in/face`}
+              href={`https://ekyc.etik.io.vn/check-in-face`}
               icon={ScanSmileyIcon}
             />
           </NavItemCollapse>
-          <NavItemCollapse pathname={pathname} key="email-template" title="Email template" icon={UsersIcon}>
+          <NavItem
+            pathname={pathname}
+            key="roles"
+            title="Phân quyền"
+            href={`/event-studio/events/${dynamicId}/roles`}
+            icon={UsersIcon}
+          />
+          <NavItemCollapse pathname={pathname} key="email-template" title="Email template" icon={Mailbox}>
             <NavItemCollapseChildItem
               pathname={pathname}
               key="email-template-1"
@@ -229,11 +236,11 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
       <Box
         {...(href
           ? {
-              component: external ? 'a' : RouterLink,
-              href,
-              target: external ? '_blank' : undefined,
-              rel: external ? 'noreferrer' : undefined,
-            }
+            component: external ? 'a' : RouterLink,
+            href,
+            target: external ? '_blank' : undefined,
+            rel: external ? 'noreferrer' : undefined,
+          }
           : { role: 'button' })}
         sx={{
           alignItems: 'center',
@@ -313,11 +320,11 @@ function NavItemCollapse({
         <Box
           {...(href
             ? {
-                component: external ? 'a' : RouterLink,
-                href,
-                target: external ? '_blank' : undefined,
-                rel: external ? 'noreferrer' : undefined,
-              }
+              component: external ? 'a' : RouterLink,
+              href,
+              target: external ? '_blank' : undefined,
+              rel: external ? 'noreferrer' : undefined,
+            }
             : { role: 'button', onClick: handleToggle, cursor: 'pointer' })}
           sx={{
             alignItems: 'center',
@@ -391,11 +398,11 @@ function NavItemCollapseChildItem({
       <Box
         {...(href
           ? {
-              component: external ? 'a' : RouterLink,
-              href,
-              target: external ? '_blank' : undefined,
-              rel: external ? 'noreferrer' : undefined,
-            }
+            component: external ? 'a' : RouterLink,
+            href,
+            target: external ? '_blank' : undefined,
+            rel: external ? 'noreferrer' : undefined,
+          }
           : { role: 'button' })}
         sx={{
           alignItems: 'center',

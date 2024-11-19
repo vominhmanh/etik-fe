@@ -285,7 +285,7 @@ export default function Page(): React.JSX.Element {
                   <CardContent>
                     <Stack spacing={2}>
                       <Grid container justifyContent="space-between">
-                        <Typography variant="body1">Trạng thái vé:</Typography>
+                        <Typography variant="body1">Trạng thái đơn hàng:</Typography>
                         <Chip color={statusDetails.color} label={statusDetails.label} />
                       </Grid>
                       <Grid container justifyContent="space-between">

@@ -23,11 +23,8 @@ import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/House
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { AxiosResponse } from 'axios';
 import ReactQuill, { Quill } from 'react-quill';
-
 import NotificationContext from '@/contexts/notification-context';
-
 import 'react-quill/dist/quill.snow.css';
-
 import dayjs from 'dayjs';
 
 // Define the event response type
@@ -52,7 +49,7 @@ type EventResponse = {
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
-    document.title = "Chi tiết sự kiện | ETIK - Vé điện tử & Quản lý sự kiện";
+    document.title = "Chỉnh sửa chi tiết sự kiện| ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
@@ -360,7 +357,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Grid>
       </Grid>
       <div>
-        <Typography variant="h4">Chi tiết sự kiện</Typography>
+        <Typography variant="h4">Chỉnh sửa chi tiết sự kiện</Typography>
       </div>
       <Grid container spacing={3}>
         <Grid lg={4} md={6} xs={12}>

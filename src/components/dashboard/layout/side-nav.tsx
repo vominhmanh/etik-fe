@@ -12,7 +12,7 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
-import { Plus, StackPlus, UserList } from '@phosphor-icons/react/dist/ssr';
+import { Mailbox, Plus, StackPlus, UserList } from '@phosphor-icons/react/dist/ssr';
 import { Barcode as BarcodeIcon } from '@phosphor-icons/react/dist/ssr/Barcode';
 import { CalendarDots as CalendarDotsIcon } from '@phosphor-icons/react/dist/ssr/CalendarDots';
 import { CaretDown as CaretDownIcon } from '@phosphor-icons/react/dist/ssr/CaretDown';
@@ -159,7 +159,7 @@ export function SideNav(): React.JSX.Element {
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="configuration-event-info"
-                title="Chi tiết sự kiện"
+                title="Chỉnh sửa sự kiện"
                 href={`/event-studio/events/${dynamicId}/event-detail`}
                 icon={InfoIcon}
               />
@@ -185,8 +185,7 @@ export function SideNav(): React.JSX.Element {
                 icon={TicketIcon}
               />
             </NavItemCollapse>
-            <NavItemCollapse pathname={pathname} key="transactions" title="Bán vé & Khách hàng" icon={UsersIcon}>
-
+            <NavItemCollapse pathname={pathname} key="transactions" title="Bán vé & Khách hàng" icon={TicketIcon}>
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="transactions-create"
@@ -228,11 +227,18 @@ export function SideNav(): React.JSX.Element {
                 pathname={pathname}
                 key="check-in-face"
                 title="Soát vé bằng khuôn mặt"
-                href={`/event-studio/events/${dynamicId}/check-in/face`}
+                href={`https://ekyc.etik.io.vn/check-in-face`}
                 icon={ScanSmileyIcon}
               />
             </NavItemCollapse>
-            <NavItemCollapse pathname={pathname} key="email-template" title="Email template" icon={UsersIcon}>
+            <NavItem
+              pathname={pathname}
+              key="roles"
+              title="Phân quyền"
+              href={`/event-studio/events/${dynamicId}/roles`}
+              icon={UsersIcon}
+            />
+            <NavItemCollapse pathname={pathname} key="role" title="Email" icon={Mailbox}>
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="email-template-1"
