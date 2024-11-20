@@ -50,6 +50,7 @@ export interface Transaction {
   paymentStatus: string;
   status: string;
   createdAt: Date;
+  sentTicketEmailAt: string | null;
 }
 
 
@@ -121,19 +122,6 @@ const getPaymentMethodDetails = (paymentMethod: string) => {
   }
 };
 
-// Function to map created source to label
-const getCreatedSource = (paymentMethod: string) => {
-  switch (paymentMethod) {
-    case 'event_studio':
-      return { label: 'Event Studio' };
-    case 'marketplace':
-      return { label: 'Marketplace' };
-    case 'api':
-      return { label: 'API' };
-    default:
-      return { label: 'Unknown', icon: null };
-  }
-};
 
 // Function to map payment statuses to corresponding labels and colors
 const getPaymentStatusDetails = (paymentStatus: string) => {
@@ -163,6 +151,17 @@ const getRowStatusDetails = (status: string) => {
   }
 };
 
+const getSentEmailTicketStatusDetails = (status: string) => {
+  switch (status) {
+    case 'sent':
+      return { label: 'Đã xuất', color: 'success' };
+    case 'not_sent':
+      return { label: 'Chưa xuất', color: 'default' }; // error for danger
+    default:
+      return { label: 'Unknown', color: 'default' };
+  }
+};
+
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   React.useEffect(() => {
     document.title = "Soát vé bằng mã QR | ETIK - Vé điện tử & Quản lý sự kiện";
@@ -182,10 +181,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [accordionState, setAccordionState] = React.useState<MyDynamicObject>({});
   const [ticketDisabledState, setTicketDisabledState] = React.useState<MyDynamicObject>({});
   const [ticketCheckboxState, setTicketCheckboxState] = React.useState<MyDynamicObject>({});
-  const paymentMethodDetails = React.useMemo(() => getPaymentMethodDetails(trxn?.paymentMethod || ''), [trxn]);
-  const paymentStatusDetails = React.useMemo(() => getPaymentStatusDetails(trxn?.paymentStatus || ''), [trxn]);
-  const statusDetails = React.useMemo(() => getRowStatusDetails(trxn?.status || ''), [trxn]);
-
   const { ref, torch: { on, off, isOn, isAvailable } } = useZxing({
     onDecodeResult(result) {
       if (!isCheckinControllerOpen) {
@@ -262,7 +257,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       dataTrxn.transactionShowTicketCategories.forEach(transactionShowTicketCategory => {
         const accordionKey = `${transactionShowTicketCategory.showTicketCategory.show.id}-${transactionShowTicketCategory.showTicketCategory.ticketCategory.id}`
         accordState[accordionKey] = false
-        if (transactionShowTicketCategory.showTicketCategory.show.id == selectedSchedule?.id && selectedCategories.includes(transactionShowTicketCategory.showTicketCategory.ticketCategory.id)) {
+        if (transactionShowTicketCategory.showTicketCategory.show.id === selectedSchedule?.id && selectedCategories.includes(transactionShowTicketCategory.showTicketCategory.ticketCategory.id)) {
           accordState[accordionKey] = true
         }
       })
@@ -397,10 +392,9 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
             </Stack>
           </Grid>
-
-          <Grid item lg={7} md={7} xs={12} spacing={3}>
+          
+          <Grid item lg={7} md={7} xs={12} spacing={3} sx={{display: selectedSchedule && selectedCategories.length > 0 ? 'block' : 'none'}}>
             <Stack spacing={3}>
-
               <Card>
                 <CardHeader subheader="Vui lòng hướng mã QR về phía camera." title="Quét mã QR" />
                 <Divider />
@@ -530,6 +524,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Trạng thái giao dịch:</Typography>
                     <Chip
+                      size='small'
                       color={getRowStatusDetails(trxn?.status || '').color}
                       label={getRowStatusDetails(trxn?.status || '').label}
                     />
@@ -537,10 +532,20 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Trạng thái thanh toán:</Typography>
                     <Chip
+                      size='small'
                       color={getPaymentStatusDetails(trxn?.paymentStatus || '').color}
                       label={getPaymentStatusDetails(trxn?.paymentStatus || '').label}
                     />
                   </Grid>
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1">Trạng thái xuất vé:</Typography>
+                    <Chip
+                      size='small'
+                      color={getSentEmailTicketStatusDetails(trxn?.sentTicketEmailAt ? 'sent' : 'not_sent').color}
+                      label={getSentEmailTicketStatusDetails(trxn?.sentTicketEmailAt ? 'sent' : 'not_sent').label}
+                    />
+                  </Grid>
+                  
                   <Divider />
 
 
