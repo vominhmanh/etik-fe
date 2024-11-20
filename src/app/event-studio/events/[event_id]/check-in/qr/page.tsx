@@ -153,7 +153,7 @@ const getPaymentStatusDetails = (paymentStatus: string) => {
 const getRowStatusDetails = (status: string) => {
   switch (status) {
     case 'normal':
-      return { label: 'Bình thường', color: 'default' };
+      return { label: 'Bình thường', color: 'success' };
     case 'customer_cancelled':
       return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
     case 'staff_locked':
@@ -571,7 +571,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
                 <Button
                   variant="contained"
-                  disabled={!(trxn?.status != 'normal' && trxn?.paymentStatus != 'paid')}
+                  disabled={!(trxn?.status == 'normal' && trxn?.paymentStatus == 'paid')}
                   onClick={() => {
                     setConfirmCheckin(true);
                     sendCheckinRequest(eCode);
