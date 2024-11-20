@@ -21,6 +21,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { debounce } from 'lodash';
 import { ArrowCounterClockwise, X } from '@phosphor-icons/react/dist/ssr';
 import { Grid, FormControl, InputLabel, Select, MenuItem, IconButton } from '@mui/material';
+import { Empty } from '@phosphor-icons/react';
 interface FilterTicketCategory {
   id: number;
   eventId: number;
@@ -77,9 +78,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const [filters, setFilters] = React.useState({
-    status: null,
-    paymentStatus: null,
-    sentTicketEmailStatus: null,
+    status: '',
+    paymentStatus: '',
+    sentTicketEmailStatus: '',
   });
 
 
@@ -89,9 +90,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleClearFilters = () => {
     setFilters({
-      status: null,
-      paymentStatus: null,
-      sentTicketEmailStatus: null,
+      status: '',
+      paymentStatus: '',
+      sentTicketEmailStatus: '',
     })
   }
 
@@ -132,19 +133,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     fetchShowsWithTicketCategories();
   }, [params.event_id]);
 
-  
+
   const filteredTransactions = React.useMemo(() => {
     return transactions.filter((transaction) => {
-      if (querySearch && !transaction.email.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) {
-        return false;
-      }
-      if (querySearch && !transaction.name.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) {
-        return false;
-      }
-      if (querySearch && !transaction.phoneNumber.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) {
-        return false;
-      }
-      if (querySearch && !transaction.createdAt.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) {
+      if (querySearch && !(
+        (transaction.email.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) ||
+        (transaction.name.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) ||
+        (transaction.phoneNumber.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) ||
+        (transaction.createdAt.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase()))
+      )) {
         return false;
       }
 
@@ -159,10 +156,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       }
 
       // Sent Ticket Email Status filter
-      if (filters.sentTicketEmailStatus === 'sent' && !transaction.sentTicketEmailAt) {
+      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'sent' && !transaction.sentTicketEmailAt) {
         return false;
       }
-      if (filters.sentTicketEmailStatus === 'not_sent' && transaction.sentTicketEmailAt) {
+      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'not_sent' && transaction.sentTicketEmailAt) {
         return false;
       }
 
@@ -249,7 +246,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   name="status"
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                 >
-                  <MenuItem value={undefined}></MenuItem>
+                  <MenuItem value={''}><Empty /></MenuItem>
                   <MenuItem value="normal">Bình thường</MenuItem>
                   <MenuItem value="staff_locked">Khoá bởi NV</MenuItem>
                   <MenuItem value="customer_cancelled">Huỷ bởi KH</MenuItem>
@@ -263,7 +260,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   name="payment_status"
                   onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
                 >
-                  <MenuItem value={undefined}></MenuItem>
+                  <MenuItem value={''}><Empty /></MenuItem>
                   <MenuItem value="waiting_for_payment">Đang chờ thanh toán</MenuItem>
                   <MenuItem value="paid">Đã thanh toán</MenuItem>
                   <MenuItem value="refund">Đã hoàn tiền</MenuItem>
@@ -274,10 +271,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Select
                   value={filters.sentTicketEmailStatus}
                   label="Trạng thái xuất vé"
-                  name="type"
+                  name="sentTicketEmailStatus"
                   onChange={(e) => handleFilterChange('sentTicketEmailStatus', e.target.value)}
                 >
-                  <MenuItem value={undefined}></MenuItem>
+                  <MenuItem value={''}><Empty /></MenuItem>
                   <MenuItem value="not_sent">Chưa xuất vé</MenuItem>
                   <MenuItem value="sent">Đã xuất vé</MenuItem>
                 </Select>

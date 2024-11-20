@@ -20,7 +20,7 @@ import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
 import { debounce } from 'lodash';
 import { FormControl, InputLabel, Select, MenuItem, Grid, IconButton } from '@mui/material';
-import { ArrowCounterClockwise, X } from '@phosphor-icons/react/dist/ssr';
+import { ArrowCounterClockwise, Empty, X } from '@phosphor-icons/react/dist/ssr';
 
 
 interface FilterTicketCategory {
@@ -103,6 +103,15 @@ export interface Ticket {
   transactionShowTicketCategory: TransactionShowTicketCategory;
 }
 
+interface Filter {
+  show: number | null;
+  ticketCategory: number | null;
+  status: string;
+  paymentStatus: string;
+  sentTicketEmailStatus: string;
+  checkInStatus: string;
+}
+
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
     document.title = "Danh sách khách hàng & vé | ETIK - Vé điện tử & Quản lý sự kiện";
@@ -115,13 +124,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     setPage(newPage);
   };
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [filters, setFilters] = React.useState({
+  const [filters, setFilters] = React.useState<Filter>({
     show: null,
     ticketCategory: null,
-    status: null,
-    paymentStatus: null,
-    sentTicketEmailStatus: null,
-    checkInStatus: null,
+    status: '',
+    paymentStatus: '',
+    sentTicketEmailStatus: '',
+    checkInStatus: '',
   });
   const [filterShows, setFilterShows] = React.useState<FilterShow[]>([]);
   const [querySearch, setQuerySearch] = React.useState<string>('');
@@ -138,10 +147,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     setFilters({
       show: null,
       ticketCategory: null,
-      status: null,
-      paymentStatus: null,
-      sentTicketEmailStatus: null,
-      checkInStatus: null,
+      status: '',
+      paymentStatus: '',
+      sentTicketEmailStatus: '',
+      checkInStatus: '',
     })
   }
 
@@ -193,19 +202,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const filteredTickets = React.useMemo(() => {
     return tickets.filter((ticket) => {
       // Search filter
-      if (querySearch && !ticket.holder.toLowerCase().includes(querySearch.toLowerCase())) {
-        return false;
-      }
-
-      if (querySearch && !ticket.transactionShowTicketCategory.transaction.email.toLowerCase().includes(querySearch.toLowerCase())) {
-        return false;
-      }
-
-      if (querySearch && !ticket.transactionShowTicketCategory.transaction.name.toLowerCase().includes(querySearch.toLowerCase())) {
-        return false;
-      }
-
-      if (querySearch && !ticket.transactionShowTicketCategory.transaction.phoneNumber.toLowerCase().includes(querySearch.toLowerCase())) {
+      if (querySearch && !(
+        (ticket.holder.toLowerCase().includes(querySearch.toLowerCase())) ||
+        (ticket.transactionShowTicketCategory.transaction.email.toLowerCase().includes(querySearch.toLowerCase())) ||
+        (ticket.transactionShowTicketCategory.transaction.name.toLowerCase().includes(querySearch.toLowerCase())) ||
+        (ticket.transactionShowTicketCategory.transaction.phoneNumber.toLowerCase().includes(querySearch.toLowerCase()))
+      )) {
         return false;
       }
 
@@ -230,18 +232,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       }
 
       // Sent Ticket Email Status filter
-      if (filters.sentTicketEmailStatus === 'sent' && !ticket.transactionShowTicketCategory.transaction.sentTicketEmailAt) {
+      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'sent' && !ticket.transactionShowTicketCategory.transaction.sentTicketEmailAt) {
         return false;
       }
-      if (filters.sentTicketEmailStatus === 'not_sent' && ticket.transactionShowTicketCategory.transaction.sentTicketEmailAt) {
+      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'not_sent' && ticket.transactionShowTicketCategory.transaction.sentTicketEmailAt) {
         return false;
       }
 
       // Check-in Status filter
-      if (filters.checkInStatus === 'checked' && !ticket.checkInAt) {
+      if (filters.checkInStatus && filters.checkInStatus === 'checked' && !ticket.checkInAt) {
         return false;
       }
-      if (filters.checkInStatus === 'not_checked' && ticket.checkInAt) {
+      if (filters.checkInStatus && filters.checkInStatus === 'not_checked' && ticket.checkInAt) {
         return false;
       }
 
@@ -326,10 +328,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Select
                   value={filters.show}
                   label="Suất diễn"
-                  name="type"
+                  name="show"
                   onChange={(e) => handleFilterChange('show', Number(e.target.value))}
                 >
-                  <MenuItem value={undefined}></MenuItem>
+                  <MenuItem value={null}><Empty /></MenuItem>
                   {filterShows.map(show => (
                     <MenuItem key={show.id} value={show.id}>{show.name}</MenuItem>
                   ))}
@@ -340,10 +342,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Select
                   value={filters.ticketCategory}
                   label="Loại vé"
-                  name="type"
+                  name="ticketCategory"
                   onChange={(e) => handleFilterChange('ticketCategory', Number(e.target.value))}
                 >
-                  <MenuItem value={undefined}></MenuItem>
+                  <MenuItem value={null}><Empty /></MenuItem>
                   {
                     filterShows.find(show => show.id === filters.show)?.showTicketCategories.map(stc => (
                       <MenuItem key={stc.ticketCategory.id} value={stc.ticketCategory.id}>{stc.ticketCategory.name}</MenuItem>
@@ -359,7 +361,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   name="status"
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                 >
-                  <MenuItem value={undefined}></MenuItem>
+                  <MenuItem value={''}><Empty /></MenuItem>
                   <MenuItem value="normal">Bình thường</MenuItem>
                   <MenuItem value="staff_locked">Khoá bởi NV</MenuItem>
                   <MenuItem value="customer_cancelled">Huỷ bởi KH</MenuItem>
@@ -373,7 +375,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   name="payment_status"
                   onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
                 >
-                  <MenuItem value={undefined}></MenuItem>
+                  <MenuItem value={''}><Empty /></MenuItem>
                   <MenuItem value="waiting_for_payment">Đang chờ thanh toán</MenuItem>
                   <MenuItem value="paid">Đã thanh toán</MenuItem>
                   <MenuItem value="refund">Đã hoàn tiền</MenuItem>
@@ -384,10 +386,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Select
                   value={filters.sentTicketEmailStatus}
                   label="Trạng thái xuất vé"
-                  name="type"
+                  name="sentTicketEmailStatus"
                   onChange={(e) => handleFilterChange('sentTicketEmailStatus', e.target.value)}
                 >
-                  <MenuItem value={undefined}></MenuItem>
+                  <MenuItem value={''}><Empty /></MenuItem>
                   <MenuItem value="not_sent">Chưa xuất vé</MenuItem>
                   <MenuItem value="sent">Đã xuất vé</MenuItem>
                 </Select>
@@ -397,10 +399,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Select
                   value={filters.checkInStatus}
                   label="Trạng thái check-in"
-                  name="type"
+                  name="checkInStatus"
                   onChange={(e) => handleFilterChange('checkInStatus', e.target.value)}
                 >
-                  <MenuItem value={undefined}></MenuItem>
+                  <MenuItem value={''}><Empty /></MenuItem>
                   <MenuItem value="not_checked">Chưa check-in</MenuItem>
                   <MenuItem value="checked">Đã check-in</MenuItem>
                 </Select>
