@@ -3,7 +3,6 @@
 import * as React from 'react';
 import RouterLink from 'next/link';
 import { usePathname } from 'next/navigation';
-import { EventResponse } from '@/app/events/[event_slug]/page';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -37,13 +36,26 @@ import NotificationContext from '@/contexts/notification-context';
 import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
+export type EventResponse = {
+  id: number;
+  name: string;
+  organizer: string;
+  description: string;
+  startDateTime: string | null;
+  endDateTime: string | null;
+  place: string | null;
+  locationUrl: string | null;
+  bannerUrl: string | null;
+  avatarUrl: string | null;
+  slug: string;
+  locationInstruction: string | null;
+};
 
 export function SideNav(): React.JSX.Element {
   const pathname = usePathname();
   const [dynamicId, setDynamicId] = React.useState<string | null>(null);
-  const [event, setEvent] = React.useState<EventResponse | null>(null);
   const notificationCtx = React.useContext(NotificationContext);
-
+  const [event, setEvent] = React.useState<EventResponse | null>(null);
   React.useEffect(() => {
     const storedEventId = localStorage.getItem('event_id');
     setDynamicId(storedEventId);
@@ -64,6 +76,17 @@ export function SideNav(): React.JSX.Element {
       fetchEventDetails();
     }
   }, [dynamicId]);
+
+  const handleRedirectToCheckInFace = (eventId: number) => {
+    const accessToken = localStorage.getItem('accessToken'); // Retrieve accessToken from localStorage
+    if (!accessToken) {
+      console.error('Access token not found in localStorage.');
+      return;
+    }
+
+    const url = `https://ekyc.etik.io.vn/check-in-face?event_id=${eventId}&accessToken=${accessToken}`;
+    window.location.href = url; // Redirect to the URL
+  };
 
   return (
     <Box
@@ -227,7 +250,7 @@ export function SideNav(): React.JSX.Element {
                 pathname={pathname}
                 key="check-in-face"
                 title="Soát vé bằng khuôn mặt"
-                href={`https://ekyc.etik.io.vn/check-in-face`}
+                onClick={() => handleRedirectToCheckInFace(event?.id || 0)}
                 icon={ScanSmileyIcon}
               />
             </NavItemCollapse>
@@ -428,26 +451,39 @@ function NavItemCollapseChildItem({
   matcher,
   pathname,
   title,
+  onClick,
 }: NavItemProps): React.JSX.Element {
   const active = isNavItemActive({ disabled, external, href, matcher, pathname });
   const Icon = icon;
 
+  const handleClick = (event: React.MouseEvent) => {
+    if (disabled) {
+      event.preventDefault();
+      return;
+    }
+
+    if (onClick) {
+      event.preventDefault(); // Prevent default navigation behavior for onClick
+      onClick();
+    }
+  };
+
   return (
     <li>
       <Box
-        {...(href
+        {...(href && !onClick
           ? {
-            component: external ? 'a' : RouterLink,
-            href,
-            target: external ? '_blank' : undefined,
-            rel: external ? 'noreferrer' : undefined,
-          }
-          : { role: 'button' })}
+              component: external ? 'a' : RouterLink,
+              href,
+              target: external ? '_blank' : undefined,
+              rel: external ? 'noreferrer' : undefined,
+            }
+          : { role: 'button', onClick: handleClick })}
         sx={{
           alignItems: 'center',
           borderRadius: 1,
           color: 'var(--NavItem-color)',
-          cursor: 'pointer',
+          cursor: disabled ? 'not-allowed' : 'pointer',
           display: 'flex',
           flex: '0 0 auto',
           gap: 1,
@@ -458,9 +494,11 @@ function NavItemCollapseChildItem({
           ...(disabled && {
             bgcolor: 'var(--NavItem-disabled-background)',
             color: 'var(--NavItem-disabled-color)',
-            cursor: 'not-allowed',
           }),
-          ...(active && { bgcolor: 'var(--NavItem-active-background)', color: 'var(--NavItem-active-color)' }),
+          ...(active && {
+            bgcolor: 'var(--NavItem-active-background)',
+            color: 'var(--NavItem-active-color)',
+          }),
         }}
       >
         <Box

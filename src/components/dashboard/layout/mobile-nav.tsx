@@ -33,6 +33,9 @@ import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
 import { Mailbox, StackPlus, UserList } from '@phosphor-icons/react/dist/ssr';
+import NotificationContext from '@/contexts/notification-context';
+import { AxiosResponse } from 'axios';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 
 export interface MobileNavProps {
   onClose?: () => void;
@@ -40,14 +43,48 @@ export interface MobileNavProps {
   items?: NavItemConfig[];
 }
 
+export type EventResponse = {
+  id: number;
+  name: string;
+  organizer: string;
+  description: string;
+  startDateTime: string | null;
+  endDateTime: string | null;
+  place: string | null;
+  locationUrl: string | null;
+  bannerUrl: string | null;
+  avatarUrl: string | null;
+  slug: string;
+  locationInstruction: string | null;
+};
+
 export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element {
   const pathname = usePathname();
   const [dynamicId, setDynamicId] = React.useState<string | null>(null);
+  const [event, setEvent] = React.useState<EventResponse | null>(null);
+  const notificationCtx = React.useContext(NotificationContext);
 
   React.useEffect(() => {
     const storedEventId = localStorage.getItem('event_id');
     setDynamicId(storedEventId);
   }, []);
+
+  React.useEffect(() => {
+    if (dynamicId) {
+      const fetchEventDetails = async () => {
+        try {
+          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
+            `/event-studio/events/${dynamicId}`
+          );
+          setEvent(response.data);
+        } catch (error) {
+          notificationCtx.error('Error fetching event details:', error);
+        }
+      };
+      fetchEventDetails();
+    }
+  }, [dynamicId]);
+
 
   return (
     <Drawer
@@ -97,7 +134,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               Event
             </Typography>
             <Typography color="inherit" variant="subtitle1" sx={{ fontSize: '0.875rem' }}>
-              REFUND MEETING ĐÀ NẴNG
+              {event?.name || 'Untitled Event'}
             </Typography>
           </Box>
           <CaretUpDownIcon />
@@ -389,26 +426,39 @@ function NavItemCollapseChildItem({
   matcher,
   pathname,
   title,
+  onClick,
 }: NavItemProps): React.JSX.Element {
   const active = isNavItemActive({ disabled, external, href, matcher, pathname });
   const Icon = icon;
 
+  const handleClick = (event: React.MouseEvent) => {
+    if (disabled) {
+      event.preventDefault();
+      return;
+    }
+
+    if (onClick) {
+      event.preventDefault(); // Prevent default navigation behavior for onClick
+      onClick();
+    }
+  };
+
   return (
     <li>
       <Box
-        {...(href
+        {...(href && !onClick
           ? {
             component: external ? 'a' : RouterLink,
             href,
             target: external ? '_blank' : undefined,
             rel: external ? 'noreferrer' : undefined,
           }
-          : { role: 'button' })}
+          : { role: 'button', onClick: handleClick })}
         sx={{
           alignItems: 'center',
           borderRadius: 1,
           color: 'var(--NavItem-color)',
-          cursor: 'pointer',
+          cursor: disabled ? 'not-allowed' : 'pointer',
           display: 'flex',
           flex: '0 0 auto',
           gap: 1,
@@ -419,9 +469,11 @@ function NavItemCollapseChildItem({
           ...(disabled && {
             bgcolor: 'var(--NavItem-disabled-background)',
             color: 'var(--NavItem-disabled-color)',
-            cursor: 'not-allowed',
           }),
-          ...(active && { bgcolor: 'var(--NavItem-active-background)', color: 'var(--NavItem-active-color)' }),
+          ...(active && {
+            bgcolor: 'var(--NavItem-active-background)',
+            color: 'var(--NavItem-active-color)',
+          }),
         }}
       >
         <Box
