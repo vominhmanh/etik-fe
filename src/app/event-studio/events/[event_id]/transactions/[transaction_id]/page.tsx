@@ -404,7 +404,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                             <Typography variant="body1">{ticket.holder}</Typography>
                             <Tooltip title={
                               <Stack spacing={1}>
-                                <Typography>Trạng thái check-in: {ticket.checkInAt ? `Check-in lúc ${dayjs(transaction.paymentDueDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
+                                <Typography>Trạng thái check-in: {ticket.checkInAt ? `Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
                                 {/* <Typography>ID giao dịch: {row.transactionId}</Typography> */}
                               </Stack>
                             }>

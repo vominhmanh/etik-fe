@@ -323,7 +323,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                             <Typography variant="body1">{ticket.holder}</Typography>
                             <Tooltip title={
                               <Stack spacing={1}>
-                                <Typography>Trạng thái check-in: {ticket.checkInAt ? `Check-in lúc ${dayjs(transaction.paymentDueDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
+                                <Typography>Trạng thái check-in: {ticket.checkInAt ? `Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
                                 {/* <Typography>ID đơn hàng: {row.transactionId}</Typography> */}
                               </Stack>
                             }>

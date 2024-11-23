@@ -295,7 +295,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   };
   const sendCheckinRequest = (eCode: string) => {
     if (trxn) {
-      setIsLoading(true);
 
       // Collect check-in details by filtering tickets with true checkbox state and false disabled state
       const ticketsToCheckIn: { [key: string]: number[] } = {};
@@ -328,12 +327,15 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           checkInCustomerIds: checkInAll ? [] : ticketIds,
         });
       });
+      
+      setIsLoading(true);
 
       // Execute all requests and update UI state
       Promise.all(requests)
         .then(() => {
           getTransactionByECode(eCode); // Refresh data after check-in
           setIsSuccessful(true);
+          notificationCtx.success(`Check-in thành công.`);
         })
         .catch(error => {
           notificationCtx.error(error);
