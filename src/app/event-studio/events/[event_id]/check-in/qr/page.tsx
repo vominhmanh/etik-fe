@@ -327,7 +327,11 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           checkInCustomerIds: checkInAll ? [] : ticketIds,
         });
       });
-      
+
+      if (requests.length === 0) {
+        notificationCtx.warning(`Vui lòng chọn ít nhất 1 vé để check-in.`);
+        return
+      }
       setIsLoading(true);
 
       // Execute all requests and update UI state
