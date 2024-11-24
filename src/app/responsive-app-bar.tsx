@@ -115,7 +115,7 @@ export function ResponsiveAppBar() {
                 Tạo sự kiện của tôi
               </Button>
               <Button
-                sx={{ display: { xs: 'none', md: 'flex', my: 0, color: 'white', display: 'block', py: 0 }}}
+                sx={{ display: { xs: 'none', md: 'block'}, my: 0, color: 'white', py: 0 }}
                 href='/blogs'
                 onClick={handleCloseNavMenu}
               >
