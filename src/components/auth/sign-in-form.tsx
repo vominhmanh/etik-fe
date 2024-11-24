@@ -97,9 +97,6 @@ export function SignInForm(): React.JSX.Element {
             Đăng ký
           </Link>
         </Typography>
-        <Typography color="text.secondary" variant="body2" sx={{color: 'red'}}>
-          Nếu quý khách gặp lỗi tài khoản, mật khẩu không đúng, xin vui lòng đăng ký lại tài khoản. Trân trọng cảm ơn! 
-        </Typography>
       </Stack>
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack spacing={2}>

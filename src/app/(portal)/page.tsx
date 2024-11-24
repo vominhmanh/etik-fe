@@ -20,8 +20,6 @@ export default function Page() {
       </Head>
       <Box
         sx={{
-          display: { xs: 'flex', lg: 'grid' },
-          flexDirection: 'column',
           minHeight: '100%',
         }}
       >
@@ -30,7 +28,6 @@ export default function Page() {
             alignItems: 'center',
             background: 'radial-gradient(50% 50% at 50% 50%, #122647 0%, #090E23 100%)',
             color: 'var(--mui-palette-common-white)',
-            display: { xs: 'none', lg: 'flex' },
             justifyContent: 'center',
             p: 3,
           }}

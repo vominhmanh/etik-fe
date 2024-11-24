@@ -99,7 +99,7 @@ export function ResponsiveAppBar() {
           >
             ETIK
           </Typography>
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex', my: 0 } }}>
+          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'flex', my: 0 } }}>
               <Button
                 href='/marketplace'
                 onClick={handleCloseNavMenu}
@@ -115,9 +115,9 @@ export function ResponsiveAppBar() {
                 Tạo sự kiện của tôi
               </Button>
               <Button
+                sx={{ display: { xs: 'none', md: 'flex', my: 0, color: 'white', display: 'block', py: 0 }}}
                 href='/blogs'
                 onClick={handleCloseNavMenu}
-                sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
               >
                 Blogs
               </Button>
