@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Chip, MenuItem, Select, Stack, Tooltip } from '@mui/material';
+import { Chip, IconButton, MenuItem, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
@@ -15,7 +15,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, Info, Lightning as LightningIcon, Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, DeviceMobile, Info, Lightning as LightningIcon, Money as MoneyIcon, SignIn, SignOut, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
 
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
 import { EnvelopeSimple as EnvelopeSimpleIcon } from '@phosphor-icons/react/dist/ssr/EnvelopeSimple';
@@ -91,6 +91,38 @@ const getRowStatusDetails = (status: string) => {
   }
 };
 
+const getSentEmailTicketStatusDetails = (status: string) => {
+  switch (status) {
+    case 'sent':
+      return { label: 'Đã xuất', color: 'success' };
+    case 'not_sent':
+      return { label: 'Chưa xuất', color: 'default' }; // error for danger
+    default:
+      return { label: 'Unknown', color: 'default' };
+  }
+};
+
+
+const getHistorySendingTypeDetails = (type: SendingType) => {
+  switch (type) {
+    case SendingType.TICKET:
+      return 'Gửi vé điện tử';
+    case SendingType.PAYMENT_INSTRUCTION:
+      return 'Gửi hướng dẫn thanh toán';
+    case SendingType.CANCEL_TICKET:
+      return 'Gửi thư huỷ vé';
+  }
+};
+
+const getHistorySendingChannelDetails = (channel: SendingChannel) => {
+  switch (channel) {
+    case SendingChannel.EMAIL:
+      return 'Email';
+    case SendingChannel.ZALO:
+      return 'Zalo';
+  }
+};
+
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
   holder: string;        // Name of the ticket holder
@@ -134,6 +166,44 @@ export interface Creator {
   email: string;                    // Email of the creator
 }
 
+// Enum for SendingChannel
+export enum SendingChannel {
+  EMAIL = "email",
+  ZALO = "zalo",
+}
+
+// Enum for SendingType
+export enum SendingType {
+  TICKET = 'ticket',
+  PAYMENT_INSTRUCTION = 'payment_instruction',
+  CANCEL_TICKET = 'cancel_ticket'
+}
+
+// Interface for HistorySendingCreatorResponse
+export interface HistorySendingCreatorResponse {
+  id: number;
+  fullName: string; // Converted to camelCase based on alias_generator
+  email: string;
+}
+
+// Interface for HistorySendingResponse
+export interface HistorySending {
+  id: number;
+  channel: SendingChannel;
+  type: SendingType;
+  createdAt: string; // ISO 8601 string for datetime
+  createdBy: number;
+  creator: HistorySendingCreatorResponse;
+}
+
+export interface HistoryAction {
+  id: number;
+  content: string;
+  createdAt: string; // ISO 8601 string for datetime
+  createdBy: number;
+  creator: HistorySendingCreatorResponse;
+}
+
 export interface Transaction {
   id: number;                       // Unique identifier for the transaction
   eventId: number;                  // ID of the related event
@@ -163,6 +233,8 @@ export interface Transaction {
   sentConfirmationEmailAt: string | null; // The date the transaction was created
   createdSource: string;            // Source of the transaction creation
   creator: Creator | null;          // Related creator of the transaction, nullable
+  historySendings: HistorySending[];
+  historyActions: HistoryAction[];
 }
 
 
@@ -182,8 +254,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
     status: null,
   });
 
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
+  const handleFormChange = (event: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = event.target;
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
@@ -235,17 +307,16 @@ export default function Page({ params }: { params: { event_id: number; transacti
     fetchTransactionDetails();
   }, [event_id, transaction_id]);
 
-
-  const resendTicketEmail = async () => {
+  const sendTicket = async (channel: string | null) => {
     try {
       setIsLoading(true); // Optional: Show loading state
       const response: AxiosResponse = await baseHttpServiceInstance.post(
-        `/event-studio/events/${event_id}/transactions/${transaction_id}/resend-ticket-email`
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/send-ticket`, channel ? { channel: channel } : {}
       );
 
       // Optionally handle response
       if (response.status === 200) {
-        notificationCtx.success('Email vé đã được gửi thành công!');
+        notificationCtx.success(response.data.message);
       }
     } catch (error) {
       notificationCtx.error('Có lỗi xảy ra khi gửi email vé:', error);
@@ -324,7 +395,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         <CircularProgress color="inherit" />
       </Backdrop>
       <div>
-        <Typography variant="h4">Chi tiết vé của {transaction.name}</Typography>
+        <Typography variant="h4">Chi tiết đơn hàng của {transaction.name}</Typography>
       </div>
       <Grid container spacing={3}>
         <Grid lg={5} md={5} xs={12} spacing={3}>
@@ -345,6 +416,13 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Trạng thái thanh toán:</Typography>
                     <Chip label={paymentStatusDetails.label} color={paymentStatusDetails.color} />
+                  </Grid>
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1">Trạng thái xuất vé:</Typography>
+                    <Chip
+                      color={getSentEmailTicketStatusDetails(transaction?.sentTicketEmailAt ? 'sent' : 'not_sent').color}
+                      label={getSentEmailTicketStatusDetails(transaction?.sentTicketEmailAt ? 'sent' : 'not_sent').label}
+                    />
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Tổng số tiền:</Typography>
@@ -536,10 +614,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   {/* createdAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Thời gian gửi email vé:</Typography>
+                      <Typography variant="body1">Thời gian xuất vé:</Typography>
                     </Stack>
                     <Typography variant="body1">
-                    {transaction.sentTicketEmailAt ? dayjs(transaction.sentTicketEmailAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
+                      {transaction.sentTicketEmailAt ? dayjs(transaction.sentTicketEmailAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
                     </Typography>
                   </Grid>
                 </Stack>
@@ -596,10 +674,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                 </Grid>
               </CardContent>
             </Card>
-
             <Card>
-              <CardHeader title="Hành động" />
-              <Divider />
               <CardContent>
                 <Grid container justifyContent="space-between">
                   <FormControl fullWidth required>
@@ -616,23 +691,65 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     </Select>
                   </FormControl>
                 </Grid>
-                <Stack spacing={2} direction={'row'}>
-                  {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && (
-                    <Button onClick={resendTicketEmail} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                      Gửi Email vé
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader title="Hành động" />
+              <Divider />
+              <CardContent>
+                {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.sentTicketEmailAt == null && (
+                  <Stack spacing={2} direction={'row'}>
+                    <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                      Xuất vé + gửi email
                     </Button>
-                  )}
+                    <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<DeviceMobile />}>
+                      Xuất vé + gửi Zalo
+                    </Button>
+                    <Button onClick={() => sendTicket(null)} size="small" startIcon={<TicketIcon />}>
+                      Xuất vé không gửi
+                    </Button>
+                  </Stack>
+                )}
+                {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.sentTicketEmailAt != null && (
+                  <Stack spacing={2} direction={'row'}>
+                    <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                      Gửi vé qua Email
+                    </Button>
+                    <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<DeviceMobile />}>
+                      Gửi vé qua Zalo
+                    </Button>
+                  </Stack>
+                )}
+                {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.sentTicketEmailAt != null && (
+                  <Stack spacing={2} direction={'row'}>
+                    <Button size="small" startIcon={<SignIn />}>
+                      Check-in
+                    </Button>
+                    <Button size="small" startIcon={<SignOut />}>
+                      Check-out
+                    </Button>
+                  </Stack>
+                )}
+
+                <Stack spacing={2} direction={'row'}>
                   {transaction.status === 'normal' &&
                     transaction.paymentMethod === 'napas247' &&
                     transaction.paymentStatus === 'waiting_for_payment' && (
-                      <Button onClick={resendInstructionNapas247Email}
-                        size="small"
-                        startIcon={<EnvelopeSimpleIcon />}
-                      >
-                        Gửi Hướng dẫn thanh toán
-                      </Button>
+                      <>
+                        <Button onClick={resendInstructionNapas247Email}
+                          size="small"
+                          startIcon={<EnvelopeSimpleIcon />}
+                        >
+                          Gửi Hướng dẫn thanh toán qua Email
+                        </Button>
+                        <Button onClick={resendInstructionNapas247Email}
+                          size="small"
+                          startIcon={<EnvelopeSimpleIcon />}
+                        >
+                          Gửi Hướng dẫn thanh toán qua Zalo
+                        </Button>
+                      </>
                     )}
-
                   {transaction.status === 'normal' &&
                     transaction.paymentMethod !== 'napas247' &&
                     transaction.paymentStatus === 'waiting_for_payment' && (
@@ -655,11 +772,81 @@ export default function Page({ params }: { params: { event_id: number; transacti
                         Chuyển trạng thái "Đã hoàn tiền"
                       </Button>
                     )}
-
                 </Stack>
               </CardContent>
             </Card>
-
+            <Card>
+              <CardHeader title="Lịch sử gửi" subheader='Lịch sử gửi email và gửi tin nhắn Zalo đến khách hàng' />
+              <Divider />
+              <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 300 }}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      {/* <TableCell sx={{ width: '20px' }}></TableCell> */}
+                      <TableCell>Thời gian</TableCell>
+                      <TableCell sx={{ minWidth: '200px' }}>Nội dung</TableCell>
+                      <TableCell>Kênh</TableCell>
+                      <TableCell>Người thực hiện</TableCell>
+                      {/* <TableCell>Địa chỉ</TableCell>
+                      <TableCell></TableCell> */}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {transaction.historySendings.map((historySending: HistorySending) => (
+                      <TableRow hover key={historySending.id}>
+                        <TableCell>
+                          {dayjs(historySending.createdAt || 0).format('HH:mm:ss DD/MM/YYYY')}
+                        </TableCell>
+                        <TableCell>
+                          {getHistorySendingTypeDetails(historySending.type)}
+                        </TableCell>
+                        <TableCell>
+                          {getHistorySendingChannelDetails(historySending.channel)}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">{historySending.creator.fullName}</Typography>
+                          <Typography variant="body2">{historySending.creator.email}</Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader title="Lịch sử thao tác" />
+              <Divider />
+              <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 300 }}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      {/* <TableCell sx={{ width: '20px' }}></TableCell> */}
+                      <TableCell>Thời gian</TableCell>
+                      <TableCell sx={{ minWidth: '240px' }}>Nội dung</TableCell>
+                      <TableCell>Người thực hiện</TableCell>
+                      {/* <TableCell>Địa chỉ</TableCell>
+                      <TableCell></TableCell> */}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {transaction.historyActions.map((historyAction: HistoryAction) => (
+                      <TableRow hover key={historyAction.id}>
+                        <TableCell>
+                          {dayjs(historyAction.createdAt || 0).format('HH:mm:ss DD/MM/YYYY')}
+                        </TableCell>
+                        <TableCell>
+                          {historyAction.content}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">{historyAction.creator.fullName}</Typography>
+                          <Typography variant="body2">{historyAction.creator.email}</Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
 
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
               <Button type="submit" variant="contained" onClick={updateTransaction}>

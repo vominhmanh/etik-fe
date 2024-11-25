@@ -455,7 +455,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   {/* sentTicketEmailAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Thời gian gửi email vé:</Typography>
+                      <Typography variant="body1">Thời gian xuất vé:</Typography>
                     </Stack>
                     <Typography variant="body1">
                       {transaction.sentTicketEmailAt ? dayjs(transaction.sentTicketEmailAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}

@@ -81,13 +81,21 @@ const getSentEmailTicketStatusDetails = (status: string) => {
   }
 };
 
-interface CustomersTableProps {
-  count?: number;
-  page?: number;
-  rows?: Ticket[];
-  rowsPerPage?: number;
-  eventId: number;
+export interface CustomersTableProps {
+  count?: number; // Total number of transactions.
+  page?: number; // Current page index (0-based).
+  rows?: Ticket[]; // Array of transactions to display in the table.
+  rowsPerPage?: number; // Number of rows displayed per page.
+  eventId: number; // The ID of the event these transactions belong to.
+  selected: Set<number>; // Set of selected transaction IDs.
+  onPageChange: (newPage: number) => void; // Callback to handle page changes.
+  onRowsPerPageChange: (newRowsPerPage: number) => void; // Callback to handle changes in rows per page.
+  onSelectMultiple: (rowIds: number[]) => void; // Callback to handle selecting multiple rows.
+  onDeselectMultiple: (rowIds: number[]) => void; // Callback to handle deselecting multiple rows.
+  onSelectOne: (rowId: number) => void; // Callback to handle selecting a single row.
+  onDeselectOne: (rowId: number) => void; // Callback to handle deselecting a single row.
 }
+
 
 const formatPrice = (price: number) => {
   return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
@@ -122,15 +130,6 @@ function stringAvatar(name: string) {
     children: `${name.split(' ')[0][0]}${name.split(' ').length > 1 ? name.split(' ')[1][0] : ''}`,
   };
 }
-interface CustomersTableProps {
-  count?: number;
-  page?: number;
-  rows?: Ticket[];
-  rowsPerPage?: number;
-  eventId: number;
-  onPageChange: (newPage: number) => void;
-  onRowsPerPageChange: (newRowsPerPage: number) => void;
-}
 
 export function TicketsTable({
   count = 0,
@@ -138,8 +137,13 @@ export function TicketsTable({
   page = 0,
   rowsPerPage = 10,
   eventId = 0,
+  selected, // use from parent component
   onPageChange,
   onRowsPerPageChange,
+  onSelectMultiple,
+  onDeselectMultiple,
+  onSelectOne,
+  onDeselectOne,
 }: CustomersTableProps): React.JSX.Element {
 
   const handleChangePage = (event: unknown, newPage: number) => {
@@ -154,33 +158,35 @@ export function TicketsTable({
     return rows.map((ticket) => ticket.id);
   }, [rows]);
 
-  const { selectAll, deselectAll, selectOne, deselectOne, selected } = useSelection(rowIds);
-
-  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < rows.length;
-  const selectedAll = rows.length > 0 && selected?.size === rows.length;
+  // Check if some or all rows on the current page are selected
+  const currentPageRowIds = rows.map((row) => row.id);
+  const selectedSomeThisPage = currentPageRowIds.some((id) => selected.has(id));
+  const selectedAllThisPage = currentPageRowIds.every((id) => selected.has(id));
 
   return (
     <Card>
       <Box sx={{ overflowX: 'auto' }}>
-        <Table sx={{ minWidth: '800px' }}>
+        <Table sx={{ minWidth: '1000px' }}>
           <TableHead>
             <TableRow>
               <TableCell padding="checkbox">
                 <Checkbox
-                  checked={selectedAll}
-                  indeterminate={selectedSome}
+                  checked={selectedAllThisPage}
+                  indeterminate={selectedSomeThisPage && !selectedAllThisPage}
                   onChange={(event) => {
                     if (event.target.checked) {
-                      selectAll();
+                      // Select all rows on this page
+                      onSelectMultiple(currentPageRowIds);
                     } else {
-                      deselectAll();
+                      // Deselect all rows on this page
+                      onDeselectMultiple(currentPageRowIds);
                     }
                   }}
                 />
               </TableCell>
-              <TableCell>Họ tên</TableCell>
-              <TableCell>Suất diễn</TableCell>
-              <TableCell>Loại vé</TableCell>
+              <TableCell sx={{minWidth: '200px'}}>Họ tên</TableCell>
+              <TableCell sx={{minWidth: '150px'}}>Suất diễn</TableCell>
+              <TableCell sx={{minWidth: '80px'}}>Loại vé</TableCell>
               <TableCell>Trạng thái</TableCell>
               <TableCell>Thanh toán</TableCell>
               <TableCell>Xuất vé</TableCell>
@@ -199,9 +205,11 @@ export function TicketsTable({
                       checked={isSelected}
                       onChange={(event) => {
                         if (event.target.checked) {
-                          selectOne(row.id);
+                          // Select a single row
+                          onSelectOne(row.id);
                         } else {
-                          deselectOne(row.id);
+                          // Deselect a single row
+                          onDeselectOne(row.id);
                         }
                       }}
                     />

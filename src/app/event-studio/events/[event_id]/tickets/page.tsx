@@ -120,9 +120,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const notificationCtx = React.useContext(NotificationContext);
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-  };
+  const [selected, setSelected] = React.useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [filters, setFilters] = React.useState<Filter>({
     show: null,
@@ -141,6 +139,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleFilterChange = (key: string, value: any) => {
     setFilters((prevFilters) => ({ ...prevFilters, [key]: value }));
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
   };
 
   const handleClearFilters = () => {
@@ -173,7 +175,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     fetchTickets();
   }, [params.event_id]);
 
-
   React.useEffect(() => {
     const fetchShowsWithTicketCategories = async () => {
       try {
@@ -193,6 +194,54 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   }, [params.event_id]);
 
 
+  const ticketIds = React.useMemo(() => {
+    return tickets.map((ticket) => ticket.id);
+  }, [tickets]);
+
+  React.useEffect(() => {
+    setSelected(new Set());
+  }, []);
+
+  const handleSelectMultiple = React.useCallback((rowIds: number[]) => {
+    setSelected((prev) => {
+      return new Set([...Array.from(prev), ...rowIds]);
+    });
+  }, []);
+
+  const handleDeselectMultiple = React.useCallback((rowIds: number[]) => {
+    setSelected((prev) => {
+      const copy = new Set(prev);
+      for (let rowId of rowIds) {
+        copy.delete(rowId);
+      }
+      return copy;
+    });
+  }, []);
+
+  const handleSelectAll = React.useCallback(() => {
+    setSelected(new Set(ticketIds));
+  }, [ticketIds]);
+
+  const handleDeselectAll = React.useCallback(() => {
+    setSelected(new Set());
+  }, []);
+
+  const handleDeselectOne = React.useCallback((key: number) => {
+    setSelected((prev) => {
+      const copy = new Set(prev);
+      copy.delete(key);
+      return copy;
+    });
+  }, []);
+
+  const handleSelectOne = React.useCallback((key: number) => {
+    setSelected((prev) => {
+      const copy = new Set(prev);
+      copy.add(key);
+      return copy;
+    });
+  }, []);
+
   const debounceQuerySearch = React.useCallback(debounce((value) => setQuerySearch(value), 500), [])
 
   const handleSearchTickets = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -203,7 +252,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return tickets.filter((ticket) => {
       // Search filter
       if (querySearch && !(
+        (ticket.id.toString().includes(querySearch.toLocaleLowerCase())) ||
         (ticket.holder.toLowerCase().includes(querySearch.toLowerCase())) ||
+        (ticket.transactionShowTicketCategory.transaction.id.toString().includes(querySearch.toLocaleLowerCase())) ||
         (ticket.transactionShowTicketCategory.transaction.email.toLowerCase().includes(querySearch.toLowerCase())) ||
         (ticket.transactionShowTicketCategory.transaction.name.toLowerCase().includes(querySearch.toLowerCase())) ||
         (ticket.transactionShowTicketCategory.transaction.phoneNumber.toLowerCase().includes(querySearch.toLowerCase()))
@@ -422,6 +473,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         eventId={params.event_id}
         onPageChange={handlePageChange}
         onRowsPerPageChange={handleRowsPerPageChange}
+        selected={selected}
+        onSelectMultiple={handleSelectMultiple}
+        onDeselectMultiple={handleDeselectMultiple}
+        onSelectOne={handleSelectOne}
+        onDeselectOne={handleDeselectOne}
       />
     </Stack>
   );

@@ -273,7 +273,7 @@ export default function Page(): React.JSX.Element {
       {transaction &&
         <>
           <div>
-            <Typography variant="h4">Chi tiết vé của {transaction.name}</Typography>
+            <Typography variant="h4">Chi tiết đơn hàng của {transaction.name}</Typography>
           </div>
           <Grid container spacing={3}>
             <Grid lg={5} md={5} xs={12} spacing={3}>
@@ -506,7 +506,7 @@ export default function Page(): React.JSX.Element {
                       {/* sentTicketEmailAt */}
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="body1">Thời gian gửi email vé:</Typography>
+                          <Typography variant="body1">Thời gian xuất vé:</Typography>
                         </Stack>
                         <Typography variant="body1">
                           {transaction.sentTicketEmailAt ? dayjs(transaction.sentTicketEmailAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}

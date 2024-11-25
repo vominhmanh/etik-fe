@@ -20,35 +20,48 @@ export default class BaseHttpService {
     this.router = router;
   }
 
-  async get(endpoint: string, options: AxiosRequestConfig = {}): Promise<any> {
+  async get(endpoint: string, options: AxiosRequestConfig = {}, getRawResponse: boolean = false): Promise<any> {
     merge(options, this.getCommonOptions());
     const fullUrl = endpoint.includes('http') ? endpoint : `${this.BASE_URL}${endpoint}`;
-    return instance.get(fullUrl, options).catch((error: any) => this.handleHttpError(error));
+    return getRawResponse
+      ? instance.get(fullUrl, options)
+      : instance.get(fullUrl, options)
+        .catch((error: any) => this.handleHttpError(error))
+
   }
 
-  async post(endpoint: string, data = {}, options: AxiosRequestConfig = {}): Promise<any> {
+  async post(endpoint: string, data = {}, options: AxiosRequestConfig = {}, getRawResponse: boolean = false): Promise<any> {
     merge(options, this.getCommonOptions());
     const fullUrl = endpoint.includes('http') ? endpoint : `${this.BASE_URL}${endpoint}`;
-    return instance.post(fullUrl, data, options).catch((error: any) => this.handleHttpError(error));
+    return getRawResponse
+      ? instance.post(fullUrl, data, options)
+      : instance.post(fullUrl, data, options)
+        .catch((error: any) => this.handleHttpError(error))
+
   }
 
-  async put(endpoint: string, data = {}, options: AxiosRequestConfig = {}): Promise<any> {
+  async put(endpoint: string, data = {}, options: AxiosRequestConfig = {}, getRawResponse: boolean = false): Promise<any> {
     merge(options, this.getCommonOptions());
-    return instance
-      .put(`${this.BASE_URL}${endpoint}`, data, options)
-      .catch((error: any) => this.handleHttpError(error));
+    return getRawResponse
+      ? instance.put(`${this.BASE_URL}${endpoint}`, data, options)
+      : instance.put(`${this.BASE_URL}${endpoint}`, data, options)
+        .catch((error: any) => this.handleHttpError(error))
   }
 
-  async delete(endpoint: string, options: AxiosRequestConfig = {}): Promise<any> {
+  async delete(endpoint: string, options: AxiosRequestConfig = {}, getRawResponse: boolean = false): Promise<any> {
     merge(options, this.getCommonOptions());
-    return instance.delete(`${this.BASE_URL}${endpoint}`, options).catch((error: any) => this.handleHttpError(error));
+    return getRawResponse 
+    ? instance.delete(`${this.BASE_URL}${endpoint}`, options)
+    : instance.delete(`${this.BASE_URL}${endpoint}`, options)
+      .catch((error: any) => this.handleHttpError(error))
   }
 
-  async patch(endpoint: string, data = {}, options: AxiosRequestConfig = {}): Promise<any> {
+  async patch(endpoint: string, data = {}, options: AxiosRequestConfig = {}, getRawResponse: boolean = false): Promise<any> {
     merge(options, this.getCommonOptions());
-    return instance
-      .patch(`${this.BASE_URL}${endpoint}`, data, options)
-      .catch((error: any) => this.handleHttpError(error));
+    return getRawResponse 
+    ? instance.patch(`${this.BASE_URL}${endpoint}`, data, options)
+    : instance.patch(`${this.BASE_URL}${endpoint}`, data, options)
+      .catch((error: any) => this.handleHttpError(error))
   }
 
   handleHttpError(error: any): any {
@@ -62,10 +75,10 @@ export default class BaseHttpService {
     if (statusCode !== 401) {
       throw new Error(
         error.response?.data?.detail?.[0]?.msg ||
-          error.response?.data?.detail ||
-          message ||
-          error.message ||
-          'Unknown Error'
+        error.response?.data?.detail ||
+        message ||
+        error.message ||
+        'Unknown Error',
       );
     } else {
       return this.handle401();

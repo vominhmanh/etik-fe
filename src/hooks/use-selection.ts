@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-export interface Selection<T = string> {
+export interface Selection<T = string | number> {
   deselectAll: () => void;
   deselectOne: (key: T) => void;
   selectAll: () => void;
@@ -8,6 +8,7 @@ export interface Selection<T = string> {
   selected: Set<T>;
   selectedAny: boolean;
   selectedAll: boolean;
+  setSelected: (selected: Set<T>) => void;
 }
 
 // IMPORTANT: To prevent infinite loop, `keys` argument must be memoized with React.useMemo hook.
@@ -53,5 +54,6 @@ export function useSelection<T = string>(keys: T[] = []): Selection<T> {
     selected,
     selectedAny,
     selectedAll,
+    setSelected,
   };
 }
