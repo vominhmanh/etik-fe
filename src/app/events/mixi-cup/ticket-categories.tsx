@@ -61,12 +61,17 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
   };
   const handleSelect = (id: number) => {
     const ticketCategory = ticketCategories.find((ticketCategory) => ticketCategory.id === id);
-    if (ticketCategory?.status !== 'on_sale' || ticketCategory.quantity <= ticketCategory.sold || ticketCategory.disabled) {
-      return;
+    
+    if (!ticketCategory) return;  // If the ticket category doesn't exist
+    
+    // Combine all conditions to check if the ticket is valid
+    const isValidSelection = ticketCategory.status === 'on_sale' && ticketCategory.sold < ticketCategory.quantity && !ticketCategory.disabled;
+    
+    // Only proceed if all conditions are met
+    if (isValidSelection) {
+      setSelectedPendingCategory(id);
+      setModalOpen(true);
     }
-
-    setSelectedPendingCategory(id);
-    setModalOpen(true);
   };
 
   const confirmSelection = () => {
@@ -106,9 +111,13 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
                 onClick={() => handleSelect(ticketCategory.id)}
               >
                 <Radio
-                  sx={{ display: 'block' }}
-                  checked={selectedCategory === ticketCategory.id} // Controlled radio button
-                  disabled={ticketCategory.status !== 'on_sale' || ticketCategory.quantity <= ticketCategory.sold || ticketCategory.disabled}
+                  sx={{ display: "block" }}
+                  checked={selectedCategory === ticketCategory.id}
+                  disabled={
+                    ticketCategory.status !== "on_sale" ||
+                    ticketCategory.sold >= ticketCategory.quantity ||
+                    ticketCategory.disabled
+                  }
                 />
               </Box>
               <ListItemAvatar
@@ -126,11 +135,24 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
                 )}
               </ListItemAvatar>
               <ListItemText
-                onClick={() => handleSelect(ticketCategory.id)} // Set selected when the whole item is clicked
+                onClick={() => handleSelect(ticketCategory.id)}
                 primary={ticketCategory.name}
-                primaryTypographyProps={{ variant: 'subtitle1' }}
-                secondary={ticketCategory.status !== 'on_sale' ? 'Đã hết' : ticketCategory.quantity <= ticketCategory.sold ? 'Đã hết' : ticketCategory.disabled ? 'Không khả dụng' : `${formatPrice(ticketCategory.price)}`}
-                secondaryTypographyProps={{ variant: 'body2' }}
+                primaryTypographyProps={{ variant: "subtitle1" }}
+                secondary={
+                  `${formatPrice(ticketCategory.price)} ${ticketCategory.disabled
+                    ? "| Đang khóa bởi hệ thống"
+                    : ticketCategory.status !== "on_sale"
+                      ? ticketCategory.status === "not_opened_for_sale"
+                        ? "| Chưa mở bán"
+                        : ticketCategory.status === "temporarily_locked"
+                          ? "| Đang tạm khóa"
+                          : ""
+                      : ticketCategory.sold >= ticketCategory.quantity
+                        ? "| Đã hết"
+                        : `| Còn ${ticketCategory.quantity - ticketCategory.sold}/${ticketCategory.quantity} vé`
+                  }`
+                }
+                secondaryTypographyProps={{ variant: "body2" }}
               />
               <IconButton edge="end" onClick={() => { return }}>
                 <DotsThreeVerticalIcon weight="bold" />
@@ -159,7 +181,7 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
               <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} sx={{ display: 'flex', alignItems: 'center' }} >
                 <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center' }}>
                   <Stack spacing={1}>
-                    <Typography variant='body1' sx={{fontWeight: 'bold'}}>
+                    <Typography variant='body1' sx={{ fontWeight: 'bold' }}>
                       Vui lòng đảm bảo rằng bạn chắc chắn có thể tham gia sự kiện!
                     </Typography>
                     <Typography variant='body2'>
@@ -170,7 +192,7 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
                     </Typography>
                   </Stack>
                   <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                  <Button variant='outlined' onClick={cancelSelection} size="small">
+                    <Button variant='outlined' onClick={cancelSelection} size="small">
                       Suy nghĩ lại
                     </Button>
                     <Button variant='contained' onClick={confirmSelection} size="small" endIcon={<ArrowRight />}>

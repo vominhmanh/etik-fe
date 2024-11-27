@@ -59,14 +59,19 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
   };
 
   const handleSelect = (id: number) => {
-    const ticketCategory = ticketCategories.find((t) => t.id === id)
-    if (ticketCategory?.status !== 'on_sale' || ticketCategory.quantity <= ticketCategory.sold) {
-      return
+    const ticketCategory = ticketCategories.find((ticketCategory) => ticketCategory.id === id);
+
+    if (!ticketCategory) return;  // If the ticket category doesn't exist
+
+    // Combine all conditions to check if the ticket is valid
+    const isValidSelection = ticketCategory.status === 'on_sale' && ticketCategory.sold < ticketCategory.quantity && !ticketCategory.disabled;
+
+    // Only proceed if all conditions are met
+    if (isValidSelection) {
+      setSelectedCategory(id);
+      onCategorySelect(id);
     }
-    setSelectedCategory(id);
-    onCategorySelect(id);
   };
-  
   const handleOpenDescriptionModal = (ticketCategory: any) => {
     setSelectedTicketCategory(ticketCategory);
     setTicketCategoryDescriptionModalOpen(true);
@@ -97,9 +102,13 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
                 onClick={() => handleSelect(ticketCategory.id)}
               >
                 <Radio
-                  sx={{ display: 'block' }}
-                  checked={selectedCategory === ticketCategory.id} // Controlled radio button
-                  disabled={ticketCategory.status !== 'on_sale' || ticketCategory.quantity <= ticketCategory.sold}
+                  sx={{ display: "block" }}
+                  checked={selectedCategory === ticketCategory.id}
+                  disabled={
+                    ticketCategory.status !== "on_sale" ||
+                    ticketCategory.sold >= ticketCategory.quantity ||
+                    ticketCategory.disabled
+                  }
                 />
               </Box>
               <ListItemAvatar
@@ -117,11 +126,24 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
                 )}
               </ListItemAvatar>
               <ListItemText
-                onClick={() => handleSelect(ticketCategory.id)} // Set selected when the whole item is clicked
+                onClick={() => handleSelect(ticketCategory.id)}
                 primary={ticketCategory.name}
-                primaryTypographyProps={{ variant: 'subtitle1' }}
-                secondary={ticketCategory.status !== 'on_sale' ? 'Chưa mở bán' : ticketCategory.quantity <= ticketCategory.sold ? 'Đã hết' : `${formatPrice(ticketCategory.price)} | Còn ${ticketCategory.quantity - ticketCategory.sold}/${ticketCategory.quantity} vé`}
-                secondaryTypographyProps={{ variant: 'body2' }}
+                primaryTypographyProps={{ variant: "subtitle1" }}
+                secondary={
+                  `${formatPrice(ticketCategory.price)} ${ticketCategory.disabled
+                    ? "| Đang khóa bởi hệ thống"
+                    : ticketCategory.status !== "on_sale"
+                      ? ticketCategory.status === "not_opened_for_sale"
+                        ? "| Chưa mở bán"
+                        : ticketCategory.status === "temporarily_locked"
+                          ? "| Đang tạm khóa"
+                          : ""
+                      : ticketCategory.sold >= ticketCategory.quantity
+                        ? "| Đã hết"
+                        : `| Còn ${ticketCategory.quantity - ticketCategory.sold}/${ticketCategory.quantity} vé`
+                  }`
+                }
+                secondaryTypographyProps={{ variant: "body2" }}
               />
               <IconButton edge="end" onClick={() => handleOpenDescriptionModal(ticketCategory)}>
                 <DotsThreeVerticalIcon weight="bold" />

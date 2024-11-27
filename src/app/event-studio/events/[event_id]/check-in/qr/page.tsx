@@ -67,8 +67,6 @@ export interface Transaction {
   exportedTicketAt: string | null;
 }
 
-
-
 export type Show = {
   id: number;
   name: string;

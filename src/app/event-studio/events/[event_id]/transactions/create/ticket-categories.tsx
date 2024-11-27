@@ -57,10 +57,17 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
   };
 
   const handleSelect = (id: number) => {
-    const ticketCategory = ticketCategories.find((t) => t.id === id);
-    if (ticketCategory && ticketCategory?.status === "on_sale") {
+    const ticketCategory = ticketCategories.find((ticketCategory) => ticketCategory.id === id);
+    
+    if (!ticketCategory) return;  // If the ticket category doesn't exist
+    
+    // Combine all conditions to check if the ticket is valid
+    const isValidSelection = ticketCategory.status === 'on_sale' && ticketCategory.sold < ticketCategory.quantity && !ticketCategory.disabled;
+    
+    // Only proceed if all conditions are met
+    if (isValidSelection) {
       setSelectedCategory(id);
-      onCategorySelect(id);
+      onCategorySelect(id);;
     }
   };
 
@@ -95,7 +102,11 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
                 <Radio
                   sx={{ display: "block" }}
                   checked={selectedCategory === ticketCategory.id}
-                  disabled={ticketCategory.status !== "on_sale"}
+                  disabled={
+                    ticketCategory.status !== "on_sale" ||
+                    ticketCategory.sold >= ticketCategory.quantity ||
+                    ticketCategory.disabled
+                  }
                 />
               </Box>
               <ListItemAvatar
@@ -126,9 +137,20 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
                 onClick={() => handleSelect(ticketCategory.id)}
                 primary={ticketCategory.name}
                 primaryTypographyProps={{ variant: "subtitle1" }}
-                secondary={`${formatPrice(ticketCategory.price)} | Còn ${
-                  ticketCategory.quantity - ticketCategory.sold
-                }/${ticketCategory.quantity} vé | ${typeMap[ticketCategory.type]}`}
+                secondary={
+                  `${formatPrice(ticketCategory.price)} ${ticketCategory.disabled
+                    ? "| Đang khóa bởi hệ thống"
+                    : ticketCategory.status !== "on_sale"
+                      ? ticketCategory.status === "not_opened_for_sale"
+                        ? "| Chưa mở bán"
+                        : ticketCategory.status === "temporarily_locked"
+                          ? "| Đang tạm khóa"
+                          : ""
+                      : ticketCategory.sold >= ticketCategory.quantity
+                        ? "| Đã hết"
+                        : `| Còn ${ticketCategory.quantity - ticketCategory.sold}/${ticketCategory.quantity} vé`
+                  }`
+                }
                 secondaryTypographyProps={{ variant: "body2" }}
               />
               <IconButton edge="end" onClick={() => handleOpenDescriptionModal(ticketCategory)}>
