@@ -67,7 +67,7 @@ export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesP
   return (
     <Card>
       <CardHeader
-        title={`Chọn loại vé để check-in cho ${show.name}`}
+        title={`Chọn loại vé | ${show.name}`}
         action={
           <IconButton>
             <ArrowCounterClockwiseIcon fontSize="var(--icon-fontSize-md)" />

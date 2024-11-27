@@ -15,6 +15,7 @@ import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { ArrowDown, ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
+import RouterLink from 'next/link';
 
 const iOS =
   typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -27,11 +28,24 @@ export interface Ticket {
   checkInAt: Date | null;
 }
 
-// TransactionShowTicketCategory.ts
-export interface TransactionShowTicketCategory {
+export type TicketCategory = {
+  id: number;
+  avatar: string | null;
+  name: string;
+  price: number;
+  description: string;
+  status: string;
+  quantity: number;
+  sold: number;
+  disabled: boolean;
+  show: Show;
+};
+
+// transactionTicketCategory.ts
+export interface TransactionTicketCategory {
   netPricePerOne: number;
   tickets: Ticket[];
-  showTicketCategory: ShowTicketCategory;
+  ticketCategory: TicketCategory;
 }
 
 // TransactionResponse.ts
@@ -41,7 +55,7 @@ export interface Transaction {
   name: string;
   phoneNumber: string;
   address: string;
-  transactionShowTicketCategories: TransactionShowTicketCategory[];
+  transactionTicketCategories: TransactionTicketCategory[];
   ticketQuantity: number;
   extraFee: number;
   discount: number;
@@ -50,35 +64,17 @@ export interface Transaction {
   paymentStatus: string;
   status: string;
   createdAt: Date;
-  sentTicketEmailAt: string | null;
+  exportedTicketAt: string | null;
 }
 
 
-
-
-export type TicketCategory = {
-  id: number;
-  avatar: string | null;
-  name: string;
-  price: number;
-  description: string;
-  status: string;
-};
-
-export type ShowTicketCategory = {
-  quantity: number;
-  sold: number;
-  disabled: boolean;
-  ticketCategory: TicketCategory;
-  show: Show;
-};
 
 export type Show = {
   id: number;
   name: string;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
-  showTicketCategories: ShowTicketCategory[];
+  ticketCategories: TicketCategory[];
 };
 
 export type EventResponse = {
@@ -138,7 +134,7 @@ const getPaymentStatusDetails = (paymentStatus: string) => {
 };
 
 // Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string) => {
+const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'normal':
       return { label: 'Bình thường', color: 'success' };
@@ -151,7 +147,7 @@ const getRowStatusDetails = (status: string) => {
   }
 };
 
-const getSentEmailTicketStatusDetails = (status: string) => {
+const getSentEmailTicketStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'sent':
       return { label: 'Đã xuất', color: 'success' };
@@ -254,18 +250,18 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       const ticCheckboxState: MyDynamicObject = {}
       const ticDisabledState: MyDynamicObject = {}
 
-      dataTrxn.transactionShowTicketCategories.forEach(transactionShowTicketCategory => {
-        const accordionKey = `${transactionShowTicketCategory.showTicketCategory.show.id}-${transactionShowTicketCategory.showTicketCategory.ticketCategory.id}`
+      dataTrxn.transactionTicketCategories.forEach(transactionTicketCategory => {
+        const accordionKey = `${transactionTicketCategory.ticketCategory.show.id}-${transactionTicketCategory.ticketCategory.id}`
         accordState[accordionKey] = false
-        if (transactionShowTicketCategory.showTicketCategory.show.id === selectedSchedule?.id && selectedCategories.includes(transactionShowTicketCategory.showTicketCategory.ticketCategory.id)) {
+        if (transactionTicketCategory.ticketCategory.show.id === selectedSchedule?.id && selectedCategories.includes(transactionTicketCategory.ticketCategory.id)) {
           accordState[accordionKey] = true
         }
       })
       setAccordionState(accordState)
 
-      dataTrxn.transactionShowTicketCategories.forEach(transactionShowTicketCategory => {
-        transactionShowTicketCategory.tickets.forEach((ticket) => {
-          const ticketKey = `${ticket.id}-${transactionShowTicketCategory.showTicketCategory.show.id}-${transactionShowTicketCategory.showTicketCategory.ticketCategory.id}`
+      dataTrxn.transactionTicketCategories.forEach(transactionTicketCategory => {
+        transactionTicketCategory.tickets.forEach((ticket) => {
+          const ticketKey = `${ticket.id}-${transactionTicketCategory.ticketCategory.show.id}-${transactionTicketCategory.ticketCategory.id}`
           ticDisabledState[ticketKey] = false
           ticCheckboxState[ticketKey] = false
 
@@ -273,7 +269,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
             ticDisabledState[ticketKey] = true
             ticCheckboxState[ticketKey] = true
           } else {
-            if (transactionShowTicketCategory.showTicketCategory.show.id == selectedSchedule?.id && selectedCategories.includes(transactionShowTicketCategory.showTicketCategory.ticketCategory.id)) {
+            if (transactionTicketCategory.ticketCategory.show.id == selectedSchedule?.id && selectedCategories.includes(transactionTicketCategory.ticketCategory.id)) {
               ticCheckboxState[ticketKey] = true
             } else {
               ticDisabledState[ticketKey] = true
@@ -314,9 +310,9 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       // Loop through each show/ticketCategory group and send requests
       const requests = Object.entries(ticketsToCheckIn).map(([key, ticketIds]) => {
         const [showId, ticketCategoryId] = key.split('-').map(Number);
-        const checkInAll = ticketIds.length === trxn.transactionShowTicketCategories.find(
-          category => category.showTicketCategory.show.id === showId &&
-            category.showTicketCategory.ticketCategory.id === ticketCategoryId
+        const checkInAll = ticketIds.length === trxn.transactionTicketCategories.find(
+          category => category.ticketCategory.show.id === showId &&
+            category.ticketCategory.id === ticketCategoryId
         )?.tickets.length;
 
         return baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/check-in`, {
@@ -395,7 +391,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
               {selectedSchedule &&
                 <TicketCategories show={selectedSchedule} onCategoriesSelect={(categoryIds: number[]) => handleCategorySelection(categoryIds)} />
               }
-
             </Stack>
           </Grid>
           
@@ -461,7 +456,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Email:</Typography>
-                    <Typography variant="body1">{trxn?.email} <IconButton size='small' target='_blank' href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}`}><ArrowSquareIn /></IconButton></Typography>
+                    <Typography variant="body1">{trxn?.email} <IconButton size='small' target='_blank' component={RouterLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}`}><ArrowSquareIn /></IconButton></Typography>
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Số điện thoại:</Typography>
@@ -478,8 +473,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   </Grid>
 
                   <div>
-                    {trxn?.transactionShowTicketCategories?.map((category) => {
-                      const accordionKey = `${category.showTicketCategory.show.id}-${category.showTicketCategory.ticketCategory.id}`;
+                    {trxn?.transactionTicketCategories?.map((category) => {
+                      const accordionKey = `${category.ticketCategory.show.id}-${category.ticketCategory.id}`;
 
                       return (
                         <Accordion
@@ -492,14 +487,14 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                             <Grid container justifyContent="space-between">
                               <Typography variant="body1">Show:</Typography>
                               <Typography variant="body1">
-                                {category.showTicketCategory.show.name} - {category.showTicketCategory.ticketCategory.name}
+                                {category.ticketCategory.show.name} - {category.ticketCategory.name}
                               </Typography>
                             </Grid>
                           </AccordionSummary>
 
                           <AccordionDetails>
                             {category.tickets.map((ticket) => {
-                              const ticketKey = `${ticket.id}-${category.showTicketCategory.show.id}-${category.showTicketCategory.ticketCategory.id}`
+                              const ticketKey = `${ticket.id}-${category.ticketCategory.show.id}-${category.ticketCategory.id}`
 
 
                               return (
@@ -515,7 +510,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                   label={
                                     <Stack direction="row" alignItems="center">
                                       <Typography variant="body2">{ticket.holder}</Typography>
-                                      {ticketDisabledState[ticketKey] && ticket.checkInAt != null && renderTooltip(ticket.checkInAt)}
+                                      {ticketDisabledState[ticketKey] && ticket.checkInAt != null && renderTooltip(ticket.checkInAt.toString())}
                                     </Stack>
                                   }
                                   sx={{ display: 'flex', alignItems: 'center', marginLeft: 2 }}
@@ -547,8 +542,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     <Typography variant="body1">Trạng thái xuất vé:</Typography>
                     <Chip
                       size='small'
-                      color={getSentEmailTicketStatusDetails(trxn?.sentTicketEmailAt ? 'sent' : 'not_sent').color}
-                      label={getSentEmailTicketStatusDetails(trxn?.sentTicketEmailAt ? 'sent' : 'not_sent').label}
+                      color={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').color}
+                      label={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').label}
                     />
                   </Grid>
                   

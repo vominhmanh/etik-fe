@@ -20,7 +20,7 @@ import Grid from '@mui/material/Unstable_Grid2';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import axios, { AxiosResponse } from 'axios';
 import * as XLSX from 'xlsx';
-
+import RouterLink from 'next/link';
 import NotificationContext from '@/contexts/notification-context';
 
 import { Schedules } from './schedules';
@@ -33,18 +33,13 @@ export type TicketCategory = {
   id: number;
   avatar: string | null;
   name: string;
-
   price: number;
   type: string;
   description: string;
   status: string;
-};
-
-export type ShowTicketCategory = {
   quantity: number;
   sold: number;
   disabled: boolean;
-  ticketCategory: TicketCategory;
 };
 
 export type Show = {
@@ -52,7 +47,7 @@ export type Show = {
   name: string;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
-  showTicketCategories: ShowTicketCategory[];
+  ticketCategories: TicketCategory[];
 };
 
 export type EventResponse = {
@@ -144,7 +139,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           setEvent(response.data);
           // setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
-          notificationCtx.error('Error fetching event details:', error);
+          notificationCtx.error(error);
         } finally {
           setIsLoading(false);
         }
@@ -249,9 +244,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       );
       const newTransaction = response.data;
       router.push(`/event-studio/events/${params.event_id}/transactions`); // Navigate to a different page on success
-      notificationCtx.success('Transaction created successfully!');
+      notificationCtx.success('Tạo giao dịch thành công');
     } catch (error) {
-      notificationCtx.error('Error creating transaction:', error);
+      notificationCtx.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -384,11 +379,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Table>
               </CardContent>
               <Divider />
-              <CardActions sx={{display: 'flex', justifyContent: 'space-between'}}>
+              <CardActions sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Button startIcon={<Plus />} size='small' onClick={addCustomer}>
                   Thêm hàng
                 </Button>
-                <Button startIcon={<Download />} size='small' href='/assets/create-bulk-transactions-template.xlsx' download={true}>
+                <Button startIcon={<Download />} size='small' component={RouterLink}
+                  href='/assets/create-bulk-transactions-template.xlsx' download={true}>
                   Tải file excel mẫu
                 </Button>
               </CardActions>
@@ -456,19 +452,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <Stack spacing={2}>
                     {Object.entries(selectedCategories).map(([showId, category]) => {
                       const show = event?.shows.find((show) => show.id === parseInt(showId));
-                      const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
+                      const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
 
                       return (
                         <Stack direction={{ xs: 'column', sm: 'row' }} key={showId} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                             <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {showTicketCategory?.ticketCategory.name || 'Chưa rõ loại vé'}</Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
                           </Stack>
                           <Stack spacing={2} direction={'row'}>
-                            <Typography variant="body1">Giá: {formatPrice(showTicketCategory?.ticketCategory.price || 0)}</Typography>
+                            <Typography variant="body1">Giá: {formatPrice(ticketCategory?.price || 0)}</Typography>
                             <Typography variant="body1">SL: {ticketQuantity || 0}</Typography>
                             <Typography variant="body1">
-                              Thành tiền: {formatPrice((showTicketCategory?.ticketCategory.price || 0) * (ticketQuantity || 0))}
+                              Thành tiền: {formatPrice((ticketCategory?.price || 0) * (ticketQuantity || 0))}
                             </Typography>
                           </Stack>
                         </Stack>
@@ -486,8 +482,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         {formatPrice(
                           Object.entries(selectedCategories).reduce((total, [showId, category]) => {
                             const show = event?.shows.find((show) => show.id === parseInt(showId));
-                            const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
-                            return total + (showTicketCategory?.ticketCategory?.price || 0) * (ticketQuantity || 0);
+                            const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
+                            return total + (ticketCategory?.price || 0) * (ticketQuantity || 0);
                           }, 0) + extraFee
                         )}
                       </Typography>

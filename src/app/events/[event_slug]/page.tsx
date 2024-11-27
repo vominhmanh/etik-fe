@@ -43,13 +43,9 @@ export type TicketCategory = {
   price: number;
   description: string;
   status: string;
-};
-
-export type ShowTicketCategory = {
   quantity: number;
   sold: number;
   disabled: boolean;
-  ticketCategory: TicketCategory;
 };
 
 export type Show = {
@@ -58,7 +54,7 @@ export type Show = {
   avatar: string | null;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
-  showTicketCategories: ShowTicketCategory[];
+  ticketCategories: TicketCategory[];
 };
 
 export type EventResponse = {
@@ -100,6 +96,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const captchaRef = React.useRef<ReCAPTCHA | null>(null);
   const [position, setPosition] = React.useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
   const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
+  const [ticketHolderEditted, setTicketHolderEditted] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     document.title = `Sự kiện ${event?.name} | ETIK - Vé điện tử & Quản lý sự kiện`;
@@ -108,14 +105,13 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const totalAmount = React.useMemo(() => {
     return Object.entries(selectedCategories).reduce((total, [showId, category]) => {
       const show = event?.shows.find((show) => show.id === parseInt(showId));
-      const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
-      return total + (showTicketCategory?.ticketCategory?.price || 0) * (ticketQuantity || 0);
+      const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
+      return total + (ticketCategory?.price || 0) * (ticketQuantity || 0);
     }, 0)
   }, [selectedCategories])
 
-  const handleCloseSuccessModal = (event, reason) => {
-    if (reason && reason == "backdropClick" && "escapeKeyDown")
-      return;
+  const handleCloseSuccessModal = (event: {}, reason: "backdropClick" | "escapeKeyDown") => {
+    setOpenSuccessModal(false)
   }
 
   // Fetch event details on component mount
@@ -205,8 +201,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         customer,
         tickets,
         paymentMethod,
-        // ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
-        ticketHolders: [customer.name],
+        ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
         quantity: ticketQuantity,
         captchaValue,
         "latitude": position?.latitude,
@@ -391,8 +386,16 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                             label="Họ và tên"
                             name="customer_name"
                             value={customer.name}
-                            onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
-                          />
+                            onChange={(e) => {
+                              !ticketHolderEditted && ticketHolders.length > 0 &&
+                                setTicketHolders((prev) => {
+                                  const updatedHolders = [...prev];
+                                  // Update the first item
+                                  updatedHolders[0] = e.target.value;
+                                  return updatedHolders;
+                                });
+                              setCustomer({ ...customer, name: e.target.value })
+                            }}                          />
                         </FormControl>
                       </Grid>
                       <Grid item lg={6} xs={12}>
@@ -439,14 +442,13 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 <Card>
                   <CardHeader
                     title="Số lượng người tham dự"
-                    subheader='Tối đa 1 người'
                     action={
                       <OutlinedInput
                         sx={{ maxWidth: 130 }}
                         type="number"
                         value={ticketQuantity}
                         onChange={handleTicketQuantityChange}
-                        inputProps={{ min: 1, max: 1 }}
+                        inputProps={{ min: 1 }}
                       />
                     }
                   />
@@ -460,8 +462,8 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                             <OutlinedInput
                               label={`Họ và tên người tham dự ${index + 1}`}
                               value={holder}
-                              onChange={(e) => handleTicketHolderChange(index, e.target.value)}
-                            />
+                              onChange={(e) => {setTicketHolderEditted(true); handleTicketHolderChange(index, e.target.value)}}
+                              />
                           </FormControl>
                         </Grid>
                       ))}
@@ -501,19 +503,19 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                       <Stack spacing={2}>
                         {Object.entries(selectedCategories).map(([showId, category]) => {
                           const show = event?.shows.find((show) => show.id === parseInt(showId));
-                          const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
+                          const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
 
                           return (
                             <Stack direction={{ xs: 'column', sm: 'row' }} key={showId} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                               <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                                 <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {showTicketCategory?.ticketCategory.name || 'Chưa rõ loại vé'}</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
                               </Stack>
                               <Stack spacing={2} direction={'row'}>
-                                <Typography variant="body1">Giá: {formatPrice(showTicketCategory?.ticketCategory.price || 0)}</Typography>
+                                <Typography variant="body1">Giá: {formatPrice(ticketCategory?.price || 0)}</Typography>
                                 <Typography variant="body1">SL: {ticketQuantity || 0}</Typography>
                                 <Typography variant="body1">
-                                  Thành tiền: {formatPrice((showTicketCategory?.ticketCategory.price || 0) * (ticketQuantity || 0))}
+                                  Thành tiền: {formatPrice((ticketCategory?.price || 0) * (ticketQuantity || 0))}
                                 </Typography>
                               </Stack>
                             </Stack>
@@ -594,7 +596,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 </Stack>
               </Stack>
               <div style={{ marginTop: '20px', justifyContent: 'center' }}>
-                <Button fullWidth variant='contained' size="small" endIcon={<ArrowRight />} onClick={() => window.location.href = "https://www.facebook.com/MixiGaming"}>
+                <Button fullWidth variant='contained' size="small" endIcon={<ArrowRight />} onClick={() => setOpenSuccessModal(false)} >
                   Khám phá trang thông tin sự kiện.
                 </Button>
               </div>

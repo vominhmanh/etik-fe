@@ -22,6 +22,7 @@ import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import axios, { AxiosResponse } from 'axios';
+import RouterLink from 'next/link';
 
 import NotificationContext from '@/contexts/notification-context';
 import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
@@ -35,6 +36,8 @@ type TicketCategory = {
   avatar: string;
   description: string;
   status: string;
+  limitPerTransaction: number | null;
+  limitPerCustomer: number | null;
 };
 
 const statusMap = {
@@ -49,7 +52,11 @@ const typeMap = {
   public: { label: 'Công khai', color: 'primary' },
 };
 
-const colorMap = {
+type ColorMap = {
+  [key: number]: string
+}
+
+const colorMap: ColorMap = {
   0: deepOrange[500],
   1: deepPurple[500],
   2: green[500],
@@ -60,7 +67,7 @@ const colorMap = {
   7: deepPurple[300],
 };
 
-export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+export default function Page({ params }: { params: { event_id: number, show_id: number } }): React.JSX.Element {
   React.useEffect(() => {
     document.title = "Loại vé | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
@@ -73,11 +80,11 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       try {
         setIsLoading(true);
         const response: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${params.event_id}/ticket-categories`
+          `/event-studio/events/${params.event_id}/shows/${params.show_id}/ticket-categories`
         );
         setTicketCategories(response.data);
       } catch (error) {
-        notificationCtx.error('Error fetching ticket categories:', error);
+        notificationCtx.error('Lỗi:', error);
       } finally {
         setIsLoading(false);
       }
@@ -114,6 +121,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           <Button
             startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
             variant="contained"
+            component={RouterLink}
             href="ticket-categories/create"
           >
             Thêm
@@ -130,7 +138,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   <Stack spacing={1} direction={'row'}>
                     <Box sx={{ display: 'flex', justifyContent: 'center', mr: 2, width: '50px', height: '50px' }}>
                       <Avatar
-                        href={ticketCategory.avatar}
                         sx={{
                           height: '45px',
                           width: '45px',

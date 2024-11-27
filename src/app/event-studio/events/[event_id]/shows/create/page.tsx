@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { InputAdornment } from '@mui/material';
+import { InputAdornment, TextField } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -27,17 +27,16 @@ import NotificationContext from '@/contexts/notification-context';
 
 import 'react-quill/dist/quill.snow.css'; // Import styles for ReactQuill
 
-export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+export default function Page({ params }: { params: { event_id: number; show_id: number } }): React.JSX.Element {
   React.useEffect(() => {
-    document.title = "Thêm mới loại vé | ETIK - Vé điện tử & Quản lý sự kiện";
+    document.title = "Thêm suất diễn mới | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
   const eventId = params.event_id;
+  const showId = params.show_id;
   const [formData, setFormData] = useState({
     name: '',
-    type: 'public',
-    price: 0,
-    quantity: 1,
-    description: '', // Ensure this is part of the state
+    endDateTime: '',
+    startDateTime: '',
   });
   const router = useRouter();
   const notificationCtx = React.useContext(NotificationContext);
@@ -60,21 +59,31 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
   const handleSubmit = async () => {
     try {
+      if (!formData.name) {
+        notificationCtx.warning('Tên suất diễn không được để trống.');
+        return
+      }
+      if (!formData.startDateTime || !formData.endDateTime) {
+        notificationCtx.warning('Thời gian suất diễn không được để trống.');
+        return
+      }
+      if (new Date(formData.startDateTime) > new Date(formData.endDateTime)) {
+        notificationCtx.warning('Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc');
+        return
+      }
       setIsLoading(true);
       const response: AxiosResponse = await baseHttpServiceInstance.post(
-        `/event-studio/events/${eventId}/ticket-categories`,
+        `/event-studio/events/${eventId}/shows`,
         {
           name: formData.name,
-          type: formData.type,
-          price: formData.price,
-          quantity: formData.quantity,
-          description: formData.description,
+          startDateTime: formData.startDateTime,
+          endDateTime: formData.endDateTime,
         }
       );
       notificationCtx.success('Ticket category created:', response.data);
-      router.push(`/event-studio/events/${eventId}/ticket-categories`);
+      router.push(`/event-studio/events/${eventId}/schedules`);
     } catch (error) {
-      notificationCtx.error('Error creating ticket category:', error);
+      notificationCtx.error('Lỗi', error);
     } finally {
       setIsLoading(false);
     }
@@ -94,70 +103,51 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Loại vé mới</Typography>
+          <Typography variant="h4">Suất diễn mới</Typography>
         </Stack>
       </Stack>
       <Grid container spacing={3}>
         <Grid lg={12} md={12} xs={12}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader subheader="Vui lòng điền các trường thông tin phía dưới." title="Thông tin vé" />
+              <CardHeader subheader="Vui lòng điền các trường thông tin phía dưới." title="Thông tin suất diễn" />
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Tên loại vé</InputLabel>
-                      <OutlinedInput label="Tên loại vé" name="name" value={formData.name} onChange={handleChange} />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Phân loại</InputLabel>
-                      <Select label="Phân loại" name="type" value={formData.type} onChange={handleChange}>
-                        <MenuItem value="private">Nội bộ</MenuItem>
-                        <MenuItem value="public">Công khai</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
                   <Grid md={12} xs={12}>
-                    <FormControl fullWidth>
-                      <ReactQuill value={formData.description} onChange={handleDescriptionChange} placeholder="Mô tả" />
+                    <FormControl fullWidth required>
+                      <InputLabel>Tên suất diễn</InputLabel>
+                      <OutlinedInput label="Tên suất diễn" name="name" value={formData.name} onChange={handleChange} />
+                    </FormControl>
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <FormControl fullWidth required>
+                      <TextField
+                        label="Thời gian bắt đầu"
+                        type="datetime-local"
+                        name="startDateTime"
+                        value={formData.startDateTime || ''}
+                        onChange={handleChange}
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </FormControl>
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <FormControl fullWidth required>
+                      <TextField
+                        label="Thời gian kết thúc"
+                        type="datetime-local"
+                        name="endDateTime"
+                        value={formData.endDateTime || ''}
+                        onChange={handleChange}
+                        InputLabelProps={{ shrink: true }}
+                      />
                     </FormControl>
                   </Grid>
                 </Grid>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader
-                title="Số lượng vé mỗi suất diễn"
-                action={
-                  <OutlinedInput
-                    sx={{ maxWidth: 180 }}
-                    type="text"
-                    value={formData.quantity.toLocaleString('vi-VN')}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, quantity: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))
-                    }
-                  />
-                }
-              />
-              <CardHeader
-                title="Giá vé"
-                action={
-                  <OutlinedInput
-                    name="price"
-                    type="text"
-                    sx={{ maxWidth: 180 }}
-                    value={formData.price.toLocaleString('vi-VN')}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, price: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))
-                    }
-                    endAdornment={<InputAdornment position="end">đ</InputAdornment>}
-                  />
-                }
-              />
-            </Card>
+            
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
               <Button variant="contained" onClick={handleSubmit}>
                 Tạo

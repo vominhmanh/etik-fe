@@ -22,6 +22,7 @@ import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import axios, { AxiosResponse } from 'axios';
+import RouterLink from 'next/link';
 
 import NotificationContext from '@/contexts/notification-context';
 import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
@@ -32,7 +33,6 @@ import { ArrowRight } from '@phosphor-icons/react';
 
 interface TicketCategory {
   id: number;
-  eventId: number;
   name: string;
   type: string; // or enum if `TicketCategoryType` is defined as such
   price: number;
@@ -41,13 +41,11 @@ interface TicketCategory {
   status: string; // or enum if `TicketCategoryStatus` is defined as such
   createdAt: string; // ISO string format for datetime
   updatedAt: string; // ISO string format for datetime
-}
-
-interface ShowTicketCategory {
   quantity: number;
   sold: number;
   disabled: boolean;
-  ticketCategory: TicketCategory;
+  limitPerTransaction: number | null;
+  limitPerCustomer: number | null;
 }
 
 interface Show {
@@ -56,19 +54,14 @@ interface Show {
   name: string;
   startDateTime?: string | null; // ISO string format for datetime
   endDateTime?: string | null;   // ISO string format for datetime
-  showTicketCategories: ShowTicketCategory[];
+  ticketCategories: TicketCategory[];
 }
 
 const statusMap = {
-  not_opened_for_sale: { label: 'Trạng thái chung: Chưa mở bán', color: 'secondary' },
-  on_sale: { label: 'Trạng thái chung: Đang mở bán', color: 'success' },
-  out_of_stock: { label: 'Trạng thái chung: Đã hết', color: 'secondary' },
-  temporarily_locked: { label: 'Trạng thái chung: Đang tạm khoá', color: 'warning' },
-};
-
-const showTicketCategoryStatusMap = {
-  available: { label: 'Trạng thái riêng: Khả dụng', color: 'success' },
-  disabled: { label: 'Trạng thái riêng: Đang khoá', color: 'secondary' },
+  not_opened_for_sale: { label: 'Trạng thái: Chưa mở bán', color: 'secondary' },
+  on_sale: { label: 'Trạng thái: Đang mở bán', color: 'success' },
+  out_of_stock: { label: 'Trạng thái: Đã hết', color: 'secondary' },
+  temporarily_locked: { label: 'Trạng thái: Đang tạm khoá', color: 'warning' },
 };
 
 const typeMap = {
@@ -76,7 +69,11 @@ const typeMap = {
   public: { label: 'Công khai', color: 'primary' },
 };
 
-const colorMap = {
+type ColorMap = {
+  [key: number]: string
+}
+
+const colorMap: ColorMap = {
   0: deepOrange[500],
   1: deepPurple[500],
   2: green[500],
@@ -95,33 +92,25 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [shows, setShows] = React.useState<Show[]>([]);
   const [openEditorModal, setOpenEditorModal] = React.useState(false);
   const [selectedShow, setSelectedShow] = React.useState<Show | null>(null);
-  const [selectedShowTicketCategory, setSelectedShowTicketCategory] = React.useState<ShowTicketCategory | null>(null);
+  const [selectedTicketCategory, setSelectedTicketCategory] = React.useState<TicketCategory | null>(null);
   const [formDataQuantity, setFormDataQuantity] = React.useState(0);
   const [formDataDisabled, setFormDataDisabled] = React.useState(false);
 
-  const handleCloseEditorModal = (event, reason) => {
+  const handleCloseEditorModal = (event: {}, reason: "backdropClick" | "escapeKeyDown") => {
     setOpenEditorModal(false);
     setSelectedShow(null);
-    setSelectedShowTicketCategory(null)
+    setSelectedTicketCategory(null)
   }
 
-  const handleEditShowTicketCategory = (show: Show, showTicketCategory: ShowTicketCategory) => {
-    setOpenEditorModal(true);
-    setSelectedShow(show);
-    setSelectedShowTicketCategory(showTicketCategory)
-    setFormDataQuantity(showTicketCategory.quantity)
-    setFormDataDisabled(showTicketCategory.disabled)
-  }
-
-  const handleSaveEditShowTicketCategoryDetail = async (selectedShow: Show | null, selectedShowTicketCategory: ShowTicketCategory | null, dataQuantity: number, dataDisabled: boolean) => {
-    if (!selectedShow || !selectedShowTicketCategory) return;
+  const handleSaveEditTicketCategoryDetail = async (selectedShow: Show | null, selectedTicketCategory: TicketCategory | null, dataQuantity: number, dataDisabled: boolean) => {
+    if (!selectedShow || !selectedTicketCategory) return;
 
     try {
       setIsLoading(true);
 
-      const { quantity, disabled } = selectedShowTicketCategory;
+      const { quantity, disabled } = selectedTicketCategory;
       const response = await baseHttpServiceInstance.patch(
-        `/event-studio/events/${params.event_id}/shows-ticket-categories/shows/${selectedShow.id}/ticket-categories/${selectedShowTicketCategory.ticketCategory.id}`,
+        `/event-studio/events/${params.event_id}/shows-ticket-categories/shows/${selectedShow.id}/ticket-categories/${selectedTicketCategory.id}`,
         {
           disabled: dataDisabled,
           quantity: dataQuantity,
@@ -171,24 +160,16 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         </Backdrop>
         <Stack direction="row" spacing={3}>
           <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-            <Typography variant="h4">Loại vé theo sự kiện</Typography>
+            <Typography variant="h4">Loại vé theo suất diễn</Typography>
           </Stack>
-          <div>
-            <Button
-              startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
-              variant="contained"
-              href="ticket-categories/create"
-            >
-              Thêm
-            </Button>
-          </div>
+         
         </Stack>
         <CompaniesFilters />
         <Grid container spacing={3}>
           {shows.map((show) => (
             <Accordion key={show.id} defaultExpanded sx={{ width: '100%' }}>
               <AccordionSummary>
-                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                <Stack direction={{ md: 'row', xs: 'column' }} style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                   <Typography variant="h6">{show.name}</Typography>
                   <Typography variant="body2">
                     {show.startDateTime && show.endDateTime ?
@@ -196,13 +177,20 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       : 'Thời gian: Chưa xác định'
                     }
                   </Typography>
-                </div>
-
+                  <Button
+                    startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
+                    variant="outlined"
+                    component={RouterLink}
+                    onClick={(event) => event.stopPropagation()}
+                    href={`shows/${show.id}/ticket-categories/create`}
+                  >
+                    Thêm loại vé
+                  </Button>
+                </Stack>
               </AccordionSummary>
               <AccordionDetails>
                 <Grid container spacing={3}>
-                  {show.showTicketCategories.map((showTicketCategory) => {
-                    const ticketCategory = showTicketCategory.ticketCategory;
+                  {show.ticketCategories.map((ticketCategory) => {
                     return (
                       <Grid key={ticketCategory.id} lg={4} md={6} xs={12}>
                         <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -234,17 +222,12 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                 </Stack>
                               </Stack>
                               <Typography align="left" variant="body2">
-                                Còn {showTicketCategory.quantity - showTicketCategory.sold}/{showTicketCategory.quantity} vé
+                                Còn {ticketCategory.quantity - ticketCategory.sold}/{ticketCategory.quantity} vé
                               </Typography>
                               <Stack sx={{ alignItems: 'center', flexWrap: 'wrap' }} direction="row" spacing={1}>
                                 <Chip
                                   label={statusMap[ticketCategory.status]?.label}
                                   color={statusMap[ticketCategory.status]?.color}
-                                  size="small"
-                                />
-                                <Chip
-                                  label={showTicketCategoryStatusMap[showTicketCategory.disabled ? 'disabled' : 'available']?.label}
-                                  color={showTicketCategoryStatusMap[showTicketCategory.disabled ? 'disabled' : 'available']?.color}
                                   size="small"
                                 />
                                 <Chip
@@ -254,21 +237,39 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                 />
                               </Stack>
                             </Stack>
+                            {ticketCategory?.description ? (
+                              <Box
+                                sx={{
+                                  margin: 0,
+                                  padding: 0,
+                                  '& img': {
+                                    maxWidth: '100%', // Set images to scale down if they exceed container width
+                                    height: 'auto', // Maintain aspect ratio
+                                  },
+                                }}
+                                dangerouslySetInnerHTML={{ __html: ticketCategory?.description }}
+                              />
+                            ) : (
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Chưa có mô tả
+                              </Typography>
+                            )}
+                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Số vé tối đa mỗi đơn hàng: {ticketCategory.limitPerTransaction || "Không giới hạn"}
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Số vé tối đa mỗi khách hàng: {ticketCategory.limitPerCustomer || "Không giới hạn"}
+                              </Typography>
                           </CardContent>
                           <Divider />
                           <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 2 }}>
                             <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
-                              <Button
-                                href={`/event-studio/events/${params.event_id}/ticket-categories/${ticketCategory.id}`}
-                                size="small"
-                                startIcon={<EyeIcon />}
-                              >
-                                Xem chi tiết
-                              </Button>
+
                             </Stack>
                             <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
                               <Button
-                                onClick={() => handleEditShowTicketCategory(show, showTicketCategory)}
+                                component={RouterLink}
+                                href={`/event-studio/events/${params.event_id}/shows/${show.id}/ticket-categories/${ticketCategory.id}`}
                                 size="small"
                                 startIcon={<Pencil />}
                               >
@@ -307,7 +308,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           >
             <CardHeader
               title="Chỉnh sửa"
-              subheader={selectedShow ? `${selectedShow?.name} - ${selectedShowTicketCategory?.ticketCategory.name}` : ''}
+              subheader={selectedShow ? `${selectedShow?.name} - ${selectedTicketCategory?.name}` : ''}
             />
             <Divider />
             <CardContent>
@@ -348,7 +349,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
             <Stack direction="row" spacing={2} sx={{ justifyContent: 'flex-end', p: 2 }}>
               <Button
                 variant="contained"
-                onClick={() => handleSaveEditShowTicketCategoryDetail(selectedShow, selectedShowTicketCategory, formDataQuantity, formDataDisabled)}
+                onClick={() => handleSaveEditTicketCategoryDetail(selectedShow, selectedTicketCategory, formDataQuantity, formDataDisabled)}
                 size="small"
                 endIcon={<ArrowRight />}
               >

@@ -16,7 +16,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Bank as BankIcon, Info, Lightning as LightningIcon, Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
-
+import RouterLink from 'next/link';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
 import { EnvelopeSimple as EnvelopeSimpleIcon } from '@phosphor-icons/react/dist/ssr/EnvelopeSimple';
@@ -53,7 +53,7 @@ const getPaymentMethodDetails = (paymentMethod: string) => {
 };
 
 // Function to map created source to label
-const getCreatedSource = (paymentMethod: string) => {
+const getCreatedSource = (paymentMethod: string): { label: string } => {
   switch (paymentMethod) {
     case 'event_studio':
       return { label: 'Event Studio' };
@@ -62,12 +62,12 @@ const getCreatedSource = (paymentMethod: string) => {
     case 'api':
       return { label: 'API' };
     default:
-      return { label: 'Unknown', icon: null };
+      return { label: 'Unknown' };
   }
 };
 
 // Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (paymentStatus: string) => {
+const getPaymentStatusDetails = (paymentStatus: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
       return { label: 'Đang chờ thanh toán', color: 'warning' };
@@ -81,7 +81,7 @@ const getPaymentStatusDetails = (paymentStatus: string) => {
 };
 
 // Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string) => {
+const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" }: { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'normal':
       return { label: 'Bình thường', color: 'success' };
@@ -109,6 +109,7 @@ export interface Show {
 export interface TicketCategory {
   id: number;            // Unique identifier for the ticket category
   name: string;          // Name of the ticket category
+  show: Show;                       // Show information
   // type: string;        // Type of the ticket
   // price: number;       // Price of the ticket category
   // avatar: string | null; // Optional avatar URL for the category
@@ -120,15 +121,10 @@ export interface TicketCategory {
   // updatedAt: string;   // The date the ticket category was last updated
 }
 
-export interface ShowTicketCategory {
-  show: Show;                       // Show information
-  ticketCategory: TicketCategory;    // Ticket category information
-}
-
-export interface TransactionShowTicketCategory {
+export interface TransactionTicketCategory {
   netPricePerOne: number;           // Net price per ticket
   tickets: Ticket[];                 // Array of related tickets
-  showTicketCategory: ShowTicketCategory; // Related show and ticket category information
+  ticketCategory: TicketCategory; // Related show and ticket category information
 }
 
 export interface Creator {
@@ -147,7 +143,7 @@ export interface Transaction {
   phoneNumber: string;              // Customer's phone number
   address: string | null;           // Customer's address, nullable
   dob: string | null;               // Date of birth, nullable
-  transactionShowTicketCategories: TransactionShowTicketCategory[]; // List of ticket categories in the transaction
+  transactionTicketCategories: TransactionTicketCategory[]; // List of ticket categories in the transaction
   ticketQuantity: number;           // Number of tickets purchased
   extraFee: number;                 // Extra fees for the transaction
   discount: number;                 // Discount applied to the transaction
@@ -162,8 +158,8 @@ export interface Transaction {
   status: string;                   // Current status of the transaction
   createdBy: number | null;         // ID of the user who created the transaction, nullable
   createdAt: string;                // The date the transaction was created
-  sentTicketEmailAt: string | null;                // The date the transaction was created
-  sentConfirmationEmailAt: string | null;                // The date the transaction was created
+  exportedTicketAt: string | null;                // The date the transaction was created
+  sentPaymentInstructionAt: string | null;                // The date the transaction was created
   createdSource: string;            // Source of the transaction creation
   creator: Creator | null;          // Related creator of the transaction, nullable
 }
@@ -262,7 +258,8 @@ export default function Page(): React.JSX.Element {
             <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
               <Typography variant="h5">Mua vé thành công !</Typography>
               <Typography variant="body1" sx={{ textAlign: 'justify' }}>Cảm ơn quý khách đã sử dụng ETIK, dưới đây là vé mời của quý khách.</Typography>
-              <Typography variant="body2" sx={{ textAlign: 'justify' }}>Hãy <b>chụp màn hình</b> mã QR để sử dụng khi check-in. Quý khách có thể <a style={{ textDecoration: 'none' }} target='_blank' href="/auth/sign-in">đăng ký/ đăng nhập</a> bằng email mua vé để xem lại vé đã mua.</Typography>
+              <Typography variant="body2" sx={{ textAlign: 'justify' }}>Hãy <b>chụp màn hình</b> mã QR để sử dụng khi check-in. Quý khách có thể <a style={{ textDecoration: 'none' }} target='_blank'
+                href="/auth/sign-in">đăng ký/ đăng nhập</a> bằng email mua vé để xem lại vé đã mua.</Typography>
               <Typography variant="body2" sx={{ textAlign: 'justify' }}>Nếu quý khách cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
             </Stack>
           </Stack>
@@ -336,14 +333,14 @@ export default function Page(): React.JSX.Element {
                   <CardContent>
                     <Stack spacing={0}>
                       {/* Loop through each transactionShowTicketCategory */}
-                      {transaction.transactionShowTicketCategories.map((category, categoryIndex) => (
+                      {transaction.transactionTicketCategories.map((transactionTicketCategory, categoryIndex) => (
                         <div key={categoryIndex}>
                           {/* Show Name */}
                           <Grid sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                             <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                               <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Show:</Typography>
                             </Stack>
-                            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{category.showTicketCategory.show.name}</Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name}</Typography>
                           </Grid>
 
                           {/* Ticket Category Name */}
@@ -351,7 +348,7 @@ export default function Page(): React.JSX.Element {
                             <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                               <Typography variant="body1">Loại vé:</Typography>
                             </Stack>
-                            <Typography variant="body1">{category.showTicketCategory.ticketCategory.name}</Typography>
+                            <Typography variant="body1">{transactionTicketCategory.ticketCategory.name}</Typography>
                           </Grid>
 
                           <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -359,11 +356,11 @@ export default function Page(): React.JSX.Element {
                               <HashIcon fontSize="var(--icon-fontSize-md)" />
                               <Typography variant="body1">Số lượng:</Typography>
                             </Stack>
-                            <Typography variant="body1">{category.tickets.length}</Typography>
+                            <Typography variant="body1">{transactionTicketCategory.tickets.length}</Typography>
                           </Grid>
 
                           {/* Loop through tickets for this category */}
-                          {category.tickets.map((ticket, ticketIndex) => (
+                          {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
                             <Grid key={ticketIndex} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                               <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                                 <Typography variant="body1">Người tham dự {ticketIndex + 1}:</Typography>
@@ -386,7 +383,7 @@ export default function Page(): React.JSX.Element {
                               <TagIcon fontSize="var(--icon-fontSize-md)" />
                               <Typography variant="body1">Đơn giá:</Typography>
                             </Stack>
-                            <Typography variant="body1">{formatPrice(category.netPricePerOne || 0)}</Typography>
+                            <Typography variant="body1">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography>
                           </Grid>
 
 
@@ -444,6 +441,7 @@ export default function Page(): React.JSX.Element {
                               <Typography variant="body1">Trang thanh toán:</Typography>
                               <Typography variant="body1">
                                 <Button
+                                  component={RouterLink}
                                   href={transaction.paymentCheckoutUrl || ''}
                                   size="small"
                                   startIcon={<LightningIcon />}
@@ -494,22 +492,22 @@ export default function Page(): React.JSX.Element {
                         </Stack>
                         <Typography variant="body1">{createdSource.label || 'Chưa xác định'}</Typography>
                       </Grid>
-                      {/* sentConfirmationEmailAt */}
+                      {/* sentPaymentInstructionAt */}
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="body1">Thời gian gửi email Y/C xác nhận:</Typography>
+                          <Typography variant="body1">Thời gian gửi hướng dẫn t.toán:</Typography>
                         </Stack>
                         <Typography variant="body1">
-                          {transaction.sentConfirmationEmailAt ? dayjs(transaction.sentConfirmationEmailAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
+                          {transaction.sentPaymentInstructionAt ? dayjs(transaction.sentPaymentInstructionAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
                         </Typography>
                       </Grid>
-                      {/* sentTicketEmailAt */}
+                      {/* exportedTicketAt */}
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                           <Typography variant="body1">Thời gian xuất vé:</Typography>
                         </Stack>
                         <Typography variant="body1">
-                          {transaction.sentTicketEmailAt ? dayjs(transaction.sentTicketEmailAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
+                          {transaction.exportedTicketAt ? dayjs(transaction.exportedTicketAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
                         </Typography>
                       </Grid>
                     </Stack>

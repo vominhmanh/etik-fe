@@ -64,13 +64,13 @@ export default function Page(): React.JSX.Element {
         formData
       );
       if (response.data) {
-        notificationCtx.success('Event created successfully:', response.data);
+        notificationCtx.success('Tạo sự kiện thành công.');
         router.push('/event-studio/events/'); // Navigate to a different page on success
       } else {
-        notificationCtx.error('Error creating event:', response.statusText);
+        notificationCtx.error('Lỗi:', response.statusText);
       }
     } catch (error) {
-      notificationCtx.error('Error:', error);
+      notificationCtx.error('Lỗi:', error);
     } finally {
       setIsLoading(false);
     }

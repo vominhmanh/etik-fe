@@ -7,14 +7,14 @@ import Toolbar from '@mui/material/Toolbar';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Menu from '@mui/material/Menu';
-import {List as MenuIcon} from '@phosphor-icons/react/dist/ssr/List';
+import { List as MenuIcon } from '@phosphor-icons/react/dist/ssr/List';
 import Container from '@mui/material/Container';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
-import {Acorn as AdbIcon} from '@phosphor-icons/react/dist/ssr/Acorn';
-import { Link } from '@mui/material';
+import { Acorn as AdbIcon } from '@phosphor-icons/react/dist/ssr/Acorn';
+import RouterLink from 'next/link';
 
 const pages = ['Sự kiện mới', 'Event Studio', 'Blog'];
 
@@ -40,7 +40,7 @@ export function ResponsiveAppBar() {
   return (
     <AppBar position="sticky">
       <Container maxWidth="xl">
-        <Toolbar disableGutters variant="dense"  sx={{ minHeight: 30, height: 30 }}>
+        <Toolbar disableGutters variant="dense" sx={{ minHeight: 30, height: 30 }}>
           <Typography
             variant="h6"
             noWrap
@@ -74,18 +74,18 @@ export function ResponsiveAppBar() {
               onClose={handleCloseNavMenu}
               sx={{ display: { xs: 'block', md: 'none' } }}
             >
-                <MenuItem component={'a'} href='/marketplace' >
-                  <Typography sx={{ textAlign: 'center' }}>Sự kiện mới</Typography>
-                </MenuItem>
-                <MenuItem component={'a'} href='/event-studio'>
-                  <Typography sx={{ textAlign: 'center' }}>Event Studio</Typography>
-                </MenuItem>
+              <MenuItem component={RouterLink} href='/marketplace' >
+                <Typography sx={{ textAlign: 'center' }}>Sự kiện mới</Typography>
+              </MenuItem>
+              <MenuItem component={RouterLink} href='/event-studio'>
+                <Typography sx={{ textAlign: 'center' }}>Event Studio</Typography>
+              </MenuItem>
             </Menu>
           </Box>
           <Typography
             variant="h5"
             noWrap
-            component="a"
+            component={RouterLink}
             href="#app-bar-with-responsive-menu"
             sx={{
               mr: 2,
@@ -100,29 +100,32 @@ export function ResponsiveAppBar() {
             ETIK
           </Typography>
           <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'flex', my: 0 } }}>
-              <Button
-                href='/marketplace'
-                onClick={handleCloseNavMenu}
-                sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
-              >
-                Sự kiện hot
-              </Button>
-              <Button
-                href='/event-studio/events'
-                onClick={handleCloseNavMenu}
-                sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
-              >
-                Tạo sự kiện của tôi
-              </Button>
-              <Button
-                sx={{ display: { xs: 'none', md: 'block'}, my: 0, color: 'white', py: 0 }}
-                href='/blogs'
-                onClick={handleCloseNavMenu}
-              >
-                Blogs
-              </Button>
+            <Button
+              component={RouterLink}
+              href='/marketplace'
+              onClick={handleCloseNavMenu}
+              sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
+            >
+              Sự kiện hot
+            </Button>
+            <Button
+              component={RouterLink}
+              href='/event-studio/events'
+              onClick={handleCloseNavMenu}
+              sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
+            >
+              Tạo sự kiện của tôi
+            </Button>
+            <Button
+              component={RouterLink}
+              sx={{ display: { xs: 'none', md: 'block' }, my: 0, color: 'white', py: 0 }}
+              href='/blogs'
+              onClick={handleCloseNavMenu}
+            >
+              Blogs
+            </Button>
           </Box>
-          
+
         </Toolbar>
       </Container>
     </AppBar>

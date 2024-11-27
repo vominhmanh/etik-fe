@@ -27,13 +27,71 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
-import { ArrowSquareIn } from '@phosphor-icons/react/dist/ssr';
+import { ArrowCounterClockwise, ArrowSquareIn, CheckFat, HourglassLow, ReceiptX } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { AxiosResponse } from 'axios';
 import NotificationContext from '@/contexts/notification-context';
-import ReactQuill from 'react-quill';
+import RouterLink from 'next/link';
+import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
+import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
+import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
+import { Schedules } from './schedules';
+import { TicketCategories } from './ticket-categories';
+
+export interface EventOverviewResponse {
+  eventId: number;
+  countTotalTransactions: number;
+  countTotalTickets: number;
+  countTotalRevenue: number;
+
+  countCompletedTransactions: number;
+  countCompletedTickets: number;
+  countCompletedRevenue: number;
+
+  countPendingTransactions: number;
+  countPendingTickets: number;
+  countPendingRevenue: number;
+
+  countCancelledTransactions: number;
+  countCancelledTransactionsStaffLocked: number;
+  countCancelledTransactionsCustomerCancelled: number;
+
+  countCancelledBeforePaymentTransactions: number;
+  countCancelledBeforePaymentTickets: number;
+  countCancelledBeforePaymentRevenue: number;
+
+  countCancelledAfterPaymentTransactions: number;
+  countCancelledAfterPaymentTickets: number;
+  countCancelledAfterPaymentRevenue: number;
+
+  countRefundedTransactions: number;
+  countRefundedTickets: number;
+  countRefundedRevenue: number;
+}
+
+
+export type TicketCategory = {
+  id: number;
+  avatar: string | null;
+  name: string;
+  price: number;
+  description: string;
+  status: string;
+  quantity: number;
+  sold: number;
+  disabled: boolean;
+  show: Show;
+};
+
+export type Show = {
+  id: number;
+  name: string;
+  startDateTime: string; // backend response provides date as string
+  endDateTime: string; // backend response provides date as string
+  ticketCategories: TicketCategory[];
+};
 
 // Define the event response type
 type EventResponse = {
@@ -53,39 +111,73 @@ type EventResponse = {
   secureApiKey: string;
   locationInstruction: string | null;
   displayOnMarketplace: boolean;
+  shows: Show[];
 };
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
- 
+
   const [event, setEvent] = React.useState<EventResponse | null>(null);
-  const { event_id } = params;
+  const { event_id: eventId } = params;
   const [description, setDescription] = React.useState<string>('');
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const TrendIcon = ArrowUpIcon;
+  const trendColor = 'var(--mui-palette-success-main)';
+  const [selectedSchedule, setSelectedSchedule] = React.useState<Show>();
+  const [selectedCategories, setSelectedCategories] = React.useState<number[]>([]);
+  const [eventOverview, setEventOverview] = React.useState<EventOverviewResponse | null>(null);
 
+  const handleCategorySelection = (categoryIds: number[]) => {
+    setSelectedCategories(categoryIds);
+  };
+
+  const handleSelectionChange = (selected: Show) => {
+    setSelectedSchedule(selected);
+  };
   React.useEffect(() => {
     document.title = `${event?.name || ''} | ETIK - Vé điện tử & Quản lý sự kiện`;
   }, [event]);
 
   React.useEffect(() => {
-    if (event_id) {
+    if (eventId) {
       const fetchEventDetails = async () => {
         try {
           setIsLoading(true);
           const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
-            `/event-studio/events/${event_id}`
+            `/event-studio/events/${eventId}/get-event-with-ticket-categories`
           );
           setEvent(response.data);
           setDescription(response.data.description || '');
         } catch (error) {
-          notificationCtx.error('Error fetching event details:', error);
+          notificationCtx.error(error);
         } finally {
           setIsLoading(false);
         }
       };
       fetchEventDetails();
     }
-  }, [event_id]);
+  }, [eventId]);
+
+
+  React.useEffect(() => {
+    if (eventId) {
+      const fetchEventOverview = async () => {
+        try {
+          setIsLoading(true);
+          const response: AxiosResponse<EventOverviewResponse> = await baseHttpServiceInstance.get(
+            `/event-studio/events/${eventId}/overview`
+          );
+          setEventOverview(response.data);
+        } catch (error) {
+          notificationCtx.error(error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchEventOverview();
+    }
+  }, [eventId]);
 
   return (
     <>
@@ -99,7 +191,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       >
         <CircularProgress color="inherit" />
       </Backdrop>
-      <Grid container spacing={3} sx={{marginBottom: '20px'}}>
+      <Grid container spacing={3} sx={{ marginBottom: '20px' }}>
         <Grid lg={8} md={6} xs={12}>
           <Box
             sx={{
@@ -173,11 +265,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   fullWidth
                   variant="contained"
                   target="_blank"
+                  component={RouterLink}
                   href={`/events/${event?.slug}`}
                   size="small"
                   endIcon={<ArrowSquareIn />}
                 >
-                  Đến trang Marketplace của sự kiện
+                  Đến trang Khách hàng tự đăng ký vé
                 </Button>
               </div>
             </CardContent>
@@ -185,16 +278,304 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Grid>
       </Grid>
       <Grid container spacing={3}>
-        <Grid lg={3} sm={6} xs={12}>
-          <Budget diff={12} trend="up" sx={{ height: '100%' }} value="$24k" />
+        <Grid lg={4} sm={6} xs={12}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Stack spacing={3}>
+                <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
+                  <Stack spacing={1}>
+                    <Typography color="text.secondary" variant="overline">
+                      Tổng doanh thu
+                    </Typography>
+                    <Typography variant="h4">
+                      {eventOverview?.countTotalRevenue.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                    </Typography>
+                  </Stack>
+                  <Avatar sx={{ backgroundColor: 'var(--mui-palette-primary-main)', height: '56px', width: '56px' }}>
+                    <CurrencyDollarIcon fontSize="var(--icon-fontSize-lg)" />
+                  </Avatar>
+                </Stack>
+                <Stack direction="row" spacing={2}>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-primary-main)' variant="body2">
+                        {eventOverview?.countTotalTransactions}
+                      </Typography>
+                    </Stack>
+                    <Typography color="text.secondary" variant="caption">
+                      Đơn hàng
+                    </Typography>
+                  </Stack>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-primary-main)' variant="body2">
+                        {eventOverview?.countTotalTickets}
+                      </Typography>
+                    </Stack>
+                    <Typography color="text.secondary" variant="caption">
+                      Vé
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </Stack>
+
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid lg={4} sm={6} xs={12}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Stack spacing={3}>
+                <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
+                  <Stack spacing={1}>
+                    <Typography color="text.secondary" variant="overline">
+                      Đã hoàn tất
+                    </Typography>
+                    <Typography variant="h4">
+                      {eventOverview?.countCompletedRevenue.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                    </Typography>
+                  </Stack>
+                  <Avatar sx={{ backgroundColor: 'var(--mui-palette-success-main)', height: '56px', width: '56px' }}>
+                    <CheckFat fontSize="var(--icon-fontSize-lg)" />
+                  </Avatar>
+                </Stack>
+                <Stack direction="row" spacing={2}>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-success-main)' variant="body2">
+                        {eventOverview?.countCompletedTransactions}
+                      </Typography>
+                    </Stack>
+                    <Typography color="text.secondary" variant="caption">
+                      Đơn hàng đã xuất
+                    </Typography>
+                  </Stack>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-success-main)' variant="body2">
+                        {eventOverview?.countCompletedTickets}
+                      </Typography>
+                    </Stack>
+                    <Typography color="text.secondary" variant="caption">
+                      Vé
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid lg={4} sm={6} xs={12}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Stack spacing={3}>
+                <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
+                  <Stack spacing={1}>
+                    <Typography color="text.secondary" variant="overline">
+                      Đang chờ
+                    </Typography>
+                    <Typography variant="h4">
+                      {eventOverview?.countPendingRevenue.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                    </Typography>
+                  </Stack>
+                  <Avatar sx={{ backgroundColor: 'var(--mui-palette-warning-main)', height: '56px', width: '56px' }}>
+                    <HourglassLow fontSize="var(--icon-fontSize-lg)" />
+                  </Avatar>
+                </Stack>
+                <Stack direction="row" spacing={2}>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-warning-main)' variant="body2">
+                        {eventOverview?.countPendingTransactions}
+                      </Typography>
+                    </Stack>
+                    <Typography color="text.secondary" variant="caption">
+                      Đơn hàng chưa xuất
+                    </Typography>
+                  </Stack>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-warning-main)' variant="body2">
+                        {eventOverview?.countPendingTickets}
+                      </Typography>
+                    </Stack>
+                    <Typography color="text.secondary" variant="caption">
+                      Vé
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
         </Grid>
         <Grid lg={3} sm={6} xs={12}>
-          <TotalCustomers diff={16} trend="down" sx={{ height: '100%' }} value="1.6k" />
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Stack spacing={3}>
+                <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
+                  <Stack spacing={1}>
+                    <Typography color="text.secondary" variant="overline">
+                      Đơn hủy
+                    </Typography>
+                    <Typography variant="h4">
+                      {eventOverview?.countCancelledTransactions}
+                    </Typography>
+                  </Stack>
+                  <Avatar sx={{ backgroundColor: 'var(--mui-palette-secondary-main)', height: '56px', width: '56px' }}>
+                    <ReceiptX fontSize="var(--icon-fontSize-lg)" />
+                  </Avatar>
+                </Stack>
+                <Stack direction="row" spacing={2}>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-secondary-main)' variant="body2">
+                        {eventOverview?.countCancelledTransactionsStaffLocked}
+                      </Typography>
+                    </Stack>
+                    <Typography color="text.secondary" variant="caption">
+                      Khóa bởi nhân viên
+                    </Typography>
+                  </Stack>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-secondary-main)' variant="body2">
+                        {eventOverview?.countCancelledTransactionsCustomerCancelled}
+                      </Typography>
+                    </Stack>
+                    <Typography color="text.secondary" variant="caption">
+                      Hủy bởi khách hàng
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
         </Grid>
         <Grid lg={3} sm={6} xs={12}>
-          <TasksProgress sx={{ height: '100%' }} value={75.5} />
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Stack spacing={3}>
+                <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
+                  <Stack spacing={1}>
+                    <Typography color="text.secondary" variant="overline">
+                      hủy chưa t.toán
+                    </Typography>
+                    <Typography variant="h4">{eventOverview?.countCancelledBeforePaymentTransactions}</Typography>
+                  </Stack>
+                  <Avatar sx={{ backgroundColor: 'var(--mui-palette-secondary-main)', height: '56px', width: '56px' }}>
+                    <CurrencyDollarIcon fontSize="var(--icon-fontSize-lg)" />
+                  </Avatar>
+                </Stack>
+                <Stack direction="row" spacing={2}>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-secondary-main)' variant="body2">
+                        {eventOverview?.countCancelledBeforePaymentTickets}
+                      </Typography>
+                    </Stack>
+                    <Typography color="text.secondary" variant="caption">
+                      Vé
+                    </Typography>
+                  </Stack>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-secondary-main)' variant="body2">
+                        {eventOverview?.countCancelledBeforePaymentRevenue.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
         </Grid>
         <Grid lg={3} sm={6} xs={12}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Stack spacing={3}>
+                <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
+                  <Stack spacing={1}>
+                    <Typography color="text.secondary" variant="overline">
+                      hủy sau thanh toán
+                    </Typography>
+                    <Typography variant="h4">
+                      {eventOverview?.countCancelledAfterPaymentTransactions}
+
+                    </Typography>
+                  </Stack>
+                  <Avatar sx={{ backgroundColor: 'var(--mui-palette-secondary-main)', height: '56px', width: '56px' }}>
+                    <CurrencyDollarIcon fontSize="var(--icon-fontSize-lg)" />
+                  </Avatar>
+                </Stack>
+                <Stack direction="row" spacing={2}>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-secondary-main)' variant="body2">
+                        {eventOverview?.countCancelledAfterPaymentTickets}
+
+                      </Typography>
+                    </Stack>
+                    <Typography color="text.secondary" variant="caption">
+                      Vé
+                    </Typography>
+                  </Stack>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-secondary-main)' variant="body2">
+                        {eventOverview?.countCancelledAfterPaymentRevenue.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid lg={3} sm={6} xs={12}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Stack spacing={3}>
+                <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
+                  <Stack spacing={1}>
+                    <Typography color="text.secondary" variant="overline">
+                      đã hoàn tiền
+                    </Typography>
+                    <Typography variant="h4">
+                      {eventOverview?.countRefundedTransactions}
+                    </Typography>
+                  </Stack>
+                  <Avatar sx={{ backgroundColor: 'var(--mui-palette-secondary-main)', height: '56px', width: '56px' }}>
+                    <ArrowCounterClockwise fontSize="var(--icon-fontSize-lg)" />
+                  </Avatar>
+                </Stack>
+                <Stack direction="row" spacing={2}>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-secondary-main)' variant="body2">
+                        {eventOverview?.countRefundedTickets}
+
+                      </Typography>
+                    </Stack>
+                    <Typography color="text.secondary" variant="caption">
+                      Vé
+                    </Typography>
+                  </Stack>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                      <Typography color='var(--mui-palette-secondary-main)' variant="body2">
+                        {eventOverview?.countRefundedRevenue.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                      </Typography>
+                    </Stack>
+                    
+                  </Stack>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* <Grid lg={3} sm={6} xs={12}>
           <CheckIn diff={12} trend="up" sx={{ height: '100%' }} value="$24k" />
         </Grid>
         <Grid lg={3} sm={6} xs={12}>
@@ -202,9 +583,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Grid>
         <Grid lg={3} sm={6} xs={12}>
           <Refund diff={12} trend="up" sx={{ height: '100%' }} value="$24k" />
-        </Grid>
+        </Grid> */}
 
-        <Grid lg={8} xs={12}>
+        {/* <Grid lg={8} xs={12}>
           <Sales
             chartSeries={[
               { name: 'This year', data: [18, 16, 5, 8, 3, 14, 14, 16, 17, 19, 18, 20] },
@@ -301,8 +682,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             ]}
             sx={{ height: '100%' }}
           />
-        </Grid>
+        </Grid> */}
       </Grid>
+      <Stack spacing={3} sx={{ mt: 5 }}>
+        <Typography variant="h4">Suất diễn & loại vé</Typography>
+        <Grid container spacing={3}>
+          <Grid lg={5} md={5} xs={12} spacing={3}>
+            <Stack spacing={3}>
+              <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
+              {selectedSchedule &&
+                <TicketCategories show={selectedSchedule} onCategoriesSelect={(categoryIds: number[]) => handleCategorySelection(categoryIds)} />
+              }
+            </Stack>
+          </Grid>
+        </Grid>
+      </Stack>
+
     </>
   );
 }

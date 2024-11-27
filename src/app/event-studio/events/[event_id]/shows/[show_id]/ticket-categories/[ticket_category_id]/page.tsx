@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { InputAdornment } from '@mui/material';
+import { Box, Checkbox, FormControlLabel, InputAdornment } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -24,27 +24,42 @@ import axios, { AxiosResponse } from 'axios';
 import ReactQuill from 'react-quill'; // Import ReactQuill
 
 import NotificationContext from '@/contexts/notification-context';
-
 import 'react-quill/dist/quill.snow.css'; // Import Quill styles
 
+type TicketcategoryFormData = {
+  name: string;
+  type: string;
+  price: number;
+  quantity: number;
+  limitPerTransaction: number | null;
+  limitPerCustomer: number | null;
+  status: string;
+  description: string;
+}
 export default function Page({
   params,
 }: {
-  params: { event_id: number; ticket_category_id: number };
+  params: { event_id: number; show_id: number; ticket_category_id: number };
 }): React.JSX.Element {
   React.useEffect(() => {
     document.title = "Chi tiết loại vé | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
   const eventId = params.event_id;
+  const showId = params.show_id;
   const ticketCategoryId = params.ticket_category_id;
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  const [formData, setFormData] = useState({
+  const [showName, setShowName] = useState<string>('');
+  const [isTransactionLimitUnlimited, setIsTransactionLimitUnlimited] = useState(false);
+  const [isCustomerLimitUnlimited, setIsCustomerLimitUnlimited] = useState(false);
+  const [formData, setFormData] = useState<TicketcategoryFormData>({
     name: '',
     type: 'public',
     price: 0,
-    description: '',
+    quantity: 100,
+    limitPerTransaction: 2,
+    limitPerCustomer: 4,
+    description: '', // Ensure this is part of the state
     status: 'on_sale',
   });
   const router = useRouter();
@@ -55,7 +70,7 @@ export default function Page({
       try {
         setIsLoading(true);
         const response: AxiosResponse = await baseHttpServiceInstance.get(
-          `/event-studio/events/${eventId}/ticket-categories/${ticketCategoryId}`
+          `/event-studio/events/${eventId}/shows/${showId}/ticket-categories/${ticketCategoryId}`
         );
         const ticketCategory = response.data;
         setFormData({
@@ -63,10 +78,17 @@ export default function Page({
           type: ticketCategory.type,
           price: ticketCategory.price,
           description: ticketCategory.description || '',
-          status: ticketCategory.status
+          status: ticketCategory.status,
+          quantity: ticketCategory.quantity,
+          limitPerTransaction: ticketCategory.limitPerTransaction || null,
+          limitPerCustomer: ticketCategory.limitPerCustomer || null,
         });
+        setShowName(ticketCategory.show.name)
+        // Set the checkbox states based on the fetched values
+        setIsTransactionLimitUnlimited(ticketCategory.limitPerTransaction === undefined || ticketCategory.limitPerTransaction === null);
+        setIsCustomerLimitUnlimited(ticketCategory.limitPerCustomer === undefined || ticketCategory.limitPerCustomer === null);
       } catch (error) {
-        notificationCtx.error('Error fetching ticket category:', error);
+        notificationCtx.error('Lỗi:', error);
       } finally {
         setIsLoading(false);
       }
@@ -82,25 +104,82 @@ export default function Page({
     }));
   };
 
+
+  const handleTransactionLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      limitPerTransaction: e.target.value ? parseFloat(e.target.value.replace(/\./g, '')) : 0
+    }));
+  };
+
+  const handleCustomerLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      limitPerCustomer: e.target.value ? parseFloat(e.target.value.replace(/\./g, '')) : 0
+    }));
+  };
+
+  const handleTransactionLimitCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsTransactionLimitUnlimited(e.target.checked);
+    if (e.target.checked) {
+      setFormData((prev) => ({ ...prev, limitPerTransaction: null }));
+    } else {
+      setFormData((prev) => ({ ...prev, limitPerTransaction: 2 })); // Reset to default value
+    }
+  };
+
+  const handleCustomerLimitCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsCustomerLimitUnlimited(e.target.checked);
+    if (e.target.checked) {
+      setFormData((prev) => ({ ...prev, limitPerCustomer: null }));
+    } else {
+      setFormData((prev) => ({ ...prev, limitPerCustomer: 4 })); // Reset to default value
+    }
+  };
+
   // Save the edited ticket category
   const handleSave = async () => {
+    if (!formData.name) {
+      notificationCtx.warning('Tên loại vé không được để trống.');
+      return
+    }
+    if (formData.limitPerTransaction && formData.limitPerCustomer) {
+      if (formData.limitPerTransaction > formData.quantity) {
+        notificationCtx.warning('Số vé tối đa mỗi giao dịch phải nhỏ hơn hoặc bằng Tổng số vé.');
+        return
+      }
+      if (formData.limitPerTransaction && formData.limitPerCustomer && formData.limitPerCustomer > formData.quantity) {
+        notificationCtx.warning('Số vé tối đa mỗi khách hàng phải nhỏ hơn hoặc bằng Tổng số vé.');
+        return
+      }
+      if (formData.limitPerTransaction > formData.limitPerCustomer) {
+        notificationCtx.warning('Số vé tối đa mỗi giao dịch phải nhỏ hơn hoặc bằng số vé tối đa mỗi khách hàng.');
+        return
+      }
+    }
+    if (!formData.limitPerTransaction && formData.limitPerCustomer) {
+      notificationCtx.warning('Số vé tối đa mỗi giao dịch phải nhỏ hơn hoặc bằng số vé tối đa mỗi khách hàng.');
+      return
+    }
     try {
       setIsLoading(true);
       const response: AxiosResponse = await baseHttpServiceInstance.put(
-        `/event-studio/events/${eventId}/ticket-categories/${ticketCategoryId}`,
+        `/event-studio/events/${eventId}/shows/${showId}/ticket-categories/${ticketCategoryId}`,
         {
           name: formData.name,
           type: formData.type,
           price: formData.price,
           quantity: formData.quantity,
           description: formData.description,
+          limitPerTransaction: formData.limitPerTransaction,
+          limitPerCustomer: formData.limitPerCustomer,
           status: formData.status,
         }
       );
-      notificationCtx.success('Ticket category updated:', response.data);
-      router.push(`/event-studio/events/${eventId}/ticket-categories`);
+      notificationCtx.success(response.data.message);
+      router.push(`/event-studio/events/${eventId}/shows`);
     } catch (error) {
-      notificationCtx.error('Error updating ticket category:', error);
+      notificationCtx.error('Lỗi:', error);
     } finally {
       setIsLoading(false);
     }
@@ -121,6 +200,7 @@ export default function Page({
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Xem chi tiết loại vé "{formData.name}"</Typography>
+          <Typography variant="body2">Suất diễn "{showName}"</Typography>
         </Stack>
       </Stack>
       <Grid container spacing={3}>
@@ -178,7 +258,6 @@ export default function Page({
                         <MenuItem value="on_sale">Đang mở bán</MenuItem>
                         <MenuItem value="not_opened_for_sale">Chưa mở bán</MenuItem>
                         <MenuItem value="temporarily_locked">Đang tạm khoá</MenuItem>
-                        <MenuItem value="out_of_stock">Đã hết</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
@@ -187,12 +266,25 @@ export default function Page({
             </Card>
             <Card>
               <CardHeader
+                title="Số lượng vé"
+                action={
+                  <OutlinedInput
+                    sx={{ maxWidth: { xs: 70, sm: 180 } }}
+                    type="number"
+                    value={formData.quantity.toLocaleString('vi-VN')}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, quantity: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))
+                    }
+                  />
+                }
+              />
+              <CardHeader
                 title="Giá vé"
                 action={
                   <OutlinedInput
                     name="price"
-                    type="text"
-                    sx={{ maxWidth: 180 }}
+                    type="number"
+                    sx={{ maxWidth: { xs: 130, sm: 180 } }}
                     value={formData.price.toLocaleString('vi-VN')}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, price: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))
@@ -201,8 +293,47 @@ export default function Page({
                   />
                 }
               />
+              <CardHeader
+                title="Số vé tối đa mỗi đơn hàng"
+                subheader={
+                  <Box display="flex" alignItems="center">
+                    <FormControlLabel
+                      control={<Checkbox checked={isTransactionLimitUnlimited} onChange={handleTransactionLimitCheckboxChange} />}
+                      label={<Typography variant="body2">Không giới hạn</Typography>}
+                    />
+                  </Box>
+                }
+                action={
+                  <OutlinedInput
+                    sx={{ maxWidth: { xs: 70, sm: 180 } }}
+                    type="number"
+                    value={formData.limitPerTransaction !== null ? formData.limitPerTransaction.toLocaleString('vi-VN') : ''}
+                    onChange={handleTransactionLimitChange}
+                    disabled={isTransactionLimitUnlimited} // Disable if the checkbox is checked
+                  />
+                }
+              />
+              <CardHeader
+                title="Số vé tối đa mỗi khách hàng"
+                subheader={
+                  <Box display="flex" alignItems="center">
+                    <FormControlLabel
+                      control={<Checkbox checked={isCustomerLimitUnlimited} onChange={handleCustomerLimitCheckboxChange} />}
+                      label={<Typography variant="body2">Không giới hạn</Typography>}
+                    />
+                  </Box>
+                }
+                action={
+                  <OutlinedInput
+                    sx={{ maxWidth: { xs: 70, sm: 180 } }}
+                    type="number"
+                    value={formData.limitPerCustomer !== null ? formData.limitPerCustomer.toLocaleString('vi-VN') : ''}
+                    onChange={handleCustomerLimitChange}
+                    disabled={isCustomerLimitUnlimited} // Disable if the checkbox is checked
+                  />
+                }
+              />
             </Card>
-
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
               <Button variant="contained" onClick={handleSave}>
                 Lưu

@@ -26,9 +26,11 @@ import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import axios, { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
+import RouterLink from 'next/link';
 
 import NotificationContext from '@/contexts/notification-context';
 import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
+import { Pencil } from '@phosphor-icons/react/dist/ssr';
 
 const statusMap = {
   not_opened_for_sale: { label: 'Chưa mở bán', color: 'secondary' },
@@ -42,8 +44,12 @@ const typeMap = {
   public: { label: 'Công khai', color: 'primary' },
 };
 
-const colorMap = {
-  0: deepOrange[500],
+type ColorMap = {
+  [key: number]: string
+}
+
+const colorMap: ColorMap = {
+    0: deepOrange[500],
   1: deepPurple[500],
   2: green[500],
   3: cyan[500],
@@ -61,7 +67,7 @@ export type Show = {
   endDateTime: Date | null;
 };
 
-export default function Page({ params }: { params: { event_id: string} }): React.JSX.Element {
+export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   React.useEffect(() => {
     document.title = "Suất diễn | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
@@ -106,12 +112,12 @@ export default function Page({ params }: { params: { event_id: string} }): React
         </Stack>
         <div>
           <Button
+            component={RouterLink}
             startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
-            disabled
             variant="contained"
-            href="ticket-categories/create"
+            href="shows/create"
           >
-            Sự kiện này chỉ hỗ trợ 1 suất diễn
+            Thêm suất diễn
           </Button>
         </div>
       </Stack>
@@ -148,6 +154,21 @@ export default function Page({ params }: { params: { event_id: string} }): React
                           : 'Chưa xác định'}
                       </Typography>
                     </Stack>
+                  </Stack>
+                </Stack>
+                <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 2 }}>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
+
+                  </Stack>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
+                    <Button
+                      component={RouterLink}
+                      href={`/event-studio/events/${params.event_id}/shows/${show.id}`}
+                      size="small"
+                      startIcon={<Pencil />}
+                    >
+                      Chỉnh sửa
+                    </Button>
                   </Stack>
                 </Stack>
               </CardContent>

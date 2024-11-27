@@ -9,6 +9,7 @@ import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Downloa
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import axios, { AxiosError, AxiosResponse } from 'axios';
+import RouterLink from 'next/link';
 
 import NotificationContext from '@/contexts/notification-context';
 import Card from '@mui/material/Card';
@@ -25,34 +26,6 @@ import { ArrowBendLeftDown, CaretDown, Empty } from '@phosphor-icons/react';
 import { useSelection } from '@/hooks/use-selection';
 import dayjs from 'dayjs';
 import { HistoryAction } from './[transaction_id]/page';
-interface FilterTicketCategory {
-  id: number;
-  eventId: number;
-  name: string;
-  type: string; // or enum if `TicketCategoryType` is defined as such
-  price: number;
-  avatar?: string | null;
-  description?: string | null;
-  status: string; // or enum if `TicketCategoryStatus` is defined as such
-  createdAt: string; // ISO string format for datetime
-  updatedAt: string; // ISO string format for datetime
-}
-
-interface FilterShowTicketCategory {
-  quantity: number;
-  sold: number;
-  disabled: boolean;
-  ticketCategory: FilterTicketCategory;
-}
-
-interface FilterShow {
-  id: number;
-  eventId: number;
-  name: string;
-  startDateTime?: string | null; // ISO string format for datetime
-  endDateTime?: string | null;   // ISO string format for datetime
-  showTicketCategories: FilterShowTicketCategory[];
-}
 
 interface BulkErrorDetail {
   id: number;
@@ -78,7 +51,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const transactionIds = React.useMemo(() => {
     return transactions.map((transaction) => transaction.id);
   }, [transactions]);
-  
+
   const [selected, setSelected] = React.useState<Set<number>>(new Set());
 
   React.useEffect(() => {
@@ -177,25 +150,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     fetchTransactions();
   }, [params.event_id]);
 
-  React.useEffect(() => {
-    const fetchShowsWithTicketCategories = async () => {
-      try {
-        setIsLoading(true);
-        const response: AxiosResponse<FilterShow[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${params.event_id}/transactions/get-shows-and-ticket-categories`
-        );
-        setFilterShows(response.data);
-      } catch (error) {
-        notificationCtx.error('Lỗi:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchShowsWithTicketCategories();
-  }, [params.event_id]);
-
-
   const filteredTransactions = React.useMemo(() => {
     return transactions.filter((transaction) => {
       if (querySearch && !(
@@ -219,10 +173,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       }
 
       // Sent Ticket Email Status filter
-      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'sent' && !transaction.sentTicketEmailAt) {
+      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'sent' && !transaction.exportedTicketAt) {
         return false;
       }
-      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'not_sent' && transaction.sentTicketEmailAt) {
+      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'not_sent' && transaction.exportedTicketAt) {
         return false;
       }
 
@@ -285,7 +239,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   };
 
-  const handleSetTransactionStatusBulk = async (status: string) => {
+  const handleSetTransactionStatusBulk = async (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
     setAnchorEl(null)
     if (selected.size === 0) {
       notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
@@ -428,6 +382,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <div>
           <Button
             startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
+            component={RouterLink}
             href="transactions/create"
             variant="contained"
           >

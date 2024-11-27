@@ -97,14 +97,14 @@
 //     fetchData();
 //   }, []);
 
-//   const handleClose = (event, reason) => {
+//   const handleClose = (event: {}, reason: "backdropClick" | "escapeKeyDown") => {
 //     if (reason && reason == "backdropClick" && "escapeKeyDown")
 //       return;
 //     setOpen(false);
 //   }
 
 //   const handleOpenLoadingModal = () => setOpenLoadingModal(true);
-//   const handleCloseLoadingModal = (event, reason) => {
+//   const handleCloseLoadingModal = (event: {}, reason: "backdropClick" | "escapeKeyDown") => {
 //     if (reason && reason == "backdropClick" && "escapeKeyDown")
 //       return;
 //     setOpenLoadingModal(false);
@@ -112,7 +112,7 @@
 
 
 //   const handleOpenSuccessModal = () => setOpenSuccessModal(true);
-//   const handleCloseSuccessModal = (event, reason) => {
+//   const handleCloseSuccessModal = (event: {}, reason: "backdropClick" | "escapeKeyDown") => {
 //     if (reason && reason == "backdropClick" && "escapeKeyDown")
 //       return;
 //     setOpenSuccessModal(false);

@@ -24,6 +24,7 @@ import { deepPurple, deepOrange, indigo, cyan, green, pink, yellow } from '@mui/
 import dayjs from 'dayjs';
 import { MapPin } from '@phosphor-icons/react/dist/ssr';
 import { CardMedia } from '@mui/material';
+import RouterLink from 'next/link';
 
 const statusMap = {
   not_opened_for_sale: { label: 'Chưa mở bán', color: 'secondary' },
@@ -89,7 +90,7 @@ const getPaymentStatusDetails = (paymentStatus: string) => {
 };
 
 // Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string) => {
+const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'normal':
       return { label: 'Trạng thái: Bình thường', color: 'default' };
@@ -151,7 +152,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <Stack spacing={1} direction={'row'}>
                     <Box sx={{ display: 'flex', justifyContent: 'center', mr: 2, width: '50px', height: '50px' }}>
                       <Avatar
-                        href={null}
                         sx={{ height: '45px', width: '45px', fontSize: '2rem', borderRadius: '5px', bgcolor: colorMap[transaction.id % 8] }}
                         variant="square"
                       >
@@ -169,28 +169,28 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
                             : 'Chưa xác định'}
                         </Typography>
-                        </Stack>
-                        <Stack direction="row" spacing={1}>
-                          <MapPin fontSize="var(--icon-fontSize-sm)" />
-                          <Typography color="text.secondary" display="inline" variant="body2">
-                            {transaction.event.place ? transaction.event.place : 'Chưa xác định'}
-                          </Typography>
-                        </Stack>
+                      </Stack>
+                      <Stack direction="row" spacing={1}>
+                        <MapPin fontSize="var(--icon-fontSize-sm)" />
+                        <Typography color="text.secondary" display="inline" variant="body2">
+                          {transaction.event.place ? transaction.event.place : 'Chưa xác định'}
+                        </Typography>
                       </Stack>
                     </Stack>
                   </Stack>
+                </Stack>
 
-                  <Stack spacing={2} direction={'row'} sx={{mt: 2}}>
-                    <Chip color='primary' label={`${transaction.ticketQuantity} vé`} />
-                    <Chip 
-                      color={getPaymentStatusDetails(transaction.paymentStatus).color}
-                      label={getPaymentStatusDetails(transaction.paymentStatus).label}
-                    />
-                    <Chip 
-                      color={getRowStatusDetails(transaction.status).color}
-                      label={getRowStatusDetails(transaction.status).label}
-                    />
-                  </Stack>
+                <Stack spacing={2} direction={'row'} sx={{ mt: 2 }}>
+                  <Chip color='primary' label={`${transaction.ticketQuantity} vé`} />
+                  <Chip
+                    color={getPaymentStatusDetails(transaction.paymentStatus).color}
+                    label={getPaymentStatusDetails(transaction.paymentStatus).label}
+                  />
+                  <Chip
+                    color={getRowStatusDetails(transaction.status).color}
+                    label={getRowStatusDetails(transaction.status).label}
+                  />
+                </Stack>
               </CardContent>
               <Divider />
               <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 2 }}>
@@ -207,7 +207,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   /> */}
                 </Stack>
                 <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
-                  <Button href={`/account/my-tickets/${transaction.id}`} size="small" startIcon={<EyeIcon />}>
+                  <Button component={RouterLink} href={`/account/my-tickets/${transaction.id}`} size="small" startIcon={<EyeIcon />}>
                     Xem chi tiết
                   </Button>
                 </Stack>

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Avatar, Box, CardMedia, MenuItem, Select, Stack, TextField } from '@mui/material';
+import { Avatar, Box, CardMedia, IconButton, InputAdornment, MenuItem, Select, Stack, TextField } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -17,7 +17,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { ArrowSquareIn } from '@phosphor-icons/react/dist/ssr';
+import { ArrowSquareIn, Clipboard } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
@@ -26,6 +26,7 @@ import ReactQuill, { Quill } from 'react-quill';
 import NotificationContext from '@/contexts/notification-context';
 import 'react-quill/dist/quill.snow.css';
 import dayjs from 'dayjs';
+import RouterLink from 'next/link';
 
 // Define the event response type
 type EventResponse = {
@@ -187,13 +188,21 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       try {
         setIsLoading(true);
         await baseHttpServiceInstance.put(`/event-studio/events/${event_id}`, { ...formValues, description });
-        notificationCtx.success('Sửa thành công. Sẽ hiển thị lên trang chủ sau 2 phút.');
+        notificationCtx.success('Sửa thành công. Sẽ cập nhật lên trang chủ sau 1 phút.');
       } catch (error) {
-        notificationCtx.error('Error updating event:', error);
+        notificationCtx.error(error);
       } finally {
         setIsLoading(false);
       }
     }
+  };
+
+  const handleCopyToClipboard = (data: string) => {
+    navigator.clipboard.writeText(data).then(() => {
+      notificationCtx.success("Đã sao chép vào bộ nhớ tạm"); // Show success message
+    }).catch(() => {
+      notificationCtx.warning("Không thể sao chép, vui lòng thử lại"); // Handle errors
+    });
   };
 
   // Image Upload Handler
@@ -345,11 +354,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   fullWidth
                   variant="contained"
                   target="_blank"
+                  component={RouterLink}
                   href={`/events/${event?.slug}`}
                   size="small"
                   endIcon={<ArrowSquareIn />}
                 >
-                  Đến trang Marketplace của sự kiện
+                  Đến trang Khách hàng tự đăng ký vé
                 </Button>
               </div>
             </CardContent>
@@ -532,9 +542,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         label="Thời gian bắt đầu"
                         type="datetime-local"
                         value={formValues.startDateTime || ''}
-                        onChange={(e) =>
-                          handleInputChange({ target: { name: 'startDateTime', value: e.target.value } })
-                        }
+                        onChange={ handleInputChange }
+                        name="startDateTime"
                         InputLabelProps={{ shrink: true }}
                       />
                     </FormControl>
@@ -544,8 +553,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       <TextField
                         label="Thời gian kết thúc"
                         type="datetime-local"
+                        onChange={ handleInputChange }
+                        name="endDateTime"
                         value={formValues.endDateTime || ''}
-                        onChange={(e) => handleInputChange({ target: { name: 'endDateTime', value: e.target.value } })}
                         InputLabelProps={{ shrink: true }}
                       />
                     </FormControl>
@@ -559,17 +569,29 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
-                  <Grid md={12} xs={12}>
-                    <FormControl fullWidth disabled>
-                      <InputLabel>Slug</InputLabel>
-                      <OutlinedInput value={event.slug} label="Slug" name="slug" />
+                <Grid md={12} xs={12}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Trang khách hàng tự đăng ký</InputLabel>
+                      <OutlinedInput
+                        value={formValues.slug}
+                        label="Trang khách hàng tự đăng ký"
+                        name="slug"
+                        onChange={ handleInputChange }
+                        startAdornment={<InputAdornment position="start">etik.io.vn/events/</InputAdornment>}
+                        endAdornment={<IconButton size="small" onClick={() => handleCopyToClipboard(`https://etik.io.vn/events/${event?.slug}`)}><Clipboard/></IconButton>}
+                      />
                     </FormControl>
                   </Grid>
 
                   <Grid md={12} xs={12}>
                     <FormControl fullWidth disabled>
                       <InputLabel>Secure API key</InputLabel>
-                      <OutlinedInput value={event.secureApiKey} label="Secure API key" name="secureApiKey" />
+                      <OutlinedInput
+                        value={event.secureApiKey}
+                        label="Secure API key"
+                        name="secureApiKey"
+                        endAdornment={<IconButton size="small" onClick={() => handleCopyToClipboard(event.secureApiKey)}><Clipboard/></IconButton>}
+                      />
                     </FormControl>
                   </Grid>
                   <Grid md={12} xs={12}>

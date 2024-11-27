@@ -21,26 +21,12 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { debounce } from 'lodash';
 import { FormControl, InputLabel, Select, MenuItem, Grid, IconButton } from '@mui/material';
 import { ArrowCounterClockwise, Empty, X } from '@phosphor-icons/react/dist/ssr';
+import RouterLink from 'next/link';
 
 
 interface FilterTicketCategory {
   id: number;
-  eventId: number;
   name: string;
-  type: string; // or enum if `TicketCategoryType` is defined as such
-  price: number;
-  avatar?: string | null;
-  description?: string | null;
-  status: string; // or enum if `TicketCategoryStatus` is defined as such
-  createdAt: string; // ISO string format for datetime
-  updatedAt: string; // ISO string format for datetime
-}
-
-interface FilterShowTicketCategory {
-  quantity: number;
-  sold: number;
-  disabled: boolean;
-  ticketCategory: FilterTicketCategory;
 }
 
 interface FilterShow {
@@ -49,9 +35,8 @@ interface FilterShow {
   name: string;
   startDateTime?: string | null; // ISO string format for datetime
   endDateTime?: string | null;   // ISO string format for datetime
-  showTicketCategories: FilterShowTicketCategory[];
+  ticketCategories: FilterTicketCategory[];
 }
-
 
 interface Show {
   id: number;
@@ -61,15 +46,8 @@ interface Show {
 
 interface TicketCategory {
   id: number;
-  eventId: number;
   name: string;
-}
-
-interface ShowTicketCategory {
-  ticketCategoryId: number;
-  showId: number;
   show: Show;
-  ticketCategory: TicketCategory;
 }
 
 interface Transaction {
@@ -79,28 +57,24 @@ interface Transaction {
   phoneNumber: string;
   status: string;
   paymentStatus: string;
-  sentTicketEmailAt?: string | null; // ISO date string or null
+  exportedTicketAt?: string | null; // ISO date string or null
 
 }
 
-interface TransactionShowTicketCategory {
-  transactionId: number;
+interface TransactionTicketCategory {
   netPricePerOne: number;
-  showId: number;
-  ticketCategoryId: number;
-  showTicketCategory: ShowTicketCategory;
+  ticketCategory: TicketCategory;
   transaction: Transaction;
 }
 
 export interface Ticket {
   id: number;
   transactionId: number;
-  showId: number;
   createdAt: string; // ISO date string
   ticketCategoryId: number;
   holder: string;
   checkInAt?: string | null; // ISO date string or null
-  transactionShowTicketCategory: TransactionShowTicketCategory;
+  transactionTicketCategory: TransactionTicketCategory;
 }
 
 interface Filter {
@@ -254,16 +228,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       if (querySearch && !(
         (ticket.id.toString().includes(querySearch.toLocaleLowerCase())) ||
         (ticket.holder.toLowerCase().includes(querySearch.toLowerCase())) ||
-        (ticket.transactionShowTicketCategory.transaction.id.toString().includes(querySearch.toLocaleLowerCase())) ||
-        (ticket.transactionShowTicketCategory.transaction.email.toLowerCase().includes(querySearch.toLowerCase())) ||
-        (ticket.transactionShowTicketCategory.transaction.name.toLowerCase().includes(querySearch.toLowerCase())) ||
-        (ticket.transactionShowTicketCategory.transaction.phoneNumber.toLowerCase().includes(querySearch.toLowerCase()))
+        (ticket.transactionTicketCategory.transaction.id.toString().includes(querySearch.toLocaleLowerCase())) ||
+        (ticket.transactionTicketCategory.transaction.email.toLowerCase().includes(querySearch.toLowerCase())) ||
+        (ticket.transactionTicketCategory.transaction.name.toLowerCase().includes(querySearch.toLowerCase())) ||
+        (ticket.transactionTicketCategory.transaction.phoneNumber.toLowerCase().includes(querySearch.toLowerCase()))
       )) {
         return false;
       }
 
       // Show filter
-      if (filters.show && ticket.showId !== filters.show) {
+      if (filters.show && ticket.transactionTicketCategory.ticketCategory.show.id !== filters.show) {
         return false;
       }
 
@@ -273,20 +247,20 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       }
 
       // Transaction Status filter
-      if (filters.status && ticket.transactionShowTicketCategory.transaction.status !== filters.status) {
+      if (filters.status && ticket.transactionTicketCategory.transaction.status !== filters.status) {
         return false;
       }
 
       // Payment Status filter
-      if (filters.paymentStatus && ticket.transactionShowTicketCategory.transaction.paymentStatus !== filters.paymentStatus) {
+      if (filters.paymentStatus && ticket.transactionTicketCategory.transaction.paymentStatus !== filters.paymentStatus) {
         return false;
       }
 
       // Sent Ticket Email Status filter
-      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'sent' && !ticket.transactionShowTicketCategory.transaction.sentTicketEmailAt) {
+      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'sent' && !ticket.transactionTicketCategory.transaction.exportedTicketAt) {
         return false;
       }
-      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'not_sent' && ticket.transactionShowTicketCategory.transaction.sentTicketEmailAt) {
+      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'not_sent' && ticket.transactionTicketCategory.transaction.exportedTicketAt) {
         return false;
       }
 
@@ -332,6 +306,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <div>
           <Button
             startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
+            component={RouterLink}
             href="transactions/create"
             variant="contained"
           >
@@ -398,8 +373,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 >
                   <MenuItem value={null}><Empty /></MenuItem>
                   {
-                    filterShows.find(show => show.id === filters.show)?.showTicketCategories.map(stc => (
-                      <MenuItem key={stc.ticketCategory.id} value={stc.ticketCategory.id}>{stc.ticketCategory.name}</MenuItem>
+                    filterShows.find(show => show.id === filters.show)?.ticketCategories.map(tc => (
+                      <MenuItem key={tc.id} value={tc.id}>{tc.name}</MenuItem>
                     ))
                   }
                 </Select>

@@ -35,18 +35,15 @@ export type TicketCategory = {
   id: number;
   avatar: string | null;
   name: string;
-
   price: number;
   type: string;
   description: string;
   status: string;
-};
-
-export type ShowTicketCategory = {
   quantity: number;
   sold: number;
   disabled: boolean;
-  ticketCategory: TicketCategory;
+  limitPerTransaction: number | null;
+  limitPerCustomer: number | null;
 };
 
 export type Show = {
@@ -54,7 +51,7 @@ export type Show = {
   name: string;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
-  showTicketCategories: ShowTicketCategory[];
+  ticketCategories: TicketCategory[];
 };
 
 export type EventResponse = {
@@ -91,6 +88,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [selectedSchedules, setSelectedSchedules] = React.useState<Show[]>([]);
+  const [ticketHolderEditted, setTicketHolderEditted] = React.useState<boolean>(false);
 
   // Fetch event details on component mount
   React.useEffect(() => {
@@ -104,7 +102,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           setEvent(response.data);
           // setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
-          notificationCtx.error('Error fetching event details:', error);
+          notificationCtx.error(error);
         } finally {
           setIsLoading(false);
         }
@@ -151,8 +149,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const handleSubmit = async () => {
-    if (!customer.name || !customer.email || ticketQuantity <= 0) {
-      notificationCtx.warning('Please fill in the required fields.');
+    if (!customer.name || !customer.email || !customer.phoneNumber || ticketQuantity <= 0) {
+      notificationCtx.warning('Vui lòng điền đầy đủ các thông tin bắt buộc');
       return;
     }
 
@@ -191,9 +189,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       );
       const newTransaction = response.data;
       router.push(`/event-studio/events/${params.event_id}/transactions/${newTransaction.id}`); // Navigate to a different page on success
-      notificationCtx.success('Transaction created successfully!');
+      notificationCtx.success("Tạo đơn hàng thành công!");
     } catch (error) {
-      notificationCtx.error('Error creating transaction:', error);
+      notificationCtx.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -241,7 +239,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         label="Họ và tên"
                         name="customer_name"
                         value={customer.name}
-                        onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
+                        onChange={(e) => {
+                          !ticketHolderEditted && ticketHolders.length > 0 &&
+                            setTicketHolders((prev) => {
+                              const updatedHolders = [...prev];
+                              // Update the first item
+                              updatedHolders[0] = e.target.value;
+                              return updatedHolders;
+                            });
+                          setCustomer({ ...customer, name: e.target.value })
+                        }}
                       />
                     </FormControl>
                   </Grid>
@@ -258,7 +265,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth required>
                       <InputLabel>Số điện thoại</InputLabel>
                       <OutlinedInput
                         label="Số điện thoại"
@@ -306,8 +313,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         <InputLabel>Họ và tên người tham dự {index + 1}</InputLabel>
                         <OutlinedInput
                           label={`Họ và tên người tham dự ${index + 1}`}
+                          defaultValue={index == 0 ? customer.name : ''}
                           value={holder}
-                          onChange={(e) => handleTicketHolderChange(index, e.target.value)}
+                          onChange={(e) => {setTicketHolderEditted(true); handleTicketHolderChange(index, e.target.value)}}
                         />
                       </FormControl>
                     </Grid>
@@ -362,19 +370,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <Stack spacing={2}>
                     {Object.entries(selectedCategories).map(([showId, category]) => {
                       const show = event?.shows.find((show) => show.id === parseInt(showId));
-                      const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
+                      const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
 
                       return (
                         <Stack direction={{ xs: 'column', sm: 'row' }} key={showId} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                             <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {showTicketCategory?.ticketCategory.name || 'Chưa rõ loại vé'}</Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
                           </Stack>
                           <Stack spacing={2} direction={'row'}>
-                            <Typography variant="body1">Giá: {formatPrice(showTicketCategory?.ticketCategory.price || 0)}</Typography>
+                            <Typography variant="body1">Giá: {formatPrice(ticketCategory?.price || 0)}</Typography>
                             <Typography variant="body1">SL: {ticketQuantity || 0}</Typography>
                             <Typography variant="body1">
-                              Thành tiền: {formatPrice((showTicketCategory?.ticketCategory.price || 0) * (ticketQuantity || 0))}
+                              Thành tiền: {formatPrice((ticketCategory?.price || 0) * (ticketQuantity || 0))}
                             </Typography>
                           </Stack>
                         </Stack>
@@ -392,8 +400,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         {formatPrice(
                           Object.entries(selectedCategories).reduce((total, [showId, category]) => {
                             const show = event?.shows.find((show) => show.id === parseInt(showId));
-                            const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
-                            return total + (showTicketCategory?.ticketCategory?.price || 0) * (ticketQuantity || 0);
+                            const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
+                            return total + (ticketCategory?.price || 0) * (ticketQuantity || 0);
                           }, 0) + extraFee
                         )}
                       </Typography>

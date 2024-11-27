@@ -49,10 +49,6 @@ class AuthClient {
     return res.data;
   }
 
-  async resetPassword(_: ResetPasswordParams): Promise<{ error?: string }> {
-    return { error: 'Password reset not implemented' };
-  }
-
   async updatePassword(_: ResetPasswordParams): Promise<{ error?: string }> {
     return { error: 'Update reset not implemented' };
   }
@@ -93,10 +89,13 @@ class AuthClient {
     try {
       await AuthService.resendOtp(email);
       return { error: undefined };
-    } catch (error) {
+    } catch (error: any) {
       return { error: error.response?.data?.message || 'Resend OTP failed' };
     }
   }
+
 }
 
+
 export const authClient = new AuthClient();
+

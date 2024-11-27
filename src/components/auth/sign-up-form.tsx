@@ -55,7 +55,7 @@ export function SignUpForm(): React.JSX.Element {
 
   const { control, handleSubmit, setError, formState: { errors } } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
 
-  const onSubmit = React.useCallback(
+  const onSubmit = 
     async (values: Values): Promise<void> => {
       setIsPending(true);
       try {
@@ -69,9 +69,7 @@ export function SignUpForm(): React.JSX.Element {
       } finally {
         setIsPending(false);
       }
-    },
-    [checkSession, router, setUser]
-  );
+    }
 
   const handleResendOtp = async (email: string) => {
     try {

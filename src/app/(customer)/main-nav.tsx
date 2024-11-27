@@ -12,6 +12,7 @@ import { Bell as BellIcon } from '@phosphor-icons/react/dist/ssr/Bell';
 import { List as ListIcon } from '@phosphor-icons/react/dist/ssr/List';
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
+import RouterLink from 'next/link';
 
 import { User } from '@/types/auth';
 import { paths } from '@/paths';
@@ -74,7 +75,7 @@ export function MainNav(): React.JSX.Element {
               </Avatar>
             </Stack>
           ) : (
-            <Button variant="contained" onClick={() => (window.location.href = paths.auth.signIn)}>
+            <Button component={RouterLink} variant="contained" href={paths.auth.signIn}>
               Đăng nhập
             </Button>
           )}

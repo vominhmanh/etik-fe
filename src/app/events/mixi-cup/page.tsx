@@ -200,12 +200,12 @@ export default function Page(): React.JSX.Element {
     }, 0)
   }, [selectedCategories])
 
-  const handleCloseErrorPositionModal = (event, reason) => {
+  const handleCloseErrorPositionModal = (event: {}, reason: "backdropClick" | "escapeKeyDown") => {
     if (reason && reason == "backdropClick" && "escapeKeyDown")
       return;
     setOpenErrorPositionModal(false);
   }
-  const handleCloseSuccessModal = (event, reason) => {
+  const handleCloseSuccessModal = (event: {}, reason: "backdropClick" | "escapeKeyDown") => {
     if (reason && reason == "backdropClick" && "escapeKeyDown")
       return;
   }

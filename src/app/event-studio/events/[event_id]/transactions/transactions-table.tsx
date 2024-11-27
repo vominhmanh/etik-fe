@@ -16,6 +16,7 @@ import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
+import RouterLink from 'next/link';
 
 import dayjs from 'dayjs';
 import { ArrowSquareUpRight as ArrowSquareUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowSquareUpRight';
@@ -54,7 +55,7 @@ const getPaymentStatusDetails = (paymentStatus: string) => {
 };
 
 // Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string) => {
+const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'normal':
       return { label: 'Bình thường', color: 'success' };
@@ -67,7 +68,7 @@ const getRowStatusDetails = (status: string) => {
   }
 };
 
-const getSentEmailTicketStatusDetails = (status: string) => {
+const getSentEmailTicketStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'sent':
       return { label: 'Đã xuất', color: 'success' };
@@ -90,7 +91,7 @@ export interface Transaction {
   paymentStatus: string;
   status: string;
   createdAt: string;
-  sentTicketEmailAt: string | null;
+  exportedTicketAt: string | null;
 }
 
 
@@ -190,8 +191,8 @@ export function TransactionsTable({
                   }}
                 />
               </TableCell>
-              <TableCell sx={{minWidth: '200px'}}>Họ tên</TableCell>
-              <TableCell sx={{width: '100px'}}>Số lượng</TableCell>
+              <TableCell sx={{ minWidth: '200px' }}>Họ tên</TableCell>
+              <TableCell sx={{ width: '100px' }}>Số lượng</TableCell>
               <TableCell>Trạng thái</TableCell>
               <TableCell>Thanh toán</TableCell>
               <TableCell>Xuất vé</TableCell>
@@ -275,14 +276,15 @@ export function TransactionsTable({
                   </TableCell>
                   <TableCell>
                     <Chip
-                      color={getSentEmailTicketStatusDetails(row.sentTicketEmailAt ? 'sent' : 'not_sent').color}
-                      label={getSentEmailTicketStatusDetails(row.sentTicketEmailAt ? 'sent' : 'not_sent').label}
+                      color={getSentEmailTicketStatusDetails(row.exportedTicketAt ? 'sent' : 'not_sent').color}
+                      label={getSentEmailTicketStatusDetails(row.exportedTicketAt ? 'sent' : 'not_sent').label}
                       size="small"
                     />
                   </TableCell>
                   <TableCell>{dayjs(row.createdAt).format('HH:mm:ss DD/MM/YYYY')}</TableCell>
                   <TableCell>
-                    <IconButton color="primary" target='_blank' href={`/event-studio/events/${eventId}/transactions/${row.id}`}>
+                    <IconButton color="primary" target='_blank' component={RouterLink}
+                      href={`/event-studio/events/${eventId}/transactions/${row.id}`}>
                       <ArrowSquareUpRightIcon />
                     </IconButton>
                   </TableCell>

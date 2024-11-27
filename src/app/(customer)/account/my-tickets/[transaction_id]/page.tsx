@@ -16,6 +16,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Bank as BankIcon, Info, Lightning as LightningIcon, Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import RouterLink from 'next/link';
 
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
@@ -81,7 +82,7 @@ const getPaymentStatusDetails = (paymentStatus: string) => {
 };
 
 // Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string) => {
+const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'normal':
       return { label: 'Bình thường', color: 'success' };
@@ -109,6 +110,7 @@ export interface Show {
 export interface TicketCategory {
   id: number;            // Unique identifier for the ticket category
   name: string;          // Name of the ticket category
+  show: Show;                       // Show information
   // type: string;        // Type of the ticket
   // price: number;       // Price of the ticket category
   // avatar: string | null; // Optional avatar URL for the category
@@ -120,15 +122,10 @@ export interface TicketCategory {
   // updatedAt: string;   // The date the ticket category was last updated
 }
 
-export interface ShowTicketCategory {
-  show: Show;                       // Show information
-  ticketCategory: TicketCategory;    // Ticket category information
-}
-
-export interface TransactionShowTicketCategory {
+export interface TransactionTicketCategory {
   netPricePerOne: number;           // Net price per ticket
   tickets: Ticket[];                 // Array of related tickets
-  showTicketCategory: ShowTicketCategory; // Related show and ticket category information
+  ticketCategory: TicketCategory; // Related show and ticket category information
 }
 
 export interface Creator {
@@ -147,7 +144,7 @@ export interface Transaction {
   phoneNumber: string;              // Customer's phone number
   address: string | null;           // Customer's address, nullable
   dob: string | null;               // Date of birth, nullable
-  transactionShowTicketCategories: TransactionShowTicketCategory[]; // List of ticket categories in the transaction
+  transactionTicketCategories: TransactionTicketCategory[]; // List of ticket categories in the transaction
   ticketQuantity: number;           // Number of tickets purchased
   extraFee: number;                 // Extra fees for the transaction
   discount: number;                 // Discount applied to the transaction
@@ -164,8 +161,8 @@ export interface Transaction {
   createdAt: string;                // The date the transaction was created
   createdSource: string;            // Source of the transaction creation
   creator: Creator | null;          // Related creator of the transaction, nullable
-  sentTicketEmailAt: string | null
-  sentConfirmationEmailAt: string | null
+  exportedTicketAt: string | null
+  sentPaymentInstructionAt: string | null
 }
 
 
@@ -288,14 +285,14 @@ export default function Page({ params }: { params: { transaction_id: number } })
               <CardContent>
                 <Stack spacing={0}>
                   {/* Loop through each transactionShowTicketCategory */}
-                  {transaction.transactionShowTicketCategories.map((category, categoryIndex) => (
+                  {transaction.transactionTicketCategories.map((transactionTicketCategory, categoryIndex) => (
                     <div key={categoryIndex}>
                       {/* Show Name */}
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                           <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Show:</Typography>
                         </Stack>
-                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{category.showTicketCategory.show.name}</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name}</Typography>
                       </Grid>
 
                       {/* Ticket Category Name */}
@@ -303,18 +300,18 @@ export default function Page({ params }: { params: { transaction_id: number } })
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                           <Typography variant="body1">Loại vé:</Typography>
                         </Stack>
-                        <Typography variant="body1">{category.showTicketCategory.ticketCategory.name}</Typography>
+                        <Typography variant="body1">{transactionTicketCategory.ticketCategory.name}</Typography>
                       </Grid>
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                           <HashIcon fontSize="var(--icon-fontSize-md)" />
                           <Typography variant="body1">Số lượng:</Typography>
                         </Stack>
-                        <Typography variant="body1">{category.tickets.length}</Typography>
+                        <Typography variant="body1">{transactionTicketCategory.tickets.length}</Typography>
                       </Grid>
 
                       {/* Loop through tickets for this category */}
-                      {category.tickets.map((ticket, ticketIndex) => (
+                      {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
                         <Grid key={ticketIndex} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                             <Typography variant="body1">Người tham dự {ticketIndex + 1}:</Typography>
@@ -337,7 +334,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                           <TagIcon fontSize="var(--icon-fontSize-md)" />
                           <Typography variant="body1">Đơn giá:</Typography>
                         </Stack>
-                        <Typography variant="body1">{formatPrice(category.netPricePerOne || 0)}</Typography>
+                        <Typography variant="body1">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography>
                       </Grid>
 
                       <Divider sx={{ marginY: 2 }} />
@@ -393,6 +390,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                           <Typography variant="body1">Trang thanh toán:</Typography>
                           <Typography variant="body1">
                             <Button
+                              component={RouterLink}
                               href={transaction.paymentCheckoutUrl || ''}
                               size="small"
                               startIcon={<LightningIcon />}
@@ -443,22 +441,22 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     </Stack>
                     <Typography variant="body1">{createdSource.label || 'Chưa xác định'}</Typography>
                   </Grid>
-                  {/* sentConfirmationEmailAt */}
+                  {/* sentPaymentInstructionAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Thời gian gửi email Y/C xác nhận:</Typography>
+                      <Typography variant="body1">Thời gian gửi hướng dẫn t.toán:</Typography>
                     </Stack>
                     <Typography variant="body1">
-                      {transaction.sentConfirmationEmailAt ? dayjs(transaction.sentConfirmationEmailAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
+                      {transaction.sentPaymentInstructionAt ? dayjs(transaction.sentPaymentInstructionAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
                     </Typography>
                   </Grid>
-                  {/* sentTicketEmailAt */}
+                  {/* exportedTicketAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">Thời gian xuất vé:</Typography>
                     </Stack>
                     <Typography variant="body1">
-                      {transaction.sentTicketEmailAt ? dayjs(transaction.sentTicketEmailAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
+                      {transaction.exportedTicketAt ? dayjs(transaction.exportedTicketAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
                     </Typography>
                   </Grid>
                 </Stack>

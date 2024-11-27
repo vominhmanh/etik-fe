@@ -26,6 +26,7 @@ import IconButton from '@mui/material/IconButton';
 import { useSelection } from '@/hooks/use-selection';
 import { Chip } from '@mui/material';
 import { Ticket } from './page'
+import RouterLink from 'next/link';
 
 
 // Function to map payment methods to corresponding labels and icons
@@ -57,7 +58,7 @@ const getPaymentStatusDetails = (paymentStatus: string) => {
 };
 
 // Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string) => {
+const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'normal':
       return { label: 'Bình thường', color: 'success' };
@@ -70,7 +71,7 @@ const getRowStatusDetails = (status: string) => {
   }
 };
 
-const getSentEmailTicketStatusDetails = (status: string) => {
+const getSentEmailTicketStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'sent':
       return { label: 'Đã xuất', color: 'success' };
@@ -184,9 +185,9 @@ export function TicketsTable({
                   }}
                 />
               </TableCell>
-              <TableCell sx={{minWidth: '200px'}}>Họ tên</TableCell>
-              <TableCell sx={{minWidth: '150px'}}>Suất diễn</TableCell>
-              <TableCell sx={{minWidth: '80px'}}>Loại vé</TableCell>
+              <TableCell sx={{ minWidth: '200px' }}>Họ tên</TableCell>
+              <TableCell sx={{ minWidth: '150px' }}>Suất diễn</TableCell>
+              <TableCell sx={{ minWidth: '80px' }}>Loại vé</TableCell>
               <TableCell>Trạng thái</TableCell>
               <TableCell>Thanh toán</TableCell>
               <TableCell>Xuất vé</TableCell>
@@ -219,9 +220,9 @@ export function TicketsTable({
                       <Tooltip title={
                         <Stack spacing={1}>
                           <Typography>ID đơn hàng: {row.transactionId} - ID vé: {row.id}</Typography>
-                          <Typography>Tên người mua: {row.transactionShowTicketCategory.transaction.name}</Typography>
-                          <Typography>Email: {row.transactionShowTicketCategory.transaction.email}</Typography>
-                          <Typography>SĐT: {row.transactionShowTicketCategory.transaction.phoneNumber}</Typography>
+                          <Typography>Tên người mua: {row.transactionTicketCategory.transaction.name}</Typography>
+                          <Typography>Email: {row.transactionTicketCategory.transaction.email}</Typography>
+                          <Typography>SĐT: {row.transactionTicketCategory.transaction.phoneNumber}</Typography>
                         </Stack>
                       }>
                         <Avatar {...stringAvatar(row.holder)} />
@@ -229,9 +230,9 @@ export function TicketsTable({
                       <Tooltip title={
                         <Stack spacing={1}>
                           <Typography>ID đơn hàng: {row.transactionId} - ID vé: {row.id}</Typography>
-                          <Typography>Tên người mua: {row.transactionShowTicketCategory.transaction.name}</Typography>
-                          <Typography>Email: {row.transactionShowTicketCategory.transaction.email}</Typography>
-                          <Typography>SĐT: {row.transactionShowTicketCategory.transaction.phoneNumber}</Typography>
+                          <Typography>Tên người mua: {row.transactionTicketCategory.transaction.name}</Typography>
+                          <Typography>Email: {row.transactionTicketCategory.transaction.email}</Typography>
+                          <Typography>SĐT: {row.transactionTicketCategory.transaction.phoneNumber}</Typography>
                         </Stack>
                       }>
                         <Typography variant="subtitle2">{row.holder}</Typography>
@@ -239,35 +240,36 @@ export function TicketsTable({
 
                     </Stack>
                   </TableCell>
-                  <TableCell>{row.transactionShowTicketCategory.showTicketCategory.show.name}</TableCell>
-                  <TableCell>{row.transactionShowTicketCategory.showTicketCategory.ticketCategory.name}</TableCell>
+                  <TableCell>{row.transactionTicketCategory.ticketCategory.show.name}</TableCell>
+                  <TableCell>{row.transactionTicketCategory.ticketCategory.name}</TableCell>
                   <TableCell>
                     <Chip
-                      color={getRowStatusDetails(row.transactionShowTicketCategory.transaction.status).color}
-                      label={getRowStatusDetails(row.transactionShowTicketCategory.transaction.status).label}
+                      color={getRowStatusDetails(row.transactionTicketCategory.transaction.status).color}
+                      label={getRowStatusDetails(row.transactionTicketCategory.transaction.status).label}
                       size="small"
                     />
                   </TableCell>
                   <TableCell>
                     <Chip
-                      color={getPaymentStatusDetails(row.transactionShowTicketCategory.transaction.paymentStatus).color}
+                      color={getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus).color}
                       label={
-                        getPaymentStatusDetails(row.transactionShowTicketCategory.transaction.paymentStatus).label
+                        getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus).label
                       }
                       size="small"
                     />
                   </TableCell>
                   <TableCell>
                     <Chip
-                      color={getSentEmailTicketStatusDetails(row.transactionShowTicketCategory.transaction.sentTicketEmailAt ? 'sent' : 'not_sent').color}
-                      label={getSentEmailTicketStatusDetails(row.transactionShowTicketCategory.transaction.sentTicketEmailAt ? 'sent' : 'not_sent').label}
+                      color={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent').color}
+                      label={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent').label}
                       size="small"
                     />
                   </TableCell>
                   <TableCell>{dayjs(row.createdAt).format('HH:mm:ss DD/MM/YYYY')}</TableCell>
                   <TableCell>{row.checkInAt ? dayjs(row.checkInAt).format('HH:mm:ss DD/MM/YYYY') : ''}</TableCell>
                   <TableCell>
-                    <IconButton color="primary" target='_blank' href={`/event-studio/events/${eventId}/transactions/${row.transactionId}`}>
+                    <IconButton color="primary" target='_blank' component={RouterLink}
+                      href={`/event-studio/events/${eventId}/transactions/${row.transactionId}`}>
                       <ArrowSquareUpRightIcon />
                     </IconButton>
                   </TableCell>

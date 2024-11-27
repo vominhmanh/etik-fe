@@ -30,7 +30,11 @@ interface TicketCategoriesProps {
 }
 
 
-const colorMap = {
+type ColorMap = {
+  [key: number]: string
+}
+
+const colorMap: ColorMap = {
   0: deepOrange[500],
   1: deepPurple[500],
   2: green[500],

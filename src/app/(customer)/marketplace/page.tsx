@@ -21,6 +21,7 @@ import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
+import RouterLink from 'next/link';
 
 import NotificationContext from '@/contexts/notification-context';
 
@@ -86,6 +87,7 @@ export default function Page(): React.JSX.Element {
           <Button
             startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
             variant="contained"
+            component={RouterLink}
             href="/event-studio/events/create"
           >
             Tạo sự kiện mới
@@ -133,7 +135,8 @@ export default function Page(): React.JSX.Element {
               </CardContent>
               <Divider />
               <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 1 }}>
-                <Button href={`/events/${event.slug}`} size="small" startIcon={<EyeIcon />}>
+                <Button component={RouterLink}
+                  href={`/events/${event.slug}`} size="small" startIcon={<EyeIcon />}>
                   Xem chi tiết
                 </Button>
               </Stack>
