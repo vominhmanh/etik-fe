@@ -111,6 +111,7 @@ export interface Show {
 export interface TicketCategory {
   id: number;            // Unique identifier for the ticket category
   name: string;          // Name of the ticket category
+  show: Show;                       // Show information
   // type: string;        // Type of the ticket
   // price: number;       // Price of the ticket category
   // avatar: string | null; // Optional avatar URL for the category
@@ -122,15 +123,10 @@ export interface TicketCategory {
   // updatedAt: string;   // The date the ticket category was last updated
 }
 
-export interface ShowTicketCategory {
-  show: Show;                       // Show information
-  ticketCategory: TicketCategory;    // Ticket category information
-}
-
-export interface TransactionShowTicketCategory {
+export interface TransactionTicketCategory {
   netPricePerOne: number;           // Net price per ticket
   tickets: Ticket[];                 // Array of related tickets
-  showTicketCategory: ShowTicketCategory; // Related show and ticket category information
+  ticketCategory: TicketCategory;    // Ticket category information
 }
 
 export interface Creator {
@@ -149,7 +145,7 @@ export interface Transaction {
   phoneNumber: string;              // Customer's phone number
   address: string | null;           // Customer's address, nullable
   dob: string | null;               // Date of birth, nullable
-  transactionShowTicketCategories: TransactionShowTicketCategory[]; // List of ticket categories in the transaction
+  transactionTicketCategories: TransactionTicketCategory[]; // List of ticket categories in the transaction
   ticketQuantity: number;           // Number of tickets purchased
   extraFee: number;                 // Extra fees for the transaction
   discount: number;                 // Discount applied to the transaction
@@ -312,14 +308,14 @@ export default function Page(): React.JSX.Element {
                       <CardContent>
                         <Stack spacing={0}>
                           {/* Loop through each transactionShowTicketCategory */}
-                          {transaction.transactionShowTicketCategories.map((category, categoryIndex) => (
+                          {transaction.transactionTicketCategories.map((transactionTicketCategory, categoryIndex) => (
                             <div key={categoryIndex}>
                               {/* Show Name */}
                               <Grid sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                                 <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                                   <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Show:</Typography>
                                 </Stack>
-                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{category.showTicketCategory.show.name}</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name}</Typography>
                               </Grid>
 
                               {/* Ticket Category Name */}
@@ -327,7 +323,7 @@ export default function Page(): React.JSX.Element {
                                 <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                                   <Typography variant="body1">Loại vé:</Typography>
                                 </Stack>
-                                <Typography variant="body1">{category.showTicketCategory.ticketCategory.name}</Typography>
+                                <Typography variant="body1">{transactionTicketCategory.ticketCategory.name}</Typography>
                               </Grid>
 
                               <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -335,11 +331,11 @@ export default function Page(): React.JSX.Element {
                                   <HashIcon fontSize="var(--icon-fontSize-md)" />
                                   <Typography variant="body1">Số lượng:</Typography>
                                 </Stack>
-                                <Typography variant="body1">{category.tickets.length}</Typography>
+                                <Typography variant="body1">{transactionTicketCategory.tickets.length}</Typography>
                               </Grid>
 
                               {/* Loop through tickets for this category */}
-                              {category.tickets.map((ticket, ticketIndex) => (
+                              {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
                                 <Grid key={ticketIndex} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                   <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                                     <Typography variant="body1">Người tham dự {ticketIndex + 1}:</Typography>

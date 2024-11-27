@@ -46,7 +46,7 @@ const colorMap: ColorMap = {
 };
 
 export function TicketCategories({ show, onCategorySelect }: TicketCategoriesProps): React.JSX.Element {
-  const showTicketCategories = show.showTicketCategories
+  const ticketCategories = show.ticketCategories
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null); // Track the selected category
   const [selectedPendingCategory, setSelectedPendingCategory] = useState<number | null>(null);
   const [isModalOpen, setModalOpen] = useState(false);
@@ -60,8 +60,8 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
     public: 'Công khai'
   };
   const handleSelect = (id: number) => {
-    const showTicketCategory = showTicketCategories.find((t) => t.ticketCategory.id === id);
-    if (showTicketCategory?.ticketCategory.status !== 'on_sale' || showTicketCategory.quantity <= showTicketCategory.sold || showTicketCategory.disabled) {
+    const ticketCategory = ticketCategories.find((ticketCategory) => ticketCategory.id === id);
+    if (ticketCategory?.status !== 'on_sale' || ticketCategory.quantity <= ticketCategory.sold || ticketCategory.disabled) {
       return;
     }
 
@@ -95,41 +95,41 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
         />
         <Divider />
         <List>
-          {showTicketCategories.map((showTicketCategory, index) => (
+          {ticketCategories.map((ticketCategory, index) => (
             <ListItem
-              divider={index < showTicketCategories.length - 1}
-              key={showTicketCategory.ticketCategory.id}
+              divider={index < ticketCategories.length - 1}
+              key={ticketCategory.id}
               sx={{ cursor: 'pointer' }} // Change cursor to pointer to indicate it's clickable
             >
               <Box
                 sx={{ display: 'flex', alignItems: 'center', marginRight: '10px' }}
-                onClick={() => handleSelect(showTicketCategory.ticketCategory.id)}
+                onClick={() => handleSelect(ticketCategory.id)}
               >
                 <Radio
                   sx={{ display: 'block' }}
-                  checked={selectedCategory === showTicketCategory.ticketCategory.id} // Controlled radio button
-                  disabled={showTicketCategory.ticketCategory.status !== 'on_sale' || showTicketCategory.quantity <= showTicketCategory.sold || showTicketCategory.disabled}
+                  checked={selectedCategory === ticketCategory.id} // Controlled radio button
+                  disabled={ticketCategory.status !== 'on_sale' || ticketCategory.quantity <= ticketCategory.sold || ticketCategory.disabled}
                 />
               </Box>
               <ListItemAvatar
-                onClick={() => handleSelect(showTicketCategory.ticketCategory.id)} // Set selected when the whole item is clicked
+                onClick={() => handleSelect(ticketCategory.id)} // Set selected when the whole item is clicked
               >
-                {showTicketCategory.ticketCategory.avatar ? (
-                  <Box component="img" src={showTicketCategory.ticketCategory.avatar} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
+                {ticketCategory.avatar ? (
+                  <Box component="img" src={ticketCategory.avatar} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
                 ) : (
                   <Avatar
-                    sx={{ height: '48px', width: '48px', fontSize: '2rem', borderRadius: '5px', bgcolor: colorMap[showTicketCategory.ticketCategory.id % 8] }}
+                    sx={{ height: '48px', width: '48px', fontSize: '2rem', borderRadius: '5px', bgcolor: colorMap[ticketCategory.id % 8] }}
                     variant="square"
                   >
-                    {showTicketCategory.ticketCategory.name[showTicketCategory.ticketCategory.name.length - 1]}
+                    {ticketCategory.name[ticketCategory.name.length - 1]}
                   </Avatar>
                 )}
               </ListItemAvatar>
               <ListItemText
-                onClick={() => handleSelect(showTicketCategory.ticketCategory.id)} // Set selected when the whole item is clicked
-                primary={showTicketCategory.ticketCategory.name}
+                onClick={() => handleSelect(ticketCategory.id)} // Set selected when the whole item is clicked
+                primary={ticketCategory.name}
                 primaryTypographyProps={{ variant: 'subtitle1' }}
-                secondary={showTicketCategory.ticketCategory.status !== 'on_sale' ? 'Đã hết' : showTicketCategory.quantity <= showTicketCategory.sold ? 'Đã hết' : showTicketCategory.disabled ? 'Không khả dụng' : `${formatPrice(showTicketCategory.ticketCategory.price)}`}
+                secondary={ticketCategory.status !== 'on_sale' ? 'Đã hết' : ticketCategory.quantity <= ticketCategory.sold ? 'Đã hết' : ticketCategory.disabled ? 'Không khả dụng' : `${formatPrice(ticketCategory.price)}`}
                 secondaryTypographyProps={{ variant: 'body2' }}
               />
               <IconButton edge="end" onClick={() => { return }}>

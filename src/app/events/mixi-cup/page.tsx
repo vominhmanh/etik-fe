@@ -44,13 +44,9 @@ export type TicketCategory = {
   price: number;
   description: string;
   status: string;
-};
-
-export type ShowTicketCategory = {
   quantity: number;
   sold: number;
   disabled: boolean;
-  ticketCategory: TicketCategory;
 };
 
 export type Show = {
@@ -59,7 +55,7 @@ export type Show = {
   avatar: string | null;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
-  showTicketCategories: ShowTicketCategory[];
+  ticketCategories: TicketCategory[];
 };
 
 export type EventResponse = {
@@ -195,8 +191,8 @@ export default function Page(): React.JSX.Element {
   const totalAmount = React.useMemo(() => {
     return Object.entries(selectedCategories).reduce((total, [showId, category]) => {
       const show = event?.shows.find((show) => show.id === parseInt(showId));
-      const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
-      return total + (showTicketCategory?.ticketCategory?.price || 0) * (ticketQuantity || 0);
+      const ticketCategory = show?.ticketCategories.find((ticketCategory) => ticketCategory.id === category);
+      return total + (ticketCategory?.price || 0) * (ticketQuantity || 0);
     }, 0)
   }, [selectedCategories])
 
@@ -419,7 +415,7 @@ export default function Page(): React.JSX.Element {
                 }}
               >
                 <img
-                  src={event?.bannerUrl}
+                  src={event?.bannerUrl || ''}
                   alt="Car"
                   style={{
                     position: 'absolute',
@@ -795,19 +791,19 @@ export default function Page(): React.JSX.Element {
                       <Stack spacing={2}>
                         {Object.entries(selectedCategories).map(([showId, category]) => {
                           const show = event?.shows.find((show) => show.id === parseInt(showId));
-                          const showTicketCategory = show?.showTicketCategories.find((cat) => cat.ticketCategory.id === category);
+                          const ticketCategory = show?.ticketCategories.find((ticketCategory) => ticketCategory.id === category);
 
                           return (
                             <Stack direction={{ xs: 'column', sm: 'row' }} key={showId} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                               <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                                 <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {showTicketCategory?.ticketCategory.name || 'Chưa rõ loại vé'}</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
                               </Stack>
                               <Stack spacing={2} direction={'row'}>
-                                <Typography variant="body1">Giá: {formatPrice(showTicketCategory?.ticketCategory.price || 0)}</Typography>
+                                <Typography variant="body1">Giá: {formatPrice(ticketCategory?.price || 0)}</Typography>
                                 <Typography variant="body1">SL: {ticketQuantity || 0}</Typography>
                                 <Typography variant="body1">
-                                  Thành tiền: {formatPrice((showTicketCategory?.ticketCategory.price || 0) * (ticketQuantity || 0))}
+                                  Thành tiền: {formatPrice((ticketCategory?.price || 0) * (ticketQuantity || 0))}
                                 </Typography>
                               </Stack>
                             </Stack>
