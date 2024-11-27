@@ -44,7 +44,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [filterShows, setFilterShows] = React.useState<FilterShow[]>([]);
   const [bulkErrorMessage, setBulkErrorMessage] = React.useState<string>('');
   const [bulkErrorDetails, setBulkErrorDetails] = React.useState<BulkErrorDetail[]>([]);
 
@@ -239,7 +238,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   };
 
-  const handleSetTransactionStatusBulk = async (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+  const handleSetTransactionStatusBulk = async (status: string) => {
     setAnchorEl(null)
     if (selected.size === 0) {
       notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
@@ -258,6 +257,44 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       if (response.status === 200) {
         notificationCtx.success(response.data.message);
         fetchTransactions()
+      }
+    } catch (error: any) {
+      if (error.response?.data.detail.message) {
+        // Access the message and errors array
+        const message = error.response?.data.detail.message; // "Không thể thực hiện bởi các lỗi sau"
+        const errors = error.response?.data.detail.errorDetails || []; // Array of error details
+        // You can also use this data in your UI
+        setBulkErrorMessage(message);
+        setBulkErrorDetails(errors);
+      } else if (error.response?.data.detail) {
+        notificationCtx.error(error.response?.data.detail);
+      } else {
+        notificationCtx.error(error);
+      }
+    } finally {
+      setIsLoading(false); // Optional: Hide loading state
+    }
+  };
+  
+  const handleSendPaymentInstructionForTransactionBulk = async (channel: string) => {
+    setPaymentAnchorEl(null)
+    if (selected.size === 0) {
+      notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
+      return
+    }
+    setBulkErrorMessage('');
+    setBulkErrorDetails([]);
+    try {
+      setIsLoading(true); // Optional: Show loading state
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${params.event_id}/transactions/send-payment-instruction-bulk`, { transactionIds: Array.from(selected), channel },
+        {}, true
+      )
+
+      // Optionally handle response
+      if (response.status === 200) {
+        notificationCtx.success(response.data.message);
+        // fetchTransactions()
       }
     } catch (error: any) {
       if (error.response?.data.detail.message) {
@@ -547,6 +584,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 'aria-labelledby': 'payment-button',
               }}
             >
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendPaymentInstructionForTransactionBulk('email')}}>Gửi h.dẫn t.toán đơn Napas247 qua email</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendPaymentInstructionForTransactionBulk('zalo')}}>Gửi h.dẫn t.toán đơn Napas247 qua Zalo</MenuItem>
               <MenuItem sx={{ fontSize: '14px' }} onClick={handleSetPaidForTransactionBulk}>Chuyển trạng thái 'Đã thanh toán'</MenuItem>
               <MenuItem sx={{ fontSize: '14px' }} onClick={handleSetRefundForTransactionBulk}>Chuyển trạng thái 'Đã hoàn tiền'</MenuItem>
             </Menu>
