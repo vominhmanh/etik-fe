@@ -190,16 +190,16 @@ export interface HistorySending {
   channel: SendingChannel;
   type: SendingType;
   createdAt: string; // ISO 8601 string for datetime
-  createdBy: number;
-  creator: HistorySendingCreatorResponse;
+  createdBy: number | null;
+  creator: HistorySendingCreatorResponse | null;
 }
 
 export interface HistoryAction {
   id: number;
   content: string;
   createdAt: string; // ISO 8601 string for datetime
-  createdBy: number;
-  creator: HistorySendingCreatorResponse;
+  createdBy: number | null;
+  creator: HistorySendingCreatorResponse | null;
 }
 
 export interface Transaction {
@@ -837,8 +837,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           {historyAction.content}
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2">{historyAction.creator.fullName}</Typography>
-                          <Typography variant="body2">{historyAction.creator.email}</Typography>
+                          <Typography variant="body2">{historyAction.creator?.fullName}</Typography>
+                          <Typography variant="body2">{historyAction.creator?.email}</Typography>
                         </TableCell>
                       </TableRow>
                     ))}
