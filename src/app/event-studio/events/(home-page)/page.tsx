@@ -21,6 +21,7 @@ import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
 import RouterLink from 'next/link';
 import NotificationContext from '@/contexts/notification-context';
+import { Storefront } from '@phosphor-icons/react/dist/ssr';
 
 // Define response type for the events
 type EventResponse = {
@@ -36,6 +37,7 @@ type EventResponse = {
   bannerUrl: string | null;
   slug: string;
   secureApiKey: string;
+  displayOnMarketplace: boolean;
 };
 
 export default function Page(): React.JSX.Element {
@@ -124,6 +126,12 @@ export default function Page(): React.JSX.Element {
                     <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event.place ? event.place : 'Chưa xác định'}
+                    </Typography>
+                  </Stack>
+                  <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
+                    <Storefront fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {event.displayOnMarketplace ? "Đang hiển thị trên Marketplace" : 'Không hiển thị trên Marketplace'}
                     </Typography>
                   </Stack>
                 </Stack>

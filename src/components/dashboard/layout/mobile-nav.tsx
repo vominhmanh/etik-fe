@@ -230,8 +230,8 @@ href={`/event-studio/events/${dynamicId}`}
             <NavItemCollapseChildItem
               pathname={pathname}
               key="email-template-1"
-              title="Template vé mời"
-              href={`/event-studio/events/${dynamicId}/templates`}
+              title="Email marketing"
+              href={`/event-studio/events/${dynamicId}/templates/email-marketing`}
               icon={ListDashesIcon}
             />
             <NavItemCollapseChildItem

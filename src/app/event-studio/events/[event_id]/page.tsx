@@ -27,7 +27,7 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
-import { ArrowCounterClockwise, ArrowSquareIn, CheckFat, HourglassLow, ReceiptX } from '@phosphor-icons/react/dist/ssr';
+import { ArrowCounterClockwise, ArrowSquareIn, CheckFat, HourglassLow, ReceiptX, Storefront } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
@@ -259,6 +259,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     {event?.place ? event?.place : 'Chưa xác định'}
                   </Typography>
                 </Stack>
+                <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
+                    <Storefront fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {event?.displayOnMarketplace ? "Đang hiển thị trên Marketplace" : 'Không hiển thị trên Marketplace'}
+                    </Typography>
+                  </Stack>
               </Stack>
               <div style={{ marginTop: '20px' }}>
                 <Button
