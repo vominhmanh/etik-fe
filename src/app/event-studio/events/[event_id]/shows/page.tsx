@@ -60,7 +60,7 @@ interface Show {
 const statusMap = {
   not_opened_for_sale: { label: 'Trạng thái: Chưa mở bán', color: 'secondary' },
   on_sale: { label: 'Trạng thái: Đang mở bán', color: 'success' },
-  out_of_stock: { label: 'Trạng thái: Đã hết', color: 'secondary' },
+  // out_of_stock: { label: 'Trạng thái: Đã hết', color: 'secondary' },
   temporarily_locked: { label: 'Trạng thái: Đang tạm khoá', color: 'warning' },
 };
 
@@ -162,7 +162,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
             <Typography variant="h4">Loại vé theo suất diễn</Typography>
           </Stack>
-         
+
         </Stack>
         <CompaniesFilters />
         <Grid container spacing={3}>
@@ -235,6 +235,12 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                   color={typeMap[ticketCategory.type]?.color}
                                   size="small"
                                 />
+                                {ticketCategory.disabled === true &&
+                                  <Chip
+                                    label={'Đang khóa bởi hệ thống'}
+                                    color={'secondary'}
+                                    size="small"
+                                  />}
                               </Stack>
                             </Stack>
                             {ticketCategory?.description ? (
@@ -255,11 +261,11 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                               </Typography>
                             )}
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Số vé tối đa mỗi đơn hàng: {ticketCategory.limitPerTransaction || "Không giới hạn"}
-                              </Typography>
-                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Số vé tối đa mỗi khách hàng: {ticketCategory.limitPerCustomer || "Không giới hạn"}
-                              </Typography>
+                              Số vé tối đa mỗi đơn hàng: {ticketCategory.limitPerTransaction || "Không giới hạn"}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                              Số vé tối đa mỗi khách hàng: {ticketCategory.limitPerCustomer || "Không giới hạn"}
+                            </Typography>
                           </CardContent>
                           <Divider />
                           <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 2 }}>
