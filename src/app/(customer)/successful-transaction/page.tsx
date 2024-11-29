@@ -94,6 +94,17 @@ const getRowStatusDetails = (status: string): { label: string, color: "success" 
   }
 };
 
+const getSentEmailTicketStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+  switch (status) {
+    case 'sent':
+      return { label: 'Đã xuất', color: 'success' };
+    case 'not_sent':
+      return { label: 'Chưa xuất', color: 'default' }; // error for danger
+    default:
+      return { label: 'Unknown', color: 'default' };
+  }
+};
+
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
   holder: string;        // Name of the ticket holder
@@ -293,6 +304,13 @@ export default function Page(): React.JSX.Element {
                         <Typography variant="body1">Trạng thái thanh toán:</Typography>
                         <Chip label={paymentStatusDetails.label} color={paymentStatusDetails.color} />
                       </Grid>
+                      <Grid container justifyContent="space-between">
+                    <Typography variant="body1">Trạng thái xuất vé:</Typography>
+                    <Chip
+                      color={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent').color}
+                      label={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent').label}
+                    />
+                  </Grid>
                       <Grid container justifyContent="space-between">
                         <Typography variant="body1">Tổng số tiền:</Typography>
                         <Chip
