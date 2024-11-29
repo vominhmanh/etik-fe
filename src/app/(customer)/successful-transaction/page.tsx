@@ -227,7 +227,7 @@ export default function Page(): React.JSX.Element {
         );
         setECode(response.data.eCode);
       } catch (error) {
-        notificationCtx.error('Error fetching eCode', error);
+        // notificationCtx.error('Error fetching eCode', error);
       } finally {
         setIsLoading(false);
       }

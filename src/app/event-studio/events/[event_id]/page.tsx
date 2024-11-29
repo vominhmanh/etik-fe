@@ -260,11 +260,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   </Typography>
                 </Stack>
                 <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
-                    <Storefront fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {event?.displayOnMarketplace ? "Đang hiển thị trên Marketplace" : 'Không hiển thị trên Marketplace'}
-                    </Typography>
-                  </Stack>
+                  <Storefront fontSize="var(--icon-fontSize-sm)" />
+                  <Typography color="text.secondary" display="inline" variant="body2">
+                    {event?.displayOnMarketplace ? "Đang hiển thị trên Marketplace" : 'Không hiển thị trên Marketplace'}
+                  </Typography>
+                </Stack>
               </Stack>
               <div style={{ marginTop: '20px' }}>
                 <Button
@@ -364,6 +364,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </Stack>
                     <Typography color="text.secondary" variant="caption">
                       Vé
+                    </Typography>
+                  </Stack>
+                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                    <Typography color="text.primary" variant="caption">
+                      Rút tiền ?
                     </Typography>
                   </Stack>
                 </Stack>
@@ -573,7 +578,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         {eventOverview?.countRefundedRevenue.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
                       </Typography>
                     </Stack>
-                    
+
                   </Stack>
                 </Stack>
               </Stack>
