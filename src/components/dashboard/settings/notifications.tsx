@@ -22,7 +22,7 @@ export function Notifications(): React.JSX.Element {
       }}
     >
       <Card>
-        <CardHeader subheader="Manage the notifications" title="Notifications" />
+        <CardHeader subheader="Cài đặt cách nhận thông báo của bạn" title="Thông báo" />
         <Divider />
         <CardContent>
           <Grid container spacing={6} wrap="wrap">
@@ -30,17 +30,17 @@ export function Notifications(): React.JSX.Element {
               <Stack spacing={1}>
                 <Typography variant="h6">Email</Typography>
                 <FormGroup>
-                  <FormControlLabel control={<Checkbox defaultChecked />} label="Product updates" />
-                  <FormControlLabel control={<Checkbox />} label="Security updates" />
+                  <FormControlLabel control={<Checkbox defaultChecked />} label="Sự kiện mới" />
+                  <FormControlLabel control={<Checkbox defaultChecked />} label="Cập nhật quan trọng" />
                 </FormGroup>
               </Stack>
             </Grid>
             <Grid md={4} sm={6} xs={12}>
               <Stack spacing={1}>
-                <Typography variant="h6">Phone</Typography>
+                <Typography variant="h6">Số điện thoại</Typography>
                 <FormGroup>
-                  <FormControlLabel control={<Checkbox defaultChecked />} label="Email" />
-                  <FormControlLabel control={<Checkbox />} label="Security updates" />
+                  <FormControlLabel control={<Checkbox defaultChecked />} label="Sự kiện mới" />
+                  <FormControlLabel control={<Checkbox defaultChecked />} label="Cập nhật quan trọng" />
                 </FormGroup>
               </Stack>
             </Grid>
@@ -48,7 +48,7 @@ export function Notifications(): React.JSX.Element {
         </CardContent>
         <Divider />
         <CardActions sx={{ justifyContent: 'flex-end' }}>
-          <Button variant="contained">Save changes</Button>
+          <Button variant="contained">Lưu</Button>
         </CardActions>
       </Card>
     </form>
