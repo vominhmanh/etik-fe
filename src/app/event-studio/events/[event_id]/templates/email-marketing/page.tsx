@@ -49,23 +49,29 @@ type EventResponse = {
 };
 
 
+type GetEmailTemplateResponse = {
+  title: string | null;
+  senderName: string | null;
+  description: string | null;
+};
+
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
     document.title = "Chỉnh sửa email marketing| ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState({
-    title: "Cảm ơn Quý khách đã tham dự sự kiện!",
+    title: "Đây là template mẫu.",
     senderName: "",
   });
+  const [template, setTemplate] = useState<GetEmailTemplateResponse | null>(null);
   const { event_id } = params;
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
   const [description, setDescription] = useState(
-    `<h1>Thư cảm ơn</h1>
-     <p>Kính gửi Quý khách {{ customer_name }},</p>
-     <p>Cảm ơn đã tham dự sự kiện của chúng tôi, hẹn gặp lại Quý khách trong sự kiện sắp tới.</p>
-     <p>Trân trọng,</p>
-     <p>Ban tổ chức sự kiện.</p>`
+    `<h1>Template mẫu</h1>
+     <p>Hãy chỉnh sửa nội dung template này để gửi đến khách hàng của bạn.</p>
+     <p>Sử dụng cụm {{ customer_name }} nếu bạn muốn đại diện cho tên khách hàng.</p>
+     <p><b>Cảm ơn bạn đã sử dụng ETIK.</b></p>`
   );
 
   const reactQuillRef = React.useRef<ReactQuill>(null);
@@ -152,93 +158,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     </body>
     </html>
   `;
-
-  // Handle avatar selection
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedAvatar(file);
-      // setPreviewAvatarUrl(URL.createObjectURL(file)); // Generate preview URL
-      // setIsAvatarSelected(true); // Toggle button state
-    }
-  };
-
-  // Handle saving the avatar
-  const handleSaveAvatar = async () => {
-    if (!selectedAvatar) return;
-
-    const formData = new FormData();
-    formData.append('file', selectedAvatar);
-
-    try {
-      // Call API to upload the avatar
-      setIsLoading(true);
-      await baseHttpServiceInstance.post(`/event-studio/events/${event?.id}/upload-avatar`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      // On successful upload, reload the page or update the avatar state
-      window.location.reload(); // Optionally, you could call a function to update the state instead of reloading
-    } catch (error) {
-      notificationCtx.error('Error uploading avatar image:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle selecting another avatar
-  const handleSelectOtherAvatar = () => {
-    setSelectedAvatar(null);
-    // setPreviewAvatarUrl(event?.avatarUrl || '');
-    // setIsAvatarSelected(false); // Reset state
-  };
-
-  // Handle image selection
-  const handleBannerImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      // setPreviewBannerUrl(URL.createObjectURL(file)); // Generate preview URL
-      // setIsImageSelected(true); // Toggle button state
-    }
-  };
-
-  // Handle saving the image
-  const handleSaveBannerImage = async () => {
-    if (!selectedImage) return;
-
-    const formData = new FormData();
-    formData.append('file', selectedImage);
-
-    try {
-      // Call API to upload the image
-      setIsLoading(true);
-      await baseHttpServiceInstance.post(`/event-studio/events/${event?.id}/upload_banner`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      // On successful upload, reload the page or handle success
-      window.location.reload(); // You can also call a function to update the state instead of reloading
-    } catch (error) {
-      notificationCtx.error('Error uploading banner image:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle selecting another image
-  const handleSelectBannerOther = () => {
-    setSelectedImage(null);
-    // setPreviewBannerUrl(event?.bannerUrl || '');
-    // setIsImageSelected(false); // Reset state
-  };
-
   useEffect(() => {
-    if (event_id) {
+    
+  }, [event_id, notificationCtx]);
+  
+  useEffect(() => {
+    if (event_id) {  
       const fetchEventDetails = async () => {
         try {
           setIsLoading(true);
@@ -247,16 +172,33 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           );
           setEvent(response.data);
           setFormValues({ ...formValues, senderName: response.data.name });
-
-          // setFormValues(response.data);
-          // setDescription(response.data.description || '');
         } catch (error) {
-          notificationCtx.error('Error fetching event details:', error);
+          notificationCtx.error(error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      const fetchEmailTemplate = async () => {
+        try {
+          setIsLoading(true);
+          const response = await baseHttpServiceInstance.get(`/event-studio/events/${event_id}/templates/email-marketing`);
+          setTemplate(response.data);
+          
+          setFormValues({
+            title: response.data.title || '',
+            senderName: response.data.senderName || '',
+          });
+          if (response.data.description) {
+            setDescription(response.data.description)
+          }
+        } catch (error) {
+          notificationCtx.error(error);
         } finally {
           setIsLoading(false);
         }
       };
       fetchEventDetails();
+      fetchEmailTemplate();
     }
   }, [event_id]);
 
@@ -288,13 +230,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   };
 
-  const handleCopyToClipboard = (data: string) => {
-    navigator.clipboard.writeText(data).then(() => {
-      notificationCtx.success("Đã sao chép vào bộ nhớ tạm"); // Show success message
-    }).catch(() => {
-      notificationCtx.warning("Không thể sao chép, vui lòng thử lại"); // Handle errors
-    });
-  };
 
   // Image Upload Handler
   const handleImageUpload = useCallback(() => {
@@ -384,7 +319,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <Divider />
               <CardContent>
                 <ul>
-                  <li style={{ color: 'red' }}>Nghiêm cấm sử dụng Email marketing để phát tán spam, lừa đảo, chống phá chính quyền, và các hành vi trái pháp luật khác.</li>
+                  <li style={{ color: 'red' }}>Nghiêm cấm sử dụng Email marketing để phát tán spam, lừa đảo, virus, tuyên truyền chống Nhà nước và các hành vi trái pháp luật khác.</li>
                   <li>Sử dụng các cụm <code>{'{{ customer_name }}'}</code>, <code>{'{{ customer_email }}'}</code>, <code>{'{{ customer_address }}'}</code>, <code>{'{{ customer_phone_number }}'}</code> để đại diện cho thông tin từng khách hàng nếu cần.</li>
                 </ul>
               </CardContent>

@@ -112,6 +112,8 @@ const getHistorySendingTypeDetails = (type: SendingType) => {
       return 'Gửi hướng dẫn thanh toán';
     case SendingType.CANCEL_TICKET:
       return 'Gửi thư huỷ vé';
+    case SendingType.EMAIL_MARKETING:
+      return 'Gửi email marketing';
   }
 };
 
@@ -174,6 +176,7 @@ export enum SendingChannel {
 export enum SendingType {
   TICKET = 'ticket',
   PAYMENT_INSTRUCTION = 'payment_instruction',
+  EMAIL_MARKETING = 'email_marketing',
   CANCEL_TICKET = 'cancel_ticket'
 }
 

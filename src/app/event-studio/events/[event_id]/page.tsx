@@ -14,7 +14,7 @@ import { TotalCustomers } from '@/components/dashboard/overview/total-customers'
 import { TotalProfit } from '@/components/dashboard/overview/total-profit';
 import { Traffic } from '@/components/dashboard/overview/traffic';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Avatar, Box, CardMedia, MenuItem, Select, Stack, TextField } from '@mui/material';
+import { Avatar, Box, CardMedia, Container, MenuItem, Modal, Select, Stack, TextField } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -126,6 +126,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [selectedSchedule, setSelectedSchedule] = React.useState<Show>();
   const [selectedCategories, setSelectedCategories] = React.useState<number[]>([]);
   const [eventOverview, setEventOverview] = React.useState<EventOverviewResponse | null>(null);
+  const [openCashWithdrawalModal, setOpenCashWithdrawalModal] = React.useState(false);
 
   const handleCategorySelection = (categoryIds: number[]) => {
     setSelectedCategories(categoryIds);
@@ -345,33 +346,36 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <CheckFat fontSize="var(--icon-fontSize-lg)" />
                   </Avatar>
                 </Stack>
-                <Stack direction="row" spacing={2}>
-                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
-                      <Typography color='var(--mui-palette-success-main)' variant="body2">
-                        {eventOverview?.countCompletedTransactions}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Stack direction="row" spacing={2}>
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                      <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                        <Typography color='var(--mui-palette-success-main)' variant="body2">
+                          {eventOverview?.countCompletedTransactions}
+                        </Typography>
+                      </Stack>
+                      <Typography color="text.secondary" variant="caption">
+                        Đơn hàng đã xuất
                       </Typography>
                     </Stack>
-                    <Typography color="text.secondary" variant="caption">
-                      Đơn hàng đã xuất
-                    </Typography>
-                  </Stack>
-                  <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
-                      <Typography color='var(--mui-palette-success-main)' variant="body2">
-                        {eventOverview?.countCompletedTickets}
+                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                      <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                        <Typography color='var(--mui-palette-success-main)' variant="body2">
+                          {eventOverview?.countCompletedTickets}
+                        </Typography>
+                      </Stack>
+                      <Typography color="text.secondary" variant="caption" >
+                        Vé
                       </Typography>
                     </Stack>
-                    <Typography color="text.secondary" variant="caption">
-                      Vé
-                    </Typography>
                   </Stack>
+
                   <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-                    <Typography color="text.primary" variant="caption">
+                    <Typography color="primary" variant="caption" component={Button} onClick={() => setOpenCashWithdrawalModal(true)}>
                       Rút tiền ?
                     </Typography>
                   </Stack>
-                </Stack>
+                </div>
               </Stack>
             </CardContent>
           </Card>
@@ -708,7 +712,32 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           </Grid>
         </Grid>
       </Stack>
-
+      <Modal
+        open={openCashWithdrawalModal}
+        onClose={() => setOpenCashWithdrawalModal(false)}
+        aria-labelledby="ticket-category-description-modal-title"
+        aria-describedby="ticket-category-description-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: { sm: "500px", xs: "90%" },
+              bgcolor: "background.paper",
+              boxShadow: 24,
+            }}
+          >
+            <CardContent>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                Để rút tiền, quý khách vui lòng gửi email với tiêu đề <b>"Yêu cầu rút tiền sự kiện {event?.name}"</b> từ địa chỉ email <b>{event?.organizerEmail}</b> của quý khách đến địa chỉ email <b>tienphongsmart@gmail.com</b>. Chúng tôi sẽ hỗ trợ trong thời gian 24h kể từ khi nhận được yêu cầu. Xin cảm ơn!
+              </Typography>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
     </>
   );
 }

@@ -20,12 +20,13 @@ import { Transaction, TransactionsTable } from './transactions-table';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
 import { debounce } from 'lodash';
-import { ArrowCounterClockwise, X } from '@phosphor-icons/react/dist/ssr';
+import { ArrowCounterClockwise, ArrowSquareIn, X } from '@phosphor-icons/react/dist/ssr';
 import { Grid, FormControl, InputLabel, Select, MenuItem, IconButton, Box, Menu, Divider, CardContent, Table, TableBody, TableCell, TableHead, TableRow, useTheme } from '@mui/material';
 import { ArrowBendLeftDown, CaretDown, Empty } from '@phosphor-icons/react';
 import { useSelection } from '@/hooks/use-selection';
 import dayjs from 'dayjs';
 import { HistoryAction } from './[transaction_id]/page';
+import Link from 'next/link';
 
 interface BulkErrorDetail {
   id: number;
@@ -186,10 +187,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [paymentAnchorEl, setPaymentAnchorEl] = React.useState<null | HTMLElement>(null);
   const [ticketAnchorEl, setTicketAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [emailMarketingAnchorEl, setEmailMarketingAnchorEl] = React.useState<null | HTMLElement>(null);
 
   const open = Boolean(anchorEl);
   const paymentOpen = Boolean(paymentAnchorEl);
   const ticketOpen = Boolean(ticketAnchorEl);
+  const emailMarketingOpen = Boolean(emailMarketingAnchorEl);
 
   const handleClick = (setter: React.Dispatch<React.SetStateAction<null | HTMLElement>>) =>
     (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -201,6 +204,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const handleSendTicketBulk = async (channel: string | null = null) => {
+    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    if (!userConfirmed) {
+      return
+    }
     setTicketAnchorEl(null)
     if (selected.size === 0) {
       notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
@@ -239,11 +246,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const handleSetTransactionStatusBulk = async (status: string) => {
-    setAnchorEl(null)
     if (selected.size === 0) {
       notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
       return
     }
+    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    if (!userConfirmed) {
+      return
+    }
+    setAnchorEl(null)
     setBulkErrorMessage('');
     setBulkErrorDetails([]);
     try {
@@ -275,13 +286,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       setIsLoading(false); // Optional: Hide loading state
     }
   };
-  
+
   const handleSendPaymentInstructionForTransactionBulk = async (channel: string) => {
-    setPaymentAnchorEl(null)
     if (selected.size === 0) {
       notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
       return
     }
+    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    if (!userConfirmed) {
+      return
+    }
+    setPaymentAnchorEl(null)
     setBulkErrorMessage('');
     setBulkErrorDetails([]);
     try {
@@ -314,12 +329,59 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   };
 
-  const handleSetPaidForTransactionBulk = async () => {
-    setPaymentAnchorEl(null)
+
+  const handleSendEmailMarketingBulk = async () => {
     if (selected.size === 0) {
       notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
       return
     }
+    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    if (!userConfirmed) {
+      return
+    }
+    setEmailMarketingAnchorEl(null)
+    setBulkErrorMessage('');
+    setBulkErrorDetails([]);
+    try {
+      setIsLoading(true); // Optional: Show loading state
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${params.event_id}/transactions/send-email-marketing-bulk`, { transactionIds: Array.from(selected) },
+        {}, true
+      )
+
+      // Optionally handle response
+      if (response.status === 200) {
+        notificationCtx.success(response.data.message);
+        // fetchTransactions()
+      }
+    } catch (error: any) {
+      if (error.response?.data.detail.message) {
+        // Access the message and errors array
+        const message = error.response?.data.detail.message; // "Không thể thực hiện bởi các lỗi sau"
+        const errors = error.response?.data.detail.errorDetails || []; // Array of error details
+        // You can also use this data in your UI
+        setBulkErrorMessage(message);
+        setBulkErrorDetails(errors);
+      } else if (error.response?.data.detail) {
+        notificationCtx.error(error.response?.data.detail);
+      } else {
+        notificationCtx.error(error);
+      }
+    } finally {
+      setIsLoading(false); // Optional: Hide loading state
+    }
+  };
+
+  const handleSetPaidForTransactionBulk = async () => {
+    if (selected.size === 0) {
+      notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
+      return
+    }
+    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    if (!userConfirmed) {
+      return
+    }
+    setPaymentAnchorEl(null)
     setBulkErrorMessage('');
     setBulkErrorDetails([]);
     try {
@@ -353,11 +415,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const handleSetRefundForTransactionBulk = async () => {
-    setPaymentAnchorEl(null)
     if (selected.size === 0) {
       notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
       return
     }
+    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    if (!userConfirmed) {
+      return
+    }
+    setPaymentAnchorEl(null)
+
     setBulkErrorMessage('');
     setBulkErrorDetails([]);
     try {
@@ -584,8 +651,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 'aria-labelledby': 'payment-button',
               }}
             >
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendPaymentInstructionForTransactionBulk('email')}}>Gửi h.dẫn t.toán đơn Napas247 qua email</MenuItem>
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendPaymentInstructionForTransactionBulk('zalo')}}>Gửi h.dẫn t.toán đơn Napas247 qua Zalo</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendPaymentInstructionForTransactionBulk('email') }}>Gửi h.dẫn t.toán đơn Napas247 qua email</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendPaymentInstructionForTransactionBulk('zalo') }}>Gửi h.dẫn t.toán đơn Napas247 qua Zalo</MenuItem>
               <MenuItem sx={{ fontSize: '14px' }} onClick={handleSetPaidForTransactionBulk}>Chuyển trạng thái 'Đã thanh toán'</MenuItem>
               <MenuItem sx={{ fontSize: '14px' }} onClick={handleSetRefundForTransactionBulk}>Chuyển trạng thái 'Đã hoàn tiền'</MenuItem>
             </Menu>
@@ -614,6 +681,35 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTicketBulk('email') }}>Xuất vé + gửi Email</MenuItem>
               <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTicketBulk('zalo') }}>Xuất vé + gửi Zalo</MenuItem>
               <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTicketBulk() }}>Xuất vé không gửi</MenuItem>
+            </Menu>
+
+            {/* Menu for Thanh toán */}
+            <Button
+              size='small'
+              id="payment-button"
+              aria-controls={paymentOpen ? 'payment-menu' : undefined}
+              aria-haspopup="true"
+              aria-expanded={paymentOpen ? 'true' : undefined}
+              onClick={handleClick(setEmailMarketingAnchorEl)}
+              endIcon={<CaretDown />}
+            >
+              Email marketing
+            </Button>
+            <Menu
+              id="email-marketing-menu"
+              anchorEl={emailMarketingAnchorEl}
+              open={emailMarketingOpen}
+              onClose={handleClose(setEmailMarketingAnchorEl)}
+              MenuListProps={{
+                'aria-labelledby': 'email-marketing-button',
+              }}
+            >
+              <MenuItem sx={{ fontSize: '14px' }}>
+                <a href="templates/email-marketing" style={{ textDecoration: 'none' }} target="_blank" rel="noopener noreferrer">
+                  Chỉnh sửa mẫu email <ArrowSquareIn />
+                </a>
+              </MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendEmailMarketingBulk() }}>Gửi email marketing</MenuItem>
             </Menu>
           </Stack>
         </Box>
