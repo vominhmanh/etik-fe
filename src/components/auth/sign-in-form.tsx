@@ -41,9 +41,7 @@ export function SignInForm(): React.JSX.Element {
   }>({ type: undefined, message: '' });
 
   const { checkSession, setUser } = useUser();
-
   const [showPassword, setShowPassword] = React.useState<boolean>();
-
   const [isPending, setIsPending] = React.useState<boolean>(false);
 
   const {

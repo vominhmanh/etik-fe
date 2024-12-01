@@ -8,7 +8,8 @@ import '@/styles/global.css';
 import { UserProvider } from '@/contexts/user-context';
 import { LocalizationProvider } from '@/components/core/localization-provider';
 import { ThemeProvider } from '@/components/core/theme-provider/theme-provider';
-import NotificationBar from './notification';
+import { ResponsiveAppBar } from './responsive-app-bar';
+import NotificationBar from '../notification';
 
 export const viewport = { width: 'device-width', initialScale: 1 } satisfies Viewport;
 
@@ -18,19 +19,9 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps): React.JSX.Element {
   return (
-    <html lang="en">
-      <body>
-        <LocalizationProvider>
-          <UserProvider>
-            <NotificationProvider>
-              <ThemeProvider>
-                <NotificationBar />
-                {children}
-              </ThemeProvider>
-            </NotificationProvider>
-          </UserProvider>
-        </LocalizationProvider>
-      </body>
-    </html>
+    <>
+      <ResponsiveAppBar />
+      {children}
+    </>
   );
 }
