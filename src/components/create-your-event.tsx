@@ -355,6 +355,7 @@ export default function CreateYourEvent() {
                       value={passwordInput}
                       onChange={(e) => setPasswordInput(e.target.value)}
                       label="Nhập mật khẩu"
+                      type="password"
                     />
                   </FormControl>
 
