@@ -24,6 +24,7 @@ import dayjs from 'dayjs';
 import RouterLink from 'next/link';
 
 import NotificationContext from '@/contexts/notification-context';
+import { UserPlus } from '@phosphor-icons/react/dist/ssr';
 
 // Define response type for the events
 type EventResponse = {
@@ -136,8 +137,8 @@ export default function Page(): React.JSX.Element {
               <Divider />
               <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 1 }}>
                 <Button component={RouterLink}
-                  href={`/events/${event.slug}`} size="small" startIcon={<EyeIcon />}>
-                  Xem chi tiết
+                  href={`/events/${event.slug}`} size="small" startIcon={<UserPlus />}>
+                  Đặt vé sự kiện này
                 </Button>
               </Stack>
             </Card>

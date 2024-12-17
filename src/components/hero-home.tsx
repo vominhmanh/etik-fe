@@ -134,10 +134,10 @@ export default function HeroHome() {
                     href="#create-your-event"
                   >
                     <span className="relative inline-flex items-center">
-                      Dùng thử ngay
-                      <span className="ml-1 tracking-normal text-blue-300 transition-transform group-hover:translate-x-0.5">
+                      <span style={{marginRight: '10px'}}>Bạn là Nhà tổ chức sự kiện?</span>{" "}<b> Tạo sự kiện ngay</b>
+                      {/* <span className="ml-1 tracking-normal text-blue-300 transition-transform group-hover:translate-x-0.5">
                         -&gt;
-                      </span>
+                      </span> */}
                     </span>
                   </a>
                   <Link
@@ -145,7 +145,7 @@ export default function HeroHome() {
                     href="/marketplace"
                   >
                     <span className="relative inline-flex items-center">
-                    Xem danh sách sự kiện hot
+                    <span style={{marginRight: '10px'}}>Bạn là khách hàng?</span><b> Đặt vé ngay</b>
                     </span>
                     
                   </Link>
