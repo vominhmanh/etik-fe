@@ -62,7 +62,6 @@ export function SignUpForm(): React.JSX.Element {
         const res: AuthRes = await authClient.signUp(values);
         // setUser(res.user);
         setIsOtpModalOpen(true); // Open OTP modal on successful signup
-        // await checkSession?.();
         // router.refresh();
       } catch (error: any) {
         setPopupContent({ type: 'error', message: error.message || 'Có lỗi xảy ra, vui lòng thử lại sau' });
@@ -85,7 +84,6 @@ export function SignUpForm(): React.JSX.Element {
     try {
       const res: AuthRes = await authClient.verifyOtp( values.email, values.otp || ""); // Call verify API
       setUser(res.user);
-      await checkSession?.();
       router.refresh();
     } catch (error: any) {
       setError("otp", { type: "manual", message: error.message || 'Xác thực OTP không thành công' });

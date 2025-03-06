@@ -61,14 +61,6 @@ function noop(): void {
 }
 
 
-interface CustomersTableProps {
-  count?: number;
-  page?: number;
-  rows?: Role[];
-  rowsPerPage?: number;
-  eventId: number;
-}
-
 const formatPrice = (price: number) => {
   return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
 };

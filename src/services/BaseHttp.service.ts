@@ -88,7 +88,7 @@ export default class BaseHttpService {
   handle401(): void {
     // Unauthorized -> Push to sign in page
     if (this.router) {
-      this.router.push('/sign-in');
+      this.router.push('/login');
     }
   }
 

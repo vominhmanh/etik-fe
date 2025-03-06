@@ -1,5 +1,4 @@
 import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
 import type { Metadata } from 'next';
 import RouterLink from 'next/link';
 import Box from '@mui/material/Box';

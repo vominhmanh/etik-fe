@@ -1,6 +1,6 @@
 import { AxiosResponse } from 'axios';
 
-import { AuthRes, LoginReq, SignUpReq } from '@/types/auth';
+import { AuthRes, LoginReq, SignUpReq, SsoAuthRes } from '@/types/auth';
 
 import BaseHttpService from './BaseHttp.service';
 
@@ -11,7 +11,15 @@ class AuthService extends BaseHttpService {
 
   async login(data: LoginReq): Promise<AxiosResponse<AuthRes>> {
     return this.post(`/auth/login`, data, {
-      headers: { 
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+  }
+
+  async ssoLogin(data: LoginReq): Promise<AxiosResponse<SsoAuthRes>> {
+    return this.post(`/sso/login`, data, {
+      headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
@@ -49,6 +57,16 @@ class AuthService extends BaseHttpService {
     return this.post(`/auth/resend-otp`, { email });
   }
 
-}
+  async verifyAccessToken(accessToken: string) {
+    try {
+      const response = await this.get('/auth/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return response.data;
+    } catch (error) {
+      return null;
+    }
 
+  }
+}
 export default new AuthService();

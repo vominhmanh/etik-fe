@@ -13,7 +13,7 @@
 - [Integrations](https://material-kit-react.devias.io/dashboard/integrations)
 - [Settings](https://material-kit-react.devias.io/dashboard/settings)
 - [Account](https://material-kit-react.devias.io/dashboard/account)
-- [Sign In](https://material-kit-react.devias.io/auth/sign-in)
+- [Sign In](https://material-kit-react.devias.io/auth/login)
 - [Sign Up](https://material-kit-react.devias.io/auth/sign-up)
 - [Reset Password](https://material-kit-react.devias.io/auth/reset-password)
 

@@ -154,33 +154,59 @@ export default function Page(): React.JSX.Element {
   return (
     <Stack spacing={3}>
       <div>
-        <Typography variant="h4">Tài khoản</Typography>
+        <Typography variant="h4">Cài đặt Tài khoản</Typography>
       </div>
       <Grid container spacing={3}>
         <Grid lg={4} md={6} xs={12}>
+        <Stack spacing={3}>
           <Card>
             <CardContent>
               <Stack spacing={2} sx={{ alignItems: 'center' }}>
                 <div>
                   <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>{user?.email[0].toUpperCase()}</Avatar>
                 </div>
-                <Stack spacing={1} sx={{ textAlign: 'center' }}>
-                  <Typography variant="h5">{user?.fullName}</Typography>
-                  <Typography color="var(--mui-palette-success-400)" variant="body2">
-                    {/* {user.city} {user.country} */}
-                    <SealCheck /> Tài khoản nhà tổ chức sự kiện
-                  </Typography>
-
-                </Stack>
               </Stack>
             </CardContent>
             <Divider />
             <CardActions>
               <Button fullWidth variant="text">
-                Upload picture
+                Thay đổi ảnh đại diện
               </Button>
             </CardActions>
           </Card>
+          <Card>
+              <CardHeader title="Tùy chọn liên kết đăng nhập" />
+              <Divider />
+              <CardContent>
+              <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Typography variant="body1">Tài khoản ETIK</Typography>
+                    </Stack>
+                    <Typography variant="body1">
+                      Chưa tạo
+                    </Typography>
+                  </Grid>
+                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Typography variant="body1">Tài khoản Google</Typography>
+                    </Stack>
+                    <Typography variant="body1">
+                      Đã liên kết
+                    </Typography>
+                  </Grid>
+                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Typography variant="body1">Tài khoản Facebook</Typography>
+                    </Stack>
+                    <Typography variant="body1">
+                      Chưa liên kết
+                    </Typography>
+                  </Grid>
+              </CardContent>
+             
+            </Card>
+        </Stack>
+          
         </Grid>
         <Grid lg={8} md={6} xs={12}>
           <Stack spacing={3}>
@@ -221,183 +247,7 @@ export default function Page(): React.JSX.Element {
                 <Button variant="contained">Lưu</Button>
               </CardActions>
             </Card>
-            <Card>
-              <CardHeader
-                title="Thông tin Nhà tổ chức sự kiện"
-                subheader="Nhà tổ chức sự kiện cần cung cấp các thông tin dưới đây để có thể tạo sự kiện theo nghị định 44/2013/NĐ-CP"
-              />
-              <Divider />
-              <CardContent>
-                <Grid container spacing={3}>
-                  <Grid md={12} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel shrink>Loại hình kinh doanh</InputLabel>
-                      <Select
-                        label="Loại hình kinh doanh"
-                        value={sellerInfo.businessType || ""} // Default to an empty string
-                        onChange={(event: SelectChangeEvent) =>
-                          setSellerInfo((prevState) => ({
-                            ...prevState,
-                            businessType: event.target.value,
-                          }))
-                        }
-                        displayEmpty // Ensures the placeholder is shown for the empty state
-                        name="businessType"
-                      >
-                        <MenuItem value="" disabled>
-                          -- Chọn loại hình kinh doanh --
-                        </MenuItem>
-                        <MenuItem value="Cá nhân">Cá nhân</MenuItem>
-                        <MenuItem value="Công ty/ Hộ kinh doanh">Công ty/ Hộ kinh doanh</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  {/* Show Tax Code if Cá nhân is selected */}
-                  {sellerInfo.businessType === "Cá nhân" ? (
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel shrink>Mã số thuế</InputLabel>
-                        <OutlinedInput
-                          notched
-                          value={sellerInfo.taxCode}
-                          onChange={handleChangeSellerInfo}
-                          label="Mã số thuế"
-                          name="taxCode"
-                        />
-                      </FormControl>
-                    </Grid>
-                  ) : (<>
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel shrink>Tên công ty/ Hộ kinh doanh</InputLabel>
-                        <OutlinedInput
-                          notched
-                          value={sellerInfo.companyName}
-                          onChange={handleChangeSellerInfo}
-                          label="Tên công ty/ Hộ kinh doanh"
-                          name="companyName"
-                        />
-                      </FormControl>
-                    </Grid>
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel>Địa chỉ đăng ký kinh doanh</InputLabel>
-                        <OutlinedInput
-                          value={sellerInfo.businessAddress}
-                          onChange={handleChangeSellerInfo}
-                          label="Địa chỉ đăng ký kinh doanh"
-                          name="businessAddress"
-                        />
-                      </FormControl>
-                    </Grid>
-                    <Grid md={4} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel shrink>Số GCN ĐKKD</InputLabel>
-                        <OutlinedInput
-                          notched
-                          value={sellerInfo.gcnNumber}
-                          onChange={handleChangeSellerInfo}
-                          label="Số GCN ĐKKD"
-                          name="gcnNumber"
-                        />
-                      </FormControl>
-                    </Grid>
-
-                    <Grid md={4} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel shrink>Ngày cấp GCN ĐKKD</InputLabel>
-                        <OutlinedInput
-                          notched
-                          value={sellerInfo.gcnIssueDate}
-                          onChange={handleChangeSellerInfo}
-                          label="Ngày cấp GCN ĐKKD"
-                          name="gcnIssueDate"
-                          type="date"
-                        />
-                      </FormControl>
-                    </Grid>
-
-                    <Grid md={4} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel shrink>Nơi cấp GCN ĐKKD</InputLabel>
-                        <OutlinedInput
-                          notched
-                          value={sellerInfo.gcnIssuePlace}
-                          onChange={handleChangeSellerInfo}
-                          label="Nơi cấp GCN ĐKKD"
-                          name="gcnIssuePlace"
-                        />
-                      </FormControl>
-                    </Grid>
-                    <Grid md={12} xs={12}>
-                      <Typography color="text.secondary" variant="body2">
-                        Tải lên ảnh giấy chứng nhận đăng ký kinh doanh bản gốc
-                      </Typography>
-
-                      <FormControl fullWidth required>
-                        <TextField
-                          variant="standard"
-                          inputProps={{ type: 'file' }}
-                          onChange={handleChangeSellerInfo}
-                          name="registrationImage"
-                          helperText="Định dạng .JPG, .JPEG, .PNG, .PDF, tối đa 5MB"
-                        />
-                      </FormControl>
-                    </Grid>
-                  </>)}
-                </Grid>
-
-              </CardContent>
-              <Divider />
-              <CardActions sx={{ justifyContent: 'flex-end' }}>
-                <Typography color="text.secondary" variant="body2">
-                  Thông tin đang chờ duyệt
-                </Typography>
-                <Button variant="contained" onClick={handleSaveSellerInfo} disabled={isLoading}>
-                  {isLoading ? 'Đang lưu...' : 'Lưu'}
-                </Button>
-              </CardActions>
-            </Card>
-            <Card>
-              <CardHeader title="Thông tin Ngân hàng" />
-              <Divider />
-              <CardContent>
-                <Grid container spacing={3}>
-                  <Grid md={12} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel shrink >Tên người thụ hưởng</InputLabel>
-                      <OutlinedInput
-                        notched
-                        value={user?.fullName}
-                        label="Tên người thụ hưởng"
-                        name="fullName"
-                        inputProps={{ shrink: true }}
-                      />
-                      <FormHelperText>
-                        Người thụ hưởng phải có thông tin trùng với nhà tổ chức sự kiện
-                      </FormHelperText>
-                    </FormControl>
-                  </Grid>
-                  <Grid md={12} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel shrink >Ngân hàng</InputLabel>
-                      <OutlinedInput notched value={user?.fullName} label="Họ tên" name="fullName" inputProps={{ shrink: true }} />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={12} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel shrink >Số tài khoản</InputLabel>
-                      <OutlinedInput notched value={user?.fullName} label="Họ tên" name="fullName" inputProps={{ shrink: true }} />
-                    </FormControl>
-                  </Grid>
-                </Grid>
-              </CardContent>
-              <Divider />
-              <CardActions sx={{ justifyContent: 'flex-end' }}>
-
-                <Button variant="contained">Lưu</Button>
-              </CardActions>
-            </Card>
+           
             <Card>
               <CardHeader subheader="Thay đổi mật khẩu" title="Mật khẩu" />
               <Divider />

@@ -18,6 +18,7 @@ import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
+import { BuildingOffice } from '@phosphor-icons/react/dist/ssr';
 
 export interface UserPopoverProps {
   anchorEl: Element | null;
@@ -49,16 +50,13 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
         return;
       }
 
-      // Refresh the auth state
-      await checkSession?.();
-
       // UserProvider, for this case, will not refresh the router and we need to do it manually
       router.push(paths.auth.signIn); // After refresh, AuthGuard will handle the redirect
       // After refresh, AuthGuard will handle the redirect
     } catch (err) {
       logger.error('Sign out error', err);
     }
-  }, [checkSession, router]);
+  }, [router]);
 
   return (
     <Popover
@@ -80,19 +78,26 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
           <ListItemIcon>
             <GearSixIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Cài đặt
+          Quyền riêng tư
         </MenuItem>
         <MenuItem component={RouterLink} href={'/account'} onClick={onClose}>
           <ListItemIcon>
             <UserIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Trang cá nhân
+          Cài đặt tài khoản
         </MenuItem>
+        
         <MenuItem component={RouterLink} href={'/account/my-tickets'} onClick={onClose}>
           <ListItemIcon>
             <TicketIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
           Vé của tôi
+        </MenuItem>
+        <MenuItem component={RouterLink} href={'/account-event-agency'} onClick={onClose}>
+          <ListItemIcon>
+            <BuildingOffice fontSize="var(--icon-fontSize-md)" />
+          </ListItemIcon>
+          Tài khoản Event Agency
         </MenuItem>
         <MenuItem onClick={handleSignOut}>
           <ListItemIcon>

@@ -270,7 +270,7 @@ export default function Page(): React.JSX.Element {
               <Typography variant="h5">Mua vé thành công !</Typography>
               <Typography variant="body1" sx={{ textAlign: 'justify' }}>Cảm ơn quý khách đã sử dụng ETIK, dưới đây là vé mời của quý khách.</Typography>
               <Typography variant="body2" sx={{ textAlign: 'justify' }}>Hãy <b>chụp màn hình</b> mã QR để sử dụng khi check-in. Quý khách có thể <a style={{ textDecoration: 'none' }} target='_blank'
-                href="/auth/sign-in">đăng ký/ đăng nhập</a> bằng email mua vé để xem lại vé đã mua.</Typography>
+                href="/auth/login">đăng ký/ đăng nhập</a> bằng email mua vé để xem lại vé đã mua.</Typography>
               <Typography variant="body2" sx={{ textAlign: 'justify' }}>Nếu quý khách cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
             </Stack>
           </Stack>

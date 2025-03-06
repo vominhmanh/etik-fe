@@ -11,7 +11,7 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
-import { Mailbox, Plus, StackPlus, UserList } from '@phosphor-icons/react/dist/ssr';
+import { DiceSix, Mailbox, Plus, SquaresFour, StackPlus, StarHalf, UserList } from '@phosphor-icons/react/dist/ssr';
 import { Barcode as BarcodeIcon } from '@phosphor-icons/react/dist/ssr/Barcode';
 import { CalendarDots as CalendarDotsIcon } from '@phosphor-icons/react/dist/ssr/CalendarDots';
 import { CaretDown as CaretDownIcon } from '@phosphor-icons/react/dist/ssr/CaretDown';
@@ -36,6 +36,7 @@ import NotificationContext from '@/contexts/notification-context';
 import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
+import { SpinnerBall } from '@phosphor-icons/react';
 export type EventResponse = {
   id: number;
   name: string;
@@ -268,6 +269,29 @@ export function SideNav(): React.JSX.Element {
                 title="Template vé bị huỷ"
                 href={`/event-studio/events/${dynamicId}/templates`}
                 icon={PlusIcon}
+              />
+            </NavItemCollapse>
+            <NavItemCollapse pathname={pathname} key="role" title="Mini App" icon={SquaresFour}>
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="email-template-1"
+                title="Rating Online"
+                href={`/event-studio/events/${dynamicId}/config-mini-app-rating-online`}
+                icon={StarHalf}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="email-template-2"
+                title="Dice roll"
+                href={`/event-studio/events/${dynamicId}/templates`}
+                icon={DiceSix}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="email-template-2"
+                title="Lucky number"
+                href={`/event-studio/events/${dynamicId}/templates`}
+                icon={SpinnerBall}
               />
             </NavItemCollapse>
           </Stack>

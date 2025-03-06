@@ -63,7 +63,6 @@ export function SignInForm(): React.JSX.Element {
 
         setUser(res.user);
 
-        await checkSession?.();
         router.refresh();
       } catch (error: any) {
         setPopupContent({
@@ -73,7 +72,7 @@ export function SignInForm(): React.JSX.Element {
         setIsPending(false);
       }
     },
-    [checkSession, router, setError]
+    [router, setError]
   );
 
   return (

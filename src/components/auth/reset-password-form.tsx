@@ -77,8 +77,8 @@ export function ResetPasswordForm(): React.JSX.Element {
         password: values.password
       });
       notificationCtx.success('Đổi mật khẩu thành công.');
-      // Redirect to sign-in page
-      window.location.href = '/auth/sign-in';
+      // Redirect to login page
+      window.location.href = '/auth/login';
     } catch (error: any) {
       setError('otp', { type: 'manual', message: error.message || 'Xác thực OTP không thành công' });
     } finally {

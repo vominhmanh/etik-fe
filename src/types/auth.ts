@@ -21,4 +21,11 @@ export type AuthRes = {
   access_token: string;
   refresh_token: string;
   token_type: string;
+  auth_code: string;
+  auth_code_expires_in: number
+};
+
+export type SsoAuthRes = {
+  authCode: string;
+  expiresIn: number;
 };

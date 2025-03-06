@@ -183,7 +183,6 @@ export default function CreateYourEvent() {
       });
 
       setUser(res.user);
-      await checkSession?.();
       handleCreateEvent()
       // router.refresh();
     } catch (error: any) {
@@ -217,7 +216,6 @@ export default function CreateYourEvent() {
     try {
       const res: AuthRes = await authClient.verifyOtp(formData.organizerEmail, otpInput || ""); // Call verify API
       setUser(res.user);
-      await checkSession?.();
       handleCreateEvent()
     } catch (error: any) {
       setError(error.message || "Xảy ra lỗi khi xác thực OTP");

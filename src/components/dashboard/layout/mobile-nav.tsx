@@ -32,7 +32,7 @@ import { isNavItemActive } from '@/lib/is-nav-item-active';
 import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
-import { Mailbox, StackPlus, UserList } from '@phosphor-icons/react/dist/ssr';
+import { DiceSix, Mailbox, SpinnerBall, SquaresFour, StackPlus, StarHalf, UserList } from '@phosphor-icons/react/dist/ssr';
 import NotificationContext from '@/contexts/notification-context';
 import { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
@@ -226,7 +226,7 @@ href={`/event-studio/events/${dynamicId}`}
             href={`/event-studio/events/${dynamicId}/roles`}
             icon={UsersIcon}
           />
-          <NavItemCollapse pathname={pathname} key="email-template" title="Email template" icon={Mailbox}>
+          <NavItemCollapse pathname={pathname} key="email-template" title="Email" icon={Mailbox}>
             <NavItemCollapseChildItem
               pathname={pathname}
               key="email-template-1"
@@ -242,6 +242,29 @@ href={`/event-studio/events/${dynamicId}`}
               icon={PlusIcon}
             />
           </NavItemCollapse>
+          <NavItemCollapse pathname={pathname} key="role" title="Mini App" icon={SquaresFour}>
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="email-template-1"
+                title="Rating Online"
+                href={`/event-studio/events/${dynamicId}/config-mini-app-rating-online`}
+                icon={StarHalf}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="email-template-2"
+                title="Dice roll"
+                href={`/event-studio/events/${dynamicId}/templates`}
+                icon={DiceSix}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="email-template-2"
+                title="Lucky number"
+                href={`/event-studio/events/${dynamicId}/templates`}
+                icon={SpinnerBall}
+              />
+            </NavItemCollapse>
         </Stack>
       </Box>
     </Drawer>
