@@ -189,7 +189,7 @@ export function CandidatesPage({
       );
       setCandidates(response.data);
     } catch (error) {
-      notificationCtx.error('Error fetching roles:', error);
+      notificationCtx.error('Lỗi:', error);
     } finally {
       setIsLoading(false);
     }

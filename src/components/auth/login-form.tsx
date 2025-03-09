@@ -1,7 +1,7 @@
 'use client'
 import * as React from 'react';
 import RouterLink from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -40,10 +40,12 @@ export function SignInForm(): React.JSX.Element {
     message: string;
   }>({ type: undefined, message: '' });
 
-  const { checkSession, setUser } = useUser();
+  const { checkSession, setUser, getUser } = useUser();
   const [showPassword, setShowPassword] = React.useState<boolean>();
   const [isPending, setIsPending] = React.useState<boolean>(false);
-
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/event-studio/events';
+  
   const {
     control,
     handleSubmit,
@@ -60,10 +62,11 @@ export function SignInForm(): React.JSX.Element {
           username: values.email,
           password: values.password,
         });
+        localStorage.setItem('accessToken', res.access_token);
 
         setUser(res.user);
-
-        router.refresh();
+        const user = getUser()
+        router.push(`${returnUrl}`)
       } catch (error: any) {
         setPopupContent({
           type: 'error',

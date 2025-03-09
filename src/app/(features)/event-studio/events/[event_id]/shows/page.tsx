@@ -136,7 +136,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         );
         setShows(response.data);
       } catch (error) {
-        notificationCtx.error('Error fetching shows and ticket categories:', error);
+        notificationCtx.error('Lỗi:', error);
       } finally {
         setIsLoading(false);
       }

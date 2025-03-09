@@ -181,7 +181,7 @@ export default function CreateYourEvent() {
         username: formData.organizerEmail,
         password: passwordInput,
       });
-
+      localStorage.setItem('accessToken', res.access_token);
       setUser(res.user);
       handleCreateEvent()
       // router.refresh();

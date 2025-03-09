@@ -75,7 +75,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       );
       setRoles(response.data);
     } catch (error) {
-      notificationCtx.error('Error fetching roles:', error);
+      notificationCtx.error('Lỗi:', error);
     } finally {
       setIsLoading(false);
     }

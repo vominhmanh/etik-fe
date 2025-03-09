@@ -225,7 +225,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           setEvent(response.data);
           // setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
-          notificationCtx.error('Error fetching event details:', error);
+          notificationCtx.error('Lỗi:', error);
         } finally {
           setIsLoading(false);
         }

@@ -279,7 +279,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         notificationCtx.success('Thông tin đơn hàng đã được cập nhật thành công!');
       }
     } catch (error) {
-      notificationCtx.error('Có lỗi xảy ra khi cập nhật thông tin đơn hàng:', error);
+      notificationCtx.error('Lỗi:', error);
     }
   };
 
@@ -299,7 +299,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
           status: null,
         });
       } catch (error) {
-        notificationCtx.error('Error fetching transaction details:', error);
+        notificationCtx.error('Lỗi:', error);
       } finally {
         setIsLoading(false);
       }

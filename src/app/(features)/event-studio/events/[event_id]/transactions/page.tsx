@@ -139,7 +139,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       );
       setTransactions(response.data);
     } catch (error) {
-      notificationCtx.error('Error fetching transactions:', error);
+      notificationCtx.error('Lỗi:', error);
     } finally {
       setIsLoading(false);
     }

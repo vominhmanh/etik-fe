@@ -45,7 +45,6 @@ class AuthClient {
 
   async signInWithPassword(data: LoginReq): Promise<AuthRes> {
     const res = await AuthService.login(data);
-    localStorage.setItem('accessToken', res.data.access_token);
     return res.data;
   }
 

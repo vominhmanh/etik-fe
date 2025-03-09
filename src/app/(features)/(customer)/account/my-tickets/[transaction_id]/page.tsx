@@ -202,7 +202,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
         );
         setTransaction(response.data);
       } catch (error) {
-        notificationCtx.error('Error fetching transaction details:', error);
+        notificationCtx.error('Lỗi:', error);
       } finally {
         setIsLoading(false);
       }

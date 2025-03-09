@@ -14,10 +14,13 @@ export interface GuestGuardProps {
 
 export function GuestGuard({ children }: GuestGuardProps): React.JSX.Element | null {
   const router = useRouter();
-  const { user, error, isLoading } = useUser();
+  const { error, isLoading, getUser } = useUser();
   const [isChecking, setIsChecking] = React.useState<boolean>(true);
 
   const checkPermissions = async (): Promise<void> => {
+    const user = getUser()
+    const accessToken = localStorage.getItem('accessToken');
+
     if (isLoading) {
       return;
     }
@@ -27,7 +30,7 @@ export function GuestGuard({ children }: GuestGuardProps): React.JSX.Element | n
       return;
     }
 
-    if (user) {
+    if (user && accessToken) {
       logger.debug('[GuestGuard]: User is logged in, redirecting to dashboard');
       router.replace(paths.dashboard.overview);
       return;
@@ -41,7 +44,7 @@ export function GuestGuard({ children }: GuestGuardProps): React.JSX.Element | n
       // noop
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Expected
-  }, [user, error, isLoading]);
+  }, [error, isLoading]);
 
   if (isChecking) {
     return null;

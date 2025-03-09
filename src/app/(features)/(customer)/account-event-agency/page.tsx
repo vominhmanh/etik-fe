@@ -188,7 +188,7 @@ export default function Page(): React.JSX.Element {
             <Card>
               <CardHeader
                 title="Thông tin Nhà tổ chức sự kiện"
-                subheader="Nhà tổ chức sự kiện cần cung cấp các thông tin dưới đây để có thể tạo sự kiện theo nghị định 44/2013/NĐ-CP"
+                subheader="Nhà tổ chức sự kiện cần cung cấp các thông tin dưới đây để có thể tạo sự kiện theo nghị định 52/2013/NĐ-CP"
               />
               <Divider />
               <CardContent>
@@ -310,7 +310,6 @@ export default function Page(): React.JSX.Element {
                     </Grid>
                   </>)}
                 </Grid>
-
               </CardContent>
               <Divider />
               <CardActions sx={{ justifyContent: 'flex-end' }}>

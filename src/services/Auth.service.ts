@@ -68,5 +68,18 @@ class AuthService extends BaseHttpService {
     }
 
   }
+
+  async verifyAccessTokenSso(accessToken: string) {
+    try {
+      const response = await this.get('/sso/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+
+  }
 }
+
 export default new AuthService();

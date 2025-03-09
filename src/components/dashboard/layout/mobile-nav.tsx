@@ -78,7 +78,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
           );
           setEvent(response.data);
         } catch (error) {
-          notificationCtx.error('Error fetching event details:', error);
+          notificationCtx.error('Lỗi:', error);
         }
       };
       fetchEventDetails();

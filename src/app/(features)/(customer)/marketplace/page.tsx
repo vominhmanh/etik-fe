@@ -59,7 +59,7 @@ export default function Page(): React.JSX.Element {
         const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/marketplace/events');
         setEvents(response.data);
       } catch (error) {
-        notificationCtx.error('Error fetching events:', error);
+        notificationCtx.error('Lỗi:', error);
       } finally {
         setIsLoading(false);
       }

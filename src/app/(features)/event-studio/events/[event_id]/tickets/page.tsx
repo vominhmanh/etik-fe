@@ -139,7 +139,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       );
       setTickets(response.data);
     } catch (error) {
-      notificationCtx.error('Error fetching tickets:', error);
+      notificationCtx.error('Lỗi:', error);
     } finally {
       setIsLoading(false);
     }

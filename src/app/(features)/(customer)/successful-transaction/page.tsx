@@ -207,7 +207,7 @@ export default function Page(): React.JSX.Element {
         );
         setTransaction(response.data);
       } catch (error) {
-        notificationCtx.error('Error fetching transaction details:', error);
+        notificationCtx.error('Lỗi:', error);
       } finally {
         setIsLoading(false);
       }

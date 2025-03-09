@@ -38,7 +38,7 @@ export default function CreateCandidateModal({ eventId, open, onClose, onCandida
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCandidate((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setCandidate((prev) => ({ ...prev, [e.target.name]: e.target.value, ratingDuration: Number(e.target.value) }));
   };
 
   async function createCandidate(eventId: number, candidate: Omit<Candidate, "id">) {
@@ -54,7 +54,7 @@ export default function CreateCandidateModal({ eventId, open, onClose, onCandida
   }
   const handleSubmit = async () => {
     if (!candidate.name || candidate.ratingDuration <= 0) {
-      notificationCtx.error("Tên ứng cử viên và thời gian bình chọn không được để trống.");
+      notificationCtx.error("Tên ứng cử viên và thời lượng bình chọn không được để trống.");
       return;
     }
 
@@ -113,7 +113,7 @@ export default function CreateCandidateModal({ eventId, open, onClose, onCandida
             label="Thời lượng bình chọn (phút)"
             name="ratingDuration"
             type="number"
-            value={candidate.ratingDuration}
+            value={Number(candidate.ratingDuration)}
             onChange={handleChange}
             fullWidth
           />

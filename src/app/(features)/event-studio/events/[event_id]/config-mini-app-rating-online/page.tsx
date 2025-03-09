@@ -143,7 +143,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       // On successful upload, reload the page or update the avatar state
       window.location.reload(); // Optionally, you could call a function to update the state instead of reloading
     } catch (error) {
-      notificationCtx.error('Error uploading avatar image:', error);
+      notificationCtx.error('Lỗi:', error);
     } finally {
       setIsLoading(false);
     }
@@ -160,7 +160,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           setEvent(response.data);
           setFormValues(response.data);
         } catch (error) {
-          notificationCtx.error('Error fetching event details:', error);
+          notificationCtx.error('Lỗi:', error);
         } finally {
           setIsLoading(false);
         }
@@ -201,7 +201,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             range && quill.getEditor().insertEmbed(range.index, 'image', imageUrl);
           }
         } catch (error) {
-          notificationCtx.error('Image upload failed:', error);
+          notificationCtx.error('Lỗi:', error);
         } finally {
           setIsLoading(false);
         }
@@ -304,8 +304,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           </Grid>
         </>
       )}
-
-
 
     </Stack>
   );

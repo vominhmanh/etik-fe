@@ -60,7 +60,7 @@ export function SignInForm(): React.JSX.Element {
       if (accessToken) {
         try {
           setIsLoading(true)
-          const response = await AuthService.verifyAccessToken(accessToken);
+          const response = await AuthService.verifyAccessTokenSso(accessToken);
 
           if (response?.authCode && response?.fullName && response?.email) {
             setSsoUser({
@@ -99,7 +99,7 @@ export function SignInForm(): React.JSX.Element {
           username: values.email,
           password: values.password,
         };
-        const response: AxiosResponse<AuthRes> = await baseHttpServiceInstance.post(`/auth/login`, data, {
+        const response: AxiosResponse<AuthRes> = await baseHttpServiceInstance.post(`/sso/login`, data, {
           headers: {
             accept: 'application/json',
             'Content-Type': 'application/x-www-form-urlencoded',

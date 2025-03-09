@@ -262,7 +262,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             range && quill.getEditor().insertEmbed(range.index, 'image', imageUrl);
           }
         } catch (error) {
-          notificationCtx.error('Image upload failed:', error);
+          notificationCtx.error('Lỗi:', error);
         } finally {
           setIsLoading(false);
         }
