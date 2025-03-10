@@ -21,17 +21,6 @@ import { useUser } from '@/hooks/use-user';
 import { Avatar, FormHelperText, Input, MenuItem, Select, SelectChangeEvent, TextField } from '@mui/material';
 import { SealCheck } from '@phosphor-icons/react/dist/ssr';
 
-interface SellerInfo {
-  businessType: string;
-  companyName: string;
-  businessAddress: string;
-  taxCode: string;
-  registrationImage: File | null; // File input for the uploaded image
-  gcnNumber: string;
-  gcnIssueDate: Date;
-  gcnIssuePlace: string;
-
-}
 
 export default function Page(): React.JSX.Element {
   const [formData, setFormData] = useState({
@@ -45,7 +34,6 @@ export default function Page(): React.JSX.Element {
     companyName: "",
     businessAddress: "",
     registrationImage: null,
-    gcnNumber: "",
     gcnIssueDate: "",
     gcnIssuePlace: "",
   });
