@@ -3,7 +3,21 @@
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Avatar, Box, CardMedia, IconButton, InputAdornment, List, ListItem, ListItemIcon, ListItemText, MenuItem, Select, Stack, TextField } from '@mui/material';
+import {
+  Avatar,
+  Box,
+  CardMedia,
+  IconButton,
+  InputAdornment,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+} from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -17,20 +31,39 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { ArrowSquareIn, Clipboard, Gear, ListDashes, ListNumbers, ListStar, Panorama, Play, Plus, StarHalf, UserCircle } from '@phosphor-icons/react/dist/ssr';
+import {
+  ArrowSquareIn,
+  Clipboard,
+  Gear,
+  ListDashes,
+  ListNumbers,
+  ListStar,
+  Panorama,
+  Play,
+  Plus,
+  Question,
+  StarHalf,
+  UserCircle,
+} from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { AxiosResponse } from 'axios';
 import ReactQuill, { Quill } from 'react-quill';
+
 import NotificationContext from '@/contexts/notification-context';
+
 import 'react-quill/dist/quill.snow.css';
-import dayjs from 'dayjs';
+
 import RouterLink from 'next/link';
+import { useRouter } from 'next/navigation'; // ✅ Import router
+import dayjs from 'dayjs';
+
+import BackgroundImagePage from './background-image-page';
 import { CandidatesPage } from './candidates-page';
-import { RatingCriteriaPage } from './rating-criteria-page';
 import PrivacySettings from './privacy-page';
-import { useRouter } from "next/navigation"; // ✅ Import router
+import { RatingCriteriaPage } from './rating-criteria-page';
+import { VotingQuestionPage } from './voting-question-page';
 
 // Define the event response type
 export type EventResponse = {
@@ -66,7 +99,7 @@ interface CreateConfigResponse {
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
-    document.title = "Chỉnh sửa chi tiết sự kiện| ETIK - Vé điện tử & Quản lý sự kiện";
+    document.title = 'Chỉnh sửa chi tiết sự kiện| ETIK - Vé điện tử & Quản lý sự kiện';
   }, []);
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
@@ -76,17 +109,58 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const [configExists, setConfigExists] = useState<boolean | null>(null);
-  const [selectedPage, setSelectedPage] = useState("candidates");
+  const [selectedPage, setSelectedPage] = useState('candidates');
   const router = useRouter();
 
   const MENU_ITEMS = [
-    { id: "candidates", icon: <UserCircle />, label: "Đối tượng bình chọn", component: <CandidatesPage eventId={params.event_id} /> },
-    { id: "criteria", icon: <ListStar />, label: "Tiêu chí bình chọn", component: <RatingCriteriaPage eventId={params.event_id} /> },
-    { id: "privacy", icon: <Gear />, label: "Cài đặt quyền riêng tư", component: <PrivacySettings eventId={params.event_id} eventSlug={event?.slug || ''} /> },
-    { id: "history", icon: <ListDashes />, label: "Lịch sử bình chọn", component: <PrivacySettings eventId={params.event_id} eventSlug={event?.slug || ''} /> },
-    { id: "background", icon: <Panorama />, label: "Thay đổi ảnh nền ứng dụng", component: <Typography>Thay đổi ảnh nền</Typography> },
-    { id: "voting", icon: <StarHalf />, label: "Truy cập trang Bình chọn", component: <Typography>Trang Bình chọn</Typography> },
-    { id: "ranking", icon: <ListNumbers />, label: "Truy cập trang Bảng xếp hạng", component: <Typography>Bảng xếp hạng</Typography> },
+    {
+      id: 'candidates',
+      icon: <UserCircle />,
+      label: 'Đối tượng bình chọn',
+      component: <CandidatesPage eventId={params.event_id} />,
+    },
+    {
+      id: 'criteria',
+      icon: <ListStar />,
+      label: 'Tiêu chí bình chọn',
+      component: <RatingCriteriaPage eventId={params.event_id} />,
+    },
+    {
+      id: 'votingQuestion',
+      icon: <Question />,
+      label: 'Câu hỏi bình chọn ứng viên',
+      component: <VotingQuestionPage eventId={params.event_id} />,
+    },
+    {
+      id: 'privacy',
+      icon: <Gear />,
+      label: 'Cài đặt quyền riêng tư',
+      component: <PrivacySettings eventId={params.event_id} eventSlug={event?.slug || ''} />,
+    },
+    {
+      id: 'history',
+      icon: <ListDashes />,
+      label: 'Lịch sử bình chọn',
+      component: <PrivacySettings eventId={params.event_id} eventSlug={event?.slug || ''} />,
+    },
+    {
+      id: 'background',
+      icon: <Panorama />,
+      label: 'Thay đổi ảnh nền ứng dụng',
+      component: <BackgroundImagePage eventId={params.event_id} />,
+    },
+    {
+      id: 'voting',
+      icon: <StarHalf />,
+      label: 'Truy cập trang Bình chọn',
+      component: <Typography>Trang Bình chọn</Typography>,
+    },
+    {
+      id: 'ranking',
+      icon: <ListNumbers />,
+      label: 'Truy cập trang Bảng xếp hạng',
+      component: <Typography>Bảng xếp hạng</Typography>,
+    },
   ];
   async function checkConfig() {
     if (!event_id) return;
@@ -98,7 +172,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       );
       setConfigExists(response.data.exists);
     } catch (error) {
-      console.error("Error checking config:", error);
+      console.error('Error checking config:', error);
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +181,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   useEffect(() => {
     checkConfig();
   }, [event_id]);
-
 
   async function handleCreateConfig() {
     setIsLoading(true);
@@ -118,7 +191,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       notificationCtx.success(response.data.message);
       checkConfig();
     } catch (error: any) {
-      notificationCtx.error(error.response?.data?.detail || "Có lỗi khi khởi tạo ứng dụng.");
+      notificationCtx.error(error.response?.data?.detail || 'Có lỗi khi khởi tạo ứng dụng.');
     } finally {
       setIsLoading(false);
     }
@@ -168,7 +241,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       fetchEventDetails();
     }
   }, [event_id]);
-
 
   // Image Upload Handler
   const handleImageUpload = useCallback(() => {
@@ -248,18 +320,29 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       {!configExists ? (
         <>
           <div>
-            <Typography variant="h4"><StarHalf></StarHalf> Mini App "Rating Online"</Typography>
+            <Typography variant="h4">
+              <StarHalf></StarHalf> Mini App "Rating Online"
+            </Typography>
           </div>
           <Stack spacing={3}>
-            <Typography variant='body2'>
-              Ứng dụng Mini App "<StarHalf /> Rating Online" hỗ trợ nhà tổ chức sự kiện tạo cuộc bỏ phiếu, chấm điểm, đánh giá các thí sinh, tiết mục,...
+            <Typography variant="body2">
+              Ứng dụng Mini App "<StarHalf /> Rating Online" hỗ trợ nhà tổ chức sự kiện tạo cuộc bỏ phiếu, chấm điểm,
+              đánh giá các thí sinh, tiết mục,...
             </Typography>
           </Stack>
           <div>
-            <Button variant="contained" href={`#registration`} size="small" startIcon={<Play />} onClick={handleCreateConfig} disabled={isLoading}>
+            <Button
+              variant="contained"
+              href={`#registration`}
+              size="small"
+              startIcon={<Play />}
+              onClick={handleCreateConfig}
+              disabled={isLoading}
+            >
               Khởi tạo ứng dụng
             </Button>
-          </div></>
+          </div>
+        </>
       ) : (
         <>
           <div>
@@ -277,9 +360,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         divider
                         onClick={() => setSelectedPage(item.id)}
                         sx={{
-                          cursor: "pointer",
-                          backgroundColor: selectedPage === item.id ? "rgba(33, 150, 243, 0.2)" : "inherit",
-                          "&:hover": { backgroundColor: "rgba(33, 150, 243, 0.1)" },
+                          cursor: 'pointer',
+                          backgroundColor: selectedPage === item.id ? 'rgba(33, 150, 243, 0.2)' : 'inherit',
+                          '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.1)' },
                         }}
                       >
                         <ListItemText
@@ -297,15 +380,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               </Stack>
             </Grid>
             <Grid lg={8} md={6} xs={12}>
-              <Stack spacing={3}>
-                {MENU_ITEMS.find((item) => item.id === selectedPage)?.component}
-              </Stack>
+              <Stack spacing={3}>{MENU_ITEMS.find((item) => item.id === selectedPage)?.component}</Stack>
             </Grid>
           </Grid>
         </>
       )}
-
     </Stack>
   );
 }
-

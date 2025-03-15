@@ -1,11 +1,15 @@
 'use client';
 
 import * as React from 'react';
+import RouterLink from 'next/link';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
+import { Button, CardHeader, Chip, Link } from '@mui/material';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Checkbox from '@mui/material/Checkbox';
 import Divider from '@mui/material/Divider';
+import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -13,29 +17,26 @@ import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
-import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
-import RouterLink from 'next/link';
-import NotificationContext from '@/contexts/notification-context';
-import { AxiosResponse } from 'axios';
-import dayjs from 'dayjs';
+import Typography from '@mui/material/Typography';
+import { Plus, X } from '@phosphor-icons/react/dist/ssr';
 import { ArrowSquareUpRight as ArrowSquareUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowSquareUpRight';
-import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
 import { Bank as BankIcon } from '@phosphor-icons/react/dist/ssr/Bank';
 import { Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr/Lightning';
-import IconButton from '@mui/material/IconButton';
+import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
+import { AxiosResponse } from 'axios';
+import dayjs from 'dayjs';
+
+import NotificationContext from '@/contexts/notification-context';
 import { useSelection } from '@/hooks/use-selection';
-import { CardHeader, Chip, Link } from '@mui/material';
-import { Plus, X } from '@phosphor-icons/react/dist/ssr';
-import { Button } from "@mui/material";
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
+
 import CreateCandidateModal from './create-candidate-modal';
 
 export interface Candidate {
   id: number;
   eventId: number;
   name: string;
-  avatarUrl?: string;
+  avatarUrl: string | null;
   ratingStartTime?: string;
   ratingDuration: number;
 }
@@ -53,7 +54,9 @@ const getRoleDetails = (role: string) => {
 };
 
 // Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+const getRowStatusDetails = (
+  status: string
+): { label: string; color: 'success' | 'error' | 'warning' | 'info' | 'secondary' | 'default' | 'primary' } => {
   switch (status) {
     case 'normal':
       return { label: 'Bình thường', color: 'success' };
@@ -66,16 +69,13 @@ const getRowStatusDetails = (status: string): { label: string, color: "success" 
   }
 };
 
-
 function noop(): void {
   // do nothing
 }
 
-
 const formatPrice = (price: number) => {
   return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
 };
-
 
 function stringToColor(string: string) {
   let hash = 0;
@@ -109,9 +109,7 @@ interface CustomersTableProps {
   eventId: number;
 }
 
-export function CandidatesPage({
-  eventId = 0,
-}: CustomersTableProps): React.JSX.Element {
+export function CandidatesPage({ eventId = 0 }: CustomersTableProps): React.JSX.Element {
   const [candidates, setCandidates] = React.useState<Candidate[]>([]);
   const [pageCandidate, setPageCandidate] = React.useState(0);
   const [rowsPerPageCandidate, setRowsPerPageCandidate] = React.useState(25);
@@ -126,29 +124,29 @@ export function CandidatesPage({
       {
         id: 1,
         eventId: 1,
-        name: "John Doe",
-        avatarUrl: "https://via.placeholder.com/50",
-        ratingStartTime: "2025-03-01 12:00",
+        name: 'John Doe',
+        avatarUrl: 'https://via.placeholder.com/50',
+        ratingStartTime: '2025-03-01 12:00',
         ratingDuration: 60,
       },
       {
         id: 2,
         eventId: 1,
-        name: "Jane Smith",
-        avatarUrl: "https://via.placeholder.com/50",
-        ratingStartTime: "2025-03-01 13:30",
+        name: 'Jane Smith',
+        avatarUrl: 'https://via.placeholder.com/50',
+        ratingStartTime: '2025-03-01 13:30',
         ratingDuration: 90,
       },
       {
         id: 3,
         eventId: 1,
-        name: "Mike Johnson",
-        avatarUrl: "https://via.placeholder.com/50",
-        ratingStartTime: "2025-03-01 15:00",
+        name: 'Mike Johnson',
+        avatarUrl: 'https://via.placeholder.com/50',
+        ratingStartTime: '2025-03-01 15:00',
         ratingDuration: 120,
       },
     ]);
-  }, [])
+  }, []);
 
   const handleCreateCandidate = (newCandidate: Candidate) => {
     setCandidates([...candidates, newCandidate]);
@@ -163,10 +161,12 @@ export function CandidatesPage({
 
     try {
       setIsLoading(true);
-      const response: AxiosResponse<Candidate[]> = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/mini-app-rating-online/candidates`);
+      const response: AxiosResponse<Candidate[]> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${eventId}/mini-app-rating-online/candidates`
+      );
       setCandidates(response.data);
     } catch (error: any) {
-      notificationCtx.error(error.response?.data?.detail || "Có lỗi khi tải danh sách ứng viên.");
+      notificationCtx.error(error.response?.data?.detail || 'Có lỗi khi tải danh sách ứng viên.');
     } finally {
       setIsLoading(false);
     }
@@ -177,7 +177,7 @@ export function CandidatesPage({
   };
 
   const handleRowsPerPageChangeCandidates = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newRowsPerPage = parseInt(event.target.value, 10)
+    const newRowsPerPage = parseInt(event.target.value, 10);
     setRowsPerPageCandidate(newRowsPerPage);
     setPageCandidate(0); // Reset to the first page whenever rows per page change
   };
@@ -208,18 +208,20 @@ export function CandidatesPage({
       <Card>
         <CardHeader
           title="Danh sách đối tượng bình chọn"
-          action={<Button
-            fullWidth
-            variant="contained"
-            size="small"
-            startIcon={<Plus />}
-            onClick={() => setOpenCreateModal(true)}
-          >
-            Thêm
-          </Button>}
+          action={
+            <Button
+              fullWidth
+              variant="contained"
+              size="small"
+              startIcon={<Plus />}
+              onClick={() => setOpenCreateModal(true)}
+            >
+              Thêm
+            </Button>
+          }
         />
         <Divider />
-        <Box sx={{ overflowX: "auto" }}>
+        <Box sx={{ overflowX: 'auto' }}>
           <Table sx={{ minWidth: 700 }}>
             <TableHead>
               <TableRow>
@@ -236,14 +238,18 @@ export function CandidatesPage({
                 <TableRow key={candidate.id}>
                   <TableCell>{candidate.id}</TableCell>
                   <TableCell>
-                    <Avatar src={candidate.avatarUrl} alt={candidate.name} />
+                    <Avatar src={candidate.avatarUrl!} alt={candidate.name} />
                   </TableCell>
                   <TableCell>{candidate.name}</TableCell>
                   <TableCell>{candidate.ratingStartTime}</TableCell>
                   <TableCell>{candidate.ratingDuration}</TableCell>
                   <TableCell>
-                    <Button size='small' variant="contained" color="warning">Sửa</Button>
-                    <Button size='small' variant="contained" color="error">Xóa</Button>
+                    <Button size="small" variant="contained" color="warning">
+                      Sửa
+                    </Button>
+                    <Button size="small" variant="contained" color="error">
+                      Xóa
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -260,9 +266,12 @@ export function CandidatesPage({
           onRowsPerPageChange={handleRowsPerPageChangeCandidates}
         />
       </Card>
-      <CreateCandidateModal eventId={eventId} open={openCreateModal} onClose={() => setOpenCreateModal(false)} onCandidateCreated={handleCandidateCreated} />
+      <CreateCandidateModal
+        eventId={eventId}
+        open={openCreateModal}
+        onClose={() => setOpenCreateModal(false)}
+        onCandidateCreated={handleCandidateCreated}
+      />
     </>
-
   );
 }
-
