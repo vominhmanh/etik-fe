@@ -12,12 +12,15 @@ import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
+import { Stack } from '@mui/system';
 import { Plus } from '@phosphor-icons/react/dist/ssr';
 import { AxiosResponse } from 'axios';
 
 import NotificationContext from '@/contexts/notification-context';
 
-import CreateRatingCriteriaModal from './create-rating-criteria-page';
+import CreateRatingCriteriaModal from './create-rating-criteria-page-modal';
+import DeleteRatingCriteriaModal from './delete-rating-criteria-modal';
+import EditRatingCriteriaModal from './edit-rating-criteria-modal';
 
 export type RatingCriteriaType = 'star' | 'numeric' | 'favorite';
 
@@ -32,70 +35,6 @@ export interface RatingCriteria {
   ratio: number;
 }
 
-// Function to map payment statuses to corresponding labels and colors
-const getRoleDetails = (role: string) => {
-  switch (role) {
-    case 'owner':
-      return { label: 'Chủ sở hữu', color: 'success' };
-    case 'member':
-      return { label: 'Thành viên', color: 'default' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
-
-// Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (
-  status: string
-): { label: string; color: 'success' | 'error' | 'warning' | 'info' | 'secondary' | 'default' | 'primary' } => {
-  switch (status) {
-    case 'normal':
-      return { label: 'Bình thường', color: 'success' };
-    case 'customer_cancelled':
-      return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
-    case 'staff_locked':
-      return { label: 'Khoá bởi NV', color: 'error' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
-
-function noop(): void {
-  // do nothing
-}
-
-const formatPrice = (price: number) => {
-  return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
-};
-
-function stringToColor(string: string) {
-  let hash = 0;
-  let i;
-
-  /* eslint-disable no-bitwise */
-  for (i = 0; i < string.length; i += 1) {
-    hash = string.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  let color = '#';
-
-  for (i = 0; i < 3; i += 1) {
-    const value = (hash >> (i * 8)) & 0xff;
-    color += `00${value.toString(16)}`.slice(-2);
-  }
-  /* eslint-enable no-bitwise */
-
-  return color;
-}
-
-function stringAvatar(name: string) {
-  return {
-    sx: {
-      bgcolor: stringToColor(name),
-    },
-    children: `${name.split(' ')[0][0]}${name.split(' ').length > 1 ? name.split(' ')[1][0] : ''}`,
-  };
-}
 interface CustomersTableProps {
   eventId: number;
 }
@@ -113,7 +52,9 @@ export function RatingCriteriaPage({ eventId = 0 }: CustomersTableProps): React.
   const [open, setOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const notificationCtx = React.useContext(NotificationContext);
-  const [openCreateModal, setOpenCreateModal] = React.useState<boolean>(false);
+  const [selectedCriteria, setSelectedCriteria] = React.useState<RatingCriteria | null>(null);
+  const [openEditModal, setOpenEditModal] = React.useState(false);
+  const [openDeleteModal, setOpenDeleteModal] = React.useState(false);
 
   const paginatedRatingCriterias = applyPaginationRatingCriterias(
     ratingCriterias,
@@ -132,19 +73,19 @@ export function RatingCriteriaPage({ eventId = 0 }: CustomersTableProps): React.
     }
   };
 
-  React.useEffect(() => {
-    const fetchCriterias = async () => {
-      try {
-        setIsLoading(true);
-        const data = await getRatingCriterias(eventId);
-        setRatingCriterias(data);
-      } catch (error) {
-        notificationCtx.error('Không thể tải tiêu chí đánh giá.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchCriterias = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getRatingCriterias(eventId);
+      setRatingCriterias(data);
+    } catch (error) {
+      notificationCtx.error('Không thể tải tiêu chí đánh giá.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  React.useEffect(() => {
     fetchCriterias();
   }, [eventId]);
 
@@ -202,11 +143,44 @@ export function RatingCriteriaPage({ eventId = 0 }: CustomersTableProps): React.
     return rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
   }
 
+  const handleEditCriteria = (criteria: RatingCriteria) => {
+    console.log('Edit Criteria', criteria);
+    setSelectedCriteria(criteria);
+    setOpenEditModal(true);
+  };
+
+  const handleDeleteCriteria = (criteria: RatingCriteria) => {
+    setSelectedCriteria(criteria);
+    setOpenDeleteModal(true);
+  };
+
+  const handleDeleteRatingCriteria = async () => {
+    if (!selectedCriteria) return;
+
+    try {
+      await baseHttpServiceInstance.delete(
+        `/event-studio/events/${eventId}/mini-app-rating-online/rating-criterias/${selectedCriteria.id}`
+      );
+      setRatingCriterias((prev) => prev.filter((c) => c.id !== selectedCriteria.id));
+      notificationCtx.success('Xóa tiêu chí đánh giá thành công.');
+    } catch (error: any) {
+      notificationCtx.error(error.response?.data?.detail || 'Xóa tiêu chí đánh giá thất bại.');
+    } finally {
+      setOpenDeleteModal(false);
+      setSelectedCriteria(null);
+    }
+  };
+
+  const onCriteriaUpdated = () => {
+    fetchCriterias();
+    setOpenEditModal(false);
+  };
+
   return (
     <>
       <Card>
         <CardHeader
-          title="Danh sách tiêu chí bình chọn"
+          title="Danh sách Chấm điểm ứng viên"
           action={
             <Button fullWidth variant="contained" size="small" startIcon={<Plus />} onClick={() => setOpen(true)}>
               Thêm
@@ -233,12 +207,24 @@ export function RatingCriteriaPage({ eventId = 0 }: CustomersTableProps): React.
                   <TableCell>{`Min: ${criteria.scaleMin}, Max: ${criteria.scaleMax}, Step: ${criteria.scaleStep}`}</TableCell>
                   <TableCell>{criteria.ratio}%</TableCell>
                   <TableCell>
-                    <Button size="small" variant="contained" color="warning">
-                      Sửa
-                    </Button>
-                    <Button size="small" variant="contained" color="error">
-                      Xóa
-                    </Button>
+                    <Stack direction={'row'} spacing={1}>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="warning"
+                        onClick={() => handleEditCriteria(criteria)}
+                      >
+                        Sửa
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="error"
+                        onClick={() => handleDeleteCriteria(criteria)}
+                      >
+                        Xóa
+                      </Button>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}
@@ -268,6 +254,21 @@ export function RatingCriteriaPage({ eventId = 0 }: CustomersTableProps): React.
         open={open}
         onClose={() => setOpen(false)}
         onSave={handleAddCriteria}
+      />
+
+      {selectedCriteria && (
+        <EditRatingCriteriaModal
+          open={openEditModal}
+          onClose={() => setOpenEditModal(false)}
+          eventId={eventId}
+          criteria={selectedCriteria}
+          onCriteriaUpdated={onCriteriaUpdated}
+        />
+      )}
+      <DeleteRatingCriteriaModal
+        open={openDeleteModal}
+        onClose={() => setOpenDeleteModal(false)}
+        onConfirm={handleDeleteRatingCriteria}
       />
     </>
   );

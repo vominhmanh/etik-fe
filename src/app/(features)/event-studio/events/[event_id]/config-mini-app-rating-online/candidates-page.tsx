@@ -1,36 +1,30 @@
 'use client';
 
 import * as React from 'react';
-import RouterLink from 'next/link';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Button, CardHeader, Chip, Link } from '@mui/material';
-import Avatar from '@mui/material/Avatar';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Checkbox from '@mui/material/Checkbox';
-import Divider from '@mui/material/Divider';
-import IconButton from '@mui/material/IconButton';
-import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
-import TableRow from '@mui/material/TableRow';
-import Tooltip from '@mui/material/Tooltip';
-import Typography from '@mui/material/Typography';
-import { Plus, X } from '@phosphor-icons/react/dist/ssr';
-import { ArrowSquareUpRight as ArrowSquareUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowSquareUpRight';
-import { Bank as BankIcon } from '@phosphor-icons/react/dist/ssr/Bank';
-import { Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr/Lightning';
-import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
+import {
+  Avatar,
+  Box,
+  Button,
+  Card,
+  CardHeader,
+  Divider,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TablePagination,
+  TableRow,
+} from '@mui/material';
+import { Plus } from '@phosphor-icons/react/dist/ssr';
 import { AxiosResponse } from 'axios';
-import dayjs from 'dayjs';
 
 import NotificationContext from '@/contexts/notification-context';
-import { useSelection } from '@/hooks/use-selection';
 
 import CreateCandidateModal from './create-candidate-modal';
+import DeleteCandidateModal from './delete-candidate-modal';
+import EditCandidateModal from './edit-candidate-modal';
+import { Stack } from '@mui/system';
 
 export interface Candidate {
   id: number;
@@ -41,70 +35,6 @@ export interface Candidate {
   ratingDuration: number;
 }
 
-// Function to map payment statuses to corresponding labels and colors
-const getRoleDetails = (role: string) => {
-  switch (role) {
-    case 'owner':
-      return { label: 'Chủ sở hữu', color: 'success' };
-    case 'member':
-      return { label: 'Thành viên', color: 'default' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
-
-// Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (
-  status: string
-): { label: string; color: 'success' | 'error' | 'warning' | 'info' | 'secondary' | 'default' | 'primary' } => {
-  switch (status) {
-    case 'normal':
-      return { label: 'Bình thường', color: 'success' };
-    case 'customer_cancelled':
-      return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
-    case 'staff_locked':
-      return { label: 'Khoá bởi NV', color: 'error' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
-
-function noop(): void {
-  // do nothing
-}
-
-const formatPrice = (price: number) => {
-  return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
-};
-
-function stringToColor(string: string) {
-  let hash = 0;
-  let i;
-
-  /* eslint-disable no-bitwise */
-  for (i = 0; i < string.length; i += 1) {
-    hash = string.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  let color = '#';
-
-  for (i = 0; i < 3; i += 1) {
-    const value = (hash >> (i * 8)) & 0xff;
-    color += `00${value.toString(16)}`.slice(-2);
-  }
-  /* eslint-enable no-bitwise */
-
-  return color;
-}
-
-function stringAvatar(name: string) {
-  return {
-    sx: {
-      bgcolor: stringToColor(name),
-    },
-    children: `${name.split(' ')[0][0]}${name.split(' ').length > 1 ? name.split(' ')[1][0] : ''}`,
-  };
-}
 interface CustomersTableProps {
   eventId: number;
 }
@@ -113,44 +43,13 @@ export function CandidatesPage({ eventId = 0 }: CustomersTableProps): React.JSX.
   const [candidates, setCandidates] = React.useState<Candidate[]>([]);
   const [pageCandidate, setPageCandidate] = React.useState(0);
   const [rowsPerPageCandidate, setRowsPerPageCandidate] = React.useState(25);
-  const paginatedCandidates = applyPaginationCandidates(candidates, pageCandidate, rowsPerPageCandidate);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const notificationCtx = React.useContext(NotificationContext);
   const [openCreateModal, setOpenCreateModal] = React.useState<boolean>(false);
+  const [openEditModal, setOpenEditModal] = React.useState<boolean>(false);
+  const [selectedCandidate, setSelectedCandidate] = React.useState<Candidate | null>(null);
+  const [openDeleteModal, setOpenDeleteModal] = React.useState<boolean>(false);
 
-  // Mock Data
-  React.useEffect(() => {
-    setCandidates([
-      {
-        id: 1,
-        eventId: 1,
-        name: 'John Doe',
-        avatarUrl: 'https://via.placeholder.com/50',
-        ratingStartTime: '2025-03-01 12:00',
-        ratingDuration: 60,
-      },
-      {
-        id: 2,
-        eventId: 1,
-        name: 'Jane Smith',
-        avatarUrl: 'https://via.placeholder.com/50',
-        ratingStartTime: '2025-03-01 13:30',
-        ratingDuration: 90,
-      },
-      {
-        id: 3,
-        eventId: 1,
-        name: 'Mike Johnson',
-        avatarUrl: 'https://via.placeholder.com/50',
-        ratingStartTime: '2025-03-01 15:00',
-        ratingDuration: 120,
-      },
-    ]);
-  }, []);
-
-  const handleCreateCandidate = (newCandidate: Candidate) => {
-    setCandidates([...candidates, newCandidate]);
-  };
+  const notificationCtx = React.useContext(NotificationContext);
 
   React.useEffect(() => {
     fetchCandidates();
@@ -172,35 +71,40 @@ export function CandidatesPage({ eventId = 0 }: CustomersTableProps): React.JSX.
     }
   }
 
+  const handleDeleteCandidate = async () => {
+    if (!selectedCandidate) return;
+
+    try {
+      await baseHttpServiceInstance.delete(
+        `/event-studio/events/${eventId}/mini-app-rating-online/candidates/${selectedCandidate.id}`
+      );
+      setCandidates((prev) => prev.filter((c) => c.id !== selectedCandidate.id));
+      notificationCtx.success('Xóa ứng viên thành công.');
+    } catch (error: any) {
+      notificationCtx.error(error.response?.data?.detail || 'Xóa ứng viên thất bại.');
+    } finally {
+      setOpenDeleteModal(false);
+      setSelectedCandidate(null);
+    }
+  };
+
+  const handleEditCandidate = (candidate: Candidate) => {
+    setSelectedCandidate(candidate);
+    setOpenEditModal(true);
+  };
+
+  const handleCandidateUpdated = () => {
+    fetchCandidates();
+    setOpenEditModal(false);
+  };
+
   const handlePageChangeCandidates = (event: unknown, newPage: number) => {
     setPageCandidate(newPage);
   };
 
   const handleRowsPerPageChangeCandidates = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newRowsPerPage = parseInt(event.target.value, 10);
-    setRowsPerPageCandidate(newRowsPerPage);
-    setPageCandidate(0); // Reset to the first page whenever rows per page change
-  };
-  async function fetchTransactions() {
-    try {
-      setIsLoading(true);
-      const response: AxiosResponse<Candidate[]> = await baseHttpServiceInstance.get(
-        `/event-studio/events/${eventId}/roles`
-      );
-      setCandidates(response.data);
-    } catch (error) {
-      notificationCtx.error('Lỗi:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  function applyPaginationCandidates(rows: Candidate[], page: number, rowsPerPage: number): Candidate[] {
-    return rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  }
-  // Re-fetch after a candidate is added
-  const handleCandidateCreated = () => {
-    fetchCandidates();
+    setRowsPerPageCandidate(parseInt(event.target.value, 10));
+    setPageCandidate(0);
   };
 
   return (
@@ -222,7 +126,7 @@ export function CandidatesPage({ eventId = 0 }: CustomersTableProps): React.JSX.
         />
         <Divider />
         <Box sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: 700 }}>
+          <Table sx={{ minWidth: 800 }}>
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
@@ -230,29 +134,49 @@ export function CandidatesPage({ eventId = 0 }: CustomersTableProps): React.JSX.
                 <TableCell>Tên</TableCell>
                 <TableCell>Mở bình chọn lúc</TableCell>
                 <TableCell>Thời lượng bình chọn (phút)</TableCell>
-                <TableCell></TableCell>
+                <TableCell>Hành động</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedCandidates.map((candidate) => (
-                <TableRow key={candidate.id}>
-                  <TableCell>{candidate.id}</TableCell>
-                  <TableCell>
-                    <Avatar src={candidate.avatarUrl!} alt={candidate.name} />
-                  </TableCell>
-                  <TableCell>{candidate.name}</TableCell>
-                  <TableCell>{candidate.ratingStartTime}</TableCell>
-                  <TableCell>{candidate.ratingDuration}</TableCell>
-                  <TableCell>
-                    <Button size="small" variant="contained" color="warning">
-                      Sửa
-                    </Button>
-                    <Button size="small" variant="contained" color="error">
-                      Xóa
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {candidates
+                .slice(
+                  pageCandidate * rowsPerPageCandidate,
+                  pageCandidate * rowsPerPageCandidate + rowsPerPageCandidate
+                )
+                .map((candidate) => (
+                  <TableRow key={candidate.id}>
+                    <TableCell>{candidate.id}</TableCell>
+                    <TableCell>
+                      <Avatar src={candidate.avatarUrl!} alt={candidate.name} />
+                    </TableCell>
+                    <TableCell>{candidate.name}</TableCell>
+                    <TableCell>{candidate.ratingStartTime}</TableCell>
+                    <TableCell>{candidate.ratingDuration}</TableCell>
+                    <TableCell>
+                      <Stack direction={'row'} spacing={1}>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="warning"
+                          onClick={() => handleEditCandidate(candidate)}
+                        >
+                          Sửa
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="error"
+                          onClick={() => {
+                            setSelectedCandidate(candidate);
+                            setOpenDeleteModal(true);
+                          }}
+                        >
+                          Xóa
+                        </Button>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </Box>
@@ -266,11 +190,28 @@ export function CandidatesPage({ eventId = 0 }: CustomersTableProps): React.JSX.
           onRowsPerPageChange={handleRowsPerPageChangeCandidates}
         />
       </Card>
+
       <CreateCandidateModal
         eventId={eventId}
         open={openCreateModal}
         onClose={() => setOpenCreateModal(false)}
-        onCandidateCreated={handleCandidateCreated}
+        onCandidateCreated={fetchCandidates}
+      />
+
+      {selectedCandidate && (
+        <EditCandidateModal
+          eventId={eventId}
+          candidate={selectedCandidate}
+          open={openEditModal}
+          onClose={() => setOpenEditModal(false)}
+          onCandidateUpdated={handleCandidateUpdated}
+        />
+      )}
+
+      <DeleteCandidateModal
+        open={openDeleteModal}
+        onClose={() => setOpenDeleteModal(false)}
+        onConfirm={handleDeleteCandidate}
       />
     </>
   );

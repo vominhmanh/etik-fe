@@ -122,7 +122,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     {
       id: 'criteria',
       icon: <ListStar />,
-      label: 'Tiêu chí bình chọn',
+      label: 'Chấm điểm ứng viên',
       component: <RatingCriteriaPage eventId={params.event_id} />,
     },
     {
