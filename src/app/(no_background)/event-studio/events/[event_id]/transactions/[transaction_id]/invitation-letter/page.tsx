@@ -116,11 +116,20 @@ export default function Page({ params }: { params: { event_id: number; transacti
                 transform: "translate(-50%, -50%)",
                 fontSize: "4cqw", // Responsive font scaling
                 margin: "0",
+                width: '23cqw',
+                boxShadow: "0px 6px 10px rgba(0, 0, 0, 0.25)",
               }}>
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=111x111&data=${data.eCode}`}
+                  style={{
+                    width: "100%", // Image takes full width of the wrapper
+                    height: "auto", // Height is adjusted to maintain aspect ratio
+                    display: "block", // Removes extra spacing under inline images
+                    objectFit: "contain", // Ensures the image fits within the box
+                    objectPosition: "top",
+                  }}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${data.eCode}`}
                   alt="QR Code"
-                  className="w-[128px] h-[128px] bg-white p-2 rounded-md shadow-lg"
+                  className="bg-white p-2 shadow-lg"
                 />
               </div>
               <div style={{
