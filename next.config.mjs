@@ -14,7 +14,7 @@ const nextConfig = {
         remotePatterns: [
             {
                 protocol: 'https',
-                hostname: 'etik-media.s3.amazonaws.com',
+                hostname: 'media.etik.io.vn',
                 port: '',
                 pathname: '/**',
             },
