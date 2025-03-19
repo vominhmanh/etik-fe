@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import RouterLink from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -48,21 +48,22 @@ const defaultValues = { fullName: '', phoneNumber: '', email: '', password: '', 
 
 export function SignUpForm(): React.JSX.Element {
   const router = useRouter();
-  const { setUser, checkSession } = useUser();
+  const { setUser, checkSession, getUser } = useUser();
   const [popupContent, setPopupContent] = React.useState<{ type?: 'error' | 'success' | 'info' | 'warning'; message: string; }>({ type: undefined, message: '' });
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const [isOtpModalOpen, setIsOtpModalOpen] = React.useState<boolean>(false); // State to manage OTP modal visibility
-
+  const searchParams = useSearchParams();
   const { control, handleSubmit, setError, formState: { errors } } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
+  const returnUrl = searchParams.get('returnUrl') || '/event-studio/events';
 
-  const onSubmit = 
+  const onSubmit =
     async (values: Values): Promise<void> => {
       setIsPending(true);
       try {
         const res: AuthRes = await authClient.signUp(values);
         // setUser(res.user);
         setIsOtpModalOpen(true); // Open OTP modal on successful signup
-        // router.refresh();
+
       } catch (error: any) {
         setPopupContent({ type: 'error', message: error.message || 'Có lỗi xảy ra, vui lòng thử lại sau' });
       } finally {
@@ -82,9 +83,12 @@ export function SignUpForm(): React.JSX.Element {
   const handleVerifyOtp = async (values: Values) => {
     setIsPending(true);
     try {
-      const res: AuthRes = await authClient.verifyOtp( values.email, values.otp || ""); // Call verify API
+      const res: AuthRes = await authClient.verifyOtp(values.email, values.otp || ""); // Call verify API
       setUser(res.user);
-      router.refresh();
+      localStorage.setItem('accessToken', res.access_token);
+
+      const user = getUser()
+      router.push(`${returnUrl}`)
     } catch (error: any) {
       setError("otp", { type: "manual", message: error.message || 'Xác thực OTP không thành công' });
     } finally {
