@@ -58,7 +58,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
           position: "relative",
           height: "1000px",
           maxHeight: "100vh",
-          width: "600px",
+          width: "500px",
           maxWidth: "100vw",
           display: "flex",
           justifyContent: "center",
@@ -108,21 +108,47 @@ export default function Page({ params }: { params: { event_id: number; transacti
           )}
           {/* QR Code Overlay (40% from Left, 60% from Top) */}
           {data && (
-            <div  style={{
-              position: "absolute",
-              top: "92cqw",
-              left: "49%",
-              transform: "translate(-50%, -50%)",
-              fontSize: "4cqw", // Responsive font scaling
-              margin: "0",
-            }}>
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=132x132&data=${data.eCode}`}
-                alt="QR Code"
-                className="w-[150px] h-[150px] bg-white p-2 rounded-md shadow-lg"
-              />
-            </div>
+            <>
+              <div style={{
+                position: "absolute",
+                top: "92cqw",
+                left: "49%",
+                transform: "translate(-50%, -50%)",
+                fontSize: "4cqw", // Responsive font scaling
+                margin: "0",
+              }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=111x111&data=${data.eCode}`}
+                  alt="QR Code"
+                  className="w-[128px] h-[128px] bg-white p-2 rounded-md shadow-lg"
+                />
+              </div>
+              <div style={{
+                position: "absolute",
+                top: "92cqw",
+                left: "62%",
+                fontSize: "3cqw", // Responsive font scaling
+                margin: "0",
+                fontWeight: 'bold'
+              }}>
+                {data.eCode}
+              </div>
+            </>
           )}
+          <div style={{
+            color: 'white',
+            position: "absolute",
+            top: "130cqw",
+            left: "49%",
+            transform: "translate(-50%, -50%)",
+            fontSize: "1.75cqw", // Responsive font scaling
+            margin: "0",
+            display: 'flex'
+          }}>
+            Phát hành bởi
+            <img src='/assets/etik-logo.png' style={{ width: '12px', marginRight: '5px', marginLeft: '5px' }}></img>
+            ETIK | Vé điện tử & Quản lý sự kiện
+          </div>
         </div>
       </div>
       {/* Full Name Overlay (Centered, 30% from Top) */}

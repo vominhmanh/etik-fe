@@ -15,7 +15,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, DeviceMobile, Info, LetterCircleH, Lightning as LightningIcon, Money as MoneyIcon, SignIn, SignOut, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, DeviceMobile, ImageSquare, Info, LetterCircleH, Lightning as LightningIcon, Money as MoneyIcon, SignIn, SignOut, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import RouterLink from 'next/link';
 
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
@@ -725,7 +725,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     <Button
                       onClick={() => window.open(`/event-studio/events/${event_id}/transactions/${transaction_id}/invitation-letter`, '_blank')}
                       size="small"
-                      startIcon={<LetterCircleH />} // Icon for document-like invitation letter
+                      startIcon={<ImageSquare />} // Icon for document-like invitation letter
                     >
                       Xem ảnh thư mời
                     </Button>
