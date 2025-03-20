@@ -48,6 +48,16 @@ type EventResponse = {
   displayOnMarketplace: boolean;
 };
 
+export interface SMTPConfig {
+  smtpProvider: "use_etik_smtp" | "use_custom_smtp";
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUsername?: string;
+  smtpPassword?: string;
+  smtpUseTls?: boolean;
+  smtpUseSsl?: boolean;
+  smtpSenderEmail?: string;
+}
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
     document.title = "Chỉnh sửa chi tiết sự kiện| ETIK - Vé điện tử & Quản lý sự kiện";
@@ -65,6 +75,51 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const [previewAvatarUrl, setPreviewAvatarUrl] = useState<string>(event?.avatarUrl || '');
   const [isAvatarSelected, setIsAvatarSelected] = useState(false);
+  const [smtpFormValues, setSmtpFormValues] = useState<SMTPConfig>({
+    smtpProvider: 'use_etik_smtp',
+    smtpHost: "",
+    smtpPort: undefined,
+    smtpUsername: "",
+    smtpPassword: "",
+    smtpUseTls: true,
+    smtpUseSsl: false,
+    smtpSenderEmail: "",
+  });
+
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        const data = await getSMTPSettings(params.event_id);
+        if (data) setSmtpFormValues(data);
+      } catch (error) {
+        notificationCtx.error("Không thể tải cấu hình SMTP.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, [params.event_id]);
+
+  const handleSmtpInputChange = (event: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+    setSmtpFormValues((prevValues) => ({
+      ...prevValues,
+      [event.target.name as string]: event.target.value,
+    }));
+  };
+
+  const handleSaveSmtpSettings = async () => {
+    try {
+      setIsLoading(true);
+      await saveSMTPSettings(event_id, smtpFormValues);
+      notificationCtx.success("Cấu hình SMTP đã được lưu thành công!");
+    } catch (error) {
+      notificationCtx.error("Không thể lưu cấu hình SMTP.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle avatar selection
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -264,6 +319,27 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     },
   };
 
+
+  async function getSMTPSettings(eventId: number): Promise<SMTPConfig | null> {
+    try {
+      const response: AxiosResponse<SMTPConfig> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${eventId}/smtp/settings`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async function saveSMTPSettings(eventId: number, smtpConfig: SMTPConfig): Promise<void> {
+    try {
+      await baseHttpServiceInstance.post(`/event-studio/events/${eventId}/smtp/settings`, smtpConfig);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+
   if (!event || !formValues) {
     return <Typography>Loading...</Typography>;
   }
@@ -319,7 +395,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       <img src={event?.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
                       :
                       <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
-                        {event?.name[0].toUpperCase()}
+                        {(event?.name[0] ?? 'a').toUpperCase()}
                       </Avatar>}
                   </div>
                   <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
@@ -542,7 +618,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         label="Thời gian bắt đầu"
                         type="datetime-local"
                         value={formValues.startDateTime || ''}
-                        onChange={ handleInputChange }
+                        onChange={handleInputChange}
                         name="startDateTime"
                         InputLabelProps={{ shrink: true }}
                       />
@@ -553,7 +629,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       <TextField
                         label="Thời gian kết thúc"
                         type="datetime-local"
-                        onChange={ handleInputChange }
+                        onChange={handleInputChange}
                         name="endDateTime"
                         value={formValues.endDateTime || ''}
                         InputLabelProps={{ shrink: true }}
@@ -569,16 +645,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
-                <Grid md={12} xs={12}>
+                  <Grid md={12} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Trang khách hàng tự đăng ký</InputLabel>
                       <OutlinedInput
                         value={formValues.slug}
                         label="Trang khách hàng tự đăng ký"
                         name="slug"
-                        onChange={ handleInputChange }
+                        onChange={handleInputChange}
                         startAdornment={<InputAdornment position="start">etik.io.vn/events/</InputAdornment>}
-                        endAdornment={<IconButton size="small" onClick={() => handleCopyToClipboard(`https://etik.io.vn/events/${event?.slug}`)}><Clipboard/></IconButton>}
+                        endAdornment={<IconButton size="small" onClick={() => handleCopyToClipboard(`https://etik.io.vn/events/${event?.slug}`)}><Clipboard /></IconButton>}
                       />
                     </FormControl>
                   </Grid>
@@ -590,7 +666,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         value={event.secureApiKey}
                         label="Secure API key"
                         name="secureApiKey"
-                        endAdornment={<IconButton size="small" onClick={() => handleCopyToClipboard(event.secureApiKey)}><Clipboard/></IconButton>}
+                        endAdornment={<IconButton size="small" onClick={() => handleCopyToClipboard(event.secureApiKey)}><Clipboard /></IconButton>}
                       />
                     </FormControl>
                   </Grid>
@@ -603,8 +679,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         value={formValues.displayOnMarketplace}
                         onChange={handleInputChange}
                       >
-                        <MenuItem value={true}>Hiển thị</MenuItem>
-                        <MenuItem value={false}>Không hiển thị</MenuItem>
+                        <MenuItem value={'true'}>Hiển thị</MenuItem>
+                        <MenuItem value={'false'}>Không hiển thị</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
@@ -617,6 +693,110 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 Lưu
               </Button>
             </Grid>
+
+            <Card>
+              <CardHeader title="Cấu hình gửi Email SMTP" />
+              <Divider />
+              <CardContent>
+                {isLoading ? (
+                  <CircularProgress />
+                ) : (
+                  <Grid container spacing={3}>
+                    {/* SMTP Provider Selection */}
+                    <Grid md={12} xs={12}>
+                      <FormControl fullWidth required>
+                        <InputLabel>Dịch vụ mail</InputLabel>
+                        <Select
+                          label="Dịch vụ mail"
+                          name="smtpProvider"
+                          value={smtpFormValues.smtpProvider}
+                          onChange={handleSmtpInputChange}
+                        >
+                          <MenuItem value={'use_etik_smtp'}>Sử dụng ETIK SMTP</MenuItem>
+                          <MenuItem value={'use_custom_smtp'}>Tùy chỉnh SMTP server</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+
+                    {/* SMTP Fields (Only for Custom SMTP) */}
+                    {smtpFormValues.smtpProvider === 'use_custom_smtp' && (
+                      <>
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>SMTP Host</InputLabel>
+                            <OutlinedInput
+                              label="SMTP Host"
+                              name="smtpHost"
+                              value={smtpFormValues.smtpHost}
+                              onChange={handleSmtpInputChange}
+                            />
+                          </FormControl>
+                        </Grid>
+
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>SMTP Port</InputLabel>
+                            <OutlinedInput
+                              label="SMTP Port"
+                              type="number"
+                              name="smtpPort"
+                              value={smtpFormValues.smtpPort || ""}
+                              onChange={handleSmtpInputChange}
+                            />
+                          </FormControl>
+                        </Grid>
+
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>SMTP Username</InputLabel>
+                            <OutlinedInput
+                              label="SMTP Username"
+                              name="smtpUsername"
+                              value={smtpFormValues.smtpUsername}
+                              onChange={handleSmtpInputChange}
+                            />
+                          </FormControl>
+                        </Grid>
+
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>SMTP Password</InputLabel>
+                            <OutlinedInput
+                              label='SMTP Password'
+                              type="password"
+                              name="smtpPassword"
+                              value={smtpFormValues.smtpPassword}
+                              onChange={handleSmtpInputChange}
+                            />
+                          </FormControl>
+                        </Grid>
+
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>Email gửi</InputLabel>
+                            <OutlinedInput
+                              label='Email gửi'
+
+                              name="smtpSenderEmail"
+                              value={smtpFormValues.smtpSenderEmail}
+                              onChange={handleSmtpInputChange}
+                            />
+                          </FormControl>
+                        </Grid>
+                      </>
+                    )}
+
+
+                  </Grid>
+                )}
+              </CardContent>
+              <CardActions  sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                {/* Save Button */}
+                  <Button variant="contained" color="primary" onClick={handleSaveSmtpSettings} disabled={isLoading}>
+                    {isLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
+                  </Button>
+              </CardActions>
+            </Card>
           </Stack>
         </Grid>
       </Grid>

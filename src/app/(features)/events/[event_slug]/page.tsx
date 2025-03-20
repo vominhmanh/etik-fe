@@ -285,7 +285,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                           <img src={event?.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
                           :
                           <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
-                            {event?.name[0].toUpperCase()}
+                            {(event?.name[0] ?? 'a').toUpperCase()}
                           </Avatar>}
                       </div>
                       <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
