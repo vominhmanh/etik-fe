@@ -389,6 +389,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 >
                   <MenuItem value={''}><Empty /></MenuItem>
                   <MenuItem value="normal">Bình thường</MenuItem>
+                  <MenuItem value="wait_for_response">Đang chờ</MenuItem>
                   <MenuItem value="staff_locked">Khoá bởi NV</MenuItem>
                   <MenuItem value="customer_cancelled">Huỷ bởi KH</MenuItem>
                 </Select>

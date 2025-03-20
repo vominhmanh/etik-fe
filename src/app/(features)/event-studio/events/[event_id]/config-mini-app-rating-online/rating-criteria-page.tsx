@@ -51,6 +51,8 @@ const getRowStatusDetails = (
   switch (status) {
     case 'normal':
       return { label: 'Bình thường', color: 'success' };
+    case 'wait_for_response':
+      return { label: 'Đang chờ', color: 'warning' };
     case 'customer_cancelled':
       return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
     case 'staff_locked':

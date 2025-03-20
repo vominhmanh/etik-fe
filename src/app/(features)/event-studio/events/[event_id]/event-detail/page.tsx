@@ -438,6 +438,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   Đến trang Khách hàng tự đăng ký vé
                 </Button>
               </div>
+              <div style={{ marginTop: '20px' }}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="small"
+                >
+                  <Stack spacing={0} sx={{alignItems: 'center'}}>
+                    <span>Gửi yêu cầu Phê duyệt sự kiện</span>
+                    <small>Để bán vé có thanh toán online, gửi email marketing,...</small>
+                  </Stack>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </Grid>
@@ -790,11 +802,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   </Grid>
                 )}
               </CardContent>
-              <CardActions  sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+              <CardActions sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
                 {/* Save Button */}
-                  <Button variant="contained" color="primary" onClick={handleSaveSmtpSettings} disabled={isLoading}>
-                    {isLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
-                  </Button>
+                <Button variant="contained" color="primary" onClick={handleSaveSmtpSettings} disabled={isLoading}>
+                  {isLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
+                </Button>
               </CardActions>
             </Card>
           </Stack>

@@ -87,6 +87,8 @@ const getRowStatusDetails = (status: string): { label: string, color: "success" 
   switch (status) {
     case 'normal':
       return { label: 'Bình thường', color: 'success' };
+    case 'wait_for_response':
+      return { label: 'Đang chờ', color: 'warning' };
     case 'customer_cancelled':
       return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
     case 'staff_locked':
@@ -444,7 +446,7 @@ export default function Page(): React.JSX.Element {
                       <Grid sm={8} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
                         <ReCAPTCHA
                           sitekey="6LdRnq4aAAAAAFT6htBYNthM-ksGymg70CsoYqHR"
-                          onChange={() => {}}
+                          onChange={() => { }}
                           ref={captchaRef}
                         />
                       </Grid>

@@ -539,6 +539,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 >
                   <MenuItem value={''}><Empty /></MenuItem>
                   <MenuItem value="normal">Bình thường</MenuItem>
+                  <MenuItem value="normal">Đang chờ</MenuItem>
                   <MenuItem value="staff_locked">Khoá bởi NV</MenuItem>
                   <MenuItem value="customer_cancelled">Huỷ bởi KH</MenuItem>
                 </Select>
@@ -626,6 +627,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 'aria-labelledby': 'basic-button',
               }}
             >
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => handleSetTransactionStatusBulk('normal')}>Phê duyệt đơn hàng</MenuItem>
               <MenuItem sx={{ fontSize: '14px' }} onClick={() => handleSetTransactionStatusBulk('staff_locked')}>Chuyển trạng thái 'Khoá bởi Nhân viên'</MenuItem>
               <MenuItem sx={{ fontSize: '14px' }} onClick={() => handleSetTransactionStatusBulk('customer_cancelled')}>Chuyển trạng thái 'Huỷ bởi Khách hàng'</MenuItem>
             </Menu>

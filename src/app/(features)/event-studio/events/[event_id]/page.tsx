@@ -280,6 +280,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   Đến trang Khách hàng tự đăng ký vé
                 </Button>
               </div>
+              <div style={{ marginTop: '20px' }}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="small"
+                >
+                  <Stack spacing={0} sx={{alignItems: 'center'}}>
+                    <span>Gửi yêu cầu Phê duyệt sự kiện</span>
+                    <small>Để bán vé có thanh toán online, gửi email marketing,...</small>
+                  </Stack>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </Grid>

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import RouterLink from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Collapse } from '@mui/material';
+import { Collapse, IconButton, Link } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
@@ -116,6 +116,9 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
     >
       <Stack spacing={2} sx={{ p: 3 }}>
         <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
+          <IconButton sx={{ color: "var(--mui-palette-neutral-400)" }} component={RouterLink} href="/event-studio/events/">
+            <CaretLeftIcon />
+          </IconButton>
           <Logo color="light" height={32} width={122} />
         </Box>
         <Box
@@ -147,7 +150,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             pathname={pathname}
             key="overview"
             title="Tổng quan"
-href={`/event-studio/events/${dynamicId}`}
+            href={`/event-studio/events/${dynamicId}`}
             icon={ChartPieIcon}
           />
           <NavItemCollapse pathname={pathname} key="configuration" title="Thiết kế sự kiện" icon={PlugsConnectedIcon}>
@@ -243,28 +246,28 @@ href={`/event-studio/events/${dynamicId}`}
             />
           </NavItemCollapse>
           <NavItemCollapse pathname={pathname} key="role" title="Mini App" icon={SquaresFour}>
-              <NavItemCollapseChildItem
-                pathname={pathname}
-                key="email-template-1"
-                title="Rating Online"
-                href={`/event-studio/events/${dynamicId}/config-mini-app-rating-online`}
-                icon={StarHalf}
-              />
-              <NavItemCollapseChildItem
-                pathname={pathname}
-                key="email-template-2"
-                title="Dice roll"
-                href={`/event-studio/events/${dynamicId}/templates`}
-                icon={DiceSix}
-              />
-              <NavItemCollapseChildItem
-                pathname={pathname}
-                key="email-template-2"
-                title="Lucky number"
-                href={`/event-studio/events/${dynamicId}/templates`}
-                icon={SpinnerBall}
-              />
-            </NavItemCollapse>
+            <NavItemCollapseChildItem
+              pathname={pathname}
+              key="email-template-1"
+              title="Rating Online"
+              href={`/event-studio/events/${dynamicId}/config-mini-app-rating-online`}
+              icon={StarHalf}
+            />
+            <NavItemCollapseChildItem
+              pathname={pathname}
+              key="email-template-2"
+              title="Dice roll"
+              href={`/event-studio/events/${dynamicId}/templates`}
+              icon={DiceSix}
+            />
+            <NavItemCollapseChildItem
+              pathname={pathname}
+              key="email-template-2"
+              title="Lucky number"
+              href={`/event-studio/events/${dynamicId}/templates`}
+              icon={SpinnerBall}
+            />
+          </NavItemCollapse>
         </Stack>
       </Box>
     </Drawer>
