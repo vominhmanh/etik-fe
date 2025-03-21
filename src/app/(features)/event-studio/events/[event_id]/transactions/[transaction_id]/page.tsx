@@ -250,13 +250,14 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const notificationCtx = React.useContext(NotificationContext);
   const { event_id, transaction_id } = params;
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
   const [formData, setFormData] = useState({
     name: transaction?.name || '',
     phoneNumber: transaction?.phoneNumber || '',
     address: transaction?.address || '',
     status: ''
   });
+  const [selectedStatus, setSelectedStatus] = useState<string>(formData.status || '');
+
   const router = useRouter(); // Use useRouter from next/navigation
 
   const handleFormChange = (event: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
@@ -275,7 +276,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
           name: formData.name,
           phoneNumber: formData.phoneNumber,
           address: formData.address,
-          status: formData.status,
         }
       );
 
@@ -285,7 +285,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
           ...prev, name: formData.name,
           phoneNumber: formData.phoneNumber,
           address: formData.address,
-          status: formData.status,
         } : prev);
 
       }
@@ -351,7 +350,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
       // Optionally handle response
       if (response.status === 200) {
         notificationCtx.success(response.data.message);
-        setTransaction((prev) => prev ? { ...prev, exportedTicketAt: '.' } : prev);      }
+        setTransaction((prev) => prev ? { ...prev, exportedTicketAt: '.' } : prev);
+      }
     } catch (error) {
       notificationCtx.error('Có lỗi xảy ra khi gửi email vé:', error);
     } finally {
@@ -401,6 +401,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
       if (response.status === 200) {
         notificationCtx.success('Trạng thái đơn hàng đã được chuyển sang "Đã hoàn tiền" thành công!');
+        setTransaction((prev) => prev ? { ...prev, paymentStatus: 'refund' } : prev);
       }
     } catch (error) {
       notificationCtx.error('Có lỗi xảy ra khi cập nhật trạng thái hoàn tiền:', error);
@@ -566,7 +567,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                         size="small"
                         startIcon={<EnvelopeSimpleIcon />}
                       >
-                        Chuyển trạng thái "Đã hoàn tiền"
+                        Hoàn tiền đơn hàng
                       </Button>
                     )}
                 </Stack>
@@ -809,36 +810,48 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     </FormControl>
                   </Grid>
                 </Grid>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent>
-                <Grid container justifyContent="space-between">
-                  <FormControl fullWidth required>
-                    <InputLabel>Thay đổi trạng thái đơn hàng</InputLabel>
-                    <Select
-                      label="Thay đổi trạng thái đơn hàng"
-                      name="status"
-                      defaultValue=''
-                      value={formData.status}
-                      onChange={(event: any) => handleFormChange(event)}
-                    >
-                      {transaction.status === 'wait_for_response' &&
-                        <MenuItem value="normal">Phê duyệt đơn hàng</MenuItem>
-                      }
-
-                      <MenuItem value="customer_cancelled">Huỷ bởi Khách hàng</MenuItem>
-                      <MenuItem value="staff_locked">Khoá bởi Nhân viên</MenuItem>
-                    </Select>
-                  </FormControl>
+                <Grid sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button type="submit" variant="contained" onClick={updateTransaction}>
+                    Lưu
+                  </Button>
                 </Grid>
               </CardContent>
             </Card>
-            <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-              <Button type="submit" variant="contained" onClick={updateTransaction}>
-                Lưu
-              </Button>
-            </Grid>
+            <Card>
+              <CardHeader title="Thay đổi trạng thái đơn hàng" />
+              <Divider />
+              <CardContent>
+                <Grid container spacing={3}>
+                  <Grid md={12} xs={12}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Chọn trạng thái mới</InputLabel>
+                      <Select
+                        label="Chọn trạng thái mới"
+                        name="status"
+                        value={selectedStatus}
+                        onChange={(event) => setSelectedStatus(event.target.value)}
+                      >
+                        {transaction.status === 'wait_for_response' && (
+                          <MenuItem value="normal">Phê duyệt đơn hàng</MenuItem>
+                        )}
+                        <MenuItem value="customer_cancelled">Huỷ bởi Khách hàng</MenuItem>
+                        <MenuItem value="staff_locked">Khoá bởi Nhân viên</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid md={12} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      onClick={() => handleSetTransactionStatus(selectedStatus)}
+                      disabled={!selectedStatus} // Disable if no status is selected
+                    >
+                      Lưu
+                    </Button>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader title="Lịch sử gửi" subheader='Lịch sử gửi email và gửi tin nhắn Zalo đến khách hàng' />
               <Divider />
