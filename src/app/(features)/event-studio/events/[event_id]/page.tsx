@@ -39,6 +39,8 @@ import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
+import { useState } from 'react';
+import SendRequestEventAgencyAndEventApproval from '@/components/events/event/send-request-event-agency-and-event-approval';
 
 export interface EventOverviewResponse {
   eventId: number;
@@ -114,6 +116,11 @@ type EventResponse = {
   shows: Show[];
 };
 
+export interface CheckEventAgencyRegistrationAndEventApprovalRequestResponse {
+  eventApprovalRequest: string;
+  eventAgencyRegistration: boolean;
+}
+
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
 
   const [event, setEvent] = React.useState<EventResponse | null>(null);
@@ -127,6 +134,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [selectedCategories, setSelectedCategories] = React.useState<number[]>([]);
   const [eventOverview, setEventOverview] = React.useState<EventOverviewResponse | null>(null);
   const [openCashWithdrawalModal, setOpenCashWithdrawalModal] = React.useState(false);
+  const [eventAgencyRegistrationAndEventApprovalRequest, setEventAgencyRegistrationAndEventApprovalRequest] = useState<CheckEventAgencyRegistrationAndEventApprovalRequestResponse | null>(null);
+  const [openEventAgencyRegistrationModal, setOpenEventAgencyRegistrationModal] = useState(false);
+  const [openConfirmSubmitEventApprovalModal, setOpenConfirmSubmitEventApprovalModal] = useState(false);
 
   const handleCategorySelection = (categoryIds: number[]) => {
     setSelectedCategories(categoryIds);
@@ -179,6 +189,69 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       fetchEventOverview();
     }
   }, [eventId]);
+
+
+  React.useEffect(() => {
+    if (!params.event_id) return;
+
+    const fetchEventApprovalStatus = async () => {
+      try {
+        setIsLoading(true);
+        const response: AxiosResponse<CheckEventAgencyRegistrationAndEventApprovalRequestResponse> =
+          await baseHttpServiceInstance.get(
+            `/event-studio/events/${params.event_id}/approval-requests/check-event-agency-registration-and-event-approval-request`
+          );
+        setEventAgencyRegistrationAndEventApprovalRequest(response.data);
+      } catch (error: any) {
+        notificationCtx.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEventApprovalStatus();
+  }, [params.event_id]);
+
+  const handleRequestEventApprovalClick = () => {
+    if (!eventAgencyRegistrationAndEventApprovalRequest?.eventAgencyRegistration) {
+      setOpenEventAgencyRegistrationModal(true); // Show modal if eventAgencyRegistration is false
+    } else {
+      setOpenConfirmSubmitEventApprovalModal(true)
+    }
+  };
+
+  const handleSendRequestEventApproval = async () => {
+    try {
+      setIsLoading(true);
+
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${params.event_id}/approval-requests/event-approval-request`
+      );
+
+      // Handle success response
+      if (response.status === 200) {
+        notificationCtx.success("Yêu cầu phê duyệt sự kiện đã được gửi thành công!");
+        setEventAgencyRegistrationAndEventApprovalRequest(eventAgencyRegistrationAndEventApprovalRequest ? ({
+          ...eventAgencyRegistrationAndEventApprovalRequest,
+          eventApprovalRequest: 'waiting_for_acceptance'
+        }) : eventAgencyRegistrationAndEventApprovalRequest)
+        setOpenConfirmSubmitEventApprovalModal(false)
+
+      }
+    } catch (error: any) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOnCloseEventAgencyRegistrationModal = () => {
+    setOpenEventAgencyRegistrationModal(false)
+    setEventAgencyRegistrationAndEventApprovalRequest(eventAgencyRegistrationAndEventApprovalRequest ? ({
+      ...eventAgencyRegistrationAndEventApprovalRequest,
+      eventApprovalRequest: 'waiting_for_acceptance'
+    }) : eventAgencyRegistrationAndEventApprovalRequest)
+  }
 
   return (
     <>
@@ -281,16 +354,64 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Button>
               </div>
               <div style={{ marginTop: '20px' }}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="small"
-                >
-                  <Stack spacing={0} sx={{alignItems: 'center'}}>
-                    <span>Gửi yêu cầu Phê duyệt sự kiện</span>
-                    <small>Để bán vé có thanh toán online, gửi email marketing,...</small>
-                  </Stack>
-                </Button>
+                {eventAgencyRegistrationAndEventApprovalRequest &&
+                  (
+                    <>
+                      {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'accepted' && (
+                        <Button
+                          fullWidth
+                          variant="outlined"
+                          size="small"
+                          color='success'
+                        >
+                          <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                            <span>Sự kiện đã được phê duyệt</span>
+                            <small>bán vé có thanh toán online, gửi email marketing,...</small>
+                          </Stack>
+                        </Button>
+                      )}
+                      {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'waiting_for_acceptance' && (
+                        <Button
+                          fullWidth
+                          variant="outlined"
+                          size="small"
+                          disabled
+                        >
+                          <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                            <span>Sự kiện đang chờ duyệt</span>
+                          </Stack>
+                        </Button>
+                      )}
+                      {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'rejected' && (
+                        <Button
+                          fullWidth
+                          variant="outlined"
+                          color='error'
+                          size="small"
+                          onClick={handleRequestEventApprovalClick}
+                        >
+                          <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                            <small color='error'>Yêu cầu phê duyệt bị từ chối</small>
+                            <span>Nhấn để yêu cầu lại</span>
+                          </Stack>
+                        </Button>
+                      )}
+                      {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'no_request_from_user' && (
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          size="small"
+                          onClick={handleRequestEventApprovalClick}
+                        >
+                          <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                            <span>Gửi yêu cầu Phê duyệt sự kiện</span>
+                            <small>Để bán vé có thanh toán online, gửi email marketing,...</small>
+                          </Stack>
+                        </Button>
+                      )}
+                    </>
+                  )
+                }
               </div>
             </CardContent>
           </Card>
@@ -746,6 +867,64 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 Để rút tiền, quý khách vui lòng gửi email với tiêu đề <b>"Yêu cầu rút tiền sự kiện {event?.name}"</b> từ địa chỉ email <b>{event?.organizerEmail}</b> của quý khách đến địa chỉ email <b>tienphongsmart@gmail.com</b>. Chúng tôi sẽ hỗ trợ trong thời gian 24h kể từ khi nhận được yêu cầu. Xin cảm ơn!
               </Typography>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+      <SendRequestEventAgencyAndEventApproval open={openEventAgencyRegistrationModal} onClose={handleOnCloseEventAgencyRegistrationModal} eventId={params.event_id} />
+      <Modal
+        open={openConfirmSubmitEventApprovalModal}
+        onClose={() => setOpenConfirmSubmitEventApprovalModal(false)}
+        aria-labelledby="ticket-category-description-modal-title"
+        aria-describedby="ticket-category-description-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: { sm: "500px", xs: "90%" },
+              bgcolor: "background.paper",
+              boxShadow: 24,
+            }}
+          >
+            <CardHeader title='Quy định chung' />
+            <Divider />
+            <CardContent>
+              <Stack spacing={1} textAlign={'justify'}>
+                <Typography variant="body2">
+                  <b>Để sự kiện được phê duyệt, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:</b>
+                </Typography>
+                <Typography variant="body2">
+                  - Tài khoản dùng để tạo sự kiện đã được xác thực <b style={{ color: 'text.success' }}>tài khoản Event Agency</b>. Xem tình trạng xác thực tại mục <b>Tài khoản của tôi</b>
+                </Typography>
+                <Typography variant="body2">
+                  - Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.
+                </Typography>
+                <Typography variant="body2">
+                  - Thời gian và địa điểm rõ ràng, chính xác. Hạn chế thay đổi thông tin về thời gian, địa điểm và phải thông báo cho ETIK trước khi thay đổi.
+                </Typography>
+
+                <Typography variant="body2">
+                  - Chính sách Giá vé, chính sách hoàn trả, hủy vé rõ ràng, minh bạch.
+                </Typography>
+                <Typography variant="body2">
+                  - Sự kiện tuân thủ quy định của pháp luật Việt Nam, phù hợp chuẩn mực đạo đức, thuần phong mỹ tục.
+                </Typography>
+                <Typography variant="body2">
+                  - Cung cấp cho ETIK các thông tin, giấy tờ để xác minh khi được yêu cầu.
+                </Typography>
+                <Typography variant="body2">
+                  Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH <b>0333.247.242</b> hoặc email <b>tienphongsmart@gmail.com</b>
+                </Typography>
+              </Stack>
+              <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                <Button variant="contained" color="primary" onClick={handleSendRequestEventApproval} disabled={isLoading}>
+                  Gửi yêu cầu
+                </Button>
+              </Grid>
             </CardContent>
           </Card>
         </Container>

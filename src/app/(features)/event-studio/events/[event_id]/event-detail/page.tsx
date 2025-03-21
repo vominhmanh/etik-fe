@@ -27,7 +27,7 @@ import NotificationContext from '@/contexts/notification-context';
 import 'react-quill/dist/quill.snow.css';
 import dayjs from 'dayjs';
 import RouterLink from 'next/link';
-import SendRequestEventAgencyAndEventApproval from './send-request-event-agency-and-event-approval';
+import SendRequestEventAgencyAndEventApproval from '../../../../../../components/events/event/send-request-event-agency-and-event-approval';
 
 // Define the event response type
 type EventResponse = {
@@ -553,7 +553,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             </Stack>
                           </Button>
                         )}
-                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'initial' && (
+                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'no_request_from_user' && (
                           <Button
                             fullWidth
                             variant="contained"
@@ -561,7 +561,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             onClick={handleRequestEventApprovalClick}
                           >
                             <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                              <span>Yêu cầu Phê duyệt sự kiện</span>
+                              <span>Gửi yêu cầu Phê duyệt sự kiện</span>
                               <small>Để bán vé có thanh toán online, gửi email marketing,...</small>
                             </Stack>
                           </Button>
@@ -957,7 +957,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <CardContent>
               <Stack spacing={1} textAlign={'justify'}>
                 <Typography variant="body2">
-                  <b>Để sự kiện được phê duyệt, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định sau:</b>
+                  <b>Để sự kiện được phê duyệt, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:</b>
                 </Typography>
                 <Typography variant="body2">
                   - Tài khoản dùng để tạo sự kiện đã được xác thực <b style={{ color: 'text.success'}}>tài khoản Event Agency</b>. Xem tình trạng xác thực tại mục <b>Tài khoản của tôi</b>
@@ -977,6 +977,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Typography>
                 <Typography variant="body2">
                   - Cung cấp cho ETIK các thông tin, giấy tờ để xác minh khi được yêu cầu.
+                </Typography>
+                <Typography variant="body2">
+                  Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH <b>0333.247.242</b> hoặc email <b>tienphongsmart@gmail.com</b>
                 </Typography>
               </Stack>
               <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
