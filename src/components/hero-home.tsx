@@ -111,23 +111,29 @@ export default function HeroHome() {
               data-aos="zoom-y-out"
               data-aos-delay={150}
             >
-              Tạo vé điện tử & quản lý sự kiện
-              của bạn thật dễ dàng với ETIK
+              Tạo sự kiện và Bán vé ?
+            </h1>
+            <h1
+              className="mb-6 border-y text-5xl font-bold [border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1] md:text-6xl"
+              data-aos="zoom-y-out"
+              data-aos-delay={850}
+            >
+              Thật dễ dàng với ETIK
             </h1>
             <div className="mx-auto max-w-3xl">
               <p
                 className="mb-8 text-lg text-gray-700"
                 data-aos="zoom-y-out"
-                data-aos-delay={300}
+                data-aos-delay={1000}
               >
-                Chữ E trong ETIK là Easy, Economic, và Electrical. Chúng tôi mong muốn mang đến cho mọi người một phần mềm vé điện tử và quản lý sự kiện hiện đại, dễ dàng và tiết kiệm.
+                ETIK giúp bạn tạo sự kiện và bán vé nhanh chóng, tiện lợi và hoàn toàn miễn phí *. Không những thế, loạt tính năng hỗ trợ sự kiện đi kèm giúp sự kiện của bạn trở nên hiện đại và chuyên nghiệp hơn bao giờ hết. Khám phá ngay ! 
               </p>
               <span id="create-your-event"></span>
               <div className="relative before:absolute before:inset-0 before:border-y before:[border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1]">
                 <div
                   className="mx-auto max-w-xs sm:flex sm:max-w-none sm:justify-center"
                   data-aos="zoom-y-out"
-                  data-aos-delay={450}
+                  data-aos-delay={1000}
                 >
                   <a
                     className="btn group mb-4 w-full bg-gradient-to-t from-blue-600 to-blue-500 bg-[length:100%_100%] bg-[bottom] text-white shadow hover:bg-[length:100%_150%] sm:mb-0 sm:w-auto"

@@ -136,6 +136,8 @@ const getRowStatusDetails = (status: string): { label: string, color: "success" 
   switch (status) {
     case 'normal':
       return { label: 'Bình thường', color: 'success' };
+    case 'wait_for_response':
+      return { label: 'Đang chờ', color: 'warning' };
     case 'customer_cancelled':
       return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
     case 'staff_locked':
@@ -391,8 +393,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
               }
             </Stack>
           </Grid>
-          
-          <Grid item lg={7} md={7} xs={12} spacing={3} sx={{display: selectedSchedule && selectedCategories.length > 0 ? 'block' : 'none'}}>
+
+          <Grid item lg={7} md={7} xs={12} spacing={3} sx={{ display: selectedSchedule && selectedCategories.length > 0 ? 'block' : 'none' }}>
             <Stack spacing={3}>
               <Card>
                 <CardHeader subheader="Vui lòng hướng mã QR về phía camera." title="Quét mã QR" />
@@ -462,7 +464,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Địa chỉ:</Typography>
-                    <Typography variant="body1">{trxn?.address && trxn?.address.length > 30 ? trxn?.address.substring(0, 30) + '...' : trxn?.address }</Typography>
+                    <Typography variant="body1">{trxn?.address && trxn?.address.length > 30 ? trxn?.address.substring(0, 30) + '...' : trxn?.address}</Typography>
                   </Grid>
                   <Divider />
                   <Grid container justifyContent="space-between">
@@ -544,13 +546,13 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       label={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').label}
                     />
                   </Grid>
-                  
+
                   <Divider />
 
 
 
 
-                {/* <Stack>
+                  {/* <Stack>
                     {tickets.map((ticket, index) => (
                       <Grid container key={ticket.id}>
                         <Grid item xs={12}>
@@ -573,22 +575,22 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     ))}
                   </Stack> */}
 
-                <Button
-                  variant="contained"
-                  disabled={!(trxn?.status == 'normal' && trxn?.paymentStatus == 'paid')}
-                  onClick={() => {
-                    setConfirmCheckin(true);
-                    sendCheckinRequest(eCode);
-                  }}
-                >
-                  {'Check-in'}
-                </Button>
-              </Stack>
-          </>
+                  <Button
+                    variant="contained"
+                    disabled={!(trxn?.status == 'normal' && trxn?.paymentStatus == 'paid')}
+                    onClick={() => {
+                      setConfirmCheckin(true);
+                      sendCheckinRequest(eCode);
+                    }}
+                  >
+                    {'Check-in'}
+                  </Button>
+                </Stack>
+              </>
             )}
-        </Stack>
-      </Container>
-    </SwipeableDrawer >
+          </Stack>
+        </Container>
+      </SwipeableDrawer >
 
     </>
   );
