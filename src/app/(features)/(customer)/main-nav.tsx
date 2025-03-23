@@ -71,7 +71,7 @@ export function MainNav(): React.JSX.Element {
                 </Badge>
               </Tooltip>
               <Avatar onClick={userPopover.handleOpen} ref={userPopover.anchorRef} sx={{ cursor: 'pointer' }}>
-                {user?.email[0].toUpperCase()}
+                {(user?.email[0] || "").toUpperCase()}
               </Avatar>
             </Stack>
           ) : (

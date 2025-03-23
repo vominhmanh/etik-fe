@@ -235,7 +235,7 @@ export default function Page(): React.JSX.Element {
             <CardContent>
               <Stack spacing={2} sx={{ alignItems: 'center' }}>
                 <div>
-                  <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>{user?.email[0].toUpperCase()}</Avatar>
+                  <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>{(user?.email[0] || "").toUpperCase()}</Avatar>
                 </div>
                 <Stack spacing={1} sx={{ textAlign: 'center' }}>
                   <Typography variant="h5">{user?.fullName}</Typography>
