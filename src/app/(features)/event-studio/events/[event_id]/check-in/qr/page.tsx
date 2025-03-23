@@ -121,7 +121,7 @@ const getPaymentMethodDetails = (paymentMethod: string) => {
 const getPaymentStatusDetails = (paymentStatus: string) => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
-      return { label: 'Đang chờ thanh toán', color: 'warning' };
+      return { label: 'Chờ thanh toán', color: 'warning' };
     case 'paid':
       return { label: 'Đã thanh toán', color: 'success' };
     case 'refund':

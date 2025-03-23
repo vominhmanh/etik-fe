@@ -1,7 +1,12 @@
 import Link from "next/link";
 import Logo from "./logo";
+import { Avatar, Box, Typography } from "@mui/material";
+import { useUser } from '@/hooks/use-user';
 
 export default function Header() {
+  const { error, isLoading, getUser } = useUser();
+  const user = getUser(); // Call function to get user data
+
   return (
     <header className="fixed top-2 z-30 w-full md:top-6">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -13,22 +18,65 @@ export default function Header() {
 
           {/* Desktop sign in links */}
           <ul className="flex flex-1 items-center justify-end gap-3">
-            <li>
-              <Link
-                href="/auth/login"
-                className="btn-sm bg-white text-gray-800 shadow hover:bg-gray-50"
-              >
-                Đăng nhập
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/auth/sign-up"
-                className="btn-sm bg-gray-800 text-gray-200 shadow hover:bg-gray-900"
-              >
-                Đăng ký
-              </Link>
-            </li>
+
+            {isLoading ? (
+              <li>
+                <Link
+                  href="/auth/login"
+                  className="btn-sm bg-white text-gray-800 shadow hover:bg-gray-50"
+                  style={{ display: 'flex', alignItems: 'center' }}
+                >
+                  <Typography variant="body2">Đang tải...</Typography>
+                </Link>
+              </li>
+            ) : user ? (
+              <li>
+                <Link
+                  href="/event-studio/events"
+                  className="btn-sm bg-white text-gray-800 shadow hover:bg-gray-50"
+                  style={{ display: 'flex', alignItems: 'center' }}
+                >
+                  <Typography variant="body2" sx={{ marginRight: '8px' }}>
+                    Xin chào,
+                  </Typography>
+                  <Avatar sx={{ width: '25px', height: '25px', marginRight: '8px' }}>
+                    {user.fullName?.charAt(0).toUpperCase() || "U"}
+                  </Avatar>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 'bold',
+                      maxWidth: '170px',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                      textOverflow: 'ellipsis',
+                      display: 'block',
+                    }}
+                  >
+                    {user.fullName || "Người dùng"}
+                  </Typography>
+                </Link>
+              </li>
+            ) : (
+              <>
+                <li>
+                  <Link
+                    href="/auth/login"
+                    className="btn-sm bg-white text-gray-800 shadow hover:bg-gray-50"
+                  >
+                    Đăng nhập
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/auth/sign-up"
+                    className="btn-sm bg-gray-800 text-gray-200 shadow hover:bg-gray-900"
+                  >
+                    Đăng ký
+                  </Link>
+                </li>
+              </>
+            )}
           </ul>
         </div>
       </div>

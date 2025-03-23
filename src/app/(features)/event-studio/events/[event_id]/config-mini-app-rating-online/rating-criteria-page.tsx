@@ -192,11 +192,11 @@ export function RatingCriteriaPage({ eventId = 0 }: CustomersTableProps): React.
           <Table sx={{ minWidth: 800 }}>
             <TableHead>
               <TableRow>
-                <TableCell>Tên tiêu chí (Criteria Name)</TableCell>
-                <TableCell>Dạng đánh giá (Type)</TableCell>
-                <TableCell>Thang điểm (Scale)</TableCell>
-                <TableCell>Tỷ lệ (%) (Ratio)</TableCell>
-                <TableCell>Hành động (Actions)</TableCell>
+                <TableCell>Tên tiêu chí</TableCell>
+                <TableCell>Dạng đánh giá</TableCell>
+                <TableCell>Thang điểm</TableCell>
+                <TableCell>Tỷ lệ (%)</TableCell>
+                <TableCell>Hành động</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

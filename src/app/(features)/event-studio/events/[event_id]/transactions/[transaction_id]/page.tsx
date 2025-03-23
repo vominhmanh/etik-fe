@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Chip, IconButton, MenuItem, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, Tooltip } from '@mui/material';
+import { Avatar, Chip, IconButton, MenuItem, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
@@ -15,7 +15,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, Check, DeviceMobile, ImageSquare, Info, LetterCircleH, Lightning as LightningIcon, Money as MoneyIcon, SignIn, SignOut, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, Check, Clock, DeviceMobile, HouseLine, ImageSquare, Info, LetterCircleH, Lightning as LightningIcon, MapPin, Money as MoneyIcon, SignIn, SignOut, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import RouterLink from 'next/link';
 
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
@@ -69,7 +69,7 @@ const getCreatedSource = (paymentMethod: string): { label: string } => {
 const getPaymentStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'waiting_for_payment':
-      return { label: 'Đang chờ thanh toán', color: 'warning' };
+      return { label: 'Chờ thanh toán', color: 'warning' };
     case 'paid':
       return { label: 'Đã thanh toán', color: 'success' };
     case 'refund':
@@ -128,6 +128,21 @@ const getHistorySendingChannelDetails = (channel: SendingChannel) => {
       return 'Zalo';
   }
 };
+
+
+interface Event {
+  id: number;
+  name: string;
+  organizer: string;
+  startDateTime: string | null;
+  endDateTime: string | null;
+  place: string | null;
+  locationUrl: string | null;
+  avatarUrl: string;
+  slug: string;
+  locationInstruction: string | null;
+};
+
 
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
@@ -239,6 +254,8 @@ export interface Transaction {
   creator: Creator | null;          // Related creator of the transaction, nullable
   historySendings: HistorySending[];
   historyActions: HistoryAction[];
+  cancelRequestStatus: string | null;
+  event: Event
 }
 
 
@@ -408,6 +425,34 @@ export default function Page({ params }: { params: { event_id: number; transacti
     }
   };
 
+  const handleProcessCancelRequestStatus = async (transactionId: number, eventId: number, decision: 'accept' | 'reject') => {
+
+    try {
+      setIsLoading(true);
+
+      // Call API
+      await baseHttpServiceInstance.post(`/event-studio/events/${eventId}/transactions/${transactionId}/process-cancel-request`, {}, {
+        params: { decision },
+      });
+
+      // Notify success
+      if (decision === 'accept') {
+        notificationCtx.success('Đã chấp nhận yêu cầu hủy đơn hàng.');
+        setTransaction(transaction ? { ...transaction, cancelRequestStatus: 'accepted', status: 'customer_cancelled' } : transaction)
+
+      } else {
+        notificationCtx.success('Đã từ chối yêu cầu hủy đơn hàng.');
+        setTransaction(transaction ? { ...transaction, cancelRequestStatus: 'rejected' } : transaction)
+
+      }
+    } catch (error) {
+      // Handle error
+      notificationCtx.error(error || 'Đã xảy ra lỗi, vui lòng thử lại.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (!transaction) {
     return <Typography>Loading...</Typography>;
   }
@@ -435,14 +480,67 @@ export default function Page({ params }: { params: { event_id: number; transacti
       <Grid container spacing={3}>
         <Grid lg={5} md={5} xs={12} spacing={3}>
           <Stack spacing={3}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent
+                sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+              >
+                <Stack direction="column" spacing={2}>
+                  <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
+                    <div>
+                      {transaction.event.avatarUrl ?
+                        <img src={transaction.event.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                        :
+                        <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
+                          {(transaction.event.name[0] ?? 'a').toUpperCase()}
+                        </Avatar>}
+                    </div>
+                    <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
+                      {transaction.event.name}
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" spacing={1}>
+                    <HouseLine fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      Đơn vị tổ chức: {transaction.event.organizer}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <Clock fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {transaction.event.startDateTime && transaction.event.endDateTime
+                        ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
+                        : 'Chưa xác định'}
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" spacing={1}>
+                    <MapPin fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {transaction.event.place ? transaction.event.place : 'Chưa xác định'}
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader title="Thanh toán" />
               <Divider />
               <CardContent>
                 <Stack spacing={2}>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái đơn hàng:</Typography>
-                    <Chip color={statusDetails.color} label={statusDetails.label} />
+                    <Typography variant="body1">Trạng thái đơn:</Typography>
+                    <Stack spacing={0} direction={'row'}>
+                      <Chip color={statusDetails.color} label={statusDetails.label} />
+                      {transaction.cancelRequestStatus == 'pending' &&
+                        <Tooltip title={
+                          <Typography>Khách hàng yêu cầu hủy</Typography>
+                        }>
+                          <Chip color={'error'} label={<WarningCircle size={16} />} />
+                        </Tooltip>
+                      }
+                    </Stack>
+
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Phương thức thanh toán:</Typography>
@@ -473,6 +571,33 @@ export default function Page({ params }: { params: { event_id: number; transacti
             <Card>
               <CardHeader title="Hành động" />
               <Divider />
+              {transaction.cancelRequestStatus === 'pending' &&
+                <>
+                  <CardContent>
+                    <Typography variant='body2' color={'error'} sx={{ fontWeight: 'bold' }}>
+                      Khách hàng yêu cầu hủy đơn hàng:
+                    </Typography>
+                    <Stack spacing={2} direction={'row'}>
+                      <Button
+                        onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'reject')}
+                        size="small"
+                      >
+                        Từ chối hủy
+                      </Button>
+                      <Button
+                        onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'accept')}
+                        size="small"
+                        color='error'
+                        startIcon={<Check />}
+                      >
+                        Chấp nhận hủy
+                      </Button>
+                    </Stack>
+                  </CardContent>
+                  <Divider />
+                </>
+
+              }
               <CardContent>
                 {transaction.status === 'wait_for_response' &&
                   <Stack spacing={2} direction={'row'}>

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { CardMedia, Chip, MenuItem, Select, Stack, Tooltip } from '@mui/material';
+import { Avatar, CardMedia, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, MenuItem, Select, Stack, Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
@@ -15,7 +15,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, Info, Lightning as LightningIcon, Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, Info, Lightning as LightningIcon, Money as MoneyIcon, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import RouterLink from 'next/link';
 
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
@@ -71,7 +71,7 @@ const getCreatedSource = (paymentMethod: string) => {
 const getPaymentStatusDetails = (paymentStatus: string) => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
-      return { label: 'Đang chờ thanh toán', color: 'warning' };
+      return { label: 'Chờ thanh toán', color: 'warning' };
     case 'paid':
       return { label: 'Đã thanh toán', color: 'success' };
     case 'refund':
@@ -106,6 +106,19 @@ const getSentEmailTicketStatusDetails = (status: string): { label: string, color
     default:
       return { label: 'Unknown', color: 'default' };
   }
+};
+
+interface Event {
+  id: number;
+  name: string;
+  organizer: string;
+  startDateTime: string | null;
+  endDateTime: string | null;
+  place: string | null;
+  locationUrl: string | null;
+  avatarUrl: string;
+  slug: string;
+  locationInstruction: string | null;
 };
 
 export interface Ticket {
@@ -176,6 +189,8 @@ export interface Transaction {
   creator: Creator | null;          // Related creator of the transaction, nullable
   exportedTicketAt: string | null
   sentPaymentInstructionAt: string | null
+  cancelRequestStatus: string | null
+  event: Event
 }
 
 
@@ -189,6 +204,13 @@ export default function Page({ params }: { params: { transaction_id: number } })
   const { transaction_id } = params;
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [open, setOpen] = useState(false);
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+  const handleConfirmCancel = async () => {
+    await cancelTransaction();
+    handleClose();
+  };
 
   React.useEffect(() => {
     document.title = "Vé của tôi | ETIK - Vé điện tử & Quản lý sự kiện";
@@ -231,6 +253,37 @@ export default function Page({ params }: { params: { transaction_id: number } })
     fetchCheckInECode();
   }, [transaction_id]);
 
+
+  const cancelTransaction = async () => {
+    if (!transaction_id) {
+      notificationCtx.error('Không tìm thấy đơn hàng hợp lệ.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await baseHttpServiceInstance.post(
+        `/account/transactions/${transaction_id}/cancel-transaction`
+      );
+
+      notificationCtx.success(response.data.message);
+      if (response.data.cancelRequestStatus === 'pending') {
+        setTransaction(transaction ? { ...transaction, cancelRequestStatus: response.data.cancelRequestStatus } : transaction)
+      }
+      if (response.data.cancelRequestStatus === 'accepted') {
+        setTransaction(transaction ? { ...transaction, cancelRequestStatus: response.data.cancelRequestStatus, status: 'customer_cancelled' } : transaction)
+      }
+
+    } catch (error: any) {
+      notificationCtx.error(
+        error || 'Lỗi khi hủy đơn hàng, vui lòng thử lại.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
   if (!transaction) {
     return <Typography>Loading...</Typography>;
   }
@@ -259,14 +312,66 @@ export default function Page({ params }: { params: { transaction_id: number } })
       <Grid container spacing={3}>
         <Grid lg={5} md={5} xs={12} spacing={3}>
           <Stack spacing={3}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent
+                sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+              >
+                <Stack direction="column" spacing={2}>
+                  <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
+                    <div>
+                      {transaction.event.avatarUrl ?
+                        <img src={transaction.event.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                        :
+                        <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
+                          {(transaction.event.name[0] ?? 'a').toUpperCase()}
+                        </Avatar>}
+                    </div>
+                    <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
+                      {transaction.event.name}
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" spacing={1}>
+                    <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      Đơn vị tổ chức: {transaction.event.organizer}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <ClockIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {transaction.event.startDateTime && transaction.event.endDateTime
+                        ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
+                        : 'Chưa xác định'}
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" spacing={1}>
+                    <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {transaction.event.place ? transaction.event.place : 'Chưa xác định'}
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader title="Thanh toán" />
               <Divider />
               <CardContent>
                 <Stack spacing={2}>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái đơn hàng:</Typography>
-                    <Chip color={statusDetails.color} label={statusDetails.label} />
+                    <Typography variant="body1">Trạng thái đơn:</Typography>
+                    <Stack spacing={0} direction={'row'}>
+                      <Chip color={statusDetails.color} label={statusDetails.label} />
+                      {transaction.cancelRequestStatus == 'pending' &&
+                        <Tooltip title={
+                          <Typography>Khách hàng yêu cầu hủy</Typography>
+                        }>
+                          <Chip color={'error'} label={<WarningCircle size={16} />} />
+                        </Tooltip>
+                      }
+                    </Stack>
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Phương thức thanh toán:</Typography>
@@ -533,6 +638,36 @@ export default function Page({ params }: { params: { transaction_id: number } })
                 </CardContent>
               </Card>
             )}
+
+            <Card>
+              <CardHeader title="Hành động" />
+              <Divider />
+              <CardContent>
+                <Stack spacing={2} direction="row">
+                  <Button size="small" color="error" startIcon={<X />} onClick={handleOpen} disabled={transaction.cancelRequestStatus != null || ['customer_cancelled', 'staff_locked'].includes(transaction.status)}>
+                    {transaction.cancelRequestStatus == 'pending' ? 'Đang chờ phản hồi hủy đơn hàng' : transaction.cancelRequestStatus == 'accepted' ? 'Đơn hàng đã được hủy' : transaction.cancelRequestStatus == 'rejected' ? 'Yêu cầu hủy bị từ chối' : 'Hủy đơn hàng'}
+                  </Button>
+                </Stack>
+              </CardContent>
+
+              {/* Confirm Dialog */}
+              <Dialog open={open} onClose={handleClose}>
+                <DialogTitle>Xác nhận hủy đơn hàng</DialogTitle>
+                <DialogContent>
+                  <DialogContentText>
+                    Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác.
+                  </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={handleClose} color="primary">
+                    Hủy bỏ
+                  </Button>
+                  <Button onClick={handleConfirmCancel} color="error" autoFocus disabled={isLoading}>
+                    {isLoading ? 'Đang hủy...' : 'Xác nhận'}
+                  </Button>
+                </DialogActions>
+              </Dialog>
+            </Card>
           </Stack>
         </Grid>
       </Grid>

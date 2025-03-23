@@ -54,9 +54,9 @@ export default function HeroHome() {
       <PageIllustration />
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         {/* Hero content */}
-        <div className="pb-12 pt-32 md:pb-20 md:pt-40">
+        <div className="pb-6 pt-32 md:pb-20 md:pt-40">
           {/* Section header */}
-          <div className="pb-12 text-center md:pb-16">
+          <div className="pb-6 text-center md:pb-16">
             <div
               className="mb-6 border-y [border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1]"
               data-aos="zoom-y-out"
@@ -128,7 +128,7 @@ export default function HeroHome() {
               >
                 ETIK giúp bạn tạo sự kiện và bán vé nhanh chóng, tiện lợi và hoàn toàn miễn phí *. Không những thế, loạt tính năng hỗ trợ sự kiện đi kèm giúp sự kiện của bạn trở nên hiện đại và chuyên nghiệp hơn bao giờ hết. Khám phá ngay ! 
               </p>
-              <span id="create-your-event"></span>
+              
               <div className="relative before:absolute before:inset-0 before:border-y before:[border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1]">
                 <div
                   className="mx-auto max-w-xs sm:flex sm:max-w-none sm:justify-center"
