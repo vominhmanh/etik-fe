@@ -116,6 +116,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     status: '',
     paymentStatus: '',
     sentTicketEmailStatus: '',
+    cancelRequestStatus: '',
   });
 
 
@@ -128,6 +129,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       status: '',
       paymentStatus: '',
       sentTicketEmailStatus: '',
+      cancelRequestStatus: '',
     })
   }
 
@@ -177,6 +179,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         return false;
       }
       if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'not_sent' && transaction.exportedTicketAt) {
+        return false;
+      }
+
+      // Cancel request status filter
+      if (filters.cancelRequestStatus && filters.cancelRequestStatus === 'pending' && transaction.cancelRequestStatus != 'pending') {
+        return false;
+      }
+
+      // Cancel request status filter
+      if (filters.cancelRequestStatus && filters.cancelRequestStatus === 'no_request' && transaction.cancelRequestStatus != null) {
         return false;
       }
 
@@ -553,7 +565,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
                 >
                   <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="waiting_for_payment">Đang chờ thanh toán</MenuItem>
+                  <MenuItem value="waiting_for_payment">Chờ thanh toán</MenuItem>
                   <MenuItem value="paid">Đã thanh toán</MenuItem>
                   <MenuItem value="refund">Đã hoàn tiền</MenuItem>
                 </Select>
@@ -569,6 +581,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <MenuItem value={''}><Empty /></MenuItem>
                   <MenuItem value="not_sent">Chưa xuất vé</MenuItem>
                   <MenuItem value="sent">Đã xuất vé</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: '200px' }}>
+                <InputLabel>Trạng thái yêu cầu hủy</InputLabel>
+                <Select
+                  value={filters.cancelRequestStatus}
+                  label="Trạng thái yêu cầu hủy"
+                  name="cancelRequestStatus"
+                  onChange={(e) => handleFilterChange('cancelRequestStatus', e.target.value)}
+                >
+                  <MenuItem value={''}><Empty /></MenuItem>
+                  <MenuItem value="pending">Đang yêu cầu hủy</MenuItem>
+                  <MenuItem value="no_request">Không có yêu cầu hủy</MenuItem>
                 </Select>
               </FormControl>
               <IconButton onClick={handleClearFilters}>

@@ -22,8 +22,8 @@ import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios 
 import Chip from '@mui/material/Chip';
 import { deepPurple, deepOrange, indigo, cyan, green, pink, yellow } from '@mui/material/colors';
 import dayjs from 'dayjs';
-import { MapPin } from '@phosphor-icons/react/dist/ssr';
-import { CardMedia } from '@mui/material';
+import { MapPin, WarningCircle } from '@phosphor-icons/react/dist/ssr';
+import { CardMedia, Tooltip } from '@mui/material';
 import RouterLink from 'next/link';
 
 const statusMap = {
@@ -71,6 +71,7 @@ export interface TransactionResponse {
   paymentStatus: string;
   status: string;
   createdAt: Date;
+  cancelRequestStatus: string | null;
   event: ListTransactionEventResponse;
 }
 
@@ -79,7 +80,7 @@ export interface TransactionResponse {
 const getPaymentStatusDetails = (paymentStatus: string) => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
-      return { label: 'Đang chờ thanh toán', color: 'warning' };
+      return { label: 'Chờ thanh toán', color: 'warning' };
     case 'paid':
       return { label: 'Đã thanh toán', color: 'success' };
     case 'refund':
@@ -183,15 +184,27 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Stack>
 
                 <Stack spacing={2} direction={'row'} sx={{ mt: 2 }}>
-                  <Chip color='primary' label={`${transaction.ticketQuantity} vé`} />
+                  <Chip color='primary' size='small' label={`${transaction.ticketQuantity} vé`} />
                   <Chip
                     color={getPaymentStatusDetails(transaction.paymentStatus).color}
                     label={getPaymentStatusDetails(transaction.paymentStatus).label}
+                    size='small'
                   />
-                  <Chip
-                    color={getRowStatusDetails(transaction.status).color}
-                    label={getRowStatusDetails(transaction.status).label}
-                  />
+                  <Stack spacing={0} direction={'row'}>
+                    <Chip
+                      color={getRowStatusDetails(transaction.status).color}
+                      label={getRowStatusDetails(transaction.status).label}
+                      size='small'
+                    />
+                    {transaction.cancelRequestStatus == 'pending' &&
+                      <Tooltip title={
+                        <Typography>Khách hàng yêu cầu hủy</Typography>
+                      }>
+                        <Chip size='small' color={'error'} label={<WarningCircle size={16} />} />
+                      </Tooltip>
+                    }
+                  </Stack>
+
                 </Stack>
               </CardContent>
               <Divider />

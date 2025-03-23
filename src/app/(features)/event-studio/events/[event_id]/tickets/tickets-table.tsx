@@ -27,6 +27,7 @@ import { useSelection } from '@/hooks/use-selection';
 import { Chip } from '@mui/material';
 import { Ticket } from './page'
 import RouterLink from 'next/link';
+import { WarningCircle } from '@phosphor-icons/react/dist/ssr';
 
 
 // Function to map payment methods to corresponding labels and icons
@@ -47,7 +48,7 @@ const getPaymentMethodDetails = (paymentMethod: string) => {
 const getPaymentStatusDetails = (paymentStatus: string) => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
-      return { label: 'Đang chờ thanh toán', color: 'default' };
+      return { label: 'Chờ thanh toán', color: 'default' };
     case 'paid':
       return { label: 'Đã thanh toán', color: 'success' };
     case 'refund':
@@ -245,11 +246,21 @@ export function TicketsTable({
                   <TableCell>{row.transactionTicketCategory.ticketCategory.show.name}</TableCell>
                   <TableCell>{row.transactionTicketCategory.ticketCategory.name}</TableCell>
                   <TableCell>
-                    <Chip
-                      color={getRowStatusDetails(row.transactionTicketCategory.transaction.status).color}
-                      label={getRowStatusDetails(row.transactionTicketCategory.transaction.status).label}
-                      size="small"
-                    />
+                    <Stack spacing={0} direction={'row'}>
+                      <Chip
+                        color={getRowStatusDetails(row.transactionTicketCategory.transaction.status).color}
+                        label={getRowStatusDetails(row.transactionTicketCategory.transaction.status).label}
+                        size="small"
+                      />
+                      {row.transactionTicketCategory.transaction.cancelRequestStatus == 'pending' &&
+                        <Tooltip title={
+                          <Typography>Khách hàng yêu cầu hủy</Typography>
+                        }>
+                          <Chip size="small" color={'error'} label={<WarningCircle size={16} />} />
+                        </Tooltip>
+                      }
+                    </Stack>
+
                   </TableCell>
                   <TableCell>
                     <Chip

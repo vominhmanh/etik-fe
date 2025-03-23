@@ -25,6 +25,7 @@ import { Bank as BankIcon } from '@phosphor-icons/react/dist/ssr/Bank';
 import { Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr/Lightning';
 import IconButton from '@mui/material/IconButton';
 import { Button, CardActionArea, Chip, Menu, MenuItem } from '@mui/material';
+import { WarningCircle } from '@phosphor-icons/react/dist/ssr';
 
 // Function to map payment methods to corresponding labels and icons
 const getPaymentMethodDetails = (paymentMethod: string) => {
@@ -44,7 +45,7 @@ const getPaymentMethodDetails = (paymentMethod: string) => {
 const getPaymentStatusDetails = (paymentStatus: string) => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
-      return { label: 'Đang chờ thanh toán', color: 'default' };
+      return { label: 'Chờ thanh toán', color: 'default' };
     case 'paid':
       return { label: 'Đã thanh toán', color: 'success' };
     case 'refund':
@@ -94,6 +95,7 @@ export interface Transaction {
   status: string;
   createdAt: string;
   exportedTicketAt: string | null;
+  cancelRequestStatus: string | null;
 }
 
 
@@ -246,17 +248,26 @@ export function TransactionsTable({
                   </TableCell>
                   <TableCell>{row.ticketQuantity}</TableCell>
                   <TableCell>
-                    <Chip
-                      color={getRowStatusDetails(row.status).color}
-                      label={getRowStatusDetails(row.status).label}
-                      size="small"
-                    />
+                    <Stack spacing={0} direction={'row'}>
+                      <Chip
+                        color={getRowStatusDetails(row.status).color}
+                        label={getRowStatusDetails(row.status).label}
+                        size="small"
+                      />
+                      {row.cancelRequestStatus == 'pending' &&
+                        <Tooltip title={
+                          <Typography>Khách hàng yêu cầu hủy</Typography>
+                        }>
+                          <Chip color={'error'} size="small" label={<WarningCircle size={16} />} />
+                        </Tooltip>
+                      }
+                    </Stack>
+
                   </TableCell>
                   <TableCell>
                     <Tooltip
                       title={
                         <Stack spacing={1}>
-
                           <Typography variant="body2">
                             Phương thức thanh toán: {getPaymentMethodDetails(row.paymentMethod).label}
                           </Typography>

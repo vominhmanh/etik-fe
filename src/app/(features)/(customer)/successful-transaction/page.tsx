@@ -15,7 +15,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, Info, Lightning as LightningIcon, Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, Info, Lightning as LightningIcon, Money as MoneyIcon, WarningCircle } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import RouterLink from 'next/link';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
@@ -70,7 +70,7 @@ const getCreatedSource = (paymentMethod: string): { label: string } => {
 const getPaymentStatusDetails = (paymentStatus: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
-      return { label: 'Đang chờ thanh toán', color: 'warning' };
+      return { label: 'Chờ thanh toán', color: 'warning' };
     case 'paid':
       return { label: 'Đã thanh toán', color: 'success' };
     case 'refund':
@@ -175,6 +175,7 @@ export interface Transaction {
   sentPaymentInstructionAt: string | null;                // The date the transaction was created
   createdSource: string;            // Source of the transaction creation
   creator: Creator | null;          // Related creator of the transaction, nullable
+  cancelRequestStatus: string | null;
 }
 
 
@@ -295,8 +296,18 @@ export default function Page(): React.JSX.Element {
                   <CardContent>
                     <Stack spacing={2}>
                       <Grid container justifyContent="space-between">
-                        <Typography variant="body1">Trạng thái đơn hàng:</Typography>
-                        <Chip color={statusDetails.color} label={statusDetails.label} />
+                        <Typography variant="body1">Trạng thái đơn:</Typography>
+                        <Stack spacing={0} direction={'row'}>
+                          <Chip color={statusDetails.color} label={statusDetails.label} />
+                          {transaction.cancelRequestStatus == 'pending' &&
+                            <Tooltip title={
+                              <Typography>Khách hàng yêu cầu hủy</Typography>
+                            }>
+                              <Chip color={'error'} label={<WarningCircle size={16} />} />
+                            </Tooltip>
+                          }
+                        </Stack>
+
                       </Grid>
                       <Grid container justifyContent="space-between">
                         <Typography variant="body1">Phương thức thanh toán:</Typography>
@@ -307,12 +318,12 @@ export default function Page(): React.JSX.Element {
                         <Chip label={paymentStatusDetails.label} color={paymentStatusDetails.color} />
                       </Grid>
                       <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái xuất vé:</Typography>
-                    <Chip
-                      color={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent').color}
-                      label={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent').label}
-                    />
-                  </Grid>
+                        <Typography variant="body1">Trạng thái xuất vé:</Typography>
+                        <Chip
+                          color={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent').color}
+                          label={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent').label}
+                        />
+                      </Grid>
                       <Grid container justifyContent="space-between">
                         <Typography variant="body1">Tổng số tiền:</Typography>
                         <Chip

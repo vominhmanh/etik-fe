@@ -58,7 +58,7 @@ interface Transaction {
   status: string;
   paymentStatus: string;
   exportedTicketAt?: string | null; // ISO date string or null
-
+  cancelRequestStatus: string | null;
 }
 
 interface TransactionTicketCategory {
@@ -84,6 +84,7 @@ interface Filter {
   paymentStatus: string;
   sentTicketEmailStatus: string;
   checkInStatus: string;
+  cancelRequestStatus: string;
 }
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
@@ -103,6 +104,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     paymentStatus: '',
     sentTicketEmailStatus: '',
     checkInStatus: '',
+    cancelRequestStatus: '',
   });
   const [filterShows, setFilterShows] = React.useState<FilterShow[]>([]);
   const [querySearch, setQuerySearch] = React.useState<string>('');
@@ -127,6 +129,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       paymentStatus: '',
       sentTicketEmailStatus: '',
       checkInStatus: '',
+      cancelRequestStatus: '',
     })
   }
 
@@ -272,6 +275,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         return false;
       }
 
+      // Cancel request status filter
+      if (filters.cancelRequestStatus && filters.cancelRequestStatus === 'pending' && ticket.transactionTicketCategory.transaction.cancelRequestStatus != 'pending') {
+        return false;
+      }
+
+      // Cancel request status filter
+      if (filters.cancelRequestStatus && filters.cancelRequestStatus === 'no_request' && ticket.transactionTicketCategory.transaction.cancelRequestStatus != null) {
+        return false;
+      }
+
       return true;
     });
   }, [tickets, querySearch, filters]);
@@ -357,7 +370,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   name="show"
                   onChange={(e) => handleFilterChange('show', Number(e.target.value))}
                 >
-                  <MenuItem value={null}><Empty /></MenuItem>
+                  <MenuItem value={''}><Empty /></MenuItem>
                   {filterShows.map(show => (
                     <MenuItem key={show.id} value={show.id}>{show.name}</MenuItem>
                   ))}
@@ -371,7 +384,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   name="ticketCategory"
                   onChange={(e) => handleFilterChange('ticketCategory', Number(e.target.value))}
                 >
-                  <MenuItem value={null}><Empty /></MenuItem>
+                  <MenuItem value={''}><Empty /></MenuItem>
                   {
                     filterShows.find(show => show.id === filters.show)?.ticketCategories.map(tc => (
                       <MenuItem key={tc.id} value={tc.id}>{tc.name}</MenuItem>
@@ -403,7 +416,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
                 >
                   <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="waiting_for_payment">Đang chờ thanh toán</MenuItem>
+                  <MenuItem value="waiting_for_payment">Chờ thanh toán</MenuItem>
                   <MenuItem value="paid">Đã thanh toán</MenuItem>
                   <MenuItem value="refund">Đã hoàn tiền</MenuItem>
                 </Select>
@@ -432,6 +445,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <MenuItem value={''}><Empty /></MenuItem>
                   <MenuItem value="not_checked">Chưa check-in</MenuItem>
                   <MenuItem value="checked">Đã check-in</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: '200px' }}>
+                <InputLabel>Trạng thái yêu cầu hủy</InputLabel>
+                <Select
+                  value={filters.cancelRequestStatus}
+                  label="Trạng thái yêu cầu hủy"
+                  name="cancelRequestStatus"
+                  onChange={(e) => handleFilterChange('cancelRequestStatus', e.target.value)}
+                >
+                  <MenuItem value={''}><Empty /></MenuItem>
+                  <MenuItem value="pending">Đang yêu cầu hủy</MenuItem>
+                  <MenuItem value="no_request">Không có yêu cầu hủy</MenuItem>
                 </Select>
               </FormControl>
               <IconButton onClick={handleClearFilters}>

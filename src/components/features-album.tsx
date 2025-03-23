@@ -83,6 +83,7 @@ export default function FeaturesAlbum() {
           </div>
         </div>
       </div>
+      <span id="create-your-event" style={{marginTop: '-40px'}}></span>
     </section>
   );
 }
