@@ -21,6 +21,18 @@ import { useUser } from '@/hooks/use-user';
 import { Avatar, FormHelperText, Input, MenuItem, Select, SelectChangeEvent, TextField } from '@mui/material';
 import { SealCheck } from '@phosphor-icons/react/dist/ssr';
 
+export interface UserInformationResponse {
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+}
+
+export interface UserInformationUpdate {
+  fullName: string;
+  phoneNumber: string;
+  address: string;
+}
 
 export default function Page(): React.JSX.Element {
   const [formData, setFormData] = useState({
@@ -28,25 +40,21 @@ export default function Page(): React.JSX.Element {
     newPassword: '',
     confirmPassword: '',
   });
-  const [sellerInfo, setSellerInfo] = useState({
-    businessType: "",
-    taxCode: "",
-    companyName: "",
-    businessAddress: "",
-    registrationImage: null,
-    gcnIssueDate: "",
-    gcnIssuePlace: "",
+  const [formValues, setFormValues] = useState<UserInformationUpdate>({
+    fullName: '',
+    phoneNumber: '',
+    address: ''
   });
-
   const [isLoading, setIsLoading] = useState(false);
   const notificationCtx = useContext(NotificationContext);
-  const [user, setUser] = useState<User | null>(null);
-  const { getUser } = useUser();
+  const [userInfo, setUserInfo] = useState<User | null>(null);
+  const { setUser, getUser } = useUser();
 
   useEffect(() => {
     const fetchUser = async () => {
       const fetchedUser = getUser();
       setUser(fetchedUser);
+      setUserInfo(fetchedUser)
     };
 
     fetchUser();
@@ -55,6 +63,32 @@ export default function Page(): React.JSX.Element {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setIsLoading(true);
+        const data = await getUserInformation();
+        if (data) {
+          setUser(data);
+          setFormValues({
+            fullName: data.fullName,
+            phoneNumber: data.phoneNumber,
+            address: data.address
+          });
+        }
+      } catch (error) {
+        notificationCtx.error('Không thể tải thông tin cá nhân.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const handleInfoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setFormValues({ ...formValues, [event.target.name]: event.target.value });
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -80,7 +114,7 @@ export default function Page(): React.JSX.Element {
       const response: AxiosResponse = await baseHttpServiceInstance.post('/auth/update-password', {
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword,
-        email: user?.email, // Include the user's email in the request body
+        email: userInfo?.email, // Include the user's email in the request body
       });
 
       notificationCtx.success('Mật khẩu đã được cập nhật thành công.');
@@ -90,54 +124,38 @@ export default function Page(): React.JSX.Element {
       setIsLoading(false);
     }
   };
-
-  const handleChangeSellerInfo = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, files } = event.target;
-
-    if (files && files[0]) {
-      // Handle file input
-      setSellerInfo((prevState) => ({
-        ...prevState,
-        [name]: files[0],
-      }));
-    } else {
-      // Handle text input
-      setSellerInfo((prevState) => ({
-        ...prevState,
-        [name]: value,
-      }));
-    }
-  };
-
-  const handleSaveSellerInfo = async (): Promise<void> => {
-    if (!sellerInfo.businessType || !sellerInfo.companyName || !sellerInfo.businessAddress || !sellerInfo.taxCode || !sellerInfo.registrationImage) {
-      notificationCtx.warning('Tất cả các trường là bắt buộc.');
-      return;
-    }
-
+  
+  const handleSave = async () => {
     try {
       setIsLoading(true);
-
-      // Create a FormData object to handle file upload
-      const payload = new FormData();
-      payload.append('businessType', sellerInfo.businessType);
-      payload.append('companyName', sellerInfo.companyName);
-      payload.append('businessAddress', sellerInfo.businessAddress);
-      payload.append('taxCode', sellerInfo.taxCode);
-      payload.append('registrationImage', sellerInfo.registrationImage);
-
-      const response: AxiosResponse = await baseHttpServiceInstance.post('/seller-info', payload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      notificationCtx.success('Thông tin nhà tổ chức đã được lưu thành công.');
-    } catch (error: any) {
-      notificationCtx.error(error.message || 'Có lỗi xảy ra khi lưu thông tin.');
+      await updateUserInformation(formValues);
+      notificationCtx.success('Cập nhật thông tin thành công.');
+      setUser({email: userInfo?.email || '', fullName: formValues.fullName, phoneNumber: formValues.phoneNumber})
+    } catch (error) {
+      notificationCtx.error('Không thể cập nhật thông tin.');
     } finally {
       setIsLoading(false);
     }
   };
+  // Fetch user information
+  const getUserInformation = async (): Promise<UserInformationResponse | null> => {
+    try {
+      const response: AxiosResponse<UserInformationResponse> = await baseHttpServiceInstance.get('/account/information');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  };
 
+  // Update user information
+  const updateUserInformation = async (data: UserInformationUpdate): Promise<UserInformationResponse | null> => {
+    try {
+      const response: AxiosResponse<UserInformationResponse> = await baseHttpServiceInstance.post('/account/information', data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  };
 
   return (
     <Stack spacing={3}>
@@ -146,55 +164,55 @@ export default function Page(): React.JSX.Element {
       </div>
       <Grid container spacing={3}>
         <Grid lg={4} md={6} xs={12}>
-        <Stack spacing={3}>
-          <Card>
-            <CardContent>
-              <Stack spacing={2} sx={{ alignItems: 'center' }}>
-                <div>
-                  <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>{user?.email[0].toUpperCase()}</Avatar>
-                </div>
-              </Stack>
-            </CardContent>
-            <Divider />
-            <CardActions>
-              <Button fullWidth variant="text">
-                Thay đổi ảnh đại diện
-              </Button>
-            </CardActions>
-          </Card>
-          <Card>
+          <Stack spacing={3}>
+            <Card>
+              <CardContent>
+                <Stack spacing={2} sx={{ alignItems: 'center' }}>
+                  <div>
+                    <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>{(userInfo?.email[0] || '').toUpperCase()}</Avatar>
+                  </div>
+                </Stack>
+              </CardContent>
+              <Divider />
+              <CardActions>
+                <Button fullWidth variant="text">
+                  Thay đổi ảnh đại diện
+                </Button>
+              </CardActions>
+            </Card>
+            <Card>
               <CardHeader title="Tùy chọn liên kết đăng nhập" />
               <Divider />
               <CardContent>
-              <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Tài khoản ETIK</Typography>
-                    </Stack>
-                    <Typography variant="body1">
-                      Chưa tạo
-                    </Typography>
-                  </Grid>
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Tài khoản Google</Typography>
-                    </Stack>
-                    <Typography variant="body1">
-                      Đã liên kết
-                    </Typography>
-                  </Grid>
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Tài khoản Facebook</Typography>
-                    </Stack>
-                    <Typography variant="body1">
-                      Chưa liên kết
-                    </Typography>
-                  </Grid>
+                <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body1">Tài khoản ETIK</Typography>
+                  </Stack>
+                  <Typography variant="body1">
+                    Chưa tạo
+                  </Typography>
+                </Grid>
+                <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body1">Tài khoản Google</Typography>
+                  </Stack>
+                  <Typography variant="body1">
+                    Đã liên kết
+                  </Typography>
+                </Grid>
+                <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body1">Tài khoản Facebook</Typography>
+                  </Stack>
+                  <Typography variant="body1">
+                    Chưa liên kết
+                  </Typography>
+                </Grid>
               </CardContent>
-             
+
             </Card>
-        </Stack>
-          
+          </Stack>
+
         </Grid>
         <Grid lg={8} md={6} xs={12}>
           <Stack spacing={3}>
@@ -205,37 +223,38 @@ export default function Page(): React.JSX.Element {
                 <Grid container spacing={3}>
                   <Grid md={12} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel shrink >Họ tên</InputLabel>
-                      <OutlinedInput notched value={user?.fullName} label="Họ tên" name="fullName" inputProps={{ shrink: true }} />
+                      <InputLabel shrink>Họ tên</InputLabel>
+                      <OutlinedInput notched value={formValues.fullName} onChange={handleInfoChange} label="Họ tên" name="fullName" />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required disabled>
                       <InputLabel shrink>Địa chỉ Email</InputLabel>
-                      <OutlinedInput notched defaultValue={user?.email} label="Địa chỉ Email" name="email" />
+                      <OutlinedInput notched value={userInfo?.email || ''} label="Địa chỉ Email" name="email" />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth>
                       <InputLabel shrink>Số điện thoại</InputLabel>
-                      <OutlinedInput notched defaultValue={user?.phoneNumber} label="Số điện thoại" name="phoneNumber" type="tel" />
+                      <OutlinedInput notched value={formValues.phoneNumber} onChange={handleInfoChange} label="Số điện thoại" name="phoneNumber" type="tel" />
                     </FormControl>
                   </Grid>
-
                   <Grid md={12} xs={12}>
                     <FormControl fullWidth>
                       <InputLabel>Địa chỉ</InputLabel>
-                      <OutlinedInput label="Địa chỉ" />
+                      <OutlinedInput value={formValues.address} onChange={handleInfoChange} label="Địa chỉ" name="address" />
                     </FormControl>
                   </Grid>
                 </Grid>
               </CardContent>
               <Divider />
               <CardActions sx={{ justifyContent: 'flex-end' }}>
-                <Button variant="contained">Lưu</Button>
+                <Button variant="contained" onClick={handleSave} disabled={isLoading}>
+                  {isLoading ? 'Đang lưu...' : 'Lưu'}
+                </Button>
               </CardActions>
             </Card>
-           
+
             <Card>
               <CardHeader subheader="Thay đổi mật khẩu" title="Mật khẩu" />
               <Divider />
