@@ -93,7 +93,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
             <h2
               style={{
                 position: "absolute",
-                top: "28cqw",
+                top: "30cqw",
                 left: "50%",
                 transform: "translate(-50%, -50%)",
                 fontSize: "4cqw", // Responsive font scaling
