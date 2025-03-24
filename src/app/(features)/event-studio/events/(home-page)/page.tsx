@@ -41,6 +41,9 @@ type EventResponse = {
 };
 
 export default function Page(): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = `Quản lý sự kiện | ETIK - Vé điện tử & Quản lý sự kiện`;
+  }, []);
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const notificationCtx = React.useContext(NotificationContext);
