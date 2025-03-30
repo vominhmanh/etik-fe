@@ -11,7 +11,7 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
-import { ArrowLeft, DiceSix, Mailbox, Plus, SquaresFour, StackPlus, StarHalf, UserList } from '@phosphor-icons/react/dist/ssr';
+import { ArrowLeft, DiceSix, ImageSquare, Mailbox, Plus, SquaresFour, StackPlus, StarHalf, UserList } from '@phosphor-icons/react/dist/ssr';
 import { Barcode as BarcodeIcon } from '@phosphor-icons/react/dist/ssr/Barcode';
 import { CalendarDots as CalendarDotsIcon } from '@phosphor-icons/react/dist/ssr/CalendarDots';
 import { CaretDown as CaretDownIcon } from '@phosphor-icons/react/dist/ssr/CaretDown';
@@ -190,6 +190,13 @@ export function SideNav(): React.JSX.Element {
                 title="Chỉnh sửa sự kiện"
                 href={`/event-studio/events/${dynamicId}/event-detail`}
                 icon={InfoIcon}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="invitation-letter-design"
+                title="Thiết kế ảnh thư mời"
+                href={`/event-studio/events/${dynamicId}/invitation-letter-design`}
+                icon={ImageSquare}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
