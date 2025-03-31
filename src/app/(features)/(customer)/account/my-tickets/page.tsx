@@ -94,7 +94,7 @@ const getPaymentStatusDetails = (paymentStatus: string) => {
 const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'normal':
-      return { label: 'Trạng thái: Bình thường', color: 'default' };
+      return { label: 'Trạng thái: Bình thường', color: 'success' };
     case 'wait_for_response':
       return { label: 'Đang chờ', color: 'warning' };
     case 'customer_cancelled':
@@ -184,7 +184,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Stack>
 
                 <Stack spacing={2} direction={'row'} sx={{ mt: 2 }}>
-                  <Chip color='primary' size='small' label={`${transaction.ticketQuantity} vé`} />
+                  <Chip color='success' size='small' label={`${transaction.ticketQuantity} vé`} />
                   <Chip
                     color={getPaymentStatusDetails(transaction.paymentStatus).color}
                     label={getPaymentStatusDetails(transaction.paymentStatus).label}

@@ -29,15 +29,16 @@ interface InvitationLetterSettings {
 
 const defaultComponents: { label: string; key: string }[] = [
   { label: "Tên sự kiện", key: "eventName" },
+  { label: "Tên khách mời", key: "customerName" },
+  { label: "Địa chỉ khách mời", key: "customerAddress" },
+  { label: "Điện thoại khách mời", key: "customerPhone" },
+  { label: "Email Khách mời", key: "customerEmail" },
+  { label: "Danh sách vé", key: "ticketsList" },
   { label: "Mã Check-in", key: "eCode" },
   { label: "Ảnh QR", key: "eCodeQr" },
   { label: "Thời gian bắt đầu", key: "startDateTime" },
   { label: "Thời gian kết thúc", key: "endDateTime" },
   { label: "Địa điểm", key: "place" },
-  { label: "Tên khách mời", key: "customerName" },
-  { label: "Địa chỉ khách mời", key: "customerAddress" },
-  { label: "Điện thoại khách mời", key: "customerPhone" },
-  { label: "Email Khách mời", key: "customerEmail" },
 ];
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {

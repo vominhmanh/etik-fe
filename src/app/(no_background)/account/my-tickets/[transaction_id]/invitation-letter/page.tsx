@@ -49,7 +49,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
       try {
         setIsLoading(true);
         const response: AxiosResponse<InvitationLetterSettings> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${event_id}/transactions/${transaction_id}/invitation-letter`
+          `/account/transactions/${transaction_id}/invitation-letter`
         );
 
         if (response.status === 200) {
