@@ -232,11 +232,15 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
                   action={
                     <OutlinedInput
                       sx={{ maxWidth: { xs: 70, sm: 180 } }}
-                      type="number"
+                      type="text" // Change type to text to allow flexible input handling
                       value={formData.quantity.toLocaleString('vi-VN')}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, quantity: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))
-                      }
+                      onChange={(e) => {
+                        let rawValue = e.target.value.replace(/\./g, ''); // Remove formatting
+                        if (!/^\d*$/.test(rawValue)) return; // Allow only numeric input
+
+                        const numericValue = parseFloat(rawValue) || 0; // Convert to number
+                        setFormData((prev) => ({ ...prev, quantity: numericValue }));
+                      }}
                     />
                   }
                 />
@@ -244,13 +248,17 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
                   title="Giá vé"
                   action={
                     <OutlinedInput
-                      name="price"
-                      type="number"
-                      sx={{ maxWidth: { xs: 130, sm: 180 } }}
+                      sx={{ maxWidth: { xs: 70, sm: 180 } }}
+                      type="text" // Change type to text to allow flexible input handling
                       value={formData.price.toLocaleString('vi-VN')}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, price: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))
-                      }
+                      onChange={(e) => {
+                        let rawValue = e.target.value.replace(/\./g, ''); // Remove formatting
+                        if (!/^\d*$/.test(rawValue)) return; // Allow only numeric input
+
+                        const numericValue = parseFloat(rawValue) || 0; // Convert to number
+                        setFormData((prev) => ({ ...prev, price: numericValue }));
+                      }}
+                      name="price"
                       endAdornment={<InputAdornment position="end">đ</InputAdornment>}
                     />
                   }

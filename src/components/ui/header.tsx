@@ -1,11 +1,26 @@
+"use client"; // If using Next.js App Router
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Logo from "./logo";
 import { Avatar, Box, Typography } from "@mui/material";
-import { useUser } from '@/hooks/use-user';
 
 export default function Header() {
-  const { error, isLoading, getUser } = useUser();
-  const user = getUser(); // Call function to get user data
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // Ensure code runs only on the client
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+      setIsLoading(false);
+    }
+  }, []);
+
 
   return (
     <header className="fixed top-2 z-30 w-full md:top-6">

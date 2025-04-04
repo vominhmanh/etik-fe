@@ -299,11 +299,15 @@ export default function Page({
                   action={
                     <OutlinedInput
                       sx={{ maxWidth: { xs: 70, sm: 180 } }}
-                      type="number"
-                      value={formData.quantity.toLocaleString('vi-VN')}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, quantity: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))
-                      }
+                      type="text" // Change type to text to allow flexible input handling
+                      value={formData.price.toLocaleString('vi-VN')}
+                      onChange={(e) => {
+                        let rawValue = e.target.value.replace(/\./g, ''); // Remove formatting
+                        if (!/^\d*$/.test(rawValue)) return; // Allow only numeric input
+
+                        const numericValue = parseFloat(rawValue) || 0; // Convert to number
+                        setFormData((prev) => ({ ...prev, quantity: numericValue }));
+                      }}
                     />
                   }
                 />
@@ -311,13 +315,17 @@ export default function Page({
                   title="Giá vé"
                   action={
                     <OutlinedInput
+                      sx={{ maxWidth: { xs: 70, sm: 180 } }}
+                      type="text" // Change type to text to allow flexible input handling
+                      value={formData.quantity.toLocaleString('vi-VN')}
+                      onChange={(e) => {
+                        let rawValue = e.target.value.replace(/\./g, ''); // Remove formatting
+                        if (!/^\d*$/.test(rawValue)) return; // Allow only numeric input
+
+                        const numericValue = parseFloat(rawValue) || 0; // Convert to number
+                        setFormData((prev) => ({ ...prev, price: numericValue }));
+                      }}
                       name="price"
-                      type="number"
-                      sx={{ maxWidth: { xs: 130, sm: 180 } }}
-                      value={formData.price.toLocaleString('vi-VN')}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, price: parseFloat(e.target.value.replace(/\./g, '')) || 0 }))
-                      }
                       endAdornment={<InputAdornment position="end">đ</InputAdornment>}
                     />
                   }

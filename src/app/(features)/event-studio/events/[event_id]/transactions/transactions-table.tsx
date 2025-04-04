@@ -317,7 +317,6 @@ export function TransactionsTable({
         onRowsPerPageChange={handleChangeRowsPerPage}
       />
       <Divider />
-
     </Card>
   );
 }

@@ -15,7 +15,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, Info, Lightning as LightningIcon, Money as MoneyIcon, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, ImageSquare, Info, Lightning as LightningIcon, Money as MoneyIcon, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import RouterLink from 'next/link';
 
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
@@ -646,6 +646,13 @@ export default function Page({ params }: { params: { transaction_id: number } })
                 <Stack spacing={2} direction="row">
                   <Button size="small" color="error" startIcon={<X />} onClick={handleOpen} disabled={transaction.cancelRequestStatus != null || ['customer_cancelled', 'staff_locked'].includes(transaction.status)}>
                     {transaction.cancelRequestStatus == 'pending' ? 'Đang chờ phản hồi hủy đơn hàng' : transaction.cancelRequestStatus == 'accepted' ? 'Đơn hàng đã được hủy' : transaction.cancelRequestStatus == 'rejected' ? 'Yêu cầu hủy bị từ chối' : 'Hủy đơn hàng'}
+                  </Button>
+                  <Button
+                    onClick={() => window.open(`/account/my-tickets/${transaction_id}/invitation-letter`, '_blank')}
+                    size="small"
+                    startIcon={<ImageSquare />} // Icon for document-like invitation letter
+                  >
+                    Xem ảnh thư mời
                   </Button>
                 </Stack>
               </CardContent>
