@@ -271,7 +271,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               pathname={pathname}
               key="email-template-2"
               title="Lucky number"
-              href={`/event-studio/events/${dynamicId}/templates`}
+              href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-number`}
               icon={SpinnerBall}
             />
           </NavItemCollapse>

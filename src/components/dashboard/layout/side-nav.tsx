@@ -4,14 +4,26 @@ import * as React from 'react';
 import RouterLink from 'next/link';
 import { usePathname } from 'next/navigation';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
+import { IconButton, Link } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Collapse from '@mui/material/Collapse';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import { SpinnerBall } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
-import { ArrowLeft, DiceSix, ImageSquare, Mailbox, Plus, SquaresFour, StackPlus, StarHalf, UserList } from '@phosphor-icons/react/dist/ssr';
+import {
+  ArrowLeft,
+  DiceSix,
+  ImageSquare,
+  Mailbox,
+  Plus,
+  SquaresFour,
+  StackPlus,
+  StarHalf,
+  UserList,
+} from '@phosphor-icons/react/dist/ssr';
 import { Barcode as BarcodeIcon } from '@phosphor-icons/react/dist/ssr/Barcode';
 import { CalendarDots as CalendarDotsIcon } from '@phosphor-icons/react/dist/ssr/CalendarDots';
 import { CaretDown as CaretDownIcon } from '@phosphor-icons/react/dist/ssr/CaretDown';
@@ -36,8 +48,7 @@ import NotificationContext from '@/contexts/notification-context';
 import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
-import { SpinnerBall } from '@phosphor-icons/react';
-import { IconButton, Link } from '@mui/material';
+
 export type EventResponse = {
   id: number;
   name: string;
@@ -121,7 +132,11 @@ export function SideNav(): React.JSX.Element {
       <Stack sx={{ position: 'sticky', top: 0 }}>
         <Stack spacing={2} sx={{ p: 3 }}>
           <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
-            <IconButton sx={{ color: "var(--mui-palette-neutral-400)" }} component={RouterLink} href="/event-studio/events/">
+            <IconButton
+              sx={{ color: 'var(--mui-palette-neutral-400)' }}
+              component={RouterLink}
+              href="/event-studio/events/"
+            >
               <CaretLeftIcon />
             </IconButton>
             <Logo color="light" height={32} width={122} />
@@ -301,7 +316,7 @@ export function SideNav(): React.JSX.Element {
                 pathname={pathname}
                 key="email-template-2"
                 title="Lucky number"
-                href={`/event-studio/events/${dynamicId}/templates`}
+                href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-number`}
                 icon={SpinnerBall}
               />
             </NavItemCollapse>
@@ -326,11 +341,11 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
       <Box
         {...(href
           ? {
-            component: external ? 'a' : RouterLink,
-            href,
-            target: external ? '_blank' : undefined,
-            rel: external ? 'noreferrer' : undefined,
-          }
+              component: external ? 'a' : RouterLink,
+              href,
+              target: external ? '_blank' : undefined,
+              rel: external ? 'noreferrer' : undefined,
+            }
           : { role: 'button' })}
         sx={{
           alignItems: 'center',
@@ -410,11 +425,11 @@ function NavItemCollapse({
         <Box
           {...(href
             ? {
-              component: external ? 'a' : RouterLink,
-              href,
-              target: external ? '_blank' : undefined,
-              rel: external ? 'noreferrer' : undefined,
-            }
+                component: external ? 'a' : RouterLink,
+                href,
+                target: external ? '_blank' : undefined,
+                rel: external ? 'noreferrer' : undefined,
+              }
             : { role: 'button', onClick: handleToggle, cursor: 'pointer' })}
           sx={{
             alignItems: 'center',
@@ -501,11 +516,11 @@ function NavItemCollapseChildItem({
       <Box
         {...(href && !onClick
           ? {
-            component: external ? 'a' : RouterLink,
-            href,
-            target: external ? '_blank' : undefined,
-            rel: external ? 'noreferrer' : undefined,
-          }
+              component: external ? 'a' : RouterLink,
+              href,
+              target: external ? '_blank' : undefined,
+              rel: external ? 'noreferrer' : undefined,
+            }
           : { role: 'button', onClick: handleClick })}
         sx={{
           alignItems: 'center',

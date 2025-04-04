@@ -3,61 +3,31 @@
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import {
-  Avatar,
-  Box,
-  CardMedia,
-  IconButton,
-  InputAdornment,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  MenuItem,
-  Select,
-  Stack,
-  TextField,
-} from '@mui/material';
+import { List, ListItem, ListItemText, Stack } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
-import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
-import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import CircularProgress from '@mui/material/CircularProgress';
-import Divider from '@mui/material/Divider';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import {
-  ArrowSquareIn,
-  Clipboard,
   Gear,
   ListDashes,
   ListNumbers,
   ListStar,
   Panorama,
-  Play,
-  Plus,
   Question,
   StarHalf,
   UserCircle,
 } from '@phosphor-icons/react/dist/ssr';
-import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
-import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
-import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { AxiosResponse } from 'axios';
-import ReactQuill, { Quill } from 'react-quill';
+import ReactQuill from 'react-quill';
 
 import NotificationContext from '@/contexts/notification-context';
 
 import 'react-quill/dist/quill.snow.css';
 
-import RouterLink from 'next/link';
 import { useRouter } from 'next/navigation'; // ✅ Import router
-import dayjs from 'dayjs';
 
 import BackgroundImagePage from './background-image-page';
 import { CandidatesPage } from './candidates-page';
@@ -89,14 +59,6 @@ interface CheckConfigResponse {
   exists: boolean;
 }
 
-interface CreateConfigResponse {
-  message: string;
-  config: {
-    event_id: number;
-    privacy_mode: string;
-  };
-}
-
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
     document.title = 'Chỉnh sửa chi tiết sự kiện| ETIK - Vé điện tử & Quản lý sự kiện';
@@ -110,7 +72,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const [configExists, setConfigExists] = useState<boolean | null>(null);
   const [selectedPage, setSelectedPage] = useState('candidates');
-  const router = useRouter();
 
   const MENU_ITEMS = [
     {
@@ -317,74 +278,46 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       >
         <CircularProgress color="inherit" />
       </Backdrop>
-      {!configExists ? (
-        <>
-          <div>
-            <Typography variant="h4">
-              <StarHalf></StarHalf> Mini App "Rating Online"
-            </Typography>
-          </div>
-          <Stack spacing={3}>
-            <Typography variant="body2">
-              Ứng dụng Mini App "<StarHalf /> Rating Online" hỗ trợ nhà tổ chức sự kiện tạo cuộc bỏ phiếu, chấm điểm,
-              đánh giá các thí sinh, tiết mục,...
-            </Typography>
-          </Stack>
-          <div>
-            <Button
-              variant="contained"
-              href={`#registration`}
-              size="small"
-              startIcon={<Play />}
-              onClick={handleCreateConfig}
-              disabled={isLoading}
-            >
-              Khởi tạo ứng dụng
-            </Button>
-          </div>
-        </>
-      ) : (
-        <>
-          <div>
-            <Typography variant="h4">Cấu hình Mini App "Rating Online"</Typography>
-          </div>
-          <Grid container spacing={3}>
-            <Grid lg={4} md={6} xs={12}>
-              <Stack spacing={3}>
-                <Card>
-                  <CardHeader title="Tính năng" />
-                  <List>
-                    {MENU_ITEMS.map((item) => (
-                      <ListItem
-                        key={item.id}
-                        divider
-                        onClick={() => setSelectedPage(item.id)}
-                        sx={{
-                          cursor: 'pointer',
-                          backgroundColor: selectedPage === item.id ? 'rgba(33, 150, 243, 0.2)' : 'inherit',
-                          '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.1)' },
-                        }}
-                      >
-                        <ListItemText
-                          primary={
-                            <Stack spacing={2} direction="row">
-                              {item.icon}
-                              <Typography variant="body2">{item.label}</Typography>
-                            </Stack>
-                          }
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                </Card>
-              </Stack>
-            </Grid>
-            <Grid lg={8} md={6} xs={12}>
-              <Stack spacing={3}>{MENU_ITEMS.find((item) => item.id === selectedPage)?.component}</Stack>
-            </Grid>
+      <>
+        <div>
+          <Typography variant="h4">Cấu hình Mini App "Rating Online"</Typography>
+        </div>
+        <Grid container spacing={3}>
+          <Grid lg={4} md={6} xs={12}>
+            <Stack spacing={3}>
+              <Card>
+                <CardHeader title="Tính năng" />
+                <List>
+                  {MENU_ITEMS.map((item) => (
+                    <ListItem
+                      key={item.id}
+                      divider
+                      onClick={() => setSelectedPage(item.id)}
+                      sx={{
+                        cursor: 'pointer',
+                        backgroundColor: selectedPage === item.id ? 'rgba(33, 150, 243, 0.2)' : 'inherit',
+                        '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.1)' },
+                      }}
+                    >
+                      <ListItemText
+                        primary={
+                          <Stack spacing={2} direction="row">
+                            {item.icon}
+                            <Typography variant="body2">{item.label}</Typography>
+                          </Stack>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </Card>
+            </Stack>
           </Grid>
-        </>
-      )}
+          <Grid lg={8} md={6} xs={12}>
+            <Stack spacing={3}>{MENU_ITEMS.find((item) => item.id === selectedPage)?.component}</Stack>
+          </Grid>
+        </Grid>
+      </>
     </Stack>
   );
 }
