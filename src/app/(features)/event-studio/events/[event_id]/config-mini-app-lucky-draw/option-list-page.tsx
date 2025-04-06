@@ -131,6 +131,7 @@ export default function OptionList({ eventId }: OptionListProps) {
                 label="Danh sách tuỳ chọn"
                 multiline
                 minRows={4}
+                maxRows={30}
                 fullWidth
                 value={formValues.customList}
                 onChange={(e) => setFormValues({ ...formValues, customList: e.target.value })}
