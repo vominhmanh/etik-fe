@@ -57,6 +57,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     customDrawList: [],
   });
 
+
   const [currentRevealIndex, setCurrentRevealIndex] = useState<number>(0);
   const router = useRouter();
 
