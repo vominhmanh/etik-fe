@@ -173,7 +173,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   return (
     <>
-      
         <div
           style={{
             width: '100vw',
@@ -218,7 +217,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             onClick={handleStartBtn}
             sx={{
               position: 'absolute',
-              width: '2%',
+              width: '8%',
               height: '5%',
               fontSize: '1cqw',
               top: '95%',
@@ -226,6 +225,31 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             }}
           >
             QuayAll
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            size="small"
+            onClick={() => {
+              setInitials(Array(10).fill(true));
+              // Temporarily enable isPlaying to trigger reveal
+              setIsPlaying(Array(10).fill(true));
+            
+              // Then stop all after a short timeout (e.g. 100ms)
+              setTimeout(() => {
+                setIsPlaying(Array(10).fill(false));
+              }, 200); // You can fine-tune this delay
+            }}
+            sx={{
+              position: 'absolute',
+              width: '8%',
+              height: '5%',
+              fontSize: '1cqw',
+              top: '95%',
+              left: '10%',
+            }}
+          >
+            ClearAll
           </Button>
           {Array.from({ length: 10 }).map((_, index) => (
             <Button
