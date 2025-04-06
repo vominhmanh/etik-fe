@@ -64,7 +64,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Typography>
           <Button
             variant="contained"
-            href="/event-studio/events/28/mini-app-lucky-draw"
+            href={`/event-studio/events/${params.event_id}/mini-app-lucky-draw`}
             target="_blank"
             rel="noopener noreferrer"
           >
