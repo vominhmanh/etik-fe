@@ -65,8 +65,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   async function fetchConfig() {
     if (!event_id) return;
-
     try {
+      setIsLoading(true);
       const response: AxiosResponse<GetLuckyDrawConfigResponse> = await baseHttpServiceInstance.get(
         `/mini-app-lucky-draw/${params.event_id}/get-draw-list`
       );
@@ -81,6 +81,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     } catch (error) {
       notificationCtx.error(error);
     } finally {
+      setIsLoading(false);
     }
   }
   // Handle Start button: set all intervals to 0.05
@@ -278,7 +279,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             variant="contained"
             color="primary"
             size="small"
-            // disabled={isPlaying}
+            disabled={isLoading}
             onClick={() => fetchConfig()}
             sx={{
               position: 'absolute',
