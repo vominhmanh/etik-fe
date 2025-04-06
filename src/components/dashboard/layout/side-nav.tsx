@@ -316,7 +316,7 @@ export function SideNav(): React.JSX.Element {
                 pathname={pathname}
                 key="email-template-2"
                 title="Lucky number"
-                href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-number`}
+                href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-draw`}
                 icon={SpinnerBall}
               />
             </NavItemCollapse>

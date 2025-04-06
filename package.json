@@ -51,6 +51,7 @@
     "react-hook-form": "7.52.0",
     "react-media-devices": "^1.1.5",
     "react-quill": "^2.0.0",
+    "react-random-reveal": "^2.0.1",
     "react-webcam": "^7.2.0",
     "react-zxing": "^2.0.2",
     "swiper": "^11.1.15",

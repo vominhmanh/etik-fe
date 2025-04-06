@@ -3,23 +3,12 @@ import { Suspense } from "react";
 
 export default function Layout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <>
-      {/* Import Arima font from Google Fonts */}
-      <link
-        href="https://fonts.googleapis.com/css2?family=Arima:wght@400;500;600;700&display=swap"
-        rel="stylesheet"
-      />
-      <style>{`
-        .arima-font {
-          font-family: 'Arima', cursive;
-        }
-      `}</style>
-      <div className="arima-font">
-        <Suspense fallback={<FallbackUI />}>
-          {children}
-        </Suspense>
-      </div>
-    </>
+
+    <div className="cambria-font">
+      <Suspense fallback={<FallbackUI />}>
+        {children}
+      </Suspense>
+    </div>
 
   );
 }

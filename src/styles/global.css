@@ -35,3 +35,14 @@ body {
 * {
   scroll-behavior: smooth;
 }
+
+@font-face {
+  font-family: 'Cambria';
+  src: url('/fonts/Cambria-Font-For-Windows.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.cambria-font {
+  font-family: 'Cambria', sans-serif;
+}
