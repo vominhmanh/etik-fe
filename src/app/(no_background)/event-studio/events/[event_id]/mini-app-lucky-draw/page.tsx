@@ -147,7 +147,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               cursor: 'pointer'
             }}
           >
-
             <img
               src="/assets/ghost-legend-2025-icon.png"  // Path to the app icon image
               alt="App Icon"
@@ -155,7 +154,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 width: '100%',  // Image takes up 100% of the parent width
                 height: 'auto',  // Maintain the image's aspect ratio
                 borderRadius: '10%',  // Rounded corners
-                boxShadow: '0 10px 20px rgba(0, 0, 0, 0.3)',  
+                boxShadow: '0 10px 20px rgba(0, 0, 0, 0.3)',
               }}
             />
 
@@ -172,6 +171,44 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               }}
             >
               Ghost Legend 2025
+            </div>
+          </div>
+
+          <div
+            onClick={() => { router.push(`/event-studio/events/${event_id}/mini-app-lucky-draw/ghost-legend-2025-20`); }} // Use Next.js router for navigation
+            style={{
+              position: 'absolute',
+              top: '30%',  // Adjust vertical position
+              left: '35%',  // Center horizontally
+              width: '10%',  // Parent takes up 90% of the width
+              aspectRatio: '1/1.5',  // Maintain aspect ratio for the container
+              cursor: 'pointer'
+            }}
+          >
+            <img
+              src="/assets/ghost-legend-2025-icon.png"  // Path to the app icon image
+              alt="App Icon"
+              style={{
+                width: '100%',  // Image takes up 100% of the parent width
+                height: 'auto',  // Maintain the image's aspect ratio
+                borderRadius: '10%',  // Rounded corners
+                boxShadow: '0 10px 20px rgba(0, 0, 0, 0.3)',
+              }}
+            />
+
+            {/* App name below the icon */}
+            <div
+              style={{
+                position: 'absolute',
+                width: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontSize: '1.5cqw',
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+            >
+              Ghost Legend 20 users
             </div>
           </div>
         </div>

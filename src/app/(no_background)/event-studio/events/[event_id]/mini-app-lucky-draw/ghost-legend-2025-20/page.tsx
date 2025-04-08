@@ -43,17 +43,17 @@ export interface LuckyNumberAppConfig {
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const { event_id } = params;
   const notificationCtx = useContext(NotificationContext);
-  const [initials, setInitials] = useState([true, true, true, true, true, true, true, true, true, true]);
+  const [initials, setInitials] = useState(Array(20).fill(true));
   const [data, setData] = useState<TransactionECodeResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedComponents, setSelectedComponents] = useState<Record<string, SelectedComponent>>({});
   const [componentSettings, setComponentSettings] = useState<Record<string, ComponentSettings>>({});
   const [imagePreview, setImagePreview] = useState<string>();
-  const [isPlaying, setIsPlaying] = useState([false, false, false, false, false, false, false, false, false, false]);
-  const [intervals, setIntervals] = useState([0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]); // For 3 reveals, initially set to 0.1 each
-  const [durations, setDurations] = useState([Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity]); // For 3 reveals, initially set to 0.1 each
-  const [results, setResults] = useState<(string | null)[]>([null, null, null, null, null, null, null, null, null, null]); // For 3 reveals, initially set to 0.1 each
+  const [isPlaying, setIsPlaying] = useState(Array(20).fill(false));
+  const [intervals, setIntervals] = useState(Array(20).fill(0.05)); // For 3 reveals, initially set to 0.1 each
+  const [durations, setDurations] = useState(Array(20).fill(Infinity)); // For 3 reveals, initially set to 0.1 each
+  const [results, setResults] = useState<(string | null)[]>(Array(20).fill(null)); // For 3 reveals, initially set to 0.1 each
   const [formValues, setFormValues] = React.useState<GetLuckyDrawConfigResponse>({
     listType: '',
     customDrawList: [],
@@ -92,10 +92,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   // Handle Start button: set all intervals to 0.05
   const handleStartBtn = () => {
-    const newIntervals = Array(10).fill(0.05); // Set all intervals to 0.05 initially
-    const newPlaying = Array(10).fill(true); // Set all intervals to 0.05 initially
-    const newInitials = Array(10).fill(false); // Set all intervals to 0.05 initially
-    const newDurations = Array(10).fill(Infinity); // Set all intervals to 0.05 initially
+    const newIntervals = Array(20).fill(0.05); // Set all intervals to 0.05 initially
+    const newPlaying = Array(20).fill(true); // Set all intervals to 0.05 initially
+    const newInitials = Array(20).fill(false); // Set all intervals to 0.05 initially
+    const newDurations = Array(20).fill(Infinity); // Set all intervals to 0.05 initially
     // setDrawList(originalList)
     setIntervals(newIntervals);
     setIsPlaying(newPlaying);
@@ -106,7 +106,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   // Handle Stop button: set individual intervals and stop after 3 seconds
   const handleStopBtn = () => {
-    if (currentRevealIndex < 10) {
+    if (currentRevealIndex < 20) {
       const newIntervals = [...intervals];
       newIntervals[currentRevealIndex] = 0.2; // Set the current reveal to 0.3
       setIntervals(newIntervals);
@@ -144,19 +144,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     // if (!drawList || !originalList) return;
 
     // Get only non-null results to avoid duplicate picking
-    const usedResults = results.filter(r => r !== null) as string[];
 
-    // Helper to get a unique random item
-    const getUniqueRandomItem = () => {
-      const remaining = formValues.customDrawList.filter(name => !usedResults.includes(name));
-      if (remaining.length === 0) return null;
-      const randomIndex = Math.floor(Math.random() * remaining.length);
-      return remaining[randomIndex];
-    };
-
-    const selected = getUniqueRandomItem();
-    // Step 2: Set the result
     setResults((prev) => {
+      const usedResults = prev.filter(r => r !== null) as string[];
+      const remaining = formValues.customDrawList.filter(name => !usedResults.includes(name));
+  
+      const selected = remaining.length === 0
+        ? null
+        : remaining[Math.floor(Math.random() * remaining.length)];
+  
       const updated = [...prev];
       updated[index] = selected;
       return updated;
@@ -215,7 +211,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   // Render the reveals
   const renderRandomReveals = () => {
-    return Array.from({ length: 10 }, (_, index) => (
+    return Array.from({ length: 20 }, (_, index) => (
       <div
         key={index}
         className="text-white fw-bold"
@@ -227,8 +223,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           fontSize: '1.8cqw',
           whiteSpace: 'nowrap',
           textShadow: '0 0 5% black',
-          top: `${41 + (index % 5) * 9.5}%`,
-          left: index < 5 ? '20%' : '54.5%',
+          top: `${40.5 + (index % 5) * 9.5}%`,
+          left: index < 5 ? '10.5%' : index < 10 ? '32.5%' : index < 15 ? '55%' : '77.5%'
         }}
       >
         <RandomReveal
@@ -275,7 +271,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           }}
         >
           <source
-            src="https://media.etik.io.vn/lucky_wheel_ghost_legend_2025_background.webm"
+            src="https://media.etik.io.vn/lucky_wheel_ghost_legend_2025_20_background.webm"
             type="video/webm"
           />
           Your browser does not support the video tag.
@@ -359,7 +355,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         >
           DừngAll
         </Button>
-        {Array.from({ length: 10 }).map((_, index) => (
+        {Array.from({ length: 20 }).map((_, index) => (
           <Button
             key={`start-${index}`}
             variant="contained"
@@ -384,7 +380,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         ))}
 
         {/* Render Dừng buttons */}
-        {Array.from({ length: 10 }).map((_, index) => (
+        {Array.from({ length: 20 }).map((_, index) => (
           <Button
             key={`stop-${index}`}
             variant="contained"
@@ -418,6 +414,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           disabled={isLoading}
           onClick={() => fetchConfig()}
           sx={{
+            minWidth: '0',
+            padding: '0',
             position: 'absolute',
             width: '12%',
             height: '5%',
