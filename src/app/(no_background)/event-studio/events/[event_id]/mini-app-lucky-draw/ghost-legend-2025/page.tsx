@@ -238,9 +238,29 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       if (!isPlaying[index]) {
         return prev;
       }
-
-      const selected = formValues.customDrawList.length == 0 ? null : formValues.customDrawList[0];
-
+    
+      if (formValues.customDrawList.length === 0) {
+        const updated = [...prev];
+        updated[index] = null;
+        return updated;
+      }
+    
+      const firstChoice = formValues.customDrawList[0];
+      let selected: string | null = null;
+    
+      if (!savedResults.includes(firstChoice)) {
+        selected = firstChoice;
+      } else {
+        const remainingChoices = formValues.customDrawList
+          .slice(1) // Exclude the first item
+          .filter((item) => !savedResults.includes(item)); // Exclude saved items
+    
+        selected =
+          remainingChoices.length === 0
+            ? null
+            : remainingChoices[Math.floor(Math.random() * remainingChoices.length)];
+      }
+    
       const updated = [...prev];
       updated[index] = selected;
       return updated;
