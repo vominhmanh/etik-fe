@@ -64,6 +64,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [savedResults, setSavedResults] = useState<(string | null)[]>([]); // For 3 reveals, initially set to 0.1 each
 
   const [currentRevealIndex, setCurrentRevealIndex] = useState<number>(0);
+
+  useEffect(() => {
+    setSavedResults((prevSaved) => {
+      const newItems = results.filter(
+        (item) => item !== null && !prevSaved.includes(item)
+      ) as string[];
+      return [...prevSaved, ...newItems];
+    });
+  }, [results]);
+
+
   useEffect(() => {
     fetchConfig();
   }, []);
@@ -174,6 +185,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       const updated = [...prev];
       updated[index] = selected;
+
+      setSavedResults((prevSaved) => {
+        const newItems = [selected].filter(
+          (item) => item !== null && !prevSaved.includes(item)
+        ) as string[];
+        return [...prevSaved, ...newItems];
+      });
+
+
       return updated;
     });
     // if (!selected) return;
@@ -238,31 +258,40 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       if (!isPlaying[index]) {
         return prev;
       }
-    
+
       if (formValues.customDrawList.length === 0) {
         const updated = [...prev];
         updated[index] = null;
         return updated;
       }
-    
+
       const firstChoice = formValues.customDrawList[0];
       let selected: string | null = null;
-    
+
       if (!savedResults.includes(firstChoice)) {
         selected = firstChoice;
       } else {
         const remainingChoices = formValues.customDrawList
           .slice(1) // Exclude the first item
           .filter((item) => !savedResults.includes(item)); // Exclude saved items
-    
+
         selected =
           remainingChoices.length === 0
             ? null
             : remainingChoices[Math.floor(Math.random() * remainingChoices.length)];
       }
-    
+
       const updated = [...prev];
       updated[index] = selected;
+
+      setSavedResults((prevSaved) => {
+        const newItems = [selected].filter(
+          (item) => item !== null && !prevSaved.includes(item)
+        ) as string[];
+        return [...prevSaved, ...newItems];
+      });
+
+
       return updated;
     });
     // if (!selected) return;
@@ -479,7 +508,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         >
           DừngAll
         </Button>
-        <Button
+        {/* <Button
           variant="contained"
           color="primary"
           size="small"
@@ -496,7 +525,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           }}
         >
           Lưu KQ
-        </Button>
+        </Button> */}
         {Array.from({ length: 10 }).map((_, index) => (
           <Button
             key={`start-${index}`}

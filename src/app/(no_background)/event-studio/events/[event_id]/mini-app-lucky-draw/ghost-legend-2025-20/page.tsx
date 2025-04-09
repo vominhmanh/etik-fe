@@ -65,6 +65,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [currentRevealIndex, setCurrentRevealIndex] = useState<number>(0);
 
   useEffect(() => {
+    setSavedResults((prevSaved) => {
+      const newItems = results.filter(
+        (item) => item !== null && !prevSaved.includes(item)
+      ) as string[];
+      return [...prevSaved, ...newItems];
+    });
+  }, [results]);
+
+  useEffect(() => {
     fetchConfig();
   }, []);
 
@@ -479,7 +488,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         >
           DừngAll
         </Button>
-        <Button
+        {/* <Button
           variant="contained"
           color="primary"
           size="small"
@@ -496,7 +505,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           }}
         >
           Lưu KQ
-        </Button>
+        </Button> */}
         {Array.from({ length: 20 }).map((_, index) => (
           <Button
             key={`start-${index}`}
