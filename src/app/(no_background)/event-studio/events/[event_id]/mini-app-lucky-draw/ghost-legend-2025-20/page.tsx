@@ -91,7 +91,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           listType: config.listType,
           customDrawList: config.customDrawList,
         });
-        setSavedResults([])
+        // setSavedResults([])
         // setOriginalList(config.customDrawList)
       }
     } catch (error) {
