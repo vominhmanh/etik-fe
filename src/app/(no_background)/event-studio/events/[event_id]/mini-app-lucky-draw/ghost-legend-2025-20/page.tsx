@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import { AxiosResponse } from "axios";
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import dayjs from "dayjs";
@@ -54,13 +54,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [intervals, setIntervals] = useState(Array(20).fill(0.05)); // For 3 reveals, initially set to 0.1 each
   const [durations, setDurations] = useState(Array(20).fill(Infinity)); // For 3 reveals, initially set to 0.1 each
   const [results, setResults] = useState<(string | null)[]>(Array(20).fill(null)); // For 3 reveals, initially set to 0.1 each
+  const [savedResults, setSavedResults] = useState<(string | null)[]>([]); // For 3 reveals, initially set to 0.1 each
   const [formValues, setFormValues] = React.useState<GetLuckyDrawConfigResponse>({
     listType: '',
     customDrawList: [],
   });
   const [originalList, setOriginalList] = useState<string[]>();
   const [drawList, setDrawList] = useState<string[]>();
-
+  const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const [currentRevealIndex, setCurrentRevealIndex] = useState<number>(0);
 
   useEffect(() => {
@@ -81,6 +82,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           listType: config.listType,
           customDrawList: config.customDrawList,
         });
+        setSavedResults([])
         // setOriginalList(config.customDrawList)
       }
     } catch (error) {
@@ -92,6 +94,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   // Handle Start button: set all intervals to 0.05
   const handleStartBtn = () => {
+    timeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+    timeoutsRef.current = [];
+
     const newIntervals = Array(20).fill(0.05); // Set all intervals to 0.05 initially
     const newPlaying = Array(20).fill(true); // Set all intervals to 0.05 initially
     const newInitials = Array(20).fill(false); // Set all intervals to 0.05 initially
@@ -146,13 +151,96 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     // Get only non-null results to avoid duplicate picking
 
     setResults((prev) => {
-      const usedResults = prev.filter(r => r !== null) as string[];
-      const remaining = formValues.customDrawList.filter(name => !usedResults.includes(name));
-  
-      const selected = remaining.length === 0
-        ? null
-        : remaining[Math.floor(Math.random() * remaining.length)];
-  
+      if (!isPlaying[index]) {
+        return prev;
+      }
+
+      const usedResults = [
+        ...prev.filter((r) => r !== null),
+        ...savedResults.filter((r) => r !== null),
+      ] as string[];
+
+      // Exclude first item from selection
+      const customListWithoutFirst = formValues.customDrawList.slice(1);
+
+      const remaining = customListWithoutFirst.filter(
+        (name) => !usedResults.includes(name)
+      );
+
+      const selected =
+        remaining.length === 0
+          ? null
+          : remaining[Math.floor(Math.random() * remaining.length)];
+
+      const updated = [...prev];
+      updated[index] = selected;
+      return updated;
+    });
+    // if (!selected) return;
+
+    // Set the current reveal to slower speed
+    setIntervals((oldIntervals) => {
+      const newIntervals = [...oldIntervals]
+      newIntervals[index] = 0.2;
+      return newIntervals
+    });
+
+    // setResults((oldResults) => {
+    //   const newResults = [...oldResults]
+    //   newResults[index] = selected
+    //   return newResults
+    // })
+    // Reset the interval to 0 after 3 seconds
+    setTimeout(() => {
+
+      // Step 1: Start playing
+      setIsPlaying((prev) => {
+        const updated = [...prev];
+        updated[index] = true;
+        return updated;
+      });
+
+
+
+      // Step 3: Set the duration
+      setDurations((prev) => {
+        const updated = [...prev];
+        updated[index] = 0;
+        return updated;
+      });
+
+      // Step 4: Stop playing after 500ms (or however long the reveal takes)
+      setTimeout(() => {
+        setIsPlaying((prev) => {
+          const updated = [...prev];
+          updated[index] = false;
+          return updated;
+        });
+      }, 100);
+    }, 3000); // Adjust the time for sequential stopping
+
+    setTimeout(() => {
+      setIsPlaying((nowIsPlaying) => {
+        const newIsPlaying = [...nowIsPlaying]
+        newIsPlaying[index] = false; // Set the current reveal's interval to 0
+        return newIsPlaying
+      });
+    }, 2800); // Adjust the time for sequential stopping
+  };
+
+
+  const handleStopBtn1 = (index: number) => {
+    // if (!drawList || !originalList) return;
+
+    // Get only non-null results to avoid duplicate picking
+
+    setResults((prev) => {
+      if (!isPlaying[index]) {
+        return prev;
+      }
+
+      const selected = formValues.customDrawList.length == 0 ? null : formValues.customDrawList[0];
+
       const updated = [...prev];
       updated[index] = selected;
       return updated;
@@ -232,10 +320,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           duration={durations[index]}
           updateInterval={intervals[index]} // Dynamic interval based on state
           characterSet={initials[index] ? [``] : formValues.customDrawList}
-          characters={[results[index]]}
+          characters={[<span key={index}>{results[index]}</span>]}
         />
       </div>
     ));
+  };
+
+  const handleSaveResults = () => {
+    setSavedResults((prevSaved) => {
+      const newItems = results.filter(
+        (item) => item !== null && !prevSaved.includes(item)
+      ) as string[];
+      return [...prevSaved, ...newItems];
+    });
   };
 
   return (
@@ -336,10 +433,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             // Temporarily enable isPlaying to trigger reveal
             // map: set time out to call function handleStopBtnOne(index) with index 1->20
             // delay 500ms each
+            timeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+            timeoutsRef.current = [];
+
             for (let i = 0; i < 20; i++) {
-              setTimeout(() => {
+              if (!isPlaying[i]) {
+                continue
+              }
+              const timeout = setTimeout(() => {
                 handleStopBtnOne(i);
-              }, i * 500); // Delay increases with each index
+              }, i * 500);
+              timeoutsRef.current.push(timeout);
             }
           }}
           sx={{
@@ -354,6 +458,24 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           }}
         >
           DừngAll
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          size="small"
+          onClick={handleSaveResults}
+          sx={{
+            minWidth: '0',
+            padding: '0',
+            position: 'absolute',
+            width: '4%',
+            height: '5%',
+            fontSize: '1cqw',
+            top: '95%',
+            left: '12%',
+          }}
+        >
+          Lưu KQ
         </Button>
         {Array.from({ length: 20 }).map((_, index) => (
           <Button
@@ -370,7 +492,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               width: '2%',
               height: '5%',
               fontSize: '1cqw',
-              left: `${14 + (index * 3)}%`, // Stacking buttons vertically
+              left: `${18 + (index * 3)}%`, // Stacking buttons vertically
               top: '95%',
               display: !isPlaying[index] ? 'block' : 'none',
             }}
@@ -387,7 +509,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             color="error"
             size="small"
             disabled={!isPlaying[index]}
-            onClick={() => handleStopBtnOne(index)}
+            onClick={() => index == 0 ? handleStopBtn1(index) : handleStopBtnOne(index)}
             sx={{
               minWidth: '0',
               padding: '0',
@@ -396,7 +518,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               width: '2%',
               height: '5%',
               fontSize: '1cqw',
-              left: `${14 + (index * 3)}%`, // Stacking buttons vertically
+              left: `${18 + (index * 3)}%`, // Stacking buttons vertically
               top: '95%',
               display: isPlaying[index] ? 'block' : 'none',
             }}
@@ -407,6 +529,27 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <div style={{ width: '95%', height: '95%', position: 'absolute' }}>
           {renderRandomReveals()}
         </div>
+        <div style={{ position: 'absolute', top: '95%', right: '10%', display: 'flex', alignItems: 'center', gap: '1cqw', zIndex: 2 }}>
+          <label style={{ fontSize: '1cqw', color: 'black' }}>KQ đã lưu: {savedResults.length}</label>
+        </div>
+        <Button
+          variant="contained"
+          color="error"
+          size="small"
+          onClick={() => { setSavedResults([]) }}
+          sx={{
+            minWidth: '0',
+            padding: '0',
+            position: 'absolute',
+            width: '4%',
+            height: '2%',
+            fontSize: '1cqw',
+            top: '98%',
+            right: '11%',
+          }}
+        >
+          Xóa
+        </Button>
         <Button
           variant="contained"
           color="primary"
@@ -417,7 +560,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             minWidth: '0',
             padding: '0',
             position: 'absolute',
-            width: '12%',
+            width: '8%',
             height: '5%',
             fontSize: '1cqw',
             top: '95%',

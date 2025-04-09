@@ -1,15 +1,16 @@
+import { AuthGuard } from "@/components/auth/auth-guard";
 import { CircularProgress, Stack, Typography } from "@mui/material";
 import { Suspense } from "react";
 
 export default function Layout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-
-    <div className="cambria-font">
-      <Suspense fallback={<FallbackUI />}>
-        {children}
-      </Suspense>
-    </div>
-
+    <AuthGuard>
+      <div className="cambria-font">
+        <Suspense fallback={<FallbackUI />}>
+          {children}
+        </Suspense>
+      </div>
+    </AuthGuard>
   );
 }
 
