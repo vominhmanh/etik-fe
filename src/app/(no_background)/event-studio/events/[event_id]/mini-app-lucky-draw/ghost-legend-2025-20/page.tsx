@@ -574,7 +574,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             height: '2%',
             fontSize: '1cqw',
             top: '98%',
-            right: '11%',
+            right: '11%', 
           }}
         >
           Xóa
