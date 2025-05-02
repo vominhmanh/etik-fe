@@ -300,7 +300,7 @@ export default function Page({
                     <OutlinedInput
                       sx={{ maxWidth: { xs: 70, sm: 180 } }}
                       type="text" // Change type to text to allow flexible input handling
-                      value={formData.price.toLocaleString('vi-VN')}
+                      value={formData.quantity.toLocaleString('vi-VN')}
                       onChange={(e) => {
                         let rawValue = e.target.value.replace(/\./g, ''); // Remove formatting
                         if (!/^\d*$/.test(rawValue)) return; // Allow only numeric input
@@ -317,7 +317,7 @@ export default function Page({
                     <OutlinedInput
                       sx={{ maxWidth: { xs: 70, sm: 180 } }}
                       type="text" // Change type to text to allow flexible input handling
-                      value={formData.quantity.toLocaleString('vi-VN')}
+                      value={formData.price.toLocaleString('vi-VN')}
                       onChange={(e) => {
                         let rawValue = e.target.value.replace(/\./g, ''); // Remove formatting
                         if (!/^\d*$/.test(rawValue)) return; // Allow only numeric input

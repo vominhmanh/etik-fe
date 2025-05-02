@@ -209,7 +209,55 @@ export default function Page(): React.JSX.Element {
                   </Typography>
                 </Grid>
               </CardContent>
+            </Card>
+            <Card>
+              <CardHeader title="Ví" />
+              <Divider />
+              <CardContent>
+                <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body1">Ví trả trước</Typography>
+                  </Stack>
+                  <Typography variant="body1">
+                    0 VNĐ
+                  </Typography>
+                </Grid>
+                <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body1">Ví khuyến mãi</Typography>
+                  </Stack>
+                  <Typography variant="body1">
+                    0 VNĐ
+                  </Typography>
+                </Grid>
+                <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body1">T.khoản doanh thu liên kết</Typography>
+                  </Stack>
+                  <Typography variant="body1">
+                    MB Bank V**MANH
+                  </Typography>
+                </Grid>
 
+                <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body1">Ví doanh thu ETIK</Typography>
+                  </Stack>
+                  <Typography variant="body1">
+                    0 VNĐ
+                  </Typography>
+                </Grid>
+
+                <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body1">Nợ</Typography>
+                  </Stack>
+                  <Typography variant="body1">
+                    0 VNĐ
+                  </Typography>
+                </Grid>
+                
+              </CardContent>
             </Card>
           </Stack>
 

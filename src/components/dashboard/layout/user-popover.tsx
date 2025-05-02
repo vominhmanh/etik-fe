@@ -18,7 +18,7 @@ import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
-import { BuildingOffice } from '@phosphor-icons/react/dist/ssr';
+import { BuildingOffice, Wallet } from '@phosphor-icons/react/dist/ssr';
 
 export interface UserPopoverProps {
   anchorEl: Element | null;
@@ -85,6 +85,12 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
             <UserIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
           Cài đặt tài khoản
+        </MenuItem>
+        <MenuItem component={RouterLink} href={'/account'} onClick={onClose}>
+          <ListItemIcon>
+            <Wallet fontSize="var(--icon-fontSize-md)" />
+          </ListItemIcon>
+          <span>Ví trả trước: </span><b style={{marginLeft: '8px'}}>0</b><span style={{marginLeft: '8px'}}>VNĐ</span>
         </MenuItem>
         
         <MenuItem component={RouterLink} href={'/account/my-tickets'} onClick={onClose}>
