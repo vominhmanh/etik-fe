@@ -311,7 +311,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                     <Stack direction="row" spacing={1}>
                       <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.place ? `${event?.place} ${event.locationUrl && <a href={event.locationUrl}>(Xem bản đồ)</a>}` : 'Chưa xác định'}
+                        {event?.place ? `${event?.place}`: 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl}>Xem bản đồ</a>}
                       </Typography>
                     </Stack>
                   </Stack>
