@@ -322,7 +322,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                   <Typography color="text.secondary" display="inline" variant="body2">
                     {event?.startDateTime && event?.endDateTime
-                      ? `${dayjs(event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
+                      ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
                       : 'Chưa xác định'}
                   </Typography>
                 </Stack>
