@@ -140,7 +140,7 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
                           : ""
                       : ticketCategory.sold >= ticketCategory.quantity
                         ? "| Đã hết"
-                        : `| Còn ${ticketCategory.quantity - ticketCategory.sold}/${ticketCategory.quantity} vé`
+                        : `| Còn ${ticketCategory.quantity - ticketCategory.sold} vé`
                   }`
                 }
                 secondaryTypographyProps={{ variant: "body2" }}
