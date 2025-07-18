@@ -47,6 +47,7 @@ type EventResponse = {
   secureApiKey: string;
   locationInstruction: string | null;
   displayOnMarketplace: boolean;
+  displayOption: string;
 };
 
 export interface CheckEventAgencyRegistrationAndEventApprovalRequestResponse {
@@ -802,17 +803,34 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         />
                       </FormControl>
                     </Grid>
+                    
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth required>
-                        <InputLabel>Cho phép hiển thị trên Marketplace</InputLabel>
+                        <InputLabel>Chế độ hiển thị sự kiện</InputLabel>
                         <Select
-                          label="Cho phép hiển thị trên Marketplace"
+                          label="Chế độ hiển thị sự kiện"
+                          name="displayOption"
+                          value={formValues.displayOption}
+                          onChange={(e: any) => handleInputChange(e)}
+                        >
+                          <MenuItem value={'do_not_display'}>Không hiển thị</MenuItem>
+                          <MenuItem value={'display_with_members'}>Chỉ hiển thị với người quản lý sự kiện</MenuItem>
+                          <MenuItem value={'display_with_everyone'}>Hiển thị với mọi người</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+
+                    <Grid md={12} xs={12}>
+                      <FormControl fullWidth required>
+                        <InputLabel>Cho phép tìm kiếm trên Marketplace</InputLabel>
+                        <Select
+                          label="Cho phép tìm kiếm trên Marketplace"
                           name="displayOnMarketplace"
                           value={formValues.displayOnMarketplace}
                           onChange={(e: any) => handleInputChange(e)}
                         >
-                          <MenuItem value={'true'}>Hiển thị</MenuItem>
-                          <MenuItem value={'false'}>Không hiển thị</MenuItem>
+                          <MenuItem value={'true'}>Cho phép</MenuItem>
+                          <MenuItem value={'false'}>Không cho phép</MenuItem>
                         </Select>
                       </FormControl>
                     </Grid>
