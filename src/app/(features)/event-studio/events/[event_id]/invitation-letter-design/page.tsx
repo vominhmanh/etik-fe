@@ -120,12 +120,24 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
-        }
+        },
+        true
       );
 
       setImagePreview(response.data.imageUrl); // Set new image preview
     } catch (error: any) {
-      notificationCtx.error(`Lỗi tải ảnh: ${error.message}`);
+      const message =
+        // 1) If it’s a JS Error instance
+        error instanceof Error ? error.message
+        // 2) If it’s an AxiosError with a response body
+        : error.response?.data?.message
+          ? error.response.data.message
+        // 3) If it’s a plain string
+        : typeof error === 'string'
+          ? error
+        // 4) Fallback to JSON‐dump of the object
+        : JSON.stringify(error);
+      notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
     }
   };
 

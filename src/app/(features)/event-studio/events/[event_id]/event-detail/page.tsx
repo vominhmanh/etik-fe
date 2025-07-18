@@ -218,12 +218,23 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-      });
+      }, true);
 
       // On successful upload, reload the page or update the avatar state
       window.location.reload(); // Optionally, you could call a function to update the state instead of reloading
-    } catch (error) {
-      notificationCtx.error('Lỗi:', error);
+    } catch (error: any) {
+      const message =
+        // 1) If it’s a JS Error instance
+        error instanceof Error ? error.message
+        // 2) If it’s an AxiosError with a response body
+        : error.response?.data?.message
+          ? error.response.data.message
+        // 3) If it’s a plain string
+        : typeof error === 'string'
+          ? error
+        // 4) Fallback to JSON‐dump of the object
+        : JSON.stringify(error);
+      notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
     } finally {
       setIsLoading(false);
     }
@@ -260,12 +271,23 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-      });
+      }, true);
 
       // On successful upload, reload the page or handle success
       window.location.reload(); // You can also call a function to update the state instead of reloading
-    } catch (error) {
-      notificationCtx.error('Lỗi:', error);
+    } catch (error: any) {
+      const message =
+        // 1) If it’s a JS Error instance
+        error instanceof Error ? error.message
+        // 2) If it’s an AxiosError with a response body
+        : error.response?.data?.message
+          ? error.response.data.message
+        // 3) If it’s a plain string
+        : typeof error === 'string'
+          ? error
+        // 4) Fallback to JSON‐dump of the object
+        : JSON.stringify(error);
+      notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
     } finally {
       setIsLoading(false);
     }
