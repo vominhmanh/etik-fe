@@ -53,6 +53,7 @@ export interface Transaction {
   id: number;
   email: string;
   name: string;
+  dob: string;
   phoneNumber: string;
   address: string;
   transactionTicketCategories: TransactionTicketCategory[];
@@ -453,6 +454,10 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Họ tên:</Typography>
                     <Typography variant="body1">{trxn?.name}</Typography>
+                  </Grid>
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1">Ngày sinh:</Typography>
+                    <Typography variant="body1">{trxn?.dob ? dayjs(trxn?.dob || 0).format('DD/MM/YYYY') : `__/__/____`}</Typography>
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Email:</Typography>

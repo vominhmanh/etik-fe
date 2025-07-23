@@ -271,6 +271,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
     name: transaction?.name || '',
     phoneNumber: transaction?.phoneNumber || '',
     address: transaction?.address || '',
+    dob: transaction?.dob || null,
     status: ''
   });
   const [selectedStatus, setSelectedStatus] = useState<string>(formData.status || '');
@@ -292,6 +293,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         {
           name: formData.name,
           phoneNumber: formData.phoneNumber,
+          dob: formData.dob,
           address: formData.address,
         }
       );
@@ -322,6 +324,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         setFormData({
           name: response.data?.name || '',
           phoneNumber: response.data?.phoneNumber || '',
+          dob: response.data?.dob || null,
           address: response.data?.address || '',
           status: '',
         });
@@ -924,6 +927,20 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
+                    <FormControl fullWidth required>
+                      <InputLabel shrink>Ngày tháng năm sinh</InputLabel>
+                      <OutlinedInput
+                        label="Ngày tháng năm sinh"
+                        name="dob"
+                        type='date'
+                        value={formData.dob}
+                        onChange={(event: any) => handleFormChange(event)}
+                        inputProps={{ max: new Date().toISOString().slice(0, 10) }}
+
+                      />
+                    </FormControl>
+                  </Grid>
+                  <Grid md={12} xs={12}>
                     <FormControl fullWidth>
                       <InputLabel>Địa chỉ</InputLabel>
                       <OutlinedInput
