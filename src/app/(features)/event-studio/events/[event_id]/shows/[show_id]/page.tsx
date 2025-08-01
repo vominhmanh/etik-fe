@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { InputAdornment, TextField } from '@mui/material';
+import { FormHelperText, InputAdornment, MenuItem, Select, SelectChangeEvent, TextField } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -25,11 +25,13 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
   React.useEffect(() => {
     document.title = "Chỉnh sửa suất diễn | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
-  
+
   const eventId = params.event_id;
   const showId = params.show_id;
   const [formData, setFormData] = useState({
     name: '',
+    type: 'public',
+    status: 'on_sale',
     endDateTime: '',
     startDateTime: '',
   });
@@ -45,6 +47,8 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
         const response = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/shows/${showId}`);
         setFormData({
           name: response.data.name,
+          type: response.data.type,
+          status: response.data.status,
           startDateTime: response.data.startDateTime,
           endDateTime: response.data.endDateTime,
         });
@@ -72,6 +76,10 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
         notificationCtx.warning('Tên suất diễn không được để trống.');
         return;
       }
+      if (!formData.type) {
+        notificationCtx.warning('Chế độ suất diễn không được để trống');
+        return;
+      }
       if (!formData.startDateTime || !formData.endDateTime) {
         notificationCtx.warning('Thời gian suất diễn không được để trống.');
         return;
@@ -85,6 +93,8 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
         `/event-studio/events/${eventId}/shows/${showId}`,
         {
           name: formData.name,
+          type: formData.type,
+          status: formData.status,
           startDateTime: formData.startDateTime,
           endDateTime: formData.endDateTime,
         }
@@ -123,10 +133,25 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
-                  <Grid md={12} xs={12}>
+                  <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Tên suất diễn</InputLabel>
                       <OutlinedInput label="Tên suất diễn" name="name" value={formData.name} onChange={handleChange} />
+                    </FormControl>
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Phân loại</InputLabel>
+                      <Select
+                        label="Phân loại"
+                        name="type"
+                        value={formData.type}
+                        onChange={(event: any) => handleChange(event)}
+                      >
+                        <MenuItem value="private">Nội bộ</MenuItem>
+                        <MenuItem value="public">Công khai</MenuItem>
+                      </Select>
+                      <FormHelperText>Chế độ công khai: Cho phép Người mua nhìn thấy.</FormHelperText>
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
@@ -151,6 +176,27 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
                         onChange={handleChange}
                         InputLabelProps={{ shrink: true }}
                       />
+                    </FormControl>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent>
+                <Grid container spacing={3}>
+                  <Grid md={12} xs={12}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Trạng thái</InputLabel>
+                      <Select
+                        label="Trạng thái"
+                        name="status"
+                        value={formData.status}
+                        onChange={handleChange as (event: SelectChangeEvent<string>, child: React.ReactNode) => void}
+                      >
+                        <MenuItem value="on_sale">Đang mở bán</MenuItem>
+                        <MenuItem value="not_opened_for_sale">Chưa mở bán</MenuItem>
+                        <MenuItem value="temporarily_locked">Đang tạm khoá</MenuItem>
+                      </Select>
                     </FormControl>
                   </Grid>
                 </Grid>

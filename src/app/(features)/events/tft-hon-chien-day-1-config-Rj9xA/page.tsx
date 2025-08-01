@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, CardMedia, Container, FormHelperText, InputAdornment, Modal } from '@mui/material';
+import { Avatar, Box, CardMedia, Container, FormHelperText, InputAdornment, Modal, Typography } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -17,7 +17,6 @@ import MenuItem from '@mui/material/MenuItem';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
 import { ArrowRight, UserPlus } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
@@ -35,6 +34,12 @@ import NotificationContext from '@/contexts/notification-context';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Paper } from '@mui/material';
+import EditableGrid from './schedule-grid';
+
+const colLabels = Array.from({ length: 17 }, (_, i) => String.fromCharCode(65 + i)); // A–P
+const rowLabels = Array.from({ length: 8 }, (_, i) => (i + 1).toString()); // 1–8
+
 
 export type TicketCategory = {
   id: number;
@@ -51,8 +56,6 @@ export type TicketCategory = {
 export type Show = {
   id: number;
   name: string;
-  status: string;
-  disabled: boolean;
   avatar: string | null;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
@@ -80,7 +83,8 @@ const options = {
   maximumAge: 0,
 };
 
-export default function Page({ params }: { params: { event_slug: string } }): React.JSX.Element {
+export default function Page(): React.JSX.Element {
+  const params = { event_slug: 'tft-hon-chien-day-1' }
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
@@ -99,11 +103,22 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [position, setPosition] = React.useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
   const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
   const [ticketHolderEditted, setTicketHolderEditted] = React.useState<boolean>(false);
+    const [data, setData] = React.useState(
+    rowLabels.map(() =>
+      colLabels.map(() => '')
+    )
+  );
+
+  const handleChange = (rowIndex: number, colIndex: number, value: string) => {
+    const newData = [...data];
+    newData[rowIndex][colIndex] = value;
+    setData(newData);
+  };
 
   React.useEffect(() => {
     document.title = `Sự kiện ${event?.name} | ETIK - Vé điện tử & Quản lý sự kiện`;
   }, [event]);
-  
+
   const totalAmount = React.useMemo(() => {
     return Object.entries(selectedCategories).reduce((total, [showId, category]) => {
       const show = event?.shows.find((show) => show.id === parseInt(showId));
@@ -111,6 +126,8 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       return total + (ticketCategory?.price || 0) * (ticketQuantity || 0);
     }, 0)
   }, [selectedCategories])
+
+
 
   const handleCloseSuccessModal = (event: {}, reason: "backdropClick" | "escapeKeyDown") => {
     setOpenSuccessModal(false)
@@ -313,7 +330,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                     <Stack direction="row" spacing={1}>
                       <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.place ? `${event?.place}`: 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank'>Xem bản đồ</a>}
+                        {event?.place ? `${event?.place}` : 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank'>Xem bản đồ</a>}
                       </Typography>
                     </Stack>
                   </Stack>
@@ -326,45 +343,18 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
               </Card>
             </Grid>
           </Grid>
-          <Stack direction="row" spacing={3}>
-            <Grid container spacing={3}>
-              <Grid item lg={8} md={6} xs={12}>
-                <Card>
-                  <CardContent>
-                    {event?.description ? (
-                      <Box
-                        sx={{
-                          margin: 0,
-                          padding: 0,
-                          '& img': {
-                            maxWidth: '100%', // Set images to scale down if they exceed container width
-                            height: 'auto', // Maintain aspect ratio
-                          },
-                        }}
-                        dangerouslySetInnerHTML={{ __html: event?.description }}
-                      />
-                    ) : (
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Chưa có mô tả
-                      </Typography>
-                    )}
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item lg={4} md={6} xs={12}></Grid>
-            </Grid>
-          </Stack>
+          
           <div
             id="registration"
             style={{ display: 'block', height: '100px', marginTop: '-100px', visibility: 'hidden' }}
           ></div>
           <Stack direction="row" spacing={3}>
             <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-              <Typography variant="h6">Đăng ký tham dự</Typography>
+              <Typography variant="h6">Thiết lập các trận đấu</Typography>
             </Stack>
           </Stack>
           <Grid container spacing={3}>
-            <Grid item lg={4} md={6} xs={12}>
+            {/* <Grid item lg={4} md={6} xs={12}>
               <Stack spacing={3}>
                 <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
                 {selectedSchedules && selectedSchedules.map(show => (
@@ -372,240 +362,16 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   />
                 ))}
               </Stack>
-            </Grid>
-            <Grid item lg={8} md={6} xs={12}>
+            </Grid> */}
+            <Grid item lg={12} md={12} xs={12}>
               <Stack spacing={3}>
-                {/* Customer Information Card */}
-                <Card>
-                  <CardHeader subheader="Vui lòng điền các trường thông tin phía dưới." title="Thông tin người đăng ký" />
-                  <Divider />
-                  <CardContent>
-                    <Grid container spacing={3}>
-                      <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Họ và tên</InputLabel>
-                          <OutlinedInput
-                            label="Họ và tên"
-                            name="customer_name"
-                            value={customer.name}
-                            onChange={(e) => {
-                              !ticketHolderEditted && ticketHolders.length > 0 &&
-                                setTicketHolders((prev) => {
-                                  const updatedHolders = [...prev];
-                                  // Update the first item
-                                  updatedHolders[0] = e.target.value;
-                                  return updatedHolders;
-                                });
-                              setCustomer({ ...customer, name: e.target.value })
-                            }}                          />
-                        </FormControl>
-                      </Grid>
-                      <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Địa chỉ Email</InputLabel>
-                          <OutlinedInput
-                            label="Địa chỉ Email"
-                            name="customer_email"
-                            type="email"
-                            value={customer.email}
-                            onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
-                          />
-                        </FormControl>
-                      </Grid>
-                      <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Số điện thoại</InputLabel>
-                          <OutlinedInput
-                            label="Số điện thoại"
-                            name="customer_phone_number"
-                            type="tel"
-                            value={customer.phoneNumber}
-                            onChange={(e) => setCustomer({ ...customer, phoneNumber: e.target.value })}
-                          />
-                        </FormControl>
-                      </Grid>
-
-                      <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Địa chỉ</InputLabel>
-                          <OutlinedInput
-                            label="Địa chỉ"
-                            name="customer_address"
-                            value={customer.address}
-                            onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                          />
-                        </FormControl>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
-
-                {/* Ticket Quantity and Ticket Holders */}
-                <Card>
-                  <CardHeader
-                    title="Số lượng người tham dự"
-                    action={
-                      <OutlinedInput
-                        sx={{ maxWidth: 130 }}
-                        type="number"
-                        value={ticketQuantity}
-                        onChange={handleTicketQuantityChange}
-                        inputProps={{ min: 1 }}
-                      />
-                    }
-                  />
-                  <Divider />
-                  <CardContent>
-                    <Grid container spacing={3}>
-                      {ticketHolders.map((holder, index) => (
-                        <Grid item lg={12} xs={12} key={index}>
-                          <FormControl fullWidth required>
-                            <InputLabel>Họ và tên người tham dự {index + 1}</InputLabel>
-                            <OutlinedInput
-                              label={`Họ và tên người tham dự ${index + 1}`}
-                              value={holder}
-                              onChange={(e) => {setTicketHolderEditted(true); handleTicketHolderChange(index, e.target.value)}}
-                              />
-                          </FormControl>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </CardContent>
-                </Card>
-
-                {/* Payment Method */}
-                {totalAmount > 0 &&
-                  <Card>
-                    <CardHeader
-                      title="Phương thức thanh toán"
-                    />
-                    <Divider />
-                    <CardContent>
-                      <FormControl fullWidth>
-                        <Select
-                          name="payment_method"
-                          value={paymentMethod}
-                          onChange={(e) => setPaymentMethod(e.target.value)}
-                        >
-                          <MenuItem value="napas247" selected={true}>
-                            Chuyển khoản nhanh Napas 247
-                          </MenuItem>
-                        </Select>
-                        <FormHelperText>Tự động xuất vé khi thanh toán thành công</FormHelperText>
-                      </FormControl>
-                    </CardContent>
-                  </Card>
-                }
-                {/* Payment Summary */}
-                {Object.keys(selectedCategories).length > 0 && (
-                  <Card>
-                    <CardHeader title="Thanh toán" />
-                    <Divider />
-                    <CardContent>
-                      <Stack spacing={2}>
-                        {Object.entries(selectedCategories).map(([showId, category]) => {
-                          const show = event?.shows.find((show) => show.id === parseInt(showId));
-                          const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
-
-                          return (
-                            <Stack direction={{ xs: 'column', sm: 'row' }} key={showId} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
-                              </Stack>
-                              <Stack spacing={2} direction={'row'}>
-                                <Typography variant="body1">Giá: {formatPrice(ticketCategory?.price || 0)}</Typography>
-                                <Typography variant="body1">SL: {ticketQuantity || 0}</Typography>
-                                <Typography variant="body1">
-                                  Thành tiền: {formatPrice((ticketCategory?.price || 0) * (ticketQuantity || 0))}
-                                </Typography>
-                              </Stack>
-                            </Stack>
-                          );
-                        })}
-
-                        {/* Total Amount */}
-                        <Grid item sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng:</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                            {formatPrice(totalAmount)}
-                          </Typography>
-                        </Grid>
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                )}
-                {/* Submit Button */}
-                <Grid spacing={3} container sx={{ alignItems: 'center', mt: '3' }}>
-                  <Grid item sm={9} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
-                    <ReCAPTCHA
-                      sitekey="6LdRnq4aAAAAAFT6htBYNthM-ksGymg70CsoYqHR"
-                      ref={captchaRef}
-                    />
-                  </Grid>
-                  <Grid item sm={3} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
-                    <div>
-                      <Button variant="contained" onClick={handleSubmit}>
-                        Đăng ký
-                      </Button>
-                    </div>
-                  </Grid>
-                </Grid>
+                  <EditableGrid shows={event?.shows} />
+                
               </Stack>
             </Grid>
           </Grid>
         </Stack>
       </Container>
-
-      <Modal
-        open={openSuccessModal}
-        onClose={handleCloseSuccessModal}
-        aria-labelledby="modal-modal-title"
-        aria-describedby="modal-modal-description"
-      >
-        <Container maxWidth="xl">
-          <Card sx={{
-            scrollBehavior: 'smooth',
-            backgroundColor: '#d1f9db',
-            backgroundImage: `linear-gradient(356deg, #d1f9db 0%, #fffed9 100%)`,
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: { sm: '500px', xs: '90%' },
-            bgcolor: 'background.paper',
-            boxShadow: 24,
-          }}>
-            <CardContent>
-              <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} sx={{ display: 'flex', justifyContent: 'center' }}>
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <div style={{ width: '150px', height: '150px', borderRadius: '20px', }}>
-                    <DotLottieReact
-                      src="/assets/animations/ticket-gold.lottie"
-                      loop
-                      width={'100%'}
-                      height={'100%'}
-                      style={{
-                        borderRadius: '20px'
-                      }}
-                      autoplay
-                    />
-                  </div>
-                </div>
-                <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
-                  <Typography variant="h5">Đăng ký thành công !</Typography>
-                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn quý khách đã sử dụng ETIK. Nếu quý khách cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
-                </Stack>
-              </Stack>
-              <div style={{ marginTop: '20px', justifyContent: 'center' }}>
-                <Button fullWidth variant='contained' size="small" endIcon={<ArrowRight />} onClick={() => setOpenSuccessModal(false)} >
-                  Khám phá trang thông tin sự kiện.
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </Container>
-      </Modal>
     </div>
   );
 }

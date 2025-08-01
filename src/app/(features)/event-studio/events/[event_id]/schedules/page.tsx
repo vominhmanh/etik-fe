@@ -32,24 +32,8 @@ import NotificationContext from '@/contexts/notification-context';
 import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
 import { Pencil } from '@phosphor-icons/react/dist/ssr';
 
-const statusMap = {
-  not_opened_for_sale: { label: 'Chưa mở bán', color: 'secondary' },
-  on_sale: { label: 'Đang mở bán', color: 'success' },
-  out_of_stock: { label: 'Đã hết', color: 'secondary' },
-  temporarily_locked: { label: 'Đang tạm khoá', color: 'warning' },
-};
-
-const typeMap = {
-  private: { label: 'Nội bộ', color: 'warning' },
-  public: { label: 'Công khai', color: 'primary' },
-};
-
-type ColorMap = {
-  [key: number]: string
-}
-
 const colorMap: ColorMap = {
-    0: deepOrange[500],
+  0: deepOrange[500],
   1: deepPurple[500],
   2: green[500],
   3: cyan[500],
@@ -63,9 +47,29 @@ export type Show = {
   id: number;
   eventId: number;
   name: string;
+  type: string;
+  status: string;
+  disabled: boolean;
   startDateTime: Date | null;
   endDateTime: Date | null;
 };
+
+const statusMap = {
+  not_opened_for_sale: { label: 'Trạng thái: Chưa mở bán', color: 'secondary' },
+  on_sale: { label: 'Trạng thái: Đang mở bán', color: 'success' },
+  out_of_stock: { label: 'Trạng thái: Đã hết', color: 'secondary' },
+  temporarily_locked: { label: 'Trạng thái: Đang tạm khoá', color: 'warning' },
+};
+
+const typeMap = {
+  private: { label: 'Nội bộ', color: 'warning' },
+  public: { label: 'Công khai', color: 'primary' },
+};
+
+type ColorMap = {
+  [key: number]: string
+}
+
 
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   React.useEffect(() => {
@@ -140,9 +144,24 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       <Typography align="left" variant="h6">
                         {show.name}
                       </Typography>
-                      <Typography align="left" variant="body2">
-                        Được tạo tự động
-                      </Typography>
+                      <Stack sx={{ alignItems: 'center', flexWrap: 'wrap' }} direction="row" spacing={1}>
+                        <Chip
+                          label={statusMap[show.status]?.label}
+                          color={statusMap[show.status]?.color}
+                          size="small"
+                        />
+                        <Chip
+                          label={typeMap[show.type]?.label}
+                          color={typeMap[show.type]?.color}
+                          size="small"
+                        />
+                        {show.disabled === true &&
+                          <Chip
+                            label={'Đang khóa bởi hệ thống'}
+                            color={'secondary'}
+                            size="small"
+                          />}
+                      </Stack>
                     </Stack>
                   </Stack>
                   <Stack direction="column" spacing={2} sx={{ alignItems: 'left', mt: 2 }}>

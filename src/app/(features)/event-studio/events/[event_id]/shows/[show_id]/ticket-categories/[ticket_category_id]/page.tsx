@@ -245,7 +245,7 @@ export default function Page({
                           <MenuItem value="private">Nội bộ</MenuItem>
                           <MenuItem value="public">Công khai</MenuItem>
                         </Select>
-                        <FormHelperText>Vé công khai: Cho phép Người mua tự truy cập và mua vé này</FormHelperText>
+                        <FormHelperText>Chế độ công khai: Cho phép Người mua nhìn thấy và mua vé này</FormHelperText>
                       </FormControl>
                     </Grid>
                     {formData.type === 'public' && (

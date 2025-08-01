@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, CardMedia, Container, FormHelperText, InputAdornment, Modal } from '@mui/material';
+import { Avatar, Box, CardMedia, Container, FormHelperText, InputAdornment, Modal, keyframes } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -33,7 +33,6 @@ import ReCAPTCHA from 'react-google-recaptcha';
 import NotificationContext from '@/contexts/notification-context';
 
 import { Schedules } from './schedules';
-import { TicketCategories } from './ticket-categories';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 export type TicketCategory = {
@@ -51,6 +50,7 @@ export type TicketCategory = {
 export type Show = {
   id: number;
   name: string;
+  type: string;
   status: string;
   disabled: boolean;
   avatar: string | null;
@@ -80,7 +80,14 @@ const options = {
   maximumAge: 0,
 };
 
-export default function Page({ params }: { params: { event_slug: string } }): React.JSX.Element {
+const blink = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+`;
+
+
+export default function Page(): React.JSX.Element {
+  const params = { event_slug: 'tft-hon-chien-day-1' }
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
@@ -103,7 +110,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   React.useEffect(() => {
     document.title = `Sự kiện ${event?.name} | ETIK - Vé điện tử & Quản lý sự kiện`;
   }, [event]);
-  
+
   const totalAmount = React.useMemo(() => {
     return Object.entries(selectedCategories).reduce((total, [showId, category]) => {
       const show = event?.shows.find((show) => show.id === parseInt(showId));
@@ -169,8 +176,8 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   };
 
   const handleSubmit = async () => {
-    if (!customer.name || !customer.email || !customer.address || ticketQuantity <= 0) {
-      notificationCtx.warning('Vui lòng điền các trường thông tin bắt buộc');
+    if (!customer.name && !customer.address) {
+      notificationCtx.warning('Vui lòng điền ít nhất một thông tin');
       return;
     }
 
@@ -180,47 +187,47 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       return;
     }
 
-    if (Object.keys(selectedCategories).length == 0) {
-      notificationCtx.warning('Vui lòng chọn ít nhất 1 loại vé');
+    if (Object.keys(selectedSchedules).length == 0) {
+      notificationCtx.warning('Vui lòng chọn lịch');
       return;
     }
 
-    const emptyTicketShowIds = Object.entries(selectedCategories).filter(([showId, ticketCategoryId]) => (ticketCategoryId == null)).map(([showId, ticketCategoryId]) => (Number.parseInt(showId)));
-    if (emptyTicketShowIds.length > 0) {
-      const emptyTicketNames = event?.shows.filter(show => emptyTicketShowIds.includes(show.id)).map(show => show.name)
-      notificationCtx.warning(`Vui lòng chọn loại vé cho ${emptyTicketNames?.join(', ')}`);
-      return;
-    }
+    // const emptyTicketShowIds = Object.entries(selectedCategories).filter(([showId, ticketCategoryId]) => (ticketCategoryId == null)).map(([showId, ticketCategoryId]) => (Number.parseInt(showId)));
+    // if (emptyTicketShowIds.length > 0) {
+    //   const emptyTicketNames = event?.shows.filter(show => emptyTicketShowIds.includes(show.id)).map(show => show.name)
+    //   notificationCtx.warning(`Vui lòng chọn loại vé cho ${emptyTicketNames?.join(', ')}`);
+    //   return;
+    // }
     try {
       setIsLoading(true);
 
-      const tickets = Object.entries(selectedCategories).map(([showId, ticketCategoryId]) => ({
-        showId: parseInt(showId),
-        ticketCategoryId,
-      }));
+      // const tickets = Object.entries(selectedCategories).map(([showId, ticketCategoryId]) => ({
+      //   showId: parseInt(showId),
+      //   ticketCategoryId,
+      // }));
 
-      const transactionData = {
-        customer,
-        tickets,
-        paymentMethod,
-        ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
-        quantity: ticketQuantity,
-        captchaValue,
-        "latitude": position?.latitude,
-        "longitude": position?.longitude
-      };
+      // const transactionData = {
+      //   customer,
+      //   tickets,
+      //   paymentMethod,
+      //   ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
+      //   quantity: ticketQuantity,
+      //   captchaValue,
+      //   "latitude": position?.latitude,
+      //   "longitude": position?.longitude
+      // };
 
-      const response = await baseHttpServiceInstance.post(
-        `/marketplace/events/${params.event_slug}/transactions`,
-        transactionData
-      );
+      // const response = await baseHttpServiceInstance.post(
+      //   `/marketplace/events/${params.event_slug}/transactions`,
+      //   transactionData
+      // );
       // notificationCtx.success('Transaction created successfully!');
       setOpenSuccessModal(true)
 
-      // Redirect to the payment checkout URL
-      if (response.data.paymentCheckoutUrl) {
-        window.location.href = response.data.paymentCheckoutUrl;
-      }
+      // // Redirect to the payment checkout URL
+      // if (response.data.paymentCheckoutUrl) {
+      //   window.location.href = response.data.paymentCheckoutUrl;
+      // }
     } catch (error) {
       notificationCtx.error('Lỗi:', error);
     } finally {
@@ -313,15 +320,10 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                     <Stack direction="row" spacing={1}>
                       <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.place ? `${event?.place}`: 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank'>Xem bản đồ</a>}
+                        {event?.place ? `${event?.place}` : 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank'>Xem bản đồ</a>}
                       </Typography>
                     </Stack>
                   </Stack>
-                  <div style={{ marginTop: '20px' }}>
-                    <Button fullWidth variant="contained" href={`#registration`} size="small" startIcon={<UserPlus />}>
-                      Đăng ký ngay
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
             </Grid>
@@ -360,29 +362,47 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
           ></div>
           <Stack direction="row" spacing={3}>
             <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-              <Typography variant="h6">Đăng ký tham dự</Typography>
+              <Typography variant="h6">Tìm kiếm vị trí ngồi của bạn</Typography>
             </Stack>
           </Stack>
           <Grid container spacing={3}>
             <Grid item lg={4} md={6} xs={12}>
               <Stack spacing={3}>
                 <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
-                {selectedSchedules && selectedSchedules.map(show => (
-                  <TicketCategories key={show.id} show={show} onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
-                  />
-                ))}
               </Stack>
             </Grid>
             <Grid item lg={8} md={6} xs={12}>
               <Stack spacing={3}>
                 {/* Customer Information Card */}
                 <Card>
-                  <CardHeader subheader="Vui lòng điền các trường thông tin phía dưới." title="Thông tin người đăng ký" />
+                  <CardHeader subheader="Vui lòng điền một trong các trường thông tin phía dưới." title="Thông tin người chơi" />
                   <Divider />
                   <CardContent>
                     <Grid container spacing={3}>
-                      <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth required>
+                      <Grid item lg={3} xs={12}>
+                        <FormControl fullWidth>
+                          <InputLabel>Số báo danh</InputLabel>
+                          <OutlinedInput
+                            label="Số báo danh"
+                            name="customer_address"
+                            value={customer.address}
+                            onChange={(e) => {
+                              !ticketHolderEditted && ticketHolders.length > 0 &&
+                                setTicketHolders((prev) => {
+                                  const updatedHolders = [...prev];
+                                  // Update the first item
+                                  updatedHolders[0] = e.target.value;
+                                  return updatedHolders;
+                                });
+                              setCustomer({ ...customer, address: e.target.value })
+                            }} />
+                        </FormControl>
+                      </Grid>
+                      <Grid item lg={1} xs={12} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body2">Hoặc</Typography>
+                      </Grid>
+                      <Grid item lg={8} xs={12}>
+                        <FormControl fullWidth>
                           <InputLabel>Họ và tên</InputLabel>
                           <OutlinedInput
                             label="Họ và tên"
@@ -397,144 +417,14 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                                   return updatedHolders;
                                 });
                               setCustomer({ ...customer, name: e.target.value })
-                            }}                          />
-                        </FormControl>
-                      </Grid>
-                      <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Địa chỉ Email</InputLabel>
-                          <OutlinedInput
-                            label="Địa chỉ Email"
-                            name="customer_email"
-                            type="email"
-                            value={customer.email}
-                            onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
-                          />
-                        </FormControl>
-                      </Grid>
-                      <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Số điện thoại</InputLabel>
-                          <OutlinedInput
-                            label="Số điện thoại"
-                            name="customer_phone_number"
-                            type="tel"
-                            value={customer.phoneNumber}
-                            onChange={(e) => setCustomer({ ...customer, phoneNumber: e.target.value })}
-                          />
-                        </FormControl>
-                      </Grid>
-
-                      <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Địa chỉ</InputLabel>
-                          <OutlinedInput
-                            label="Địa chỉ"
-                            name="customer_address"
-                            value={customer.address}
-                            onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                          />
+                            }} />
                         </FormControl>
                       </Grid>
                     </Grid>
                   </CardContent>
                 </Card>
 
-                {/* Ticket Quantity and Ticket Holders */}
-                <Card>
-                  <CardHeader
-                    title="Số lượng người tham dự"
-                    action={
-                      <OutlinedInput
-                        sx={{ maxWidth: 130 }}
-                        type="number"
-                        value={ticketQuantity}
-                        onChange={handleTicketQuantityChange}
-                        inputProps={{ min: 1 }}
-                      />
-                    }
-                  />
-                  <Divider />
-                  <CardContent>
-                    <Grid container spacing={3}>
-                      {ticketHolders.map((holder, index) => (
-                        <Grid item lg={12} xs={12} key={index}>
-                          <FormControl fullWidth required>
-                            <InputLabel>Họ và tên người tham dự {index + 1}</InputLabel>
-                            <OutlinedInput
-                              label={`Họ và tên người tham dự ${index + 1}`}
-                              value={holder}
-                              onChange={(e) => {setTicketHolderEditted(true); handleTicketHolderChange(index, e.target.value)}}
-                              />
-                          </FormControl>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </CardContent>
-                </Card>
 
-                {/* Payment Method */}
-                {totalAmount > 0 &&
-                  <Card>
-                    <CardHeader
-                      title="Phương thức thanh toán"
-                    />
-                    <Divider />
-                    <CardContent>
-                      <FormControl fullWidth>
-                        <Select
-                          name="payment_method"
-                          value={paymentMethod}
-                          onChange={(e) => setPaymentMethod(e.target.value)}
-                        >
-                          <MenuItem value="napas247" selected={true}>
-                            Chuyển khoản nhanh Napas 247
-                          </MenuItem>
-                        </Select>
-                        <FormHelperText>Tự động xuất vé khi thanh toán thành công</FormHelperText>
-                      </FormControl>
-                    </CardContent>
-                  </Card>
-                }
-                {/* Payment Summary */}
-                {Object.keys(selectedCategories).length > 0 && (
-                  <Card>
-                    <CardHeader title="Thanh toán" />
-                    <Divider />
-                    <CardContent>
-                      <Stack spacing={2}>
-                        {Object.entries(selectedCategories).map(([showId, category]) => {
-                          const show = event?.shows.find((show) => show.id === parseInt(showId));
-                          const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
-
-                          return (
-                            <Stack direction={{ xs: 'column', sm: 'row' }} key={showId} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
-                              </Stack>
-                              <Stack spacing={2} direction={'row'}>
-                                <Typography variant="body1">Giá: {formatPrice(ticketCategory?.price || 0)}</Typography>
-                                <Typography variant="body1">SL: {ticketQuantity || 0}</Typography>
-                                <Typography variant="body1">
-                                  Thành tiền: {formatPrice((ticketCategory?.price || 0) * (ticketQuantity || 0))}
-                                </Typography>
-                              </Stack>
-                            </Stack>
-                          );
-                        })}
-
-                        {/* Total Amount */}
-                        <Grid item sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng:</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                            {formatPrice(totalAmount)}
-                          </Typography>
-                        </Grid>
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                )}
                 {/* Submit Button */}
                 <Grid spacing={3} container sx={{ alignItems: 'center', mt: '3' }}>
                   <Grid item sm={9} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
@@ -546,7 +436,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   <Grid item sm={3} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
                     <div>
                       <Button variant="contained" onClick={handleSubmit}>
-                        Đăng ký
+                        Tìm kiếm
                       </Button>
                     </div>
                   </Grid>
@@ -577,7 +467,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
             boxShadow: 24,
           }}>
             <CardContent>
-              <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} sx={{ display: 'flex', justifyContent: 'center' }}>
+              <Stack spacing={3} direction={{ sm: 'column', xs: 'column' }} sx={{ display: 'flex', justifyContent: 'center' }}>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <div style={{ width: '150px', height: '150px', borderRadius: '20px', }}>
                     <DotLottieReact
@@ -592,16 +482,40 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                     />
                   </div>
                 </div>
-                <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
-                  <Typography variant="h5">Đăng ký thành công !</Typography>
-                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn quý khách đã sử dụng ETIK. Nếu quý khách cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
+                <Stack spacing={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
+                  <Typography variant="h6">{selectedSchedules.length > 0 ? selectedSchedules[0].name : ''}: {customer.address || '019'} - {customer.name || "Bùi Quang Minh"}</Typography>
+                  <Typography variant="h5">Bàn P</Typography>
+
+                  <Box position="relative" display="inline-block">
+                    <Box
+                      component="img"
+                      src="/assets/tft_map.jpg"
+                      sx={{
+                        borderRadius: 1,
+                        height: '250px',
+                        width: 'auto',
+                        display: 'block',
+                      }}
+                    />
+
+                    {/* Blinking white circle */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: '35%', // Change as needed
+                        left: '40%', // Change as needed
+                        width: 15,
+                        height: 15,
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        animation: `${blink} 1s infinite`,
+                        boxShadow: '0 0 10px white',
+                      }}
+                    />
+                  </Box>
+                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn bạn đã tham gia TFT Hỗn chiến - mùa 2. Nếu bạn cần hỗ trợ thêm, vui lòng liên hệ ban tổ chức hoặc gửi yêu cầu <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
                 </Stack>
               </Stack>
-              <div style={{ marginTop: '20px', justifyContent: 'center' }}>
-                <Button fullWidth variant='contained' size="small" endIcon={<ArrowRight />} onClick={() => setOpenSuccessModal(false)} >
-                  Khám phá trang thông tin sự kiện.
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </Container>
