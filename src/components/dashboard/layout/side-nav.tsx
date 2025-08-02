@@ -281,7 +281,7 @@ export function SideNav(): React.JSX.Element {
               href={`/event-studio/events/${dynamicId}/roles`}
               icon={UsersIcon}
             />
-            <NavItemCollapse pathname={pathname} key="role" title="Email" icon={Mailbox}>
+            <NavItemCollapse pathname={pathname} key="email" title="Email" icon={Mailbox}>
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="email-template-1"
@@ -297,7 +297,7 @@ export function SideNav(): React.JSX.Element {
                 icon={PlusIcon}
               />
             </NavItemCollapse>
-            <NavItemCollapse pathname={pathname} key="role" title="Mini App" icon={SquaresFour}>
+            <NavItemCollapse pathname={pathname} key="mini-app" title="Mini App" icon={SquaresFour}>
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="email-template-1"
@@ -314,7 +314,7 @@ export function SideNav(): React.JSX.Element {
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
-                key="email-template-2"
+                key="email-template-3"
                 title="Lucky number"
                 href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-draw`}
                 icon={SpinnerBall}

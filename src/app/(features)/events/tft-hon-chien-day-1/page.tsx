@@ -59,6 +59,13 @@ export type Show = {
   ticketCategories: TicketCategory[];
 };
 
+export interface SearchTransactionDTO {
+  transaction_id: number;
+  address: string;
+  name: string;
+  ticket_category: { id: number; name: string };
+}
+
 export type EventResponse = {
   name: string;
   organizer: string;
@@ -106,6 +113,9 @@ export default function Page(): React.JSX.Element {
   const [position, setPosition] = React.useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
   const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
   const [ticketHolderEditted, setTicketHolderEditted] = React.useState<boolean>(false);
+  const [ticketCategoryName, setTicketCategoryName] = React.useState<string>('');
+  const [searchingAddress, setSearchingAddress] = React.useState<string>('');
+  const [searchingName, setSearchingName] = React.useState<string>('');
 
   React.useEffect(() => {
     document.title = `Sự kiện ${event?.name} | ETIK - Vé điện tử & Quản lý sự kiện`;
@@ -176,6 +186,7 @@ export default function Page(): React.JSX.Element {
   };
 
   const handleSubmit = async () => {
+    
     if (!customer.name && !customer.address) {
       notificationCtx.warning('Vui lòng điền ít nhất một thông tin');
       return;
@@ -192,42 +203,26 @@ export default function Page(): React.JSX.Element {
       return;
     }
 
-    // const emptyTicketShowIds = Object.entries(selectedCategories).filter(([showId, ticketCategoryId]) => (ticketCategoryId == null)).map(([showId, ticketCategoryId]) => (Number.parseInt(showId)));
-    // if (emptyTicketShowIds.length > 0) {
-    //   const emptyTicketNames = event?.shows.filter(show => emptyTicketShowIds.includes(show.id)).map(show => show.name)
-    //   notificationCtx.warning(`Vui lòng chọn loại vé cho ${emptyTicketNames?.join(', ')}`);
-    //   return;
-    // }
     try {
       setIsLoading(true);
+      // Pick the first selected show
+      const showId = selectedSchedules[0].id;
 
-      // const tickets = Object.entries(selectedCategories).map(([showId, ticketCategoryId]) => ({
-      //   showId: parseInt(showId),
-      //   ticketCategoryId,
-      // }));
-
-      // const transactionData = {
-      //   customer,
-      //   tickets,
-      //   paymentMethod,
-      //   ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
-      //   quantity: ticketQuantity,
-      //   captchaValue,
-      //   "latitude": position?.latitude,
-      //   "longitude": position?.longitude
-      // };
-
-      // const response = await baseHttpServiceInstance.post(
-      //   `/marketplace/events/${params.event_slug}/transactions`,
-      //   transactionData
-      // );
-      // notificationCtx.success('Transaction created successfully!');
+      // Call your search-transaction endpoint
+      const res: AxiosResponse<SearchTransactionDTO> = await baseHttpServiceInstance.get('/special_events/tft-2025/search-transaction', {
+        params: {
+          show_id: showId,
+          // prefer address if filled, otherwise search by name
+          captcha: captchaValue,      
+          address: customer.address || undefined,
+          name: !customer.address ? customer.name : undefined,
+        },
+      });
+      setSearchingAddress(res.data.address)
+      setSearchingName(res.data.name)
+      setTicketCategoryName(res.data.ticket_category.name);
       setOpenSuccessModal(true)
 
-      // // Redirect to the payment checkout URL
-      // if (response.data.paymentCheckoutUrl) {
-      //   window.location.href = response.data.paymentCheckoutUrl;
-      // }
     } catch (error) {
       notificationCtx.error('Lỗi:', error);
     } finally {
@@ -403,9 +398,9 @@ export default function Page(): React.JSX.Element {
                       </Grid>
                       <Grid item lg={8} xs={12}>
                         <FormControl fullWidth>
-                          <InputLabel>Họ và tên</InputLabel>
+                          <InputLabel>Tên đội thi đấu</InputLabel>
                           <OutlinedInput
-                            label="Họ và tên"
+                            label="Tên đội thi đấu"
                             name="customer_name"
                             value={customer.name}
                             onChange={(e) => {
@@ -468,23 +463,11 @@ export default function Page(): React.JSX.Element {
           }}>
             <CardContent>
               <Stack spacing={3} direction={{ sm: 'column', xs: 'column' }} sx={{ display: 'flex', justifyContent: 'center' }}>
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <div style={{ width: '150px', height: '150px', borderRadius: '20px', }}>
-                    <DotLottieReact
-                      src="/assets/animations/ticket-gold.lottie"
-                      loop
-                      width={'100%'}
-                      height={'100%'}
-                      style={{
-                        borderRadius: '20px'
-                      }}
-                      autoplay
-                    />
-                  </div>
-                </div>
                 <Stack spacing={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
-                  <Typography variant="h6">{selectedSchedules.length > 0 ? selectedSchedules[0].name : ''}: {customer.address || '019'} - {customer.name || "Bùi Quang Minh"}</Typography>
-                  <Typography variant="h5">Bàn P</Typography>
+                  <Typography variant="h4">{ `${ticketCategoryName || 'Không tìm thấy bàn'}`}</Typography>
+                  <Typography variant="h6">Số báo danh: {searchingAddress}</Typography>
+                  <Typography variant="h6">Tên đội thi đấu: {searchingName}</Typography>
+                  
 
                   <Box position="relative" display="inline-block">
                     <Box
@@ -513,7 +496,7 @@ export default function Page(): React.JSX.Element {
                       }}
                     />
                   </Box>
-                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn bạn đã tham gia TFT Hỗn chiến - mùa 2. Nếu bạn cần hỗ trợ thêm, vui lòng liên hệ ban tổ chức hoặc gửi yêu cầu <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
+                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn bạn đã tham gia TFT Hỗn chiến - mùa 2. Nếu bạn cần hỗ trợ thêm, vui lòng liên hệ trọng tài giải đấu.</Typography>
                 </Stack>
               </Stack>
             </CardContent>

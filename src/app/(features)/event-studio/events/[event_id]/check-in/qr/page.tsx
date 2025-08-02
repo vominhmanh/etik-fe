@@ -383,7 +383,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     <>
       <Stack spacing={3}>
         <div>
-          <Typography variant="h4">Check-in sự kiện</Typography>
+          <Typography variant="h4">Check-in tuyển thủ tại bàn</Typography>
         </div>
         <Grid container spacing={3}>
           <Grid item lg={5} md={5} xs={12} spacing={3}>

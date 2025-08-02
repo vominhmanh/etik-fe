@@ -209,7 +209,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                     }}
                                     variant="square"
                                   >
-                                    {ticketCategory.avatar ? '' : ticketCategory.name[0]}
+                                    {ticketCategory.avatar ? '' : ticketCategory.name[ticketCategory.name.length - 1]}
                                   </Avatar>
                                 </Box>
                                 <Stack spacing={1}>

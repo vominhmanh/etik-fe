@@ -252,7 +252,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               icon={PlusIcon}
             />
           </NavItemCollapse>
-          <NavItemCollapse pathname={pathname} key="role" title="Mini App" icon={SquaresFour}>
+          <NavItemCollapse pathname={pathname} key="mini-app" title="Mini App" icon={SquaresFour}>
             <NavItemCollapseChildItem
               pathname={pathname}
               key="email-template-1"
@@ -269,7 +269,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             />
             <NavItemCollapseChildItem
               pathname={pathname}
-              key="email-template-2"
+              key="email-template-3"
               title="Lucky number"
               href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-draw`}
               icon={SpinnerBall}

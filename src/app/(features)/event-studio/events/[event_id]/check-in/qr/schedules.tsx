@@ -19,7 +19,7 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
 
   return (
     <Card>
-      <CardHeader title="Chọn lịch" />
+      <CardHeader title="Chọn game đấu" />
       <Divider />
       <List>
         {shows.map((show) => (

@@ -334,11 +334,6 @@ export default function Page(): React.JSX.Element {
                       </Typography>
                     </Stack>
                   </Stack>
-                  <div style={{ marginTop: '20px' }}>
-                    <Button fullWidth variant="contained" href={`#registration`} size="small" startIcon={<UserPlus />}>
-                      Đăng ký ngay
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
             </Grid>
