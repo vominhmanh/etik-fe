@@ -34,9 +34,9 @@ interface EditableGridProps {
 
 const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
   const makeEmpty = (cols: number): Cell[][] =>
-    Array.from({ length: 8 }, () => Array.from({ length: cols }, () => ({ value: '' })));
+    Array.from({ length: 4 }, () => Array.from({ length: cols }, () => ({ value: '' })));
   const makeSelEmpty = (cols: number): boolean[][] =>
-    Array.from({ length: 8 }, () => Array.from({ length: cols }, () => false));
+    Array.from({ length: 4 }, () => Array.from({ length: cols }, () => false));
 
   const [sheets, setSheets] = useState<{
     name: string;
