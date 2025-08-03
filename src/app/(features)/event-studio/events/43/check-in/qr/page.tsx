@@ -159,7 +159,8 @@ const getSentEmailTicketStatusDetails = (status: string): { label: string, color
   }
 };
 
-export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+export default function Page(): React.JSX.Element {
+  const params = { event_id: 43 }
   React.useEffect(() => {
     document.title = "Soát vé bằng mã QR | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
@@ -399,10 +400,10 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   }));
 
   return (
-    <>
+    <Container maxWidth="xl" sx={{ py: '64px' }}>
       <Stack spacing={3}>
         <div>
-          <Typography variant="h4">Check-in sự kiện {event?.name}</Typography>
+          <Typography variant="h4">Checkin tuyển thủ tại bàn đấu</Typography>
         </div>
         <Grid container spacing={3}>
           <Grid item lg={5} md={5} xs={12} spacing={3}>
@@ -471,31 +472,22 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
               <>
                 <Stack spacing={1}>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Họ tên:</Typography>
+                    <Typography variant="body1">Tên đội:</Typography>
                     <Typography variant="body1">{trxn?.name}</Typography>
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Ngày sinh:</Typography>
-                    <Typography variant="body1">{trxn?.dob ? dayjs(trxn?.dob || 0).format('DD/MM/YYYY') : `__/__/____`}</Typography>
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Email:</Typography>
                     <Typography variant="body1">{trxn?.email} <IconButton size='small' target='_blank' component={RouterLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}`}><ArrowSquareIn /></IconButton></Typography>
                   </Grid>
+
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Số điện thoại:</Typography>
-                    <Typography variant="body1">{trxn?.phoneNumber}</Typography>
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Địa chỉ:</Typography>
+                    <Typography variant="body1">Số báo danh:</Typography>
                     <Typography variant="body1">{trxn?.address && trxn?.address.length > 30 ? trxn?.address.substring(0, 30) + '...' : trxn?.address}</Typography>
                   </Grid>
                   <Divider />
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1" fontWeight="bold">Danh sách vé đang có:</Typography>
-                    <Typography variant="body1">{trxn?.ticketQuantity}</Typography>
+                  <Grid container justifyContent="left">
+                    <Typography variant="body1" fontWeight="bold">Danh sách lịch thi đấu đang có:</Typography>
                   </Grid>
-
                   <div>
                     {trxn?.transactionTicketCategories?.map((category) => {
                       const accordionKey = `${category.ticketCategory.show.id}-${category.ticketCategory.id}`;
@@ -550,31 +542,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       );
                     })}
                   </div>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái giao dịch:</Typography>
-                    <Chip
-                      size='small'
-                      color={getRowStatusDetails(trxn?.status || '').color}
-                      label={getRowStatusDetails(trxn?.status || '').label}
-                    />
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái thanh toán:</Typography>
-                    <Chip
-                      size='small'
-                      color={getPaymentStatusDetails(trxn?.paymentStatus || '').color}
-                      label={getPaymentStatusDetails(trxn?.paymentStatus || '').label}
-                    />
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái xuất vé:</Typography>
-                    <Chip
-                      size='small'
-                      color={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').color}
-                      label={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').label}
-                    />
-                  </Grid>
-
                   <Divider />
 
 
@@ -624,7 +591,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         </Container>
       </SwipeableDrawer >
 
-    </>
+    </Container>
   );
 }
 

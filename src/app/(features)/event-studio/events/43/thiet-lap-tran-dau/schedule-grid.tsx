@@ -381,9 +381,9 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
                           </div>
                           <div>
                             {cell.value && (
-                              <small style={{color: cell.ticketCheckIn ? green[500] : red[500]}}>
+                              <Typography variant='caption' sx={{color: cell.ticketCheckIn ? green[500] : red[500]}}>
                                 {cell.ticketCheckIn ? 'Đã check-in' : 'Chưa check-in'}
-                              </small>
+                              </Typography>
                             )}
                           </div>
 

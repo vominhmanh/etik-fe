@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, CardMedia, Container, FormHelperText, InputAdornment, Modal, keyframes } from '@mui/material';
+import { Avatar, Box, CardMedia, Container, FormHelperText, InputAdornment, Modal, Table, TableBody, TableCell, TableRow, keyframes } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -92,6 +92,25 @@ const blink = keyframes`
   50% { opacity: 0; }
 `;
 
+const coordsMap: Record<string, { top: string; left: string}> = {
+  "Bàn 1": { top: "42%", left: "45%" },
+  "Bàn 2": { top: "49%", left: "25.5%" },
+  "Bàn 3": { top: "37%", left: "25.5%" },
+  "Bàn 4": { top: "28.5%", left: "36.5%" },
+  "Bàn 5": { top: "28.5%", left: "53%" },
+  "Bàn 6": { top: "37%", left: "65%" },
+  "Bàn 7": { top: "48%", left: "65.5%" },
+  "Bàn 8": { top: "17.5%", left: "44.5%" },
+  "Bàn 9": { top: "56%", left: "14%" },
+  "Bàn 10": { top: "42.5%", left: "11%" },
+  "Bàn 11": { top: "29.5%", left: "13%" },
+  "Bàn 12": { top: "19.5%", left: "27%" },
+  "Bàn 13": { top: "19.5%", left: "60.5%" },
+  "Bàn 14": { top: "29.5%", left: "74.5%" },
+  "Bàn 15": { top: "42.8%", left: "78%" },
+  "Bàn 16": { top: "55.8%", left: "75%" },
+  "Bàn 17": { top: "87.8%", left: "14%" },
+};
 
 export default function Page(): React.JSX.Element {
   const params = { event_slug: 'tft-hon-chien-day-1' }
@@ -108,7 +127,6 @@ export default function Page(): React.JSX.Element {
   const [ticketHolders, setTicketHolders] = React.useState<string[]>(['']);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [selectedSchedules, setSelectedSchedules] = React.useState<Show[]>([]);
   const captchaRef = React.useRef<ReCAPTCHA | null>(null);
   const [position, setPosition] = React.useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
   const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
@@ -116,6 +134,12 @@ export default function Page(): React.JSX.Element {
   const [ticketCategoryName, setTicketCategoryName] = React.useState<string>('');
   const [searchingAddress, setSearchingAddress] = React.useState<string>('');
   const [searchingName, setSearchingName] = React.useState<string>('');
+  const [selectedSchedules, setSelectedSchedules] = React.useState<Show[]>([]);
+  const coords = coordsMap[ticketCategoryName] || { top: "0%", left: "0%" };
+
+  React.useEffect(() => {
+    console.log('Selected table:', ticketCategoryName, '→ coords:', coords);
+  }, [ticketCategoryName, coords]);
 
   React.useEffect(() => {
     document.title = `Sự kiện ${event?.name} | ETIK - Vé điện tử & Quản lý sự kiện`;
@@ -186,7 +210,7 @@ export default function Page(): React.JSX.Element {
   };
 
   const handleSubmit = async () => {
-    
+
     if (!customer.name && !customer.address) {
       notificationCtx.warning('Vui lòng điền ít nhất một thông tin');
       return;
@@ -213,7 +237,7 @@ export default function Page(): React.JSX.Element {
         params: {
           show_id: showId,
           // prefer address if filled, otherwise search by name
-          captcha: captchaValue,      
+          captcha: captchaValue,
           address: customer.address || undefined,
           name: !customer.address ? customer.name : undefined,
         },
@@ -464,10 +488,37 @@ export default function Page(): React.JSX.Element {
             <CardContent>
               <Stack spacing={3} direction={{ sm: 'column', xs: 'column' }} sx={{ display: 'flex', justifyContent: 'center' }}>
                 <Stack spacing={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
-                  <Typography variant="h4">{ `${ticketCategoryName || 'Không tìm thấy bàn'}`}</Typography>
-                  <Typography variant="h6">Số báo danh: {searchingAddress}</Typography>
-                  <Typography variant="h6">Tên đội thi đấu: {searchingName}</Typography>
-                  
+                  <Typography variant="h4">{`${ticketCategoryName || 'Không tìm thấy bàn'}`}</Typography>
+                  <Table sx={{ backgroundColor: "transparent" }}>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell sx={{ borderBottom: "none", py: 1, textAlign: 'right' }}>
+                          <Typography variant="body1">Game đấu: </Typography>
+                        </TableCell>
+                        <TableCell sx={{ borderBottom: "none", p: 1 }}>
+                          <Typography variant="body1">{selectedSchedules.length > 0 && selectedSchedules[0].name}</Typography>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell sx={{ borderBottom: "none", p: 1, textAlign: 'right' }}>
+                          <Typography variant="body1">Số báo danh: </Typography>
+                        </TableCell>
+                        <TableCell sx={{ borderBottom: "none", p: 1 }}>
+                          <Typography variant="body1">{searchingAddress}</Typography>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell sx={{ borderBottom: "none", p: 1, textAlign: 'right' }}>
+                          <Typography variant="body1">Tên đội thi đấu: </Typography>
+                        </TableCell>
+                        <TableCell sx={{ borderBottom: "none", p: 1 }}>
+                          <Typography variant="body1">{searchingName}</Typography>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+
+
 
                   <Box position="relative" display="inline-block">
                     <Box
@@ -485,8 +536,8 @@ export default function Page(): React.JSX.Element {
                     <Box
                       sx={{
                         position: 'absolute',
-                        top: '35%', // Change as needed
-                        left: '40%', // Change as needed
+                        top: coords.top,
+                        left: coords.left,
                         width: 15,
                         height: 15,
                         borderRadius: '50%',
