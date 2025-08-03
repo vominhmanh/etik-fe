@@ -45,6 +45,7 @@ export type TicketCategory = {
 export type Show = {
   id: number;
   name: string;
+  avatar: string;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
   ticketCategories: TicketCategory[];

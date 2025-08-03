@@ -79,7 +79,7 @@ const options = {
 };
 
 export default function Page(): React.JSX.Element {
-  const params = { event_slug: 'tft-hon-chien-d1' }
+  const params = { event_slug: 'tft-hon-chien-d2' }
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);

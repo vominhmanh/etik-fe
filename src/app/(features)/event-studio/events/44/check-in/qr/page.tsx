@@ -161,7 +161,7 @@ const getSentEmailTicketStatusDetails = (status: string): { label: string, color
 };
 
 export default function Page(): React.JSX.Element {
-  const params = { event_id: 43 }
+  const params = { event_id: 44 }
   React.useEffect(() => {
     document.title = "Soát vé bằng mã QR | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);

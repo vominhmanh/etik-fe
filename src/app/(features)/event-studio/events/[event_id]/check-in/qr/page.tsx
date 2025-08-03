@@ -71,6 +71,7 @@ export interface Transaction {
 export type Show = {
   id: number;
   name: string;
+  avatar: string;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
   ticketCategories: TicketCategory[];
@@ -187,7 +188,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       if (!isCheckinControllerOpen) {
         setIsCheckinControllerOpen(true);
         setECode(result.getText());
-        getTransactionByECode(result.getText());
+        getTransactionByECode(result.getText(), true);
       }
     },
     timeBetweenDecodingAttempts: 50,
@@ -243,7 +244,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   }, [params.event_id]);
 
 
-  const getTransactionByECode = async (eCode: string) => {
+  const getTransactionByECode = async (eCode: string, firstTimeScan: boolean = false) => {
     try {
       setIsLoading(true);
       const transactionResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance
@@ -287,7 +288,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       setTicketCheckboxState(ticCheckboxState)
       // NEW: if *all* tickets are disabled, warn the user
       const allDisabled = Object.values(ticDisabledState).every(v => v === true);
-      if (allDisabled && selectedSchedule) {
+      if (allDisabled && selectedSchedule && firstTimeScan) {
         // 1. Pull the names of the selected categories for this schedule
         const invalidCats = selectedSchedule.ticketCategories
           .filter(tc =>
@@ -381,7 +382,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     if (qrManualInput) {
       setIsCheckinControllerOpen(true);
       setECode(qrManualInput);
-      getTransactionByECode(qrManualInput);
+      getTransactionByECode(qrManualInput, true);
     }
   }
 

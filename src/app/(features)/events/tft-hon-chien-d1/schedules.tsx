@@ -44,7 +44,7 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
 
   return (
     <Card>
-      <CardHeader title="Chọn lịch" />
+      <CardHeader title="Chọn trận đấu" />
       <Divider />
       <List>
         {shows.map((show) => (
@@ -74,15 +74,13 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
             </ListItemAvatar>
             <ListItemText
               primary={show.name}
-              secondary={(show.startDateTime && show.endDateTime
-                ? `${dayjs(show.startDateTime).format('HH:mm')} - ${dayjs(show.endDateTime).format('HH:mm | DD/MM/YYYY')}` : "")
-                + (show.disabled
-                  ? " | Đang khóa bởi hệ thống"
+              secondary={(show.disabled
+                  ? "Đang khóa bởi hệ thống"
                   : show.status !== "on_sale"
                     ? show.status === "not_opened_for_sale"
-                      ? " | Chưa mở"
+                      ? "Chưa mở"
                       : show.status === "temporarily_locked"
-                        ? " | Đang tạm khóa"
+                        ? "Đang tạm khóa"
                         : ""
                     : "")
               }

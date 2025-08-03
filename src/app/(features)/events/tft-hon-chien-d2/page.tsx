@@ -63,6 +63,7 @@ export interface SearchTransactionDTO {
   transaction_id: number;
   address: string;
   name: string;
+  note: string | null;
   ticket_category: { id: number; name: string };
 }
 
@@ -113,7 +114,7 @@ const coordsMap: Record<string, { top: string; left: string}> = {
 };
 
 export default function Page(): React.JSX.Element {
-  const params = { event_slug: 'tft-hon-chien-day-1' }
+  const params = { event_slug: 'tft-hon-chien-d2' }
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
@@ -134,8 +135,9 @@ export default function Page(): React.JSX.Element {
   const [ticketCategoryName, setTicketCategoryName] = React.useState<string>('');
   const [searchingAddress, setSearchingAddress] = React.useState<string>('');
   const [searchingName, setSearchingName] = React.useState<string>('');
+  const [searchingNote, setSearchingNote] = React.useState<string>('');
   const [selectedSchedules, setSelectedSchedules] = React.useState<Show[]>([]);
-  const coords = coordsMap[ticketCategoryName] || { top: "0%", left: "0%" };
+  const coords = coordsMap[ticketCategoryName] || { top: "0", left: "0" };
 
   React.useEffect(() => {
     console.log('Selected table:', ticketCategoryName, '→ coords:', coords);
@@ -178,35 +180,11 @@ export default function Page(): React.JSX.Element {
     }
   }, [params.event_slug]);
 
-
-  const handleCategorySelection = (showId: number, categoryId: number) => {
-    setSelectedCategories(prevCategories => ({
-      ...prevCategories,
-      [showId]: categoryId,
-    }));
-  };
-
   const handleSelectionChange = (selected: Show[]) => {
     setSelectedSchedules(selected);
     const tmpObj = {}
     selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || null })
     setSelectedCategories(tmpObj);
-  };
-
-  const handleTicketQuantityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const quantity = Number(event.target.value);
-    setTicketQuantity(quantity);
-    setTicketHolders(Array(quantity).fill('')); // Dynamically update ticket holders array
-  };
-
-  const handleTicketHolderChange = (index: number, value: string) => {
-    const updatedHolders = [...ticketHolders];
-    updatedHolders[index] = value;
-    setTicketHolders(updatedHolders);
-  };
-
-  const formatPrice = (price: number) => {
-    return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
   };
 
   const handleSubmit = async () => {
@@ -223,7 +201,7 @@ export default function Page(): React.JSX.Element {
     }
 
     if (Object.keys(selectedSchedules).length == 0) {
-      notificationCtx.warning('Vui lòng chọn lịch');
+      notificationCtx.warning('Vui lòng chọn trận đấu');
       return;
     }
 
@@ -244,6 +222,7 @@ export default function Page(): React.JSX.Element {
       });
       setSearchingAddress(res.data.address)
       setSearchingName(res.data.name)
+      setSearchingNote(res.data.note || '');
       setTicketCategoryName(res.data.ticket_category.name);
       setOpenSuccessModal(true)
 
@@ -422,9 +401,9 @@ export default function Page(): React.JSX.Element {
                       </Grid>
                       <Grid item lg={8} xs={12}>
                         <FormControl fullWidth>
-                          <InputLabel>Tên đội thi đấu</InputLabel>
+                          <InputLabel>Họ và tên</InputLabel>
                           <OutlinedInput
-                            label="Tên đội thi đấu"
+                            label="Họ và tên"
                             name="customer_name"
                             value={customer.name}
                             onChange={(e) => {
@@ -489,18 +468,18 @@ export default function Page(): React.JSX.Element {
               <Stack spacing={3} direction={{ sm: 'column', xs: 'column' }} sx={{ display: 'flex', justifyContent: 'center' }}>
                 <Stack spacing={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
                   <Typography variant="h4">{`${ticketCategoryName || 'Không tìm thấy bàn'}`}</Typography>
-                  <Table sx={{ backgroundColor: "transparent" }}>
+                  <Table sx={{ backgroundColor: "transparent"}}>
                     <TableBody>
                       <TableRow>
-                        <TableCell sx={{ borderBottom: "none", py: 1, textAlign: 'right' }}>
-                          <Typography variant="body1">Game đấu: </Typography>
+                        <TableCell sx={{ borderBottom: "none", p: 1, textAlign: 'left' }}>
+                          <Typography variant="body1">Game đấu:</Typography>
                         </TableCell>
                         <TableCell sx={{ borderBottom: "none", p: 1 }}>
                           <Typography variant="body1">{selectedSchedules.length > 0 && selectedSchedules[0].name}</Typography>
                         </TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell sx={{ borderBottom: "none", p: 1, textAlign: 'right' }}>
+                        <TableCell sx={{ borderBottom: "none", p: 1, textAlign: 'left' }}>
                           <Typography variant="body1">Số báo danh: </Typography>
                         </TableCell>
                         <TableCell sx={{ borderBottom: "none", p: 1 }}>
@@ -508,18 +487,25 @@ export default function Page(): React.JSX.Element {
                         </TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell sx={{ borderBottom: "none", p: 1, textAlign: 'right' }}>
-                          <Typography variant="body1">Tên đội thi đấu: </Typography>
+                        <TableCell sx={{ borderBottom: "none", p: 1, textAlign: 'left' }}>
+                          <Typography variant="body1">Họ và tên: </Typography>
                         </TableCell>
                         <TableCell sx={{ borderBottom: "none", p: 1 }}>
                           <Typography variant="body1">{searchingName}</Typography>
                         </TableCell>
                       </TableRow>
+                      <TableRow>
+                        <TableCell sx={{ borderBottom: "none", p: 1, textAlign: 'left' }}>
+                          <Typography variant="body1">RiotId: </Typography>
+                        </TableCell>
+                        <TableCell sx={{ borderBottom: "none", p: 1 }}>
+                          <Typography variant="body1">{searchingNote}</Typography>
+                        </TableCell>
+                      </TableRow>
                     </TableBody>
                   </Table>
 
-
-
+                 {coords.top !== "0" && coords.left !== "0" &&
                   <Box position="relative" display="inline-block">
                     <Box
                       component="img"
@@ -546,7 +532,7 @@ export default function Page(): React.JSX.Element {
                         boxShadow: '0 0 10px white',
                       }}
                     />
-                  </Box>
+                  </Box>}
                   <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn bạn đã tham gia TFT Hỗn chiến - mùa 2. Nếu bạn cần hỗ trợ thêm, vui lòng liên hệ trọng tài giải đấu.</Typography>
                 </Stack>
               </Stack>

@@ -808,8 +808,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           label="Trang khách hàng tự đăng ký"
                           name="slug"
                           onChange={handleInputChange}
-                          startAdornment={<InputAdornment position="start">etik.io.vn/events/</InputAdornment>}
-                          endAdornment={<IconButton size="small" onClick={() => handleCopyToClipboard(`https://etik.io.vn/events/${event?.slug}`)}><Clipboard /></IconButton>}
+                          startAdornment={<InputAdornment position="start">etik.vn/</InputAdornment>}
+                          endAdornment={<IconButton size="small" onClick={() => handleCopyToClipboard(`etik.vn/${event?.slug}`)}><Clipboard /></IconButton>}
                         />
                       </FormControl>
                     </Grid>

@@ -1,5 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [
+      {
+        // “slug” is any single path‐segment that does not begin with one of these words
+        source: '/:slug((?!account|account-event-agency|marketplace|transaction-checkout|auth|errors|event-studio|events|sso|_next|static|favicon.ico)[^/]+)',
+        destination: '/events/:slug',
+        permanent: false,    // 307 redirect; switch to `true` for a 308 permanent
+      },
+    ]
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },

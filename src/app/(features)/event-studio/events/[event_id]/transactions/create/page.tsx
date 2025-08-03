@@ -49,6 +49,7 @@ export type TicketCategory = {
 export type Show = {
   id: number;
   name: string;
+  avatar: string;
   status: string;
   type: string;
   disabled: boolean;
