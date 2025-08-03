@@ -250,7 +250,7 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
         '/special_events/tft-2025/save-sheet',
         payload
       );
-      notificationCtx.success('Đã lưu và gửi thông báo thành công');
+      notificationCtx.success('Đã lưu thành công');
 
       // update local state: mark saved & replace userList with padded values
       setSheets(prev => {
@@ -416,7 +416,7 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
       {!active.saved && (
         <Box sx={{ mt: 2 }}>
           <Button variant="contained" fullWidth onClick={handleSave}>
-            Lưu danh sách và gửi thông báo
+            Lưu danh sách
           </Button>
         </Box>
       )}

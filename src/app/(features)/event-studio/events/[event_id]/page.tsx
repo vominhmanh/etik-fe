@@ -300,10 +300,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Typography variant='caption' sx={{pl: 2, minWidth: '130px', display: 'flex', alignItems: 'center'}}>
                   Tính năng phổ biến:
                 </Typography>
-                <Button sx={{ minWidth: '130px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/${event?.slug}`}>
+                <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/${event?.slug}`} size="small">
                   Tra cứu vị trí ngồi
                 </Button>
-                <Button sx={{ minWidth: '130px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/thiet-lap-tran-dau`} size="small">
+                <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/thiet-lap-tran-dau`} size="small">
                   Thiết lập trận đấu
                 </Button>
                 <Button sx={{ minWidth: '120px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/check-in/qr`} size="small">
@@ -312,7 +312,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Button sx={{ minWidth: '120px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/shows`} size="small">
                   Thay đổi tên bàn
                 </Button>
-                <Button sx={{ minWidth: '130px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
+                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
                   Khóa/Mở khóa tra cứu
                 </Button>
               </Stack>
