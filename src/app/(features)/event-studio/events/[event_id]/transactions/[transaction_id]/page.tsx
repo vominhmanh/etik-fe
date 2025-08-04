@@ -31,7 +31,7 @@ import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import NotificationContext from '@/contexts/notification-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -274,6 +274,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
     dob: transaction?.dob || null,
     status: ''
   });
+  // grab ?checkInCode=… from the browser URL
+  const searchParams = useSearchParams()
+  const checkInCode = searchParams.get('checkInCode') || undefined
   const [selectedStatus, setSelectedStatus] = useState<string>(formData.status || '');
 
   const router = useRouter(); // Use useRouter from next/navigation
@@ -318,7 +321,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
       try {
         setIsLoading(true);
         const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${event_id}/transactions/${transaction_id}`
+          `/event-studio/events/${event_id}/transactions/${transaction_id}`,
+          {
+            params: checkInCode ? { checkInCode } : undefined,
+          }
         );
         setTransaction(response.data);
         setFormData({

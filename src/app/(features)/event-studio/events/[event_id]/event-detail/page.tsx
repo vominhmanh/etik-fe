@@ -105,7 +105,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         const data = await getSMTPSettings(params.event_id);
         if (data) setSmtpFormValues(data);
       } catch (error) {
-        notificationCtx.error("Không thể tải cấu hình SMTP.");
+        notificationCtx.error(error);
       } finally {
         setIsLoading(false);
       }
@@ -188,7 +188,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       await saveSMTPSettings(event_id, smtpFormValues);
       notificationCtx.success("Cấu hình SMTP đã được lưu thành công!");
     } catch (error) {
-      notificationCtx.error("Không thể lưu cấu hình SMTP.");
+      notificationCtx.error(error);
     } finally {
       setIsLoading(false);
     }

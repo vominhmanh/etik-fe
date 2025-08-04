@@ -46,6 +46,9 @@ export type Show = {
   id: number;
   name: string;
   avatar: string;
+  status: string;
+  type: string;
+  disabled: boolean;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
   ticketCategories: TicketCategory[];

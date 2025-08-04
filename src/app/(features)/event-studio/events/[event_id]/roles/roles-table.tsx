@@ -30,12 +30,27 @@ import { Role } from './page';
 
 
 // Function to map payment statuses to corresponding labels and colors
-const getRoleDetails = (role: string) => {
+const getRoleTags = (role: string) => {
   switch (role) {
     case 'owner':
       return { label: 'Chủ sở hữu', color: 'success' };
     case 'member':
       return { label: 'Thành viên', color: 'default' };
+    case 'supporter':
+      return { label: 'Cộng tác viên', color: 'default' };
+    default:
+      return { label: 'Unknown', color: 'default' };
+  }
+};
+
+const getDetailText = (role: string) => {
+  switch (role) {
+    case 'isCreator':
+      return { label: 'Người tạo', color: 'success' };
+    case 'allowCheckIn':
+      return { label: 'Soát vé', color: 'default' };
+    case 'allowSellTicket':
+      return { label: 'Bán vé', color: 'default' };
     default:
       return { label: 'Unknown', color: 'default' };
   }
@@ -56,17 +71,6 @@ const getRowStatusDetails = (status: string): { label: string, color: "success" 
       return { label: 'Unknown', color: 'default' };
   }
 };
-
-
-function noop(): void {
-  // do nothing
-}
-
-
-const formatPrice = (price: number) => {
-  return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
-};
-
 
 function stringToColor(string: string) {
   let hash = 0;
@@ -139,6 +143,7 @@ export function RolesTable({
               <TableCell>Email</TableCell>
               <TableCell>Tên gợi nhớ</TableCell>
               <TableCell>Quyền</TableCell>
+              <TableCell>Chi tiết</TableCell>
               <TableCell>Thời gian tạo</TableCell>
               <TableCell></TableCell>
             </TableRow>
@@ -153,20 +158,28 @@ export function RolesTable({
                       <Typography variant="subtitle2">{row.user?.email}</Typography>
                     </Stack>
                   </TableCell>
-                  <TableCell>{row.alias}</TableCell>                    
+                  <TableCell>{row.alias}</TableCell>
                   <TableCell>
                     <Chip
-                      color={getRoleDetails(row.role).color}
-                      label={getRoleDetails(row.role).label}
+                      color={getRoleTags(row.role).color}
+                      label={getRoleTags(row.role).label}
                       size="small"
                     />
                   </TableCell>
+                  <TableCell>
+                    <Stack spacing={1} direction={'row'}>
+                      <Typography variant='caption' sx={{textWrap: 'nowrap'}}>{row.isCreator && getDetailText('isCreator').label}</Typography>
+                      <Typography variant='caption' sx={{textWrap: 'nowrap'}}>{row.role === 'supporter' && row.allowCheckIn && getDetailText('allowCheckIn').label}</Typography>
+                      <Typography variant='caption' sx={{textWrap: 'nowrap'}}>{row.role === 'supporter' && row.allowSellTicket && getDetailText('allowSellTicket').label}</Typography>
+
+                    </Stack>
+                  </TableCell>
                   <TableCell>{dayjs(row.createdAt).format('HH:mm:ss DD/MM/YYYY')}</TableCell>
                   <TableCell>
-                    {row.role != 'owner' && 
-                    <IconButton color="primary" onClick={() => onDeleteMember(row.userId)}>
-                      <X />
-                    </IconButton>}
+                    {row.isCreator !== true &&
+                      <IconButton color="primary" onClick={() => onDeleteMember(row.userId)}>
+                        <X />
+                      </IconButton>}
                   </TableCell>
                 </TableRow>
               );

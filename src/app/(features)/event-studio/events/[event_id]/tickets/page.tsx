@@ -157,7 +157,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       try {
         setIsLoading(true);
         const response: AxiosResponse<FilterShow[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${params.event_id}/transactions/get-shows-and-ticket-categories`
+          `/event-studio/events/${params.event_id}/tickets/get-shows-and-ticket-categories`
         );
         setFilterShows(response.data);
       } catch (error) {
