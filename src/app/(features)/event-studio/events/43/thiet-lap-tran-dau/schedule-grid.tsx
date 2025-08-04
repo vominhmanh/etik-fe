@@ -223,7 +223,7 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
   // Save handler: immediate ticket refresh only
   const handleSave = async () => {
     const confirmText =
-      'Sau khi lưu, người chơi sẽ nhận được email thông báo và bạn sẽ không thể chỉnh sửa nữa, bạn có chắc chắn?';
+      'Sau khi lưu, bạn sẽ không thể chỉnh sửa nữa, bạn có chắc chắn?';
     if (!window.confirm(confirmText)) return;
 
     const sheet = sheets[current];
