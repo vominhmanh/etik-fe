@@ -102,7 +102,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       return
     }
 
-    if (!allowCheckIn && !allowSellTicket) {
+    if (role === 'supporter' && !allowCheckIn && !allowSellTicket) {
       notificationCtx.error('Vui lòng chọn ít nhất một tùy chọn cho Cộng tác viên')
       return
     }
