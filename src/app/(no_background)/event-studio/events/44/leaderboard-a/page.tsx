@@ -4,6 +4,7 @@ import React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import axios, { AxiosResponse } from 'axios';
 import NotificationContext from '@/contexts/notification-context';
+import dayjs from 'dayjs';
 
 export interface LeaderboardEntry {
   position: number;
@@ -128,6 +129,19 @@ export default function Page(): React.JSX.Element {
         className="leaderboard-overlay"
         style={{ position: 'absolute', top: '18.25%', height: '79%', width: '171vh', color: '#ffe559' }}
       >
+        <div
+          style={{
+            position: 'absolute',
+            top: '101%',
+            left: '0%',
+            fontSize: '1vh',
+            fontWeight: 'bold',
+            color: '#ffe559',
+            fontStyle: 'italic',
+          }}
+        >
+          Cập nhật lần cuối lúc: {dayjs(leaderboardData?.updated || 0).format('HH:mm DD/MM/YYYY')}
+        </div>
         {displayData.map((entry, index) => (
           <div
             key={`${currentPage}-${index}`}
