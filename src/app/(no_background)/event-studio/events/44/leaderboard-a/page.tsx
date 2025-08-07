@@ -107,7 +107,6 @@ export default function Page(): React.JSX.Element {
           display: 'block',
           objectFit: 'contain',
           objectPosition: 'top',
-          borderRadius: '15px',
         }}
       />
 
