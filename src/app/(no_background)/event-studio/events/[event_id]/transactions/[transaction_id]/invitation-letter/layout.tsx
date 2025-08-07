@@ -1,9 +1,10 @@
+import { AuthGuard } from "@/components/auth/auth-guard";
 import { CircularProgress, Stack, Typography } from "@mui/material";
 import { Suspense } from "react";
 
 export default function Layout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <>
+    <AuthGuard>
       {/* Import Arima font from Google Fonts */}
       <link
         href="https://fonts.googleapis.com/css2?family=Arima:wght@400;500;600;700&display=swap"
@@ -19,8 +20,7 @@ export default function Layout({ children }: { children: React.ReactNode }): Rea
           {children}
         </Suspense>
       </div>
-    </>
-
+    </AuthGuard>
   );
 }
 
