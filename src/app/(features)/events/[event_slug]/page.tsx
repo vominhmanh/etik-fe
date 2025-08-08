@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, CardMedia, Container, FormHelperText, InputAdornment, Modal } from '@mui/material';
+import { Avatar, Box, CardMedia, Checkbox, Container, FormControlLabel, FormHelperText, InputAdornment, Modal } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -18,7 +18,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { ArrowRight, UserPlus } from '@phosphor-icons/react/dist/ssr';
+import { ArrowRight, Eye, Storefront, UserPlus } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
 import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
@@ -35,6 +35,7 @@ import NotificationContext from '@/contexts/notification-context';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { orange, red, yellow } from '@mui/material/colors';
 
 export type TicketCategory = {
   id: number;
@@ -72,6 +73,9 @@ export type EventResponse = {
   slug: string;
   locationInstruction: string | null;
   shows: Show[];
+  adminReviewStatus: 'no_request_from_user' | 'waiting_for_acceptance' | 'accepted' | 'rejected';
+  displayOnMarketplace: boolean;
+  displayOption: string;
 };
 
 const options = {
@@ -99,11 +103,43 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [position, setPosition] = React.useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
   const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
   const [ticketHolderEditted, setTicketHolderEditted] = React.useState<boolean>(false);
+  const [openNotifModal, setOpenNotifModal] = React.useState<boolean>(false);
+  const [prevent24h, setPrevent24h] = React.useState(false);
+  const NOTIF_KEY = 'hideNotifMarketplaceEventNotApprovedUntil';
 
   React.useEffect(() => {
     document.title = `Sự kiện ${event?.name} | ETIK - Vé điện tử & Quản lý sự kiện`;
   }, [event]);
-  
+
+
+  // Khi component mount, kiểm tra localStorage
+  React.useEffect(() => {
+    const hideUntil = localStorage.getItem(NOTIF_KEY);
+    if (hideUntil) {
+      const until = parseInt(hideUntil, 10);
+      if (Date.now() < until) {
+        // Nếu chưa hết 24h thì đóng luôn modal
+        setOpenNotifModal(false);
+        return;
+      } else {
+        setOpenNotifModal(true);
+        // Hết hạn, xoá key đi
+        localStorage.removeItem(NOTIF_KEY);
+      }
+    } else {
+      setOpenNotifModal(true);
+    }
+    // Nếu không có key hoặc đã hết hạn, giữ openNotifModal theo prop
+  }, [setOpenNotifModal]);
+
+  const handleCloseNotifModal = () => {
+    if (prevent24h) {
+      // Lưu thời điểm 24h sau vào localStorage
+      const hideUntil = Date.now() + 24 * 60 * 60 * 1000;
+      localStorage.setItem(NOTIF_KEY, hideUntil.toString());
+    }
+    setOpenNotifModal(false);
+  };
   const totalAmount = React.useMemo(() => {
     return Object.entries(selectedCategories).reduce((total, [showId, category]) => {
       const show = event?.shows.find((show) => show.id === parseInt(showId));
@@ -310,12 +346,21 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                       </Typography>
                     </Stack>
 
-                    <Stack direction="row" spacing={1}>
+                    <Stack direction="row" spacing={1} >
                       <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.place ? `${event?.place}`: 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank'>Xem bản đồ</a>}
+                        {event?.place ? `${event?.place}` : 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank'>Xem bản đồ</a>}
                       </Typography>
                     </Stack>
+                    
+                    { event && event.displayOption !== 'display_with_everyone' &&
+                      <Stack direction="row" spacing={1} sx={{ color: orange[500] }}>
+                        <Eye fontSize="var(--icon-fontSize-sm)" />
+                        <Typography display="inline" variant="body2">
+                          Sự kiện không hiển thị công khai
+                        </Typography>
+                      </Stack>
+                    }
                   </Stack>
                   <div style={{ marginTop: '20px' }}>
                     <Button fullWidth variant="contained" href={`#registration`} size="small" startIcon={<UserPlus />}>
@@ -397,7 +442,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                                   return updatedHolders;
                                 });
                               setCustomer({ ...customer, name: e.target.value })
-                            }}                          />
+                            }} />
                         </FormControl>
                       </Grid>
                       <Grid item lg={6} xs={12}>
@@ -464,8 +509,8 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                             <OutlinedInput
                               label={`Họ và tên người tham dự ${index + 1}`}
                               value={holder}
-                              onChange={(e) => {setTicketHolderEditted(true); handleTicketHolderChange(index, e.target.value)}}
-                              />
+                              onChange={(e) => { setTicketHolderEditted(true); handleTicketHolderChange(index, e.target.value) }}
+                            />
                           </FormControl>
                         </Grid>
                       ))}
@@ -602,6 +647,60 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   Khám phá trang thông tin sự kiện.
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+      <Modal
+        open={openNotifModal && event && event?.adminReviewStatus !== 'accepted' && event?.displayOption !== 'display_with_everyone' || false}
+        onClose={handleCloseNotifModal}
+        aria-labelledby="ticket-category-description-modal-title"
+        aria-describedby="ticket-category-description-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: { sm: "500px", xs: "90%" },
+              bgcolor: "background.paper",
+              boxShadow: 24,
+            }}
+          >
+            <CardHeader title="Thông báo: Sự kiện này không hiển thị công khai" />
+            <Divider />
+            <CardContent>
+              <Stack spacing={3}>
+                <Stack spacing={1}>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Hiện tại, sự kiện này chỉ hiển thị với <b>người quản lý sự kiện</b> do sự kiện chưa được phê duyệt.
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Để sự kiện được hiển thị công khai, quý khách vui lòng hoàn tất quá trình gửi yêu cầu phê duyệt tại trang quản trị sự kiện. Xin cảm ơn!
+                  </Typography>
+                </Stack>
+
+                <Stack spacing={1}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={prevent24h}
+                        onChange={(e: any) => setPrevent24h(e.target.checked)}
+                      />
+                    }
+                    label="Không hiển thị lại trong 24 giờ"
+                  />
+
+                  <div style={{ textAlign: 'center' }}>
+                    <Button fullWidth variant="contained" size="small" onClick={handleCloseNotifModal}>
+                      Đã hiểu
+                    </Button>
+                  </div>
+                </Stack>
+
+              </Stack>
             </CardContent>
           </Card>
         </Container>

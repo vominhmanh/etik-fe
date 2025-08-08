@@ -380,45 +380,6 @@ export default function Page({
           </Grid>
         </Grid>
       </Stack>
-      <Modal
-        open={openNotifModal}
-        onClose={handleCloseNotifModal}
-        aria-labelledby="ticket-category-description-modal-title"
-        aria-describedby="ticket-category-description-modal-description"
-      >
-        <Container maxWidth="xl">
-          <Card
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: { sm: "500px", xs: "90%" },
-              bgcolor: "background.paper",
-              boxShadow: 24,
-            }}
-          >
-            <CardHeader title="Thông báo" />
-            <Divider />
-            <CardContent>
-              <Stack spacing={3}>
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  Loại vé này <b>đang tạm khóa</b> do sự kiện này chưa thể tạo loại vé với <b>giá tiền {'>'} 0đ</b>.
-                </Typography>
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  Quý khách vui lòng gửi email với tiêu đề <b>"Yêu cầu tạo loại vé có giá tiền {'>'} 0đ"</b> đến địa chỉ <b>tienphongsmart@gmail.com</b>. Chúng tôi sẽ hỗ trợ trong thời gian 24h kể từ khi nhận được yêu cầu. Xin cảm ơn!
-                </Typography>
-                <div style={{ marginTop: '20px', justifyContent: 'center' }}>
-                  <Button fullWidth variant='contained' size="small" onClick={handleCloseNotifModal} >
-                    Đã hiểu
-                  </Button>
-                </div>
-              </Stack>
-
-            </CardContent>
-          </Card>
-        </Container>
-      </Modal>
     </>
   );
 }

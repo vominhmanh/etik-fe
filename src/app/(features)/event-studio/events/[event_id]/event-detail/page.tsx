@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Avatar, Box, CardMedia, Container, IconButton, InputAdornment, MenuItem, Modal, Select, Stack, TextField } from '@mui/material';
+import { Avatar, Box, CardMedia, Container, FormHelperText, IconButton, InputAdornment, MenuItem, Modal, Select, Stack, TextField } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -17,7 +17,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { ArrowSquareIn, Clipboard } from '@phosphor-icons/react/dist/ssr';
+import { ArrowSquareIn, Clipboard, Eye, Storefront } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
@@ -28,6 +28,7 @@ import 'react-quill/dist/quill.snow.css';
 import dayjs from 'dayjs';
 import RouterLink from 'next/link';
 import SendRequestEventAgencyAndEventApproval from '../../../../../../components/events/event/send-request-event-agency-and-event-approval';
+import { orange } from '@mui/material/colors';
 
 // Define the event response type
 type EventResponse = {
@@ -48,6 +49,7 @@ type EventResponse = {
   locationInstruction: string | null;
   displayOnMarketplace: boolean;
   displayOption: string;
+  adminReviewStatus: 'no_request_from_user' | 'waiting_for_acceptance' | 'accepted' | 'rejected';
 };
 
 export interface CheckEventAgencyRegistrationAndEventApprovalRequestResponse {
@@ -226,14 +228,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const message =
         // 1) If it’s a JS Error instance
         error instanceof Error ? error.message
-        // 2) If it’s an AxiosError with a response body
-        : error.response?.data?.message
-          ? error.response.data.message
-        // 3) If it’s a plain string
-        : typeof error === 'string'
-          ? error
-        // 4) Fallback to JSON‐dump of the object
-        : JSON.stringify(error);
+          // 2) If it’s an AxiosError with a response body
+          : error.response?.data?.message
+            ? error.response.data.message
+            // 3) If it’s a plain string
+            : typeof error === 'string'
+              ? error
+              // 4) Fallback to JSON‐dump of the object
+              : JSON.stringify(error);
       notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
     } finally {
       setIsLoading(false);
@@ -279,14 +281,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const message =
         // 1) If it’s a JS Error instance
         error instanceof Error ? error.message
-        // 2) If it’s an AxiosError with a response body
-        : error.response?.data?.message
-          ? error.response.data.message
-        // 3) If it’s a plain string
-        : typeof error === 'string'
-          ? error
-        // 4) Fallback to JSON‐dump of the object
-        : JSON.stringify(error);
+          // 2) If it’s an AxiosError with a response body
+          : error.response?.data?.message
+            ? error.response.data.message
+            // 3) If it’s a plain string
+            : typeof error === 'string'
+              ? error
+              // 4) Fallback to JSON‐dump of the object
+              : JSON.stringify(error);
       notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
     } finally {
       setIsLoading(false);
@@ -519,6 +521,31 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       {event?.place ? event?.place : 'Chưa xác định'}
                     </Typography>
                   </Stack>
+                  <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
+                    <Storefront fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {event?.displayOnMarketplace ? "Có thể truy cập từ Marketplace" : 'Chỉ có thể truy cập bằng link'}
+                      <a href='#otherSettings' style={{ textDecoration: 'none' }}> Thay đổi</a>
+
+                    </Typography>
+                  </Stack>
+
+
+                  <Stack direction="row" spacing={1} >
+                    <Eye fontSize="var(--icon-fontSize-sm)" />
+                    {event?.displayOption !== 'display_with_everyone' ?
+                      <Typography display="inline" variant="body2" sx={{ color: orange[500] }}>
+                        Sự kiện không hiển thị công khai
+                        <a href='#otherSettings' style={{ textDecoration: 'none' }}> Thay đổi</a>
+                      </Typography>
+                      :
+                      <Typography display="inline" variant="body2" color="text.secondary">
+                        Đang hiển thị công khai
+                        <a href='#otherSettings' style={{ textDecoration: 'none' }}> Thay đổi</a>
+                      </Typography>
+                    }
+                  </Stack>
+
                 </Stack>
                 <div style={{ marginTop: '20px' }}>
                   <Button
@@ -795,7 +822,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card id='otherSettings'>
                 <CardHeader title="Thông tin khác" />
                 <Divider />
                 <CardContent>
@@ -825,17 +852,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         />
                       </FormControl>
                     </Grid>
-                    
+
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth required>
                         <InputLabel>Chế độ hiển thị sự kiện</InputLabel>
                         <Select
+                          disabled={!(event.adminReviewStatus === 'accepted')}
                           label="Chế độ hiển thị sự kiện"
                           name="displayOption"
                           value={formValues.displayOption}
                           onChange={(e: any) => handleInputChange(e)}
                         >
-                          <MenuItem value={'do_not_display'}>Không hiển thị</MenuItem>
+                          {/* <MenuItem value={'do_not_display'}>Không hiển thị</MenuItem> */}
                           <MenuItem value={'display_with_members'}>Chỉ hiển thị với người quản lý sự kiện</MenuItem>
                           <MenuItem value={'display_with_everyone'}>Hiển thị với mọi người</MenuItem>
                         </Select>
@@ -846,6 +874,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       <FormControl fullWidth required>
                         <InputLabel>Cho phép tìm kiếm trên Marketplace</InputLabel>
                         <Select
+                          disabled={!(event.adminReviewStatus === 'accepted')}
                           label="Cho phép tìm kiếm trên Marketplace"
                           name="displayOnMarketplace"
                           value={formValues.displayOnMarketplace}
@@ -854,6 +883,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           <MenuItem value={'true'}>Cho phép</MenuItem>
                           <MenuItem value={'false'}>Không cho phép</MenuItem>
                         </Select>
+                        {!(event.adminReviewStatus === 'accepted') &&
+                          <FormHelperText>
+                            Bạn cần gửi yêu cầu phê duyệt sự kiện để có thể thay đổi chế độ hiển thị sự kiện
+                          </FormHelperText>
+                        }
                       </FormControl>
                     </Grid>
                   </Grid>
@@ -1000,7 +1034,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <b>Để sự kiện được phê duyệt, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:</b>
                 </Typography>
                 <Typography variant="body2">
-                  - Tài khoản dùng để tạo sự kiện đã được xác thực <b style={{ color: 'text.success'}}>tài khoản Event Agency</b>. Xem tình trạng xác thực tại mục <b>Tài khoản của tôi</b>
+                  - Tài khoản dùng để tạo sự kiện đã được xác thực <b style={{ color: 'text.success' }}>tài khoản Event Agency</b>. Xem tình trạng xác thực tại mục <a href='/account-event-agency' target='_blank'><b>Tài khoản của tôi</b></a>
                 </Typography>
                 <Typography variant="body2">
                   - Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.

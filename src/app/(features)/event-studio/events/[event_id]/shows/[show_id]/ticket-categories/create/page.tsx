@@ -313,7 +313,7 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
           </Grid>
         </Grid>
       </Stack>
-      <Modal
+      {/* <Modal
         open={openNotifModal}
         onClose={handleCloseNotifModal}
         aria-labelledby="ticket-category-description-modal-title"
@@ -350,7 +350,7 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
             </CardContent>
           </Card>
         </Container>
-      </Modal>
+      </Modal> */}
     </>
   );
 }

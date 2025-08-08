@@ -27,7 +27,7 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
-import { ArrowCounterClockwise, ArrowSquareIn, CheckFat, HourglassLow, ReceiptX, Storefront } from '@phosphor-icons/react/dist/ssr';
+import { ArrowCounterClockwise, ArrowSquareIn, CheckFat, Eye, HourglassLow, ReceiptX, Storefront } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
@@ -41,6 +41,7 @@ import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 import { useState } from 'react';
 import SendRequestEventAgencyAndEventApproval from '@/components/events/event/send-request-event-agency-and-event-approval';
+import { orange } from '@mui/material/colors';
 
 export interface EventOverviewResponse {
   eventId: number;
@@ -113,6 +114,8 @@ type EventResponse = {
   slug: string;
   secureApiKey: string;
   locationInstruction: string | null;
+  adminReviewStatus: string;
+  displayOption: string;
   displayOnMarketplace: boolean;
   shows: Show[];
 };
@@ -324,9 +327,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   </>
                 }
                 {eventId == 43 &&
-                  <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard`} size="small">
-                    Leaderboard Duo
-                  </Button>}
+                  <>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard`} size="small">
+                      Leaderboard Duo
+                    </Button>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
+                      Sơ đồ trận Lobby
+                    </Button>
+                  </>
+
+                }
                 {eventId == 44 &&
                   <>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-a`} size="small">
@@ -337,6 +347,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </Button>
                     <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-arena`} size="small">
                       Leaderboard Solo Arena
+                    </Button>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
+                      Sơ đồ trận Lobby
                     </Button>
                   </>
                 }
@@ -386,11 +399,34 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       {event?.place ? event?.place : 'Chưa xác định'}
                     </Typography>
                   </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {event?.place ? event?.place : 'Chưa xác định'}
+                    </Typography>
+                  </Stack>
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <Storefront fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {event?.displayOnMarketplace ? "Đang hiển thị trên Marketplace" : 'Không hiển thị trên Marketplace'}
+                      {event?.displayOnMarketplace ? "Có thể truy cập từ Marketplace" : 'Chỉ có thể truy cập bằng link'}
+                      <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> Thay đổi</a>
                     </Typography>
+                  </Stack>
+
+
+                  <Stack direction="row" spacing={1} >
+                    <Eye fontSize="var(--icon-fontSize-sm)" />
+                    {event?.displayOption !== 'display_with_everyone' ?
+                      <Typography display="inline" variant="body2" sx={{ color: orange[500] }}>
+                        Sự kiện không hiển thị công khai
+                        <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> Thay đổi</a>
+                      </Typography>
+                      :
+                      <Typography display="inline" variant="body2" color="text.secondary">
+                        Đang hiển thị công khai
+                        <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> Thay đổi</a>
+                      </Typography>
+                    }
                   </Stack>
                 </Stack>
                 <div style={{ marginTop: '20px' }}>
