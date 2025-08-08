@@ -15,7 +15,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, ImageSquare, Info, Lightning as LightningIcon, Money as MoneyIcon, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, FacebookLogo, ImageSquare, Info, Lightning as LightningIcon, Money as MoneyIcon, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import RouterLink from 'next/link';
 
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
@@ -190,6 +190,7 @@ export interface Transaction {
   exportedTicketAt: string | null
   sentPaymentInstructionAt: string | null
   cancelRequestStatus: string | null
+  shareUuid: string | null
   event: Event
 }
 
@@ -211,6 +212,37 @@ export default function Page({ params }: { params: { transaction_id: number } })
     await cancelTransaction();
     handleClose();
   };
+
+  function openFacebookAppShare(eventSlug: string, txUuid: string) {
+    const shareUrl = `https://etik.vn/share/${eventSlug}/${txUuid}`
+    const webSharer = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
+
+    const ua = navigator.userAgent || ''
+    const isAndroid = /Android/i.test(ua)
+    const isIOS = /iPhone|iPad|iPod/i.test(ua)
+
+    if (isAndroid) {
+      // Android Intent URI — if Facebook app is installed it'll open it,
+      // otherwise falls back to the Play Store or your webSharer
+      const intentUrl =
+        `intent://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}` +
+        `#Intent;package=com.facebook.katana;scheme=https;end`
+      window.location.href = intentUrl
+      // also set a timer so we fallback to the web sharer if intent fails
+      setTimeout(() => { window.open(webSharer, '_blank') }, 700)
+    }
+    else if (isIOS) {
+      // iOS Facebook URL‐scheme
+      const fbAppUrl = `fb://share?u=${encodeURIComponent(shareUrl)}`
+      window.location.href = fbAppUrl
+      // fallback to web after a short delay
+      setTimeout(() => { window.open(webSharer, '_blank') }, 700)
+    }
+    else {
+      // Desktop or unknown: just open the web sharer
+      window.open(webSharer, '_blank', 'noopener,noreferrer,width=600,height=400')
+    }
+  }
 
   React.useEffect(() => {
     document.title = "Vé của tôi | ETIK - Vé điện tử & Quản lý sự kiện";
@@ -287,6 +319,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
   if (!transaction) {
     return <Typography>Loading...</Typography>;
   }
+
 
   const paymentMethodDetails = getPaymentMethodDetails(transaction.paymentMethod);
   const paymentStatusDetails = getPaymentStatusDetails(transaction.paymentStatus);
@@ -654,30 +687,36 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   >
                     Xem ảnh thư mời
                   </Button>
+                  <Button
+                    size="small"
+                    startIcon={<FacebookLogo />}
+                    onClick={() => openFacebookAppShare(transaction.event.slug!, transaction.shareUuid!)}
+                  >
+                    Khoe với bạn bè
+                  </Button>
                 </Stack>
               </CardContent>
-
-              {/* Confirm Dialog */}
-              <Dialog open={open} onClose={handleClose}>
-                <DialogTitle>Xác nhận hủy đơn hàng</DialogTitle>
-                <DialogContent>
-                  <DialogContentText>
-                    Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác.
-                  </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                  <Button onClick={handleClose} color="primary">
-                    Hủy bỏ
-                  </Button>
-                  <Button onClick={handleConfirmCancel} color="error" autoFocus disabled={isLoading}>
-                    {isLoading ? 'Đang hủy...' : 'Xác nhận'}
-                  </Button>
-                </DialogActions>
-              </Dialog>
             </Card>
           </Stack>
         </Grid>
       </Grid>
+      {/* Confirm Dialog */}
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Xác nhận hủy đơn hàng</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} color="primary">
+            Hủy bỏ
+          </Button>
+          <Button onClick={handleConfirmCancel} color="error" autoFocus disabled={isLoading}>
+            {isLoading ? 'Đang hủy...' : 'Xác nhận'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }

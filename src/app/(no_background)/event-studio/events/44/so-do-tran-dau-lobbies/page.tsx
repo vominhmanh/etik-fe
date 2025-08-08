@@ -241,14 +241,8 @@ export default function Page(): React.JSX.Element {
     }
   };
   return (
-    <div
-      style={{
-        scrollBehavior: 'smooth',
-        backgroundColor: '#d1f9db',
-        backgroundImage: `linear-gradient(356deg, #d1f9db 0%, #fffed9 100%)`,
-      }}
-    >
-      <Backdrop
+    <>
+    <Backdrop
         open={isLoading}
         sx={{
           color: '#fff',
@@ -258,110 +252,8 @@ export default function Page(): React.JSX.Element {
       >
         <CircularProgress color="inherit" />
       </Backdrop>
-      <Container maxWidth="xl" sx={{ py: '64px' }}>
-        <Stack spacing={3}>
-          <Grid container spacing={3}>
-            <Grid item lg={8} md={6} xs={12}>
-              <Box
-                sx={{
-                  position: 'relative',
-                  width: '100%',
-                  aspectRatio: 16 / 6, // 16:9 aspect ratio (modify as needed)
-                  overflow: 'hidden',
-                  border: 'grey 1px',
-                  borderRadius: '20px',
-                  backgroundColor: 'gray',
-                }}
-              >
-                <img
-                  src={event?.bannerUrl || ''}
-                  alt="Sự kiện"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: 'auto',
-                    objectFit: 'cover', // or 'contain' depending on your preference
-                  }}
-                />
-              </Box>
-            </Grid>
-            <Grid item lg={4} md={6} xs={12}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent
-                  sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-                >
-                  <Stack direction="column" spacing={2}>
-                    <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
-                      <div>
-                        {event?.avatarUrl ?
-                          <img src={event?.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
-                          :
-                          <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
-                            {(event?.name[0] ?? 'a').toUpperCase()}
-                          </Avatar>}
-                      </div>
-                      <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
-                        {event?.name}
-                      </Typography>
-                    </Stack>
-
-                    <Stack direction="row" spacing={1}>
-                      <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        Đơn vị tổ chức: {event?.organizer}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" spacing={1}>
-                      <ClockIcon fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.startDateTime && event?.endDateTime
-                          ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                          : 'Chưa xác định'}
-                      </Typography>
-                    </Stack>
-
-                    <Stack direction="row" spacing={1}>
-                      <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.place ? `${event?.place}` : 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank'>Xem bản đồ</a>}
-                      </Typography>
-                    </Stack>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-          
-          <div
-            id="registration"
-            style={{ display: 'block', height: '100px', marginTop: '-100px', visibility: 'hidden' }}
-          ></div>
-          <Stack direction="row" spacing={3}>
-            <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-              <Typography variant="h6">Thiết lập các trận đấu</Typography>
-            </Stack>
-          </Stack>
-          <Grid container spacing={3}>
-            {/* <Grid item lg={4} md={6} xs={12}>
-              <Stack spacing={3}>
-                <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
-                {selectedSchedules && selectedSchedules.map(show => (
-                  <TicketCategories key={show.id} show={show} onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
-                  />
-                ))}
-              </Stack>
-            </Grid> */}
-            <Grid item lg={12} md={12} xs={12}>
-              <Stack spacing={3}>
-                  <EditableGrid shows={event?.shows} />
-                
-              </Stack>
-            </Grid>
-          </Grid>
-        </Stack>
-      </Container>
-    </div>
+<EditableGrid shows={event?.shows} />
+      
+    </>
   );
 }

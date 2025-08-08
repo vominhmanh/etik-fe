@@ -154,7 +154,7 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
   // combined load sheets + tickets
   const loadAll = async () => {
     if (!shows.length) return;
-    setIsLoading(true);
+    // setIsLoading(true);
     try {
       const showIds = shows.map((s) => s.id);
       const [sheetRes, ticketRes]: [AxiosResponse<SheetDTO[]>, AxiosResponse<Ticket[]>] =
@@ -202,18 +202,14 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
       console.error(err);
       notificationCtx.error('Lấy dữ liệu thất bại');
     } finally {
-      setIsLoading(false);
+      // setIsLoading(false);
     }
   };
 
   // fetch tickets only
   const fetchTickets = async () => {
     try {
-      const response: AxiosResponse<Ticket[]> = await baseHttpServiceInstance.get(
-        `/special_events/tft-2025/tickets`,
-        { params: { eventId } }
-      );
-      setSheets((prev) => enrichSheetsWithTickets(prev, response.data));
+      loadAll()
     } catch (err) {
       console.error('Ticket fetch failed', err);
     }
@@ -223,7 +219,7 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
   // Save handler: immediate ticket refresh only
   const handleSave = async () => {
     const confirmText =
-      'Sau khi lưu, người chơi sẽ nhận được email thông báo và bạn sẽ không thể chỉnh sửa nữa, bạn có chắc chắn?';
+      'Sau khi lưu, bạn sẽ không thể chỉnh sửa nữa, bạn có chắc chắn?';
     if (!window.confirm(confirmText)) return;
 
     const sheet = sheets[current];
@@ -318,8 +314,29 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
   if (!sheets.length) return null;
   const active = sheets[current];
 
+  // Split headers & data into chunks of 10 columns
+  const chunkSize = 10;
+  const headerChunks: string[][] = [];
+  const dataChunks: Cell[][][] = [];
+
+  for (let i = 0; i < active.headers.length; i += chunkSize) {
+    headerChunks.push(active.headers.slice(i, i + chunkSize));
+    dataChunks.push(
+      active.userList.map(row => row.slice(i, i + chunkSize))
+    );
+  }
+
   return (
-    <Box sx={{ width: '100%', p: 2 }}>
+    <div
+      style={{
+        position: 'relative',
+        scrollBehavior: 'smooth',
+        backgroundColor: '#611ccf',
+        backgroundImage: `linear-gradient(135deg, #611ccf, #7f5fff, #aab6ff);`,
+        height: '100vh',
+        width: '177.7778vh'
+      }}
+    >
       <Backdrop
         open={isLoading}
         sx={{
@@ -330,13 +347,44 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
       >
         <CircularProgress color="inherit" />
       </Backdrop>
+
       {/* Tabs */}
-      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '2vh',               // cách top 2% chiều cao viewport
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: '1vh',               // khoảng cách giữa các button
+          p: '0.5vh 1vh',           // padding trên dưới 0.5vh, trái phải 1vh
+          border: '0.2vh solid white',
+          borderRadius: '1vh',
+          backgroundColor: 'rgba(255,255,255,0.1)', // nền mờ nhẹ (tuỳ chọn)
+          zIndex: 10,
+        }}
+      >
         {sheets.map((s, i) => (
           <Button
             key={s.name}
-            variant={i === current ? 'contained' : 'outlined'}
+            variant="outlined"
             onClick={() => setCurrent(i)}
+            sx={{
+              color: 'white',
+              borderColor: 'white',
+              fontStyle: 'italic',
+              fontSize: '1.4vh',
+              lineHeight: 1,
+              minWidth: '25vh',
+              padding: '0.3vh 1.2vh',
+              '&.MuiButton-contained, &.MuiButton-contained:hover': {
+                backgroundColor: 'rgba(255,255,255,0.2)', // hiệu ứng khi active
+                color: '#fcfc8e',
+                borderColor: '#fcfc8e',
+              },
+            }}
+            // chuyển sang contained khi active
+            variant={i === current ? 'contained' : 'outlined'}
           >
             {s.name}
           </Button>
@@ -345,82 +393,148 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
 
       {/* Editor or Table */}
       {active.saved ? (
-        <TableContainer component={Paper} sx={{ maxHeight: 500 }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                {active.headers.map(h => (
-                  <TableCell
-                    key={h}
-                    align="center"
-                    sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap', p: 0.5 }}
-                  >
-                    {h}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {active.userList.map((rowArr, ri) => (
-                <TableRow key={ri} hover>
-                  {rowArr.map((cell, ci) => (
-                    <TableCell
-                      key={ci}
-                      align="left"
-                      sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap', p: 0.5 }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'left', gap: 0.5 }}>
-                        <Checkbox
-                          checked={selected[current][ri][ci]}
-                          onChange={() => toggleCell(ri, ci)}
-                          size="small"
-                        />
-                        <Box>
-                          <div>
-                            {cell.value} {cell.ticketHolder}
-                          </div>
-                          <div>
-                            {cell.value && cell.ticketHolder && (
-                              <Typography variant='caption' sx={{color: cell.ticketCheckIn ? green[500] : red[500]}}>
-                                {cell.ticketCheckIn ? 'Đã check-in' : 'Chưa check-in'}
+        <Box sx={{
+          position: 'absolute',
+          top: '7vh',
+          bottom: '1vh',
+          left: '50%',
+          width: '98%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '1vh',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          overflowY: 'auto',
+          fontStyle: 'italic',
+
+        }} >
+
+
+          {headerChunks.map((headers, idx) => (
+            <TableContainer
+              component={Paper}
+              sx={{
+                width: `${headers.length * 17 + 1}vh`,
+                maxHeight: '70vh',
+                overflow: 'auto',
+                backgroundColor: 'transparent',
+              }}
+            >
+              {/* 2) Bật table-layout fixed */}
+              <Table
+                stickyHeader
+                sx={{
+                  tableLayout: 'fixed',
+                  width: '100%',        // full width của Container
+                  borderCollapse: 'collapse',
+                  backgroundColor: 'transparent'
+                }}
+              >
+                <TableHead>
+                  <TableRow>
+                    {headers.map(h => (
+                      <TableCell
+                        key={h}
+                        align="center"
+                        sx={{
+                          fontSize: '2vh',
+                          p: 0,
+                          boxSizing: 'border-box',    // include border vào width
+                          width: '17vh',               // chiều rộng cố định
+                          height: '2.5vh',
+                          backgroundColor: 'transparent !important',
+                          color: 'white !important',
+                        }}
+                      >
+                        {h}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {dataChunks[idx].map((rowArr, ri) => (
+                    <TableRow key={ri} hover>
+                      {rowArr.map((cell, ci) => (
+                        <TableCell
+                          key={ci}
+                          align="left"
+                          sx={{
+                            fontSize: '1.3vh',
+                            p: 0,
+                            boxSizing: 'border-box',
+                            width: '17vh',
+                            height: '3.5vh',
+                            padding: '0.4vh',
+                            border: '0.3vh solid black',
+                            color: 'white',
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+
+                            <Box>
+                              <Typography
+                                noWrap
+                                sx={{
+                                  maxWidth: '15vh',        // hoặc bất kỳ giới hạn width nào bạn muốn
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  fontSize: '1.3vh',
+                                  fontWeight: 'bold',
+                                  textOverflow: 'ellipsis',
+                                }}
+                              >
+                                {cell.value} {cell.ticketHolder}
                               </Typography>
-                            )}
-                          </div>
-
-                        </Box>
-
-                      </Box>
-
-                    </TableCell>
+                              {cell.value && cell.ticketHolder ? (
+                                <Typography
+                                  variant="caption"
+                                  sx={{ fontSize: '1.2vh', color: cell.ticketCheckIn ? green[500] : red[500] }}
+                                >
+                                  {cell.ticketCheckIn ? 'Đã check-in' : 'Chưa check-in'}
+                                </Typography>
+                              ) : (<Typography
+                                variant="caption"
+                                sx={{ fontSize: '1.3vh', color: 'transparent' }}
+                              >.
+                              </Typography>)}
+                            </Box>
+                          </Box>
+                        </TableCell>
+                      ))}
+                    </TableRow>
                   ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      ) : (
-        <Box sx={{ width: '100%', overflowX: 'auto' }}>
-          <Box sx={{ minWidth: `${active.headers.length * 120}px` }}>
-            <Spreadsheet
-              data={active.userList}
-              onChange={handleChange}
-              showColumnLabels
-              showRowLabels={false}
-              columnLabels={active.headers}
-            />
-          </Box>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ))}
         </Box>
+      ) : (
+        <></>
+        // <Box sx={{ width: '100%', overflowX: 'auto' }}>
+        //   <Box sx={{ minWidth: `${active.headers.length * 120}px` }}>
+        //     <Spreadsheet
+        //       data={active.userList}
+        //       onChange={handleChange}
+        //       showColumnLabels
+        //       showRowLabels={false}
+        //       columnLabels={active.headers}
+        //     />
+        //   </Box>
+        // </Box>
       )}
 
       {/* Save button below */}
-      {!active.saved && (
+      {/* {!active.saved && (
         <Box sx={{ mt: 2 }}>
           <Button variant="contained" fullWidth onClick={handleSave}>
             Lưu danh sách
           </Button>
         </Box>
-      )}
-    </Box>
+      )} */}
+
+    </div>
+
   );
 };
 
