@@ -99,7 +99,7 @@ export default function Page(): React.JSX.Element {
       }}
     >
       <img
-        src={'/assets/BANG-XEP-HANG-8-TRAN.jpg'}
+        src={'/assets/BANG-XEP-HANG-8-TRAN---1-5.jpg'}
         alt="Event Image"
         style={{
           width: 'auto',
@@ -123,24 +123,24 @@ export default function Page(): React.JSX.Element {
       >
         {counter}
       </div>
-      
+
       <div
         className="leaderboard-overlay"
         style={{ position: 'absolute', top: '18.25%', height: '79%', width: '171vh', color: '#ffe559' }}
       >
         <div
-        style={{
-          position: 'absolute',
-          top: '101%',
-          left: '0%',
-          fontSize: '1vh',
-          fontWeight: 'bold',
-          color: '#ffe559',
-          fontStyle: 'italic',
-        }}
-      >
-        Cập nhật lần cuối lúc: {dayjs(leaderboardData?.updated || 0).format('HH:mm DD/MM/YYYY')}
-      </div>
+          style={{
+            position: 'absolute',
+            top: '101%',
+            left: '0%',
+            fontSize: '1vh',
+            fontWeight: 'bold',
+            color: '#ffe559',
+            fontStyle: 'italic',
+          }}
+        >
+          Cập nhật lần cuối lúc: {dayjs(leaderboardData?.updated || 0).format('HH:mm DD/MM/YYYY')}
+        </div>
 
         {displayData.map((entry, index) => (
           <div
@@ -155,7 +155,7 @@ export default function Page(): React.JSX.Element {
               display: 'flex',
               alignItems: 'center',
               boxSizing: 'border-box',
-              fontSize: '2.5vh',
+              fontSize: '2.4vh',
               fontStyle: 'italic',
             }}
           >
@@ -165,7 +165,18 @@ export default function Page(): React.JSX.Element {
             <span style={{ fontWeight: 'bold', position: 'absolute', width: '8vh', left: '8vh', textAlign: 'center' }}>
               {entry.sbd}
             </span>
-            <span style={{ fontWeight: 'bold', position: 'absolute', width: '29vh', left: '16vh', textAlign: 'center' }}>
+            <span
+              style={{
+                fontWeight: 'bold',
+                position: 'absolute',
+                width: '29vh',
+                left: '16vh',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
               {entry.name}
             </span>
             {entry.scores.map((score, idx) => (
@@ -174,8 +185,8 @@ export default function Page(): React.JSX.Element {
                 style={{
                   fontWeight: 'bold',
                   position: 'absolute',
-                  width: '13.9vh',
-                  left: `${45 + 14.1 * idx}vh`,
+                  width: '21.1vh',
+                  left: `${45 + 21.1 * idx}vh`,
                   textAlign: 'center',
                 }}
               >
@@ -186,8 +197,8 @@ export default function Page(): React.JSX.Element {
               style={{
                 fontWeight: 'bold',
                 position: 'absolute',
-                width: '13.9vh',
-                left: `157.8vh`,
+                width: '21.1vh',
+                left: `150.5vh`,
                 textAlign: 'center',
               }}
             >

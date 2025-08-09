@@ -695,6 +695,9 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     Khoe với bạn bè
                   </Button>
                 </Stack>
+                <Typography variant='caption'>
+                  Xin lưu ý: việc chia sẻ vé sẽ tiết lộ tên người mua, số lượng vé, và thông tin công khai của sự kiện. Các thông tin khác được bảo mật.
+                </Typography>
               </CardContent>
             </Card>
           </Stack>

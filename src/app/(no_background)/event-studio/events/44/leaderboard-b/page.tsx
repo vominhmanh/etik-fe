@@ -164,9 +164,20 @@ export default function Page(): React.JSX.Element {
             <span style={{ fontWeight: 'bold', position: 'absolute', width: '8vh', left: '8vh', textAlign: 'center' }}>
               {entry.sbd}
             </span>
-            <span style={{ fontWeight: 'bold', position: 'absolute', width: '29vh', left: '16vh', textAlign: 'center' }}>
-              {entry.name}
-            </span>
+            <span
+  style={{
+    fontWeight: 'bold',
+    position: 'absolute',
+    width: '29vh',
+    left: '16vh',
+    textAlign: 'center',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  }}
+>
+  {entry.name}
+</span>
             {entry.scores.map((score, idx) => (
               <span
                 key={idx}

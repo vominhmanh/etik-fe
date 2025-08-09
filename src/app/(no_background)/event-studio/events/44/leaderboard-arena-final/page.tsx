@@ -61,7 +61,7 @@ export default function Page(): React.JSX.Element {
     try {
       setIsLoading(true);
       const response: AxiosResponse<Leaderboard> = await baseHttpServiceInstance.get(
-        `/special_events/tft-2025/leaderboards/GroupA Day 2 - Leaderboard`
+        `/special_events/tft-2025/leaderboards/Finals-Day 2 - Leaderboard`
       );
       setLeaderboardData(response.data);
     } catch (error) {
@@ -99,7 +99,7 @@ export default function Page(): React.JSX.Element {
       }}
     >
       <img
-        src={'/assets/BANG-XEP-HANG-A-2-TRAN.jpg'}
+        src={'/assets/BANG-XEP-HANG-8-TRAN---6-8.jpg'}
         alt="Event Image"
         style={{
           width: 'auto',
@@ -141,6 +141,7 @@ export default function Page(): React.JSX.Element {
         >
           Cập nhật lần cuối lúc: {dayjs(leaderboardData?.updated || 0).format('HH:mm DD/MM/YYYY')}
         </div>
+
         {displayData.map((entry, index) => (
           <div
             key={`${currentPage}-${index}`}
@@ -154,7 +155,7 @@ export default function Page(): React.JSX.Element {
               display: 'flex',
               alignItems: 'center',
               boxSizing: 'border-box',
-              fontSize: '2.5vh',
+              fontSize: '2.4vh',
               fontStyle: 'italic',
             }}
           >
@@ -165,27 +166,27 @@ export default function Page(): React.JSX.Element {
               {entry.sbd}
             </span>
             <span
-  style={{
-    fontWeight: 'bold',
-    position: 'absolute',
-    width: '29vh',
-    left: '16vh',
-    textAlign: 'center',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  }}
->
-  {entry.name}
-</span>
+              style={{
+                fontWeight: 'bold',
+                position: 'absolute',
+                width: '29vh',
+                left: '16vh',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {entry.name}
+            </span>
             {entry.scores.map((score, idx) => (
               <span
                 key={idx}
                 style={{
                   fontWeight: 'bold',
                   position: 'absolute',
-                  width: '42.20vh',
-                  left: `${45 + 42.20 * idx}vh`,
+                  width: '21.1vh',
+                  left: `${45 + 21.1 * idx}vh`,
                   textAlign: 'center',
                 }}
               >
@@ -196,8 +197,8 @@ export default function Page(): React.JSX.Element {
               style={{
                 fontWeight: 'bold',
                 position: 'absolute',
-                width: '42.20vh',
-                left: `129.4vh`,
+                width: '21.1vh',
+                left: `150.5vh`,
                 textAlign: 'center',
               }}
             >

@@ -348,6 +348,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-arena`} size="small">
                       Leaderboard Solo Arena
                     </Button>
+                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-arena-final`} size="small">
+                      Leaderboard Solo Final
+                    </Button>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
                       Sơ đồ trận Lobby
                     </Button>
@@ -399,12 +402,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       {event?.place ? event?.place : 'Chưa xác định'}
                     </Typography>
                   </Stack>
-                  <Stack direction="row" spacing={1}>
-                    <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {event?.place ? event?.place : 'Chưa xác định'}
-                    </Typography>
-                  </Stack>
+             
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <Storefront fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
@@ -546,6 +544,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </Button>
                     <Button sx={{ minWidth: '160px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-arena`} size="small">
                       Leaderboard Solo Arena
+                    </Button>
+                    <Button sx={{ minWidth: '160px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-arena-final`} size="small">
+                      Leaderboard Solo Final
+                    </Button>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
+                      Sơ đồ trận Lobby
                     </Button>
                   </>
                 }
