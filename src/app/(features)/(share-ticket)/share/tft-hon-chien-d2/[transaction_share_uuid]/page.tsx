@@ -1,42 +1,26 @@
 'use client';
 
 import * as React from 'react';
-import { Helmet } from 'react-helmet';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, CardMedia, Checkbox, Container, FormControlLabel, FormHelperText, InputAdornment, Modal } from '@mui/material';
+import { Avatar, Box, Container } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
-import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import CardHeader from '@mui/material/CardHeader';
 import CircularProgress from '@mui/material/CircularProgress';
-import Divider from '@mui/material/Divider';
-import FormControl from '@mui/material/FormControl';
 import Grid from '@mui/material/Grid';
-import InputLabel from '@mui/material/InputLabel';
-import MenuItem from '@mui/material/MenuItem';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { ArrowRight, Eye, Storefront, UserPlus } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
-import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
-import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
-import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
-import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
-import axios, { AxiosResponse } from 'axios';
+// import type { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import ReCAPTCHA from 'react-google-recaptcha';
 
 import NotificationContext from '@/contexts/notification-context';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { orange, red, yellow } from '@mui/material/colors';
 
 
-export type EventResponse = {
+export interface EventResponse {
   name: string;
   organizer: string;
   description: string;
@@ -48,20 +32,20 @@ export type EventResponse = {
   avatarUrl: string | null;
   slug: string;
   locationInstruction: string | null;
-};
+}
 
 // 1) Define the missing TransactionResponse type
-export type TransactionResponse = {
+export interface TransactionResponse {
   name: string;
   ticketQuantity: number;
-};
+}
 
 export default function Page({
   params,
 }: {
   params: { transaction_share_uuid: string };
-}): React.JSX.Element {
-  const event_slug = 'tft-hon-chien-d2'
+}): React.JSX.Element | null {
+  const eventSlug = 'tft-hon-chien-d2'
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [transaction, setTransaction] =
     React.useState<TransactionResponse | null>(null);
@@ -71,40 +55,38 @@ export default function Page({
 
   // Update document title when event loads
   React.useEffect(() => {
-    if (event) {
-      document.title = `${transaction?.name} đã tham gia sự kiện ${event.name} | ETIK`;
+    if (event && transaction) {
+      document.title = `${transaction.name} đã tham gia sự kiện ${event.name} | ETIK`;
     }
-  }, [event]);
+  }, [event, transaction]);
 
   // 2) Fetch both event & transaction in one go
   React.useEffect(() => {
-    const { transaction_share_uuid } = params;
-    if (!event_slug || !transaction_share_uuid) return;
+    const { transaction_share_uuid: transactionShareUuid } = params as { transaction_share_uuid: string };
+    if (!eventSlug || !transactionShareUuid) return;
 
-    const fetchData = async () => {
+    const fetchData = async (): Promise<void> => {
       setIsLoading(true);
       try {
         // typed as an object with event + transaction
-        const resp: AxiosResponse<{
-          event: EventResponse;
-          transaction: TransactionResponse;
-        }> = await baseHttpServiceInstance.get(
-          `/customers/share-transactions/${event_slug}/${transaction_share_uuid}`
-        );
+        const resp = (await baseHttpServiceInstance.get(
+          `/customers/share-transactions/${eventSlug}/${transactionShareUuid}`
+        )) as unknown as { data: { event: EventResponse; transaction: TransactionResponse } };
         setEvent(resp.data.event);
         setTransaction(resp.data.transaction);
-      } catch (err: any) {
-        notificationCtx.error(err.message || err);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        notificationCtx.error(errorMessage);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchData();
-  }, [event_slug, params.transaction_share_uuid]);
+    void fetchData();
+  }, [eventSlug, params, notificationCtx]);
 
   if (!transaction) {
-    return;
+    return null;
   }
 
   return (
@@ -115,40 +97,6 @@ export default function Page({
         backgroundImage: `linear-gradient(356deg, #d1f9db 0%, #fffed9 100%)`,
       }}
     >
-      <Helmet>
-        {/* Tiêu đề share */}
-        <title>
-          {transaction
-            ? `${transaction.name} đã sở hữu vé của sự kiện ${event?.name}`
-            : event?.name || 'ETIK'}
-        </title>
-
-        {/* Open Graph tags cho Facebook */}
-        <meta
-          property="og:title"
-          content={
-            transaction
-              ? `${transaction.name} đã sở hữu vé của sự kiện ${event?.name}`
-              : event?.name || 'ETIK'
-          }
-        />
-        <meta
-          property="og:image"
-          content={event?.bannerUrl || event?.avatarUrl || ''}
-        />
-        <meta property="og:type" content="website" />
-        <meta
-          property="og:url"
-          content={typeof window !== 'undefined' ? window.location.href : ''}
-        />
-
-        {/* Tùy chọn thêm */}
-        <meta
-          property="og:description"
-          content={event?.description?.replace(/<[^>]+>/g, '') || ''}
-        />
-        <meta property="og:site_name" content="ETIK - Vé điện tử & Quản lý sự kiện" />
-      </Helmet>
       <Backdrop
         open={isLoading}
         sx={{
@@ -184,7 +132,7 @@ export default function Page({
                     left: 0,
                     width: '100%',
                     height: 'auto',
-                    objectFit: 'cover', // or 'contain' depending on your preference
+                    objectFit: 'cover',
                   }}
                 />
               </Box>
@@ -198,7 +146,7 @@ export default function Page({
                     <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
                       <div>
                         {event?.avatarUrl ?
-                          <img src={event?.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                          <img src={event?.avatarUrl || ''} alt="Avatar sự kiện" style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
                           :
                           <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
                             {(event?.name[0] ?? 'a').toUpperCase()}
@@ -227,7 +175,7 @@ export default function Page({
                     <Stack direction="row" spacing={1} >
                       <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.place ? `${event?.place}` : 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank'>Xem bản đồ</a>}
+                        {event?.place ? event?.place : 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank' rel="noreferrer">Xem bản đồ</a>}
                       </Typography>
                     </Stack>
                   </Stack>
