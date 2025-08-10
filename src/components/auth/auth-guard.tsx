@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Alert from '@mui/material/Alert';
 import { jwtDecode } from 'jwt-decode';
 
@@ -15,6 +15,8 @@ export interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | null {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { error, isLoading, getUser } = useUser();
   const [isChecking, setIsChecking] = React.useState<boolean>(true);
 
@@ -33,8 +35,10 @@ export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | nul
 
     if (!user || !accessToken) {
       logger.debug('[AuthGuard]: User or  Access token is not logged in, redirecting to sign in');
-      router.replace(paths.auth.signIn);
-      return;
+      const qs = searchParams?.toString() ?? '';
+      const returnUrl = `${pathname || '/'}${qs ? `?${qs}` : ''}`;
+      router.replace(`${paths.auth.signIn}?returnUrl=${encodeURIComponent(returnUrl)}`);
+      return; // stop further processing
     }
 
     try {
@@ -44,15 +48,21 @@ export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | nul
       // TODO: Call refresh token endpoint if the token is about to expire
       // If the token is expired, logout the user
       if (!decodedToken.exp || decodedToken.exp < currentTime) {
-        router.replace(paths.auth.signIn);
+        const qs = searchParams?.toString() ?? '';
+        const returnUrl = `${pathname || '/'}${qs ? `?${qs}` : ''}`;
+        router.replace(`${paths.auth.signIn}?returnUrl=${encodeURIComponent(returnUrl)}`);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
+        return; // stop further processing
       }
     } catch (err) {
       logger.error(err);
-      router.replace(paths.auth.signIn);
+      const qs = searchParams?.toString() ?? '';
+      const returnUrl = `${pathname || '/'}${qs ? `?${qs}` : ''}`;
+      router.replace(`${paths.auth.signIn}?returnUrl=${encodeURIComponent(returnUrl)}`);
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
+      return; // stop further processing
     }
 
     setIsChecking(false);
@@ -65,7 +75,7 @@ export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | nul
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Expected
   }, [ error, isLoading]);
 
-  if (isChecking) {
+  if (isChecking || isLoading) {
     return null;
   }
 

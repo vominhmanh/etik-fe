@@ -65,8 +65,8 @@ export function SignInForm(): React.JSX.Element {
         localStorage.setItem('accessToken', res.access_token);
 
         setUser(res.user);
-        const user = getUser()
-        router.push(`${returnUrl}`)
+        const user = getUser();
+        router.push(returnUrl);
       } catch (error: any) {
         setPopupContent({
           type: 'error',

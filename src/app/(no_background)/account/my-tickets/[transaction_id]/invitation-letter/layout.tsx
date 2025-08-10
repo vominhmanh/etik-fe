@@ -1,5 +1,7 @@
-import { CircularProgress, Stack, Typography } from "@mui/material";
+import * as React from "react";
 import { Suspense } from "react";
+import { CircularProgress, Stack, Typography } from "@mui/material";
+import { AuthGuard } from "@/components/auth/auth-guard";
 
 export default function Layout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
@@ -15,17 +17,20 @@ export default function Layout({ children }: { children: React.ReactNode }): Rea
         }
       `}</style>
       <div className="arima-font">
+            <AuthGuard>
+
         <Suspense fallback={<FallbackUI />}>
           {children}
         </Suspense>
-      </div>
-    </>
+        </AuthGuard>
 
+      </div>
+        </>
   );
 }
 
 // 🔹 Beautiful Fallback Component
-function FallbackUI() {
+function FallbackUI(): React.JSX.Element {
   return (
     <Stack
       height="100vh"
