@@ -31,6 +31,7 @@ import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
 
 import NotificationContext from '@/contexts/notification-context';
+import { Link } from '@phosphor-icons/react';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -210,35 +211,25 @@ export default function Page({ params }: { params: { transaction_id: number } })
     handleClose();
   };
 
-  function openFacebookAppShare(eventSlug: string, txUuid: string) {
-    const shareUrl = `https://etik.vn/share/${eventSlug}/${txUuid}`
-    const webSharer = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
+  function shareTicket(eventSlug: string, txUuid: string, eventName: string, buyerName: string) {
+    const shareUrl = `https://etik.vn/share/${eventSlug}/${txUuid}`;
+    const text = `${buyerName} đã sở hữu vé của sự kiện ${eventName} trên ETIK`;
+    const webSharer = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
 
-    const ua = navigator.userAgent || ''
-    const isAndroid = /Android/i.test(ua)
-    const isIOS = /iPhone|iPad|iPod/i.test(ua)
+    // Prefer native share sheet (lets user pick Instagram, Messenger, Facebook, etc.)
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      void (navigator as any).share({ title: 'ETIK', text, url: shareUrl }).catch(() => {});
+      return;
+    }
 
-    if (isAndroid) {
-      // Android Intent URI — if Facebook app is installed it'll open it,
-      // otherwise falls back to the Play Store or your webSharer
-      const intentUrl =
-        `intent://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}` +
-        `#Intent;package=com.facebook.katana;scheme=https;end`
-      window.location.href = intentUrl
-      // also set a timer so we fallback to the web sharer if intent fails
-      setTimeout(() => { window.open(webSharer, '_blank') }, 700)
-    }
-    else if (isIOS) {
-      // iOS Facebook URL‐scheme
-      const fbAppUrl = `fb://share?u=${encodeURIComponent(shareUrl)}`
-      window.location.href = fbAppUrl
-      // fallback to web after a short delay
-      setTimeout(() => { window.open(webSharer, '_blank') }, 700)
-    }
-    else {
-      // Desktop or unknown: just open the web sharer
-      window.open(webSharer, '_blank', 'noopener,noreferrer,width=600,height=400')
-    }
+    // Fallback: open Facebook sharer in a new tab (no small popup)
+    window.open(webSharer, '_blank', 'noopener,noreferrer');
+  }
+
+  function copyShareLink(eventSlug: string, txUuid: string) {
+    const shareUrl = `https://etik.vn/share/${eventSlug}/${txUuid}`;
+    navigator.clipboard.writeText(shareUrl);
+    notificationCtx.success('Đã sao chép liên kết chia sẻ');
   }
 
   React.useEffect(() => {
@@ -673,9 +664,9 @@ export default function Page({ params }: { params: { transaction_id: number } })
               <CardHeader title="Hành động" />
               <Divider />
               <CardContent>
-                <Stack spacing={2} direction="row">
+                <Stack spacing={2} direction="row" wrap="wrap">
                   <Button size="small" color="error" startIcon={<X />} onClick={handleOpen} disabled={transaction.cancelRequestStatus != null || ['customer_cancelled', 'staff_locked'].includes(transaction.status)}>
-                    {transaction.cancelRequestStatus == 'pending' ? 'Đang chờ phản hồi hủy đơn hàng' : transaction.cancelRequestStatus == 'accepted' ? 'Đơn hàng đã được hủy' : transaction.cancelRequestStatus == 'rejected' ? 'Yêu cầu hủy bị từ chối' : 'Hủy đơn hàng'}
+                    {transaction.cancelRequestStatus === 'pending' ? 'Đang chờ phản hồi hủy đơn hàng' : transaction.cancelRequestStatus == 'accepted' ? 'Đơn hàng đã được hủy' : transaction.cancelRequestStatus == 'rejected' ? 'Yêu cầu hủy bị từ chối' : 'Hủy đơn hàng'}
                   </Button>
                   <Button
                     onClick={() => window.open(`/account/my-tickets/${transaction_id}/invitation-letter`, '_blank')}
@@ -686,14 +677,21 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   </Button>
                   <Button
                     size="small"
+                    startIcon={<Link/>}
+                    onClick={() => copyShareLink(transaction.event.slug!, transaction.shareUuid!)}
+                  >
+                    Sao chép liên kết chia sẻ
+                  </Button>
+                  <Button
+                    size="small"
                     startIcon={<FacebookLogo />}
-                    onClick={() => openFacebookAppShare(transaction.event.slug!, transaction.shareUuid!)}
+                    onClick={() => shareTicket(transaction.event.slug!, transaction.shareUuid!, transaction.event.name, transaction.name, transaction.ticketQuantity)}
                   >
                     Khoe với bạn bè
                   </Button>
                 </Stack>
                 <Typography variant='caption'>
-                  Xin lưu ý: việc chia sẻ vé sẽ tiết lộ tên người mua, số lượng vé, và thông tin công khai của sự kiện. Các thông tin khác được bảo mật.
+                  Xin lưu ý: Việc chia sẻ vé sẽ tiết lộ <b>tên người mua, số lượng vé, và thông tin công khai của sự kiện</b>. Các thông tin khác được bảo mật.
                 </Typography>
               </CardContent>
             </Card>

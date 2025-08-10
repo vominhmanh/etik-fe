@@ -45,7 +45,9 @@ export async function generateMetadata(
     ? `${transaction.name} đã sở hữu vé của sự kiện ${event.name}`
     : event?.name ?? 'ETIK';
 
-  const description = event?.description ? event.description.replace(/<[^>]+>/g, '') : undefined;
+  const description = event?.description 
+    ? `ETIK - Vé điện tử & Quản lý sự kiện | ${event.description.replace(/<[^>]+>/g, '')}`
+    : 'ETIK - Vé điện tử & Quản lý sự kiện';
   const image = event?.bannerUrl || event?.avatarUrl || undefined;
 
   return {
