@@ -1,7 +1,5 @@
 'use client';
 
-import * as React from 'react';
-import { useCallback, useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { Button, Divider, List, ListItem, ListItemText, Stack } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
@@ -11,25 +9,19 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import {
-  Gear,
   ListDashes,
-  ListNumbers,
-  ListStar,
-  Panorama,
   Play,
-  Question,
-  SpinnerBall,
-  StarHalf,
-  UserCircle,
+  SpinnerBall
 } from '@phosphor-icons/react/dist/ssr';
 import { AxiosResponse } from 'axios';
+import * as React from 'react';
+import { useEffect, useState } from 'react';
 import ReactQuill from 'react-quill';
 
 import NotificationContext from '@/contexts/notification-context';
 
 import 'react-quill/dist/quill.snow.css';
 
-import { useRouter } from 'next/navigation'; // ✅ Import router
 
 import OptionList from './option-list-page';
 

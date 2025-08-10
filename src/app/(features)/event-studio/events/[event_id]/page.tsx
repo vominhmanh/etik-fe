@@ -1,47 +1,32 @@
 "use client"
-import * as React from 'react';
 import Grid from '@mui/material/Unstable_Grid2';
 import dayjs from 'dayjs';
+import * as React from 'react';
 
-import { Budget } from '@/components/dashboard/overview/budget';
-import { CheckIn } from '@/components/dashboard/overview/check-in';
-import { LatestOrders } from '@/components/dashboard/overview/latest-orders';
-import { LatestProducts } from '@/components/dashboard/overview/latest-products';
-import { Refund } from '@/components/dashboard/overview/refund';
-import { Sales } from '@/components/dashboard/overview/sales';
-import { TasksProgress } from '@/components/dashboard/overview/tasks-progress';
-import { TotalCustomers } from '@/components/dashboard/overview/total-customers';
-import { TotalProfit } from '@/components/dashboard/overview/total-profit';
-import { Traffic } from '@/components/dashboard/overview/traffic';
+import SendRequestEventAgencyAndEventApproval from '@/components/events/event/send-request-event-agency-and-event-approval';
+import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Avatar, Box, CardMedia, Container, MenuItem, Modal, Select, Stack, TextField } from '@mui/material';
+import { Avatar, Box, Container, Modal, Stack } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import CircularProgress from '@mui/material/CircularProgress';
+import { orange } from '@mui/material/colors';
 import Divider from '@mui/material/Divider';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import { ArrowCounterClockwise, ArrowSquareIn, CheckFat, Eye, HourglassLow, ReceiptX, Storefront } from '@phosphor-icons/react/dist/ssr';
+import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
+import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { AxiosResponse } from 'axios';
-import NotificationContext from '@/contexts/notification-context';
 import RouterLink from 'next/link';
-import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
-import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
-import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
+import { useState } from 'react';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
-import { useState } from 'react';
-import SendRequestEventAgencyAndEventApproval from '@/components/events/event/send-request-event-agency-and-event-approval';
-import { orange } from '@mui/material/colors';
 
 export interface EventOverviewResponse {
   eventId: number;

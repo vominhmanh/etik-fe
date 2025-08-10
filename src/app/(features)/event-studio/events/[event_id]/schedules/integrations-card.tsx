@@ -1,5 +1,3 @@
-import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -10,6 +8,7 @@ import Typography from '@mui/material/Typography';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 import dayjs from 'dayjs';
+import * as React from 'react';
 
 export interface Integration {
   id: string;

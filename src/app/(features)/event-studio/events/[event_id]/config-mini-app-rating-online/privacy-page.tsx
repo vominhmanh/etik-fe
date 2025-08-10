@@ -1,12 +1,11 @@
 "use client";
 
-import { Card, CardHeader, Divider, CardContent, Grid, FormControl, InputLabel, OutlinedInput, InputAdornment, IconButton, Select, MenuItem, Button } from "@mui/material";
-import { Clipboard } from "@phosphor-icons/react/dist/ssr";
 import NotificationContext from '@/contexts/notification-context';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
+import { Button, Card, CardContent, CardHeader, Divider, FormControl, Grid, IconButton, InputAdornment, InputLabel, MenuItem, OutlinedInput, Select } from "@mui/material";
+import { Clipboard } from "@phosphor-icons/react/dist/ssr";
 import { AxiosResponse } from 'axios';
 import React, { useEffect } from "react";
-import { EventResponse } from "./page";
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 
 type PrivacySettingsProps = {
   eventSlug: string;

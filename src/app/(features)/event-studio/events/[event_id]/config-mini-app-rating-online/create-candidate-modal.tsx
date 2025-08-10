@@ -1,6 +1,5 @@
 'use client';
 
-import { useContext, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import {
   Avatar,
@@ -9,12 +8,11 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
   Stack,
-  TextField,
-  Typography,
+  TextField
 } from '@mui/material';
 import { AxiosResponse } from 'axios';
+import { useContext, useState } from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
 

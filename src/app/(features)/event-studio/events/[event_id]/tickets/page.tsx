@@ -1,27 +1,26 @@
 'use client';
 
-import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
-import axios, { AxiosResponse } from 'axios';
+import { AxiosResponse } from 'axios';
+import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
+import { FormControl, Grid, IconButton, InputLabel, MenuItem, Select } from '@mui/material';
+import Backdrop from '@mui/material/Backdrop';
 import Card from '@mui/material/Card';
+import CircularProgress from '@mui/material/CircularProgress';
 import InputAdornment from '@mui/material/InputAdornment';
 import OutlinedInput from '@mui/material/OutlinedInput';
-import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
-import { TicketsTable } from './tickets-table';
-import Backdrop from '@mui/material/Backdrop';
-import CircularProgress from '@mui/material/CircularProgress';
-import { debounce } from 'lodash';
-import { FormControl, InputLabel, Select, MenuItem, Grid, IconButton } from '@mui/material';
 import { ArrowCounterClockwise, Empty, X } from '@phosphor-icons/react/dist/ssr';
+import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
+import { debounce } from 'lodash';
 import RouterLink from 'next/link';
+import { TicketsTable } from './tickets-table';
 
 
 interface FilterTicketCategory {

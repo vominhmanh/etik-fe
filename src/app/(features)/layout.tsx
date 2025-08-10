@@ -1,16 +1,9 @@
-import NotificationContext from '@/contexts/notification-context';
-import type { Viewport } from 'next';
-import { NotificationProvider } from '@/contexts/notification-context';
 
 import '@/styles/global.css';
 
-import { UserProvider } from '@/contexts/user-context';
-import { LocalizationProvider } from '@/components/core/localization-provider';
-import { ThemeProvider } from '@/components/core/theme-provider/theme-provider';
-import { ResponsiveAppBar } from './responsive-app-bar';
-import NotificationBar from '../notification';
-import React, { Suspense } from 'react';
 import { CircularProgress, Stack, Typography } from '@mui/material';
+import React, { Suspense } from 'react';
+import { ResponsiveAppBar } from './responsive-app-bar';
 
 export default function Layout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (

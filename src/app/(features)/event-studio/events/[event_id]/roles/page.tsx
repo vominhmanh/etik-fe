@@ -1,20 +1,14 @@
 'use client';
 
-import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import axios, { AxiosResponse } from 'axios';
+import { AxiosResponse } from 'axios';
+import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
-import Card from '@mui/material/Card';
-import InputAdornment from '@mui/material/InputAdornment';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import { RolesTable } from './roles-table';
-import Backdrop from '@mui/material/Backdrop';
-import CircularProgress from '@mui/material/CircularProgress';
 import {
   CardContent,
   CardHeader,
@@ -26,10 +20,14 @@ import {
   InputLabel,
   MenuItem,
   Modal,
-  Select,
-  Switch,
+  Select
 } from '@mui/material';
+import Backdrop from '@mui/material/Backdrop';
+import Card from '@mui/material/Card';
+import CircularProgress from '@mui/material/CircularProgress';
+import OutlinedInput from '@mui/material/OutlinedInput';
 import { ArrowRight } from '@phosphor-icons/react';
+import { RolesTable } from './roles-table';
 
 export interface User {
   id: number;

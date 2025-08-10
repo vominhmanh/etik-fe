@@ -1,7 +1,6 @@
 'use client';
 
-import * as React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { Avatar, Box, CardMedia, Container, FormHelperText, IconButton, InputAdornment, MenuItem, Modal, Select, Stack, TextField } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
@@ -11,6 +10,7 @@ import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import CircularProgress from '@mui/material/CircularProgress';
+import { orange } from '@mui/material/colors';
 import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
@@ -22,13 +22,13 @@ import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { AxiosResponse } from 'axios';
-import ReactQuill, { Quill } from 'react-quill';
-import NotificationContext from '@/contexts/notification-context';
-import 'react-quill/dist/quill.snow.css';
 import dayjs from 'dayjs';
 import RouterLink from 'next/link';
+import * as React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import SendRequestEventAgencyAndEventApproval from '../../../../../../components/events/event/send-request-event-agency-and-event-approval';
-import { orange } from '@mui/material/colors';
 
 // Define the event response type
 type EventResponse = {

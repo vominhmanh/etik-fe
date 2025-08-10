@@ -1,10 +1,7 @@
 'use client';
 
-import * as React from 'react';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Box, Checkbox, Container, FormControlLabel, FormHelperText, InputAdornment, Modal } from '@mui/material';
+import { Box, Checkbox, FormControlLabel, FormHelperText, InputAdornment } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -20,7 +17,10 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import axios, { AxiosResponse } from 'axios';
+import { AxiosResponse } from 'axios';
+import { useRouter } from 'next/navigation';
+import * as React from 'react';
+import { useEffect, useState } from 'react';
 import ReactQuill from 'react-quill'; // Import ReactQuill
 
 import NotificationContext from '@/contexts/notification-context';

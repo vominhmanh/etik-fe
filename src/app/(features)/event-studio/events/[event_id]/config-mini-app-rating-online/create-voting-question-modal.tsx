@@ -1,10 +1,6 @@
-import { useContext, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import {
-  Box,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -13,10 +9,11 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  TextField,
+  TextField
 } from '@mui/material';
 import { Stack } from '@mui/system';
 import { AxiosResponse } from 'axios';
+import { useContext, useState } from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
 

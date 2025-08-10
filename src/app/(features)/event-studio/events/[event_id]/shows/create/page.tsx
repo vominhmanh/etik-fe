@@ -1,10 +1,7 @@
 'use client';
 
-import * as React from 'react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { FormHelperText, InputAdornment, TextField } from '@mui/material';
+import { FormHelperText, TextField } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -20,8 +17,10 @@ import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import axios, { AxiosResponse } from 'axios';
-import ReactQuill from 'react-quill'; // Import ReactQuill
+import { AxiosResponse } from 'axios';
+import { useRouter } from 'next/navigation';
+import * as React from 'react';
+import { useState } from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
 

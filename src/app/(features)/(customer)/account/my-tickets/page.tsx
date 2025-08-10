@@ -1,30 +1,26 @@
 "use client"
-import * as React from 'react';
+import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
 import NotificationContext from '@/contexts/notification-context';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
+import { CardMedia, Tooltip } from '@mui/material';
+import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Pagination from '@mui/material/Pagination';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
+import { cyan, deepOrange, deepPurple, green, indigo, pink, yellow } from '@mui/material/colors';
+import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
-import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
-import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
-import Avatar from '@mui/material/Avatar';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Divider from '@mui/material/Divider';
+import { MapPin, WarningCircle } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
-import axios, { AxiosResponse } from 'axios';
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import Chip from '@mui/material/Chip';
-import { deepPurple, deepOrange, indigo, cyan, green, pink, yellow } from '@mui/material/colors';
+import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import { MapPin, WarningCircle } from '@phosphor-icons/react/dist/ssr';
-import { CardMedia, Tooltip } from '@mui/material';
 import RouterLink from 'next/link';
+import * as React from 'react';
 
 const statusMap = {
   not_opened_for_sale: { label: 'Chưa mở bán', color: 'secondary' },

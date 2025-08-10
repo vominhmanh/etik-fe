@@ -1,11 +1,8 @@
 'use client';
 
-import * as React from 'react';
 import NotificationContext from '@/contexts/notification-context';
-import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Checkbox from '@mui/material/Checkbox';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
@@ -15,19 +12,12 @@ import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
-import Tooltip from '@mui/material/Tooltip';
+import * as React from 'react';
 
-import dayjs from 'dayjs';
-import { ArrowSquareUpRight as ArrowSquareUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowSquareUpRight';
-import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
-import { Bank as BankIcon } from '@phosphor-icons/react/dist/ssr/Bank';
-import { Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr/Lightning';
-import IconButton from '@mui/material/IconButton';
-import { useSelection } from '@/hooks/use-selection';
-import { Chip, CircularProgress } from '@mui/material';
-import { X } from '@phosphor-icons/react/dist/ssr';
-import { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
+import { Chip, CircularProgress } from '@mui/material';
+import { AxiosResponse } from 'axios';
+import dayjs from 'dayjs';
 
 
 // Function to map payment statuses to corresponding labels and colors

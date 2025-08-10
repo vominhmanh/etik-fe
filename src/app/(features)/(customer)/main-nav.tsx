@@ -1,6 +1,5 @@
 'use client';
 
-import * as React from 'react';
 import Avatar from '@mui/material/Avatar';
 import Badge from '@mui/material/Badge';
 import Box from '@mui/material/Box';
@@ -9,20 +8,17 @@ import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import { Bell as BellIcon } from '@phosphor-icons/react/dist/ssr/Bell';
-import { List as ListIcon } from '@phosphor-icons/react/dist/ssr/List';
-import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import RouterLink from 'next/link';
+import * as React from 'react';
 
-import { User } from '@/types/auth';
-import { paths } from '@/paths';
-import NotificationContext from '@/contexts/notification-context';
+import { UserPopover } from '@/components/dashboard/layout/user-popover';
 import { usePopover } from '@/hooks/use-popover';
 import { useUser } from '@/hooks/use-user';
-import { UserPopover } from '@/components/dashboard/layout/user-popover';
+import { paths } from '@/paths';
+import { User } from '@/types/auth';
 
 export function MainNav(): React.JSX.Element {
-  const [openNav, setOpenNav] = React.useState<boolean>(false);
   const [user, setUser] = React.useState<User | null>(null);
 
   const userPopover = usePopover<HTMLDivElement>();

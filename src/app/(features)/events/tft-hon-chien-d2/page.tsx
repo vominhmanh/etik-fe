@@ -1,8 +1,7 @@
 'use client';
 
-import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, CardMedia, Container, FormHelperText, InputAdornment, Modal, Table, TableBody, TableCell, TableRow, keyframes } from '@mui/material';
+import { Avatar, Box, Container, Modal, Table, TableBody, TableCell, TableRow, keyframes } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -13,27 +12,20 @@ import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import Grid from '@mui/material/Grid';
 import InputLabel from '@mui/material/InputLabel';
-import MenuItem from '@mui/material/MenuItem';
 import OutlinedInput from '@mui/material/OutlinedInput';
-import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { ArrowRight, UserPlus } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
-import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
-import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
-import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
-import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
-import axios, { AxiosResponse } from 'axios';
+import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
+import * as React from 'react';
 import ReCAPTCHA from 'react-google-recaptcha';
 
 import NotificationContext from '@/contexts/notification-context';
 
 import { Schedules } from './schedules';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 export type TicketCategory = {
   id: number;

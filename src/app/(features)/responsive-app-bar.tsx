@@ -1,20 +1,14 @@
 "use client"
-import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import IconButton from '@mui/material/IconButton';
-import Typography from '@mui/material/Typography';
-import Menu from '@mui/material/Menu';
-import { List as MenuIcon } from '@phosphor-icons/react/dist/ssr/List';
-import Container from '@mui/material/Container';
-import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
-import Tooltip from '@mui/material/Tooltip';
+import Container from '@mui/material/Container';
+import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import { Acorn as AdbIcon } from '@phosphor-icons/react/dist/ssr/Acorn';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
 import RouterLink from 'next/link';
+import * as React from 'react';
 
 const pages = ['Sự kiện mới', 'Event Studio', 'Blog'];
 

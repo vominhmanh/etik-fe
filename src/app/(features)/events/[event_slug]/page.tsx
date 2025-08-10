@@ -1,8 +1,7 @@
 'use client';
 
-import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, CardMedia, Checkbox, Container, FormControlLabel, FormHelperText, InputAdornment, Modal } from '@mui/material';
+import { Avatar, Box, Checkbox, Container, FormControlLabel, FormHelperText, Modal } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -18,24 +17,22 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { ArrowRight, Eye, Storefront, UserPlus } from '@phosphor-icons/react/dist/ssr';
+import { ArrowRight, Eye, UserPlus } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
-import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
-import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
-import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
-import axios, { AxiosResponse } from 'axios';
+import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
+import * as React from 'react';
 import ReCAPTCHA from 'react-google-recaptcha';
 
 import NotificationContext from '@/contexts/notification-context';
 
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { orange } from '@mui/material/colors';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { orange, red, yellow } from '@mui/material/colors';
 
 export type TicketCategory = {
   id: number;

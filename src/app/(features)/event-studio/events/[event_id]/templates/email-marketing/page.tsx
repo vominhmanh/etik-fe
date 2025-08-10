@@ -1,32 +1,25 @@
 'use client';
 
-import * as React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Avatar, Box, CardMedia, IconButton, InputAdornment, MenuItem, Select, Stack, TextField } from '@mui/material';
+import { Stack } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
+import Grid from '@mui/material/Grid';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
-import { ArrowSquareIn, Clipboard } from '@phosphor-icons/react/dist/ssr';
-import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
-import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
-import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { AxiosResponse } from 'axios';
-import ReactQuill, { Quill } from 'react-quill';
-import NotificationContext from '@/contexts/notification-context';
+import * as React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import dayjs from 'dayjs';
-import RouterLink from 'next/link';
 
 // Define the event response type
 type EventResponse = {

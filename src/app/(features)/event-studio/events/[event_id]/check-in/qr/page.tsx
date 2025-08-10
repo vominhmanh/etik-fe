@@ -1,21 +1,18 @@
 "use client"
 
-import * as React from 'react';
 import NotificationContext from '@/contexts/notification-context';
-import axios, { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { useMediaDevices } from "react-media-devices";
-import { useZxing } from "react-zxing";
-import { Accordion, AccordionDetails, AccordionSummary, Card, CardActions, CardContent, CardHeader, Chip, Container, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, OutlinedInput, Select, styled, SwipeableDrawer, Tooltip } from '@mui/material';
-import { Drawer, Stack, Grid, Typography, Checkbox, Button, Divider } from '@mui/material';
-import dayjs from 'dayjs';
-import { Info as InfoIcon } from '@phosphor-icons/react/dist/ssr/Info';
+import { Accordion, AccordionDetails, AccordionSummary, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Chip, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, OutlinedInput, Stack, styled, SwipeableDrawer, Typography } from '@mui/material';
 import { grey } from '@mui/material/colors';
+import { ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
-import { ArrowDown, ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
+import { AxiosResponse } from 'axios';
+import dayjs from 'dayjs';
+import RouterLink from 'next/link';
+import * as React from 'react';
+import { useZxing } from "react-zxing";
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
-import RouterLink from 'next/link';
 
 const iOS =
   typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);

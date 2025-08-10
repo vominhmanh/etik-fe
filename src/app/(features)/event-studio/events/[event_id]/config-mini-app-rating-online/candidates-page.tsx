@@ -1,6 +1,5 @@
 'use client';
 
-import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import {
   Avatar,
@@ -18,13 +17,14 @@ import {
 } from '@mui/material';
 import { Plus } from '@phosphor-icons/react/dist/ssr';
 import { AxiosResponse } from 'axios';
+import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
 
+import { Stack } from '@mui/system';
 import CreateCandidateModal from './create-candidate-modal';
 import DeleteCandidateModal from './delete-candidate-modal';
 import EditCandidateModal from './edit-candidate-modal';
-import { Stack } from '@mui/system';
 
 export interface Candidate {
   id: number;

@@ -1,7 +1,6 @@
 'use client';
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { Box, CardActions, IconButton, InputAdornment, styled, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import Button from '@mui/material/Button';
@@ -10,7 +9,6 @@ import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
@@ -18,16 +16,17 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
-import axios, { AxiosResponse } from 'axios';
-import * as XLSX from 'xlsx';
+import { AxiosResponse } from 'axios';
 import RouterLink from 'next/link';
-import NotificationContext from '@/contexts/notification-context';
+import { useRouter } from 'next/navigation';
+import * as React from 'react';
+import * as XLSX from 'xlsx';
 
-import { Schedules } from './schedules';
-import { TicketCategories } from './ticket-categories';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
 import { Download, Plus, Upload, X } from '@phosphor-icons/react/dist/ssr';
+import { Schedules } from './schedules';
+import { TicketCategories } from './ticket-categories';
 
 export type TicketCategory = {
   id: number;

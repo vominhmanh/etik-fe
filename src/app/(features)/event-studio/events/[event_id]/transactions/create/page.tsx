@@ -1,7 +1,5 @@
 'use client';
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { Box, InputAdornment } from '@mui/material';
 import Button from '@mui/material/Button';
@@ -17,19 +15,17 @@ import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
-import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
-import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
-import axios, { AxiosResponse } from 'axios';
-import dayjs from 'dayjs';
+import { AxiosResponse } from 'axios';
+import { useRouter } from 'next/navigation';
+import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
 
-import { Schedules } from './schedules';
-import { TicketCategories } from './ticket-categories';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
+import { Schedules } from './schedules';
+import { TicketCategories } from './ticket-categories';
 
 export type TicketCategory = {
   id: number;

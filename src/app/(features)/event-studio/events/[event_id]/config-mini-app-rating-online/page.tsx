@@ -1,7 +1,5 @@
 'use client';
 
-import * as React from 'react';
-import { useCallback, useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { Button, List, ListItem, ListItemText, Stack } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
@@ -22,20 +20,20 @@ import {
   UserCircle,
 } from '@phosphor-icons/react/dist/ssr';
 import { AxiosResponse } from 'axios';
+import * as React from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import ReactQuill from 'react-quill';
 
 import NotificationContext from '@/contexts/notification-context';
 
 import 'react-quill/dist/quill.snow.css';
 
-import { useRouter } from 'next/navigation'; // ✅ Import router
-
+import BackgroundImagePage from './background-image-page';
 import BackgroundImagePage from './background-image-page';
 import { CandidatesPage } from './candidates-page';
 import PrivacySettings from './privacy-page';
 import { RatingCriteriaPage } from './rating-criteria-page';
 import { VotingQuestionPage } from './voting-question-page';
-
 // Define the event response type
 export type EventResponse = {
   id: number;

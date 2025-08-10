@@ -1,6 +1,5 @@
 'use client';
 
-import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import Avatar from '@mui/material/Avatar';
 import Backdrop from '@mui/material/Backdrop';
@@ -12,24 +11,20 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import { cyan, deepOrange, deepPurple, green, indigo, pink, yellow } from '@mui/material/colors';
 import Divider from '@mui/material/Divider';
-import Pagination from '@mui/material/Pagination';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
-import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
-import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
-import axios, { AxiosResponse } from 'axios';
+import { AxiosResponse } from 'axios';
 import RouterLink from 'next/link';
+import * as React from 'react';
 
-import NotificationContext from '@/contexts/notification-context';
 import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
-import { Accordion, AccordionDetails, AccordionSummary, CardActionArea, CardActions, CardHeader, Container, FormControlLabel, InputLabel, Modal, OutlinedInput, Switch } from '@mui/material';
-import dayjs from 'dayjs';
-import { Pencil } from '@phosphor-icons/react/dist/ssr';
+import NotificationContext from '@/contexts/notification-context';
+import { Accordion, AccordionDetails, AccordionSummary, CardHeader, Container, FormControlLabel, InputLabel, Modal, OutlinedInput, Switch } from '@mui/material';
 import { ArrowRight } from '@phosphor-icons/react';
+import { Pencil } from '@phosphor-icons/react/dist/ssr';
+import dayjs from 'dayjs';
 
 interface TicketCategory {
   id: number;

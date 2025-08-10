@@ -1,11 +1,10 @@
-import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
-import type { Metadata } from 'next';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import type { Metadata } from 'next';
+import * as React from 'react';
 
-import { config } from '@/config';
 import { Notifications } from '@/components/dashboard/settings/notifications';
+import { config } from '@/config';
 
 export const metadata = { title: `Cài đặt | Dashboard | ${config.site.name}` } satisfies Metadata;
 

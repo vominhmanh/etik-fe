@@ -1,7 +1,9 @@
 'use client';
-import * as React from 'react';
-import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Unstable_Grid2';
+import NotificationContext from '@/contexts/notification-context';
+import { useUser } from '@/hooks/use-user';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
+import { User } from '@/types/auth';
+import { Avatar, Box, Chip, MenuItem, Select, SelectChangeEvent, TextField } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
@@ -12,16 +14,14 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Stack from '@mui/material/Stack';
-import { useState, useEffect, useContext } from 'react';
-import { AxiosResponse } from 'axios';
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import NotificationContext from '@/contexts/notification-context';
-import { User } from '@/types/auth';
-import { useUser } from '@/hooks/use-user';
-import { Avatar, Box, Chip, FormHelperText, Input, MenuItem, Select, SelectChangeEvent, TextField } from '@mui/material';
+import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Unstable_Grid2';
 import { SealCheck } from '@phosphor-icons/react/dist/ssr';
-import { RegistrationHistoryTable } from './registration-history-table';
+import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
+import * as React from 'react';
+import { useContext, useEffect, useState } from 'react';
+import { RegistrationHistoryTable } from './registration-history-table';
 
 export interface EventAgencyInfoResponse {
   id: number;

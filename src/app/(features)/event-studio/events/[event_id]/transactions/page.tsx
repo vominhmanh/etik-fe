@@ -1,32 +1,27 @@
 'use client';
 
-import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
-import axios, { AxiosError, AxiosResponse } from 'axios';
+import { AxiosResponse } from 'axios';
 import RouterLink from 'next/link';
+import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
+import { Box, Divider, FormControl, Grid, IconButton, InputLabel, Menu, MenuItem, Select, Table, TableBody, TableCell, TableRow, useTheme } from '@mui/material';
+import Backdrop from '@mui/material/Backdrop';
 import Card from '@mui/material/Card';
+import CircularProgress from '@mui/material/CircularProgress';
 import InputAdornment from '@mui/material/InputAdornment';
 import OutlinedInput from '@mui/material/OutlinedInput';
-import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
-import { Transaction, TransactionsTable } from './transactions-table';
-import Backdrop from '@mui/material/Backdrop';
-import CircularProgress from '@mui/material/CircularProgress';
-import { debounce } from 'lodash';
+import { CaretDown, Empty } from '@phosphor-icons/react';
 import { ArrowCounterClockwise, ArrowSquareIn, X } from '@phosphor-icons/react/dist/ssr';
-import { Grid, FormControl, InputLabel, Select, MenuItem, IconButton, Box, Menu, Divider, CardContent, Table, TableBody, TableCell, TableHead, TableRow, useTheme } from '@mui/material';
-import { ArrowBendLeftDown, CaretDown, Empty } from '@phosphor-icons/react';
-import { useSelection } from '@/hooks/use-selection';
-import dayjs from 'dayjs';
-import { HistoryAction } from './[transaction_id]/page';
-import Link from 'next/link';
+import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
+import { debounce } from 'lodash';
+import { Transaction, TransactionsTable } from './transactions-table';
 
 interface BulkErrorDetail {
   id: number;
