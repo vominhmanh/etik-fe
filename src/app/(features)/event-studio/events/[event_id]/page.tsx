@@ -22,7 +22,7 @@ import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
-import { AxiosResponse } from 'axios';
+import type { AxiosResponse } from 'axios';
 import RouterLink from 'next/link';
 import { useState } from 'react';
 import { Schedules } from './schedules';
@@ -288,7 +288,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Typography variant='caption' sx={{ pl: 2, minWidth: '130px', display: 'flex', alignItems: 'center' }}>
                   Tính năng phổ biến:
                 </Typography>
-                {(eventId == 43 || eventId == 44) &&
+                {(eventId === 43 || eventId === 44) &&
                   <>
                     <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/${event?.slug}`} size="small">
                       Tra cứu vị trí ngồi
@@ -298,10 +298,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </Button>
                   </>
                 }
-                <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/check-in/qr`} size="small">
-                  Check-in tại bàn
+                <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/event-detail`} size="small">
+                  Chỉnh sửa thông tin sự kiện
                 </Button>
-                {(eventId == 43 || eventId == 44) &&
+                <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/transactions/create`} size="small">
+                  Tạo giao dịch
+                </Button>
+                <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/check-in/qr`} size="small">
+                  Check-in
+                </Button>
+                <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
+                  Thiết lập show diễn
+                </Button>
+                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/shows`} size="small">
+                  Thiết lập loại vé
+                </Button>
+                {(eventId === 43 || eventId === 44) &&
                   <>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/shows`} size="small">
                       Thay đổi tên bàn
@@ -311,7 +323,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </Button>
                   </>
                 }
-                {eventId == 43 &&
+                {eventId === 43 &&
                   <>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard`} size="small">
                       Leaderboard Duo
@@ -387,7 +399,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       {event?.place ? event?.place : 'Chưa xác định'}
                     </Typography>
                   </Stack>
-             
+
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <Storefront fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
