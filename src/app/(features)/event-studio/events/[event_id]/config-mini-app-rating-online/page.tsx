@@ -29,7 +29,6 @@ import NotificationContext from '@/contexts/notification-context';
 import 'react-quill/dist/quill.snow.css';
 
 import BackgroundImagePage from './background-image-page';
-import BackgroundImagePage from './background-image-page';
 import { CandidatesPage } from './candidates-page';
 import PrivacySettings from './privacy-page';
 import { RatingCriteriaPage } from './rating-criteria-page';
