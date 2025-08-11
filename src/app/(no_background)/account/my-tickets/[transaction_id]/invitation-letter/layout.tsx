@@ -17,15 +17,15 @@ export default function Layout({ children }: { children: React.ReactNode }): Rea
         }
       `}</style>
       <div className="arima-font">
-            <AuthGuard>
+        <AuthGuard>
 
-        <Suspense fallback={<FallbackUI />}>
-          {children}
-        </Suspense>
+          <Suspense fallback={<FallbackUI />}>
+            {children}
+          </Suspense>
         </AuthGuard>
 
       </div>
-        </>
+    </>
   );
 }
 
