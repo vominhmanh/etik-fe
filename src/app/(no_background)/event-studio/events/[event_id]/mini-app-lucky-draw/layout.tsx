@@ -4,13 +4,14 @@ import { Suspense } from "react";
 
 export default function Layout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <AuthGuard>
-      <div className="cambria-font">
-        <Suspense fallback={<FallbackUI />}>
+    <Suspense fallback={<FallbackUI />}>
+
+      <AuthGuard>
+        <div className="cambria-font">
           {children}
-        </Suspense>
-      </div>
-    </AuthGuard>
+        </div>
+      </AuthGuard>
+    </Suspense>
   );
 }
 

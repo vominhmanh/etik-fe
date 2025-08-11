@@ -23,13 +23,14 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
   }, [eventId]);
 
   return (
-    <AuthGuard>
-      <Box sx={{ display: 'flex', flex: '1 1 auto', flexDirection: 'column', pl: { lg: 'var(--SideNav-width)' } }}>
-        <React.Suspense fallback={<FallbackUI />}>
+    <React.Suspense fallback={<FallbackUI />}>
+      <AuthGuard>
+        <Box sx={{ display: 'flex', flex: '1 1 auto', flexDirection: 'column', pl: { lg: 'var(--SideNav-width)' } }}>
           {children}
-        </React.Suspense>
-      </Box>
-    </AuthGuard>
+        </Box>
+      </AuthGuard>
+    </React.Suspense>
+
   );
 
   // 🔹 Beautiful Fallback Component

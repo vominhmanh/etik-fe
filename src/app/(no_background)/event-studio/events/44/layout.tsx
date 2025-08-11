@@ -23,29 +23,30 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
   }, [eventId]);
 
   return (
-    <AuthGuard>
-      <Box sx={{ display: 'flex', flex: '1 1 auto', flexDirection: 'column', pl: { lg: 'var(--SideNav-width)' } }}>
-        <React.Suspense fallback={<FallbackUI />}>
+    <React.Suspense fallback={<FallbackUI />}>
+      <AuthGuard>
+        <Box sx={{ display: 'flex', flex: '1 1 auto', flexDirection: 'column', pl: { lg: 'var(--SideNav-width)' } }}>
           {children}
-        </React.Suspense>
-      </Box>
-    </AuthGuard>
+        </Box>
+      </AuthGuard>
+    </React.Suspense>
+
   );
 }
 
-  // 🔹 Beautiful Fallback Component
-  function FallbackUI() {
-    return (
-      <Stack
-        height="100vh"
-        alignItems="center"
-        justifyContent="center"
-        spacing={2}
-      >
-        <CircularProgress size={50} />
-        <Typography variant="h6" color="textSecondary">
-          Loading, please wait...
-        </Typography>
-      </Stack>
-    );
-  }
+// 🔹 Beautiful Fallback Component
+function FallbackUI() {
+  return (
+    <Stack
+      height="100vh"
+      alignItems="center"
+      justifyContent="center"
+      spacing={2}
+    >
+      <CircularProgress size={50} />
+      <Typography variant="h6" color="textSecondary">
+        Loading, please wait...
+      </Typography>
+    </Stack>
+  );
+}
