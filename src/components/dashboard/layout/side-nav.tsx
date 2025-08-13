@@ -15,6 +15,7 @@ import { SpinnerBall } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
 import {
   ArrowLeft,
+  CurrencyCircleDollar,
   DiceSix,
   ImageSquare,
   Mailbox,
@@ -205,6 +206,13 @@ export function SideNav(): React.JSX.Element {
                 title="Chỉnh sửa sự kiện"
                 href={`/event-studio/events/${dynamicId}/event-detail`}
                 icon={InfoIcon}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="revenue-and-fee"
+                title="Doanh thu & Phí dịch vụ"
+                href={`/event-studio/events/${dynamicId}/revenue-and-fee`}
+                icon={CurrencyCircleDollar}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
