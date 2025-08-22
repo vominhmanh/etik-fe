@@ -57,6 +57,8 @@ export interface ListTransactionEventResponse {
   endDateTime?: Date;
   place?: string;
   bannerUrl?: string;
+  locationInstruction?: string;
+  timeInstruction?: string;
 }
 
 
@@ -165,14 +167,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                         <Typography color="text.secondary" display="inline" variant="body2">
                           {transaction.event.startDateTime && transaction.event.endDateTime
-                            ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
-                            : 'Chưa xác định'}
+                            ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
+                            : 'Chưa xác định'} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
                         </Typography>
                       </Stack>
                       <Stack direction="row" spacing={1}>
                         <MapPin fontSize="var(--icon-fontSize-sm)" />
                         <Typography color="text.secondary" display="inline" variant="body2">
-                          {transaction.event.place ? transaction.event.place : 'Chưa xác định'}
+                          {transaction.event.place ? transaction.event.place : 'Chưa xác định'} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
                         </Typography>
                       </Stack>
                     </Stack>

@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Stack, Tooltip } from '@mui/material';
+import { Avatar, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, InputAdornment, Select, Stack, Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -117,6 +117,7 @@ interface Event {
   avatarUrl: string;
   slug: string;
   locationInstruction: string | null;
+  timeInstruction: string | null;
 };
 
 export interface Ticket {
@@ -165,6 +166,7 @@ export interface Transaction {
   email: string;                    // Email of the customer
   name: string;                     // Name of the customer
   gender: string;                   // Gender of the customer
+  title: string;                   // Gender of the customer
   phoneNumber: string;              // Customer's phone number
   address: string | null;           // Customer's address, nullable
   dob: string | null;               // Date of birth, nullable
@@ -218,7 +220,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
 
     // Prefer native share sheet (lets user pick Instagram, Messenger, Facebook, etc.)
     if (typeof navigator !== 'undefined' && 'share' in navigator) {
-      void (navigator as any).share({ title: 'ETIK', text, url: shareUrl }).catch(() => {});
+      void (navigator as any).share({ title: 'ETIK', text, url: shareUrl }).catch(() => { });
       return;
     }
 
@@ -363,14 +365,14 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {transaction.event.startDateTime && transaction.event.endDateTime
                         ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : 'Chưa xác định'}
+                        : 'Chưa xác định'} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
                     </Typography>
                   </Stack>
 
                   <Stack direction="row" spacing={1}>
                     <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {transaction.event.place ? transaction.event.place : 'Chưa xác định'}
+                      {transaction.event.place ? transaction.event.place : 'Chưa xác định'} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
                     </Typography>
                   </Stack>
                 </Stack>
@@ -617,10 +619,22 @@ export default function Page({ params }: { params: { transaction_id: number } })
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
+
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel>Tên người mua</InputLabel>
-                      <OutlinedInput value={transaction.name} disabled label="Tên người mua" />
+                      <InputLabel htmlFor="customer-name">Danh xưng * - Họ và tên</InputLabel>
+                      <OutlinedInput
+                        id="customer-name"
+                        name="name"
+                        value={transaction.name}
+                        disabled
+                        label="Danh xưng * - Họ và tên"
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <Typography sx={{ width: 50 }}>{transaction.title}</Typography>
+                          </InputAdornment>
+                        }
+                      />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
@@ -664,7 +678,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
               <CardHeader title="Hành động" />
               <Divider />
               <CardContent>
-                <Stack spacing={2} direction="row" wrap="wrap">
+                <Stack spacing={2} direction="row" sx={{flexWrap:'wrap'}}>
                   <Button size="small" color="error" startIcon={<X />} onClick={handleOpen} disabled={transaction.cancelRequestStatus != null || ['customer_cancelled', 'staff_locked'].includes(transaction.status)}>
                     {transaction.cancelRequestStatus === 'pending' ? 'Đang chờ phản hồi hủy đơn hàng' : transaction.cancelRequestStatus == 'accepted' ? 'Đơn hàng đã được hủy' : transaction.cancelRequestStatus == 'rejected' ? 'Yêu cầu hủy bị từ chối' : 'Hủy đơn hàng'}
                   </Button>
@@ -677,10 +691,10 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   </Button>
                   <Button
                     size="small"
-                    startIcon={<Link/>}
+                    startIcon={<Link />}
                     onClick={() => copyShareLink(transaction.event.slug!, transaction.shareUuid!)}
                   >
-                    Sao chép liên kết chia sẻ
+                    Copy liên kết chia sẻ
                   </Button>
                   <Button
                     size="small"
@@ -691,7 +705,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   </Button>
                 </Stack>
                 <Typography variant='caption'>
-                  Xin lưu ý: Việc chia sẻ vé sẽ tiết lộ <b>tên người mua, số lượng vé, và thông tin công khai của sự kiện</b>. Các thông tin khác được bảo mật.
+                  Xin lưu ý: Việc chia sẻ xác nhận sở hữu vé sẽ tiết lộ <b>tên người mua, số lượng vé, và thông tin công khai của sự kiện</b>. Các thông tin khác được bảo mật.
                 </Typography>
               </CardContent>
             </Card>

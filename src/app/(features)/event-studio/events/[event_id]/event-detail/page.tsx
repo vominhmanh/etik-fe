@@ -47,6 +47,7 @@ type EventResponse = {
   slug: string;
   secureApiKey: string;
   locationInstruction: string | null;
+  timeInstruction: string | null;
   displayOnMarketplace: boolean;
   displayOption: string;
   adminReviewStatus: 'no_request_from_user' | 'waiting_for_acceptance' | 'accepted' | 'rejected';
@@ -511,14 +512,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event?.startDateTime && event?.endDateTime
                         ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : 'Chưa xác định'}
+                        : 'Chưa xác định'} {event.timeInstruction ? `(${event.timeInstruction})` : ''}
                     </Typography>
                   </Stack>
 
                   <Stack direction="row" spacing={1}>
                     <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {event?.place ? event?.place : 'Chưa xác định'}
+                      {event?.place ? event?.place : 'Chưa xác định'} {event.locationInstruction ? `(${event.locationInstruction})` : ''}
                     </Typography>
                   </Stack>
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
@@ -794,7 +795,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </FormControl>
                     </Grid>
 
-                    <Grid md={6} xs={12}>
+                    <Grid md={4} xs={12}>
                       <FormControl fullWidth required>
                         <TextField
                           label="Thời gian bắt đầu"
@@ -806,7 +807,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         />
                       </FormControl>
                     </Grid>
-                    <Grid md={6} xs={12}>
+                    
+                    <Grid md={4} xs={12}>
                       <FormControl fullWidth required>
                         <TextField
                           label="Thời gian kết thúc"
@@ -815,6 +817,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           name="endDateTime"
                           value={formValues.endDateTime || ''}
                           InputLabelProps={{ shrink: true }}
+                        />
+                      </FormControl>
+                    </Grid>
+                    <Grid md={4} xs={12}>
+                      <FormControl fullWidth>
+                        <InputLabel>Hướng dẫn thêm về thời gian</InputLabel>
+                        <OutlinedInput
+                          value={formValues.timeInstruction || ''}
+                          onChange={handleInputChange}
+                          label="Hướng dẫn thêm về thời gian"
+                          name="timeInstruction"
                         />
                       </FormControl>
                     </Grid>

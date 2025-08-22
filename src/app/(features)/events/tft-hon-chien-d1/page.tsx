@@ -70,6 +70,7 @@ export type EventResponse = {
   avatarUrl: string | null;
   slug: string;
   locationInstruction: string | null;
+  timeInstruction: string | null;
   shows: Show[];
 };
 
@@ -300,7 +301,7 @@ export default function Page(): React.JSX.Element {
                       <Typography color="text.secondary" display="inline" variant="body2">
                         {event?.startDateTime && event?.endDateTime
                           ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                          : 'Chưa xác định'}
+                          : 'Chưa xác định'}{event?.timeInstruction ? `(${event?.timeInstruction})` : ''}
                       </Typography>
                     </Stack>
 

@@ -99,6 +99,7 @@ type EventResponse = {
   slug: string;
   secureApiKey: string;
   locationInstruction: string | null;
+  timeInstruction: string | null;
   adminReviewStatus: string;
   displayOption: string;
   displayOnMarketplace: boolean;
@@ -410,14 +411,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event?.startDateTime && event?.endDateTime
                         ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : 'Chưa xác định'}
+                        : 'Chưa xác định'} {event?.timeInstruction ? `(${event.timeInstruction})` : ''}
                     </Typography>
                   </Stack>
 
                   <Stack direction="row" spacing={1}>
                     <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {event?.place ? event?.place : 'Chưa xác định'}
+                      {event?.place ? event?.place : 'Chưa xác định'} {event?.locationInstruction ? `(${event.locationInstruction})` : ''}
                     </Typography>
                   </Stack>
 

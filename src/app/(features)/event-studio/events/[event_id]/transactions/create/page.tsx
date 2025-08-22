@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Box, InputAdornment } from '@mui/material';
+import { Box, InputAdornment, TextField } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -78,9 +78,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const router = useRouter(); // Use useRouter from next/navigation
   const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
   const [customer, setCustomer] = React.useState({
+    title: 'Bạn',
     name: '',
     email: '',
     phoneNumber: '',
+    dob: null,
     address: '',
   });
   const [paymentMethod, setPaymentMethod] = React.useState<string>('napas247');
@@ -231,8 +233,37 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <CardHeader subheader="Vui lòng điền các trường thông tin phía dưới." title="Thông tin người mua" />
               <Divider />
               <CardContent>
+
                 <Grid container spacing={3}>
-                  <Grid md={6} xs={12}>
+                  <Grid lg={2} xs={4}>
+                    <FormControl fullWidth required>
+                      <InputLabel id="title-label">Danh xưng</InputLabel>
+                      <Select
+                        labelId="title-label"
+                        id="title-select"
+                        name="title"
+                        value={customer.title || "Bạn"}
+                        onChange={(e) => {
+                          setCustomer({ ...customer, title: e.target.value });
+                        }}
+                        label="Danh xưng"   // 🔑 thêm dòng này để label không bị lỗi UI
+                      >
+                        <MenuItem value="Anh">Anh</MenuItem>
+                        <MenuItem value="Chị">Chị</MenuItem>
+                        <MenuItem value="Bạn">Bạn</MenuItem>
+                        <MenuItem value="Em">Em</MenuItem>
+                        <MenuItem value="Ông">Ông</MenuItem>
+                        <MenuItem value="Bà">Bà</MenuItem>
+                        <MenuItem value="Cô">Cô</MenuItem>
+                        <MenuItem value="Mr.">Mr.</MenuItem>
+                        <MenuItem value="Ms.">Ms.</MenuItem>
+                        <MenuItem value="Miss">Miss</MenuItem>
+                        <MenuItem value="Thầy">Thầy</MenuItem>
+                        
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid md={4} xs={8}>
                     <FormControl fullWidth required>
                       <InputLabel>Họ và tên</InputLabel>
                       <OutlinedInput
@@ -276,7 +307,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       />
                     </FormControl>
                   </Grid>
-                  <Grid md={6} xs={12}>
+                  <Grid lg={6} xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Ngày tháng năm sinh"
+                      name="customer_dob"
+                      type="date"
+                      value={customer.dob || ""}
+                      onChange={(e) =>
+                        setCustomer({ ...customer, dob: e.target.value })
+                      }
+                      InputLabelProps={{
+                        shrink: true,   // bắt buộc để label không bị chồng
+                      }}
+                      inputProps={{
+                        max: new Date().toISOString().slice(0, 10),
+                      }}
+                    />
+                  </Grid>
+                  <Grid md={12} xs={12}>
                     <FormControl fullWidth>
                       <InputLabel>Địa chỉ</InputLabel>
                       <OutlinedInput
@@ -315,7 +364,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           label={`Họ và tên người tham dự ${index + 1}`}
                           defaultValue={index == 0 ? customer.name : ''}
                           value={holder}
-                          onChange={(e) => {setTicketHolderEditted(true); handleTicketHolderChange(index, e.target.value)}}
+                          onChange={(e) => { setTicketHolderEditted(true); handleTicketHolderChange(index, e.target.value) }}
                         />
                       </FormControl>
                     </Grid>

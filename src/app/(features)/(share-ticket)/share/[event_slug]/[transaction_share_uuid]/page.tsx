@@ -34,6 +34,7 @@ export interface EventResponse {
   avatarUrl: string | null;
   slug: string;
   locationInstruction: string | null;
+  timeInstruction: string | null;
 }
 
 // 1) Define the missing TransactionResponse type
@@ -109,8 +110,7 @@ export default function Page({
         <CircularProgress color="inherit" />
       </Backdrop>
       <Container maxWidth="xl" sx={{ py: '64px' }}>
-        <Stack spacing={4}>
-
+        <Stack spacing={3}>
           <Grid container spacing={3}>
             <Grid item lg={8} md={6} xs={12}>
               <Box
@@ -139,12 +139,59 @@ export default function Page({
               </Box>
             </Grid>
             <Grid item lg={4} md={6} xs={12}>
+              <Stack spacing={3}>
               <Card>
+                <CardContent>
+                  <Stack spacing={1} direction='column' sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <div>
+                        <DotLottieReact
+                          src="/assets/animations/ticket-gold.lottie"
+                          loop
+                          width={'90%'}
+                          height={'90%'}
+                          style={{
+                            borderRadius: '20px'
+                          }}
+                          autoplay
+                        />
+                      </div>
+                    </div>
+
+                    <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', maxWidth: '100%' }}>
+                      <Typography variant="h6">Xác nhận mua vé thành công !</Typography>
+                      <Stack spacing={1} sx={{ width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                          <Typography variant="body1">Tên người mua:</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transaction?.name}</Typography>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                          <Typography variant="body1">Số lượng:</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transaction?.ticketQuantity} vé</Typography>
+                        </div>
+                      </Stack>
+
+
+                      <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn Quý khách đã sử dụng ETIK !</Typography>
+                    </Stack>
+                  </Stack>
+                </CardContent>
+              </Card>
+              
+              </Stack>
+            </Grid>
+          </Grid>
+
+          <Stack direction="row" spacing={3}>
+            <Grid container spacing={3}>
+              <Grid item lg={8} md={6} xs={12}>
+                <Stack spacing={4}>
+                  <Card>
                 <CardContent
                   sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                 >
                   <Stack direction="column" spacing={2}>
-                    <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
+                    <Stack direction="row" spacing={2} style={{ justifyContent: 'center', alignItems: 'center' }}>
                       <div>
                         {event?.avatarUrl ?
                           <img src={event?.avatarUrl} alt="Avatar sự kiện" style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
@@ -153,7 +200,7 @@ export default function Page({
                             {(event?.name[0] ?? 'a').toUpperCase()}
                           </Avatar>}
                       </div>
-                      <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
+                      <Typography variant="h5" sx={{ width: {md: '70%', sm: '100%'}, textAlign: 'center' }}>
                         {event?.name}
                       </Typography>
                     </Stack>
@@ -169,7 +216,7 @@ export default function Page({
                       <Typography color="text.secondary" display="inline" variant="body2">
                         {event?.startDateTime && event?.endDateTime
                           ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                          : 'Chưa xác định'}
+                          : 'Chưa xác định'} {event?.timeInstruction ? `(${event?.timeInstruction})` : ''}
                       </Typography>
                     </Stack>
 
@@ -182,70 +229,7 @@ export default function Page({
                   </Stack>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
-
-          <Stack direction="row" spacing={3}>
-            <Grid container spacing={3}>
-              <Grid item lg={8} md={6} xs={12}>
-                <Card>
-                  <CardContent>
-                    <Stack spacing={2} direction={{ sm: 'row', xs: 'column' }} sx={{ display: 'flex', justifyContent: 'center' }}>
-                      <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <div style={{ width: '150px', height: '150px', borderRadius: '20px', }}>
-                          <DotLottieReact
-                            src="/assets/animations/ticket-gold.lottie"
-                            loop
-                            width={'100%'}
-                            height={'100%'}
-                            style={{
-                              borderRadius: '20px'
-                            }}
-                            autoplay
-                          />
-                        </div>
-                      </div>
-
-                      <Stack spacing={5} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '300px', maxWidth: '100%' }}>
-                        <Typography variant="h5">Mua vé thành công !</Typography>
-                        <Stack spacing={1} sx={{width: '100%'}}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                          <Typography variant="body1">Tên người mua:</Typography>
-                          <Typography variant="body1" sx={{fontWeight: 'bold'}}>{transaction?.name}</Typography>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                          <Typography variant="body1">Số lượng:</Typography>
-                          <Typography variant="body1" sx={{fontWeight: 'bold'}}>{transaction?.ticketQuantity} vé</Typography>
-                        </div>
-                        </Stack>
-                        
-
-                        <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn Quý khách đã sử dụng ETIK !</Typography>
-                      </Stack>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item lg={4} md={6} xs={12}>
-              <Card>
-                <CardContent
-                  sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-                >
-                  <Stack direction="column" spacing={2} >
-                    <Typography variant="body1" sx={{textAlign: 'center'}}>
-                        Bạn muốn sở hữu vé ?
-                      </Typography>
-                       <div>
-                    <Button fullWidth variant="contained" href={`/${event?.slug}`} size="small" startIcon={<UserPlus />}>
-                      Đăng ký ngay
-                    </Button>
-                  </div>
-                  </Stack>
-                 
-                </CardContent>
-              </Card>
-            </Grid>
-              <Grid item lg={8} md={6} xs={12}>
+                
                 <Card>
                   <CardContent>
                     {event?.description ? (
@@ -267,6 +251,29 @@ export default function Page({
                     )}
                   </CardContent>
                 </Card>
+                </Stack>
+              </Grid>
+              <Grid item lg={4} md={6} xs={12}>
+                <Card>
+                  <CardContent
+                    sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                  >
+                    <Stack direction="column" spacing={2} >
+                      <Typography variant="body1" sx={{ textAlign: 'center' }}>
+                        Bạn muốn sở hữu vé ?
+                      </Typography>
+                      <div>
+                        <Button fullWidth variant="contained" href={`/${event?.slug}`} size="small" startIcon={<UserPlus />}>
+                          Đăng ký ngay
+                        </Button>
+                      </div>
+                    </Stack>
+
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item lg={8} md={6} xs={12}>
+                
               </Grid>
               <Grid item lg={4} md={6} xs={12} />
             </Grid>

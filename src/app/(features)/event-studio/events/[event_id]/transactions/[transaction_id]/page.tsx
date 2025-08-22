@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Chip, MenuItem, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, Tooltip } from '@mui/material';
+import { Avatar, Chip, InputAdornment, MenuItem, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -140,6 +140,7 @@ interface Event {
   avatarUrl: string;
   slug: string;
   locationInstruction: string | null;
+  timeInstruction: string | null;
 };
 
 
@@ -229,6 +230,7 @@ export interface Transaction {
   email: string;                    // Email of the customer
   name: string;                     // Name of the customer
   gender: string;                   // Gender of the customer
+  title: string;                   // Gender of the customer
   phoneNumber: string;              // Customer's phone number
   address: string | null;           // Customer's address, nullable
   dob: string | null;               // Date of birth, nullable
@@ -268,6 +270,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [formData, setFormData] = useState({
     name: transaction?.name || '',
+    title: transaction?.title || '',
     phoneNumber: transaction?.phoneNumber || '',
     address: transaction?.address || '',
     dob: transaction?.dob || null,
@@ -296,6 +299,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
           name: formData.name,
           phoneNumber: formData.phoneNumber,
           dob: formData.dob,
+          title: formData.title,
           address: formData.address,
         }
       );
@@ -306,6 +310,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
           ...prev, name: formData.name,
           phoneNumber: formData.phoneNumber,
           address: formData.address,
+          dob: formData.dob,
+          title: formData.title,
         } : prev);
 
       }
@@ -327,6 +333,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         );
         setTransaction(response.data);
         setFormData({
+          title: response.data?.title || 'Bạn',
           name: response.data?.name || '',
           phoneNumber: response.data?.phoneNumber || '',
           dob: response.data?.dob || null,
@@ -518,14 +525,14 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {transaction.event.startDateTime && transaction.event.endDateTime
                         ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : 'Chưa xác định'}
+                        : 'Chưa xác định'} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
                     </Typography>
                   </Stack>
 
                   <Stack direction="row" spacing={1}>
                     <MapPin fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {transaction.event.place ? transaction.event.place : 'Chưa xác định'}
+                      {transaction.event.place ? transaction.event.place : 'Chưa xác định'} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
                     </Typography>
                   </Stack>
                 </Stack>
@@ -579,130 +586,157 @@ export default function Page({ params }: { params: { event_id: number; transacti
             <Card>
               <CardHeader title="Hành động" />
               <Divider />
-              {transaction.cancelRequestStatus === 'pending' &&
-                <>
-                  <CardContent>
-                    <Typography variant='body2' color={'error'} sx={{ fontWeight: 'bold' }}>
-                      Khách hàng yêu cầu hủy đơn hàng:
-                    </Typography>
+              <CardContent>
+                <Stack spacing={3}>
+                  {transaction.cancelRequestStatus === 'pending' &&
+                    <>
+                      <Typography variant='body2' color={'error'} sx={{ fontWeight: 'bold' }}>
+                        Khách hàng yêu cầu hủy đơn hàng:
+                      </Typography>
+                      <Stack spacing={2} direction={'row'}>
+                        <Button
+                          onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'reject')}
+                          size="small"
+                        >
+                          Từ chối hủy
+                        </Button>
+                        <Button
+                          onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'accept')}
+                          size="small"
+                          color='error'
+                          startIcon={<Check />}
+                        >
+                          Chấp nhận hủy
+                        </Button>
+                      </Stack>
+                      <Divider />
+                    </>
+
+                  }
+                  {transaction.status === 'wait_for_response' &&
                     <Stack spacing={2} direction={'row'}>
-                      <Button
-                        onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'reject')}
-                        size="small"
-                      >
-                        Từ chối hủy
+                      <Button onClick={() => handleSetTransactionStatus('normal')} size="small" startIcon={<Check />}>
+                        Phê duyệt đơn hàng
                       </Button>
-                      <Button
-                        onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'accept')}
-                        size="small"
-                        color='error'
-                        startIcon={<Check />}
-                      >
-                        Chấp nhận hủy
+                      <Button onClick={() => handleSetTransactionStatus('staff_locked')} size="small" startIcon={<X />}>
+                        Từ chối đơn hàng
                       </Button>
                     </Stack>
-                  </CardContent>
-                  <Divider />
-                </>
-
-              }
-              <CardContent>
-                {transaction.status === 'wait_for_response' &&
-                  <Stack spacing={2} direction={'row'}>
-                    <Button onClick={() => handleSetTransactionStatus('normal')} size="small" startIcon={<Check />}>
-                      Phê duyệt đơn hàng
-                    </Button>
-                    <Button onClick={() => handleSetTransactionStatus('staff_locked')} size="small" startIcon={<X />}>
-                      Từ chối đơn hàng
-                    </Button>
-                  </Stack>
-                }
-                {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt == null && (
-                  <>
-                    <Stack spacing={1} direction={'row'} flexWrap={'wrap'}>
+                  }
+                  {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt == null && (
+                    <>
+                      <Stack spacing={1} direction={'row'} flexWrap={'wrap'}>
+                        <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                          Xuất vé + gửi email
+                        </Button>
+                        <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<DeviceMobile />}>
+                          Xuất vé + gửi Zalo
+                        </Button>
+                        <Button onClick={() => sendTicket(null)} size="small" startIcon={<TicketIcon />}>
+                          Xuất vé không gửi
+                        </Button>
+                      </Stack>
+                    </>
+                  )}
+                  {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
+                    <Stack spacing={0} direction={'row'} flexWrap={'wrap'}>
                       <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                        Xuất vé + gửi email
+                        Gửi vé qua Email
                       </Button>
                       <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<DeviceMobile />}>
-                        Xuất vé + gửi Zalo
+                        Gửi vé qua Zalo
+                      </Button>
+                      <Button
+                        onClick={() => window.open(`/event-studio/events/${event_id}/transactions/${transaction_id}/invitation-letter`, '_blank')}
+                        size="small"
+                        startIcon={<ImageSquare />} // Icon for document-like invitation letter
+                      >
+                        Xem ảnh thư mời
                       </Button>
                     </Stack>
-                    <Stack spacing={1} direction={'row'}>
-                      <Button onClick={() => sendTicket(null)} size="small" startIcon={<TicketIcon />}>
-                        Xuất vé không gửi
+                  )}
+                  {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
+                    <Stack spacing={2} direction={'row'}>
+                      <Button size="small" startIcon={<SignIn />}>
+                        Check-in
+                      </Button>
+                      <Button size="small" startIcon={<SignOut />}>
+                        Check-out
                       </Button>
                     </Stack>
-                  </>
-                )}
-                {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
-                  <Stack spacing={0} direction={'row'} flexWrap={'wrap'}>
-                    <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                      Gửi vé qua Email
-                    </Button>
-                    <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<DeviceMobile />}>
-                      Gửi vé qua Zalo
-                    </Button>
-                    <Button
-                      onClick={() => window.open(`/event-studio/events/${event_id}/transactions/${transaction_id}/invitation-letter`, '_blank')}
-                      size="small"
-                      startIcon={<ImageSquare />} // Icon for document-like invitation letter
-                    >
-                      Xem ảnh thư mời
-                    </Button>
-                  </Stack>
-                )}
-                {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
+                  )}
+
                   <Stack spacing={2} direction={'row'}>
-                    <Button size="small" startIcon={<SignIn />}>
-                      Check-in
-                    </Button>
-                    <Button size="small" startIcon={<SignOut />}>
-                      Check-out
-                    </Button>
+                    {transaction.status === 'normal' &&
+                      transaction.paymentMethod === 'napas247' &&
+                      transaction.paymentStatus === 'waiting_for_payment' && (
+                        <>
+                          <Button onClick={resendInstructionNapas247Email}
+                            size="small"
+                            startIcon={<EnvelopeSimpleIcon />}
+                          >
+                            Gửi Hướng dẫn thanh toán qua Email
+                          </Button>
+                          <Button onClick={resendInstructionNapas247Email}
+                            size="small"
+                            startIcon={<EnvelopeSimpleIcon />}
+                          >
+                            Gửi Hướng dẫn thanh toán qua Zalo
+                          </Button>
+                        </>
+                      )}
+                    {transaction.status === 'normal' &&
+                      transaction.paymentMethod !== 'napas247' &&
+                      transaction.paymentStatus === 'waiting_for_payment' && (
+                        <Button
+                          onClick={() => setTransactionPaidStatus(params.event_id, params.transaction_id)}
+                          size="small"
+                          startIcon={<EnvelopeSimpleIcon />}
+                        >
+                          Chuyển trạng thái "Đã thanh toán"
+                        </Button>
+                      )}
+
+                    {(transaction.status === 'staff_locked' || transaction.status === 'customer_cancelled') &&
+                      transaction.paymentStatus === 'paid' && (
+                        <Button
+                          onClick={() => setTransactionRefundStatus(params.event_id, params.transaction_id)}
+                          size="small"
+                          startIcon={<EnvelopeSimpleIcon />}
+                        >
+                          Hoàn tiền đơn hàng
+                        </Button>
+                      )}
                   </Stack>
-                )}
-
-                <Stack spacing={2} direction={'row'}>
-                  {transaction.status === 'normal' &&
-                    transaction.paymentMethod === 'napas247' &&
-                    transaction.paymentStatus === 'waiting_for_payment' && (
-                      <>
-                        <Button onClick={resendInstructionNapas247Email}
-                          size="small"
-                          startIcon={<EnvelopeSimpleIcon />}
+                  <Grid container spacing={3}>
+                    <Grid md={10} xs={9}>
+                      <FormControl size='small' fullWidth>
+                        <InputLabel>Hủy đơn hàng</InputLabel>
+                        <Select
+                          label="Hủy đơn hàng"
+                          name="status"
+                          value={selectedStatus}
+                          onChange={(event) => setSelectedStatus(event.target.value)}
                         >
-                          Gửi Hướng dẫn thanh toán qua Email
-                        </Button>
-                        <Button onClick={resendInstructionNapas247Email}
-                          size="small"
-                          startIcon={<EnvelopeSimpleIcon />}
-                        >
-                          Gửi Hướng dẫn thanh toán qua Zalo
-                        </Button>
-                      </>
-                    )}
-                  {transaction.status === 'normal' &&
-                    transaction.paymentMethod !== 'napas247' &&
-                    transaction.paymentStatus === 'waiting_for_payment' && (
+                          {transaction.status === 'wait_for_response' && (
+                            <MenuItem value="normal">Phê duyệt đơn hàng</MenuItem>
+                          )}
+                          <MenuItem value="customer_cancelled">Huỷ bởi Khách hàng</MenuItem>
+                          <MenuItem value="staff_locked">Khoá bởi Nhân viên</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid md={2} xs={3} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                       <Button
-                        onClick={() => setTransactionPaidStatus(params.event_id, params.transaction_id)}
-                        size="small"
-                        startIcon={<EnvelopeSimpleIcon />}
+                        type="submit"
+                        variant="contained"
+                        onClick={() => handleSetTransactionStatus(selectedStatus)}
+                        disabled={!selectedStatus} // Disable if no status is selected
                       >
-                        Chuyển trạng thái "Đã thanh toán"
+                        Lưu
                       </Button>
-                    )}
-
-                  {(transaction.status === 'staff_locked' || transaction.status === 'customer_cancelled') &&
-                    transaction.paymentStatus === 'paid' && (
-                      <Button
-                        onClick={() => setTransactionRefundStatus(params.event_id, params.transaction_id)}
-                        size="small"
-                        startIcon={<EnvelopeSimpleIcon />}
-                      >
-                        Hoàn tiền đơn hàng
-                      </Button>
-                    )}
+                    </Grid>
+                  </Grid>
                 </Stack>
               </CardContent>
             </Card>
@@ -903,14 +937,43 @@ export default function Page({ params }: { params: { event_id: number; transacti
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
+
+
+
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel>Tên người mua</InputLabel>
+                      <InputLabel htmlFor="customer-name">Người mua</InputLabel>
                       <OutlinedInput
-                        value={formData.name}
-                        onChange={(event: any) => handleFormChange(event)}
+                        id="customer-name"
                         name="name"
-                        label="Tên người mua"
+                        value={formData.name}
+                        onChange={(event) => handleFormChange(event)}
+                        label="Người mua"
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <Select
+                              variant="standard"
+                              disableUnderline
+                              value={formData.title || "Bạn"}
+                              onChange={(event) =>
+                                setFormData({ ...formData, title: event.target.value })
+                              }
+                              sx={{ minWidth: 70 }} // cho vừa gọn
+                            >
+                              <MenuItem value="Anh">Anh</MenuItem>
+                              <MenuItem value="Chị">Chị</MenuItem>
+                              <MenuItem value="Bạn">Bạn</MenuItem>
+                              <MenuItem value="Em">Em</MenuItem>
+                              <MenuItem value="Ông">Ông</MenuItem>
+                              <MenuItem value="Bà">Bà</MenuItem>
+                              <MenuItem value="Cô">Cô</MenuItem>
+                              <MenuItem value="Mr.">Mr.</MenuItem>
+                              <MenuItem value="Ms.">Ms.</MenuItem>
+                              <MenuItem value="Miss">Miss</MenuItem>
+                              <MenuItem value="Thầy">Thầy</MenuItem>
+                            </Select>
+                          </InputAdornment>
+                        }
                       />
                     </FormControl>
                   </Grid>
@@ -968,35 +1031,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
               <CardHeader title="Thay đổi trạng thái đơn hàng" />
               <Divider />
               <CardContent>
-                <Grid container spacing={3}>
-                  <Grid md={12} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Chọn trạng thái mới</InputLabel>
-                      <Select
-                        label="Chọn trạng thái mới"
-                        name="status"
-                        value={selectedStatus}
-                        onChange={(event) => setSelectedStatus(event.target.value)}
-                      >
-                        {transaction.status === 'wait_for_response' && (
-                          <MenuItem value="normal">Phê duyệt đơn hàng</MenuItem>
-                        )}
-                        <MenuItem value="customer_cancelled">Huỷ bởi Khách hàng</MenuItem>
-                        <MenuItem value="staff_locked">Khoá bởi Nhân viên</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid md={12} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      onClick={() => handleSetTransactionStatus(selectedStatus)}
-                      disabled={!selectedStatus} // Disable if no status is selected
-                    >
-                      Lưu
-                    </Button>
-                  </Grid>
-                </Grid>
+
               </CardContent>
             </Card>
             <Card>

@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, Container, FormHelperText, Modal } from '@mui/material';
+import { Avatar, Box, Container, FormHelperText, InputAdornment, Modal } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -68,6 +68,7 @@ export type EventResponse = {
   avatarUrl: string | null;
   slug: string;
   locationInstruction: string | null;
+  timeInstruction: string | null;
   shows: Show[];
 };
 
@@ -84,6 +85,7 @@ export default function Page(): React.JSX.Element {
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
   const [customer, setCustomer] = React.useState({
     name: '',
+    title: 'Bạn',
     email: '',
     phoneNumber: '',
     address: '',
@@ -393,7 +395,7 @@ export default function Page(): React.JSX.Element {
                       <Typography color="text.secondary" display="inline" variant="body2">
                         {event?.startDateTime && event?.endDateTime
                           ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                          : 'Chưa xác định'}
+                          : 'Chưa xác định'} {event?.timeInstruction ? `(${event?.timeInstruction})` : ''}
                       </Typography>
                     </Stack>
 
@@ -470,21 +472,39 @@ export default function Page(): React.JSX.Element {
                     <Grid container spacing={3}>
                       <Grid item lg={6} xs={12}>
                         <FormControl fullWidth required>
-                          <InputLabel>Họ và tên</InputLabel>
+                          <InputLabel htmlFor="customer-name">Danh xưng* &emsp; Họ và tên</InputLabel>
                           <OutlinedInput
-                            label="Họ và tên"
+                            id="customer-name"
+                            label="Danh xưng* &emsp; Họ và tên"
                             name="customer_name"
                             value={customer.name}
                             onChange={(e) => {
                               !ticketHolderEditted && ticketHolders.length > 0 &&
                                 setTicketHolders((prev) => {
                                   const updatedHolders = [...prev];
-                                  // Update the first item
-                                  updatedHolders[0] = e.target.value;
+                                  updatedHolders[0] = e.target.value; // update first ticket holder
                                   return updatedHolders;
                                 });
-                              setCustomer({ ...customer, name: e.target.value })
-                            }} />
+                              setCustomer({ ...customer, name: e.target.value });
+                            }}
+                            startAdornment={
+                              <InputAdornment position="start">
+                                <Select
+                                  variant="standard"
+                                  disableUnderline
+                                  value={customer.title || "Bạn"}
+                                  onChange={(e) =>
+                                    setCustomer({ ...customer, title: e.target.value })
+                                  }
+                                  sx={{ minWidth: 65 }} // chiều rộng tối thiểu để gọn
+                                >
+                                  <MenuItem value="Anh">Anh</MenuItem>
+                                  <MenuItem value="Chị">Chị</MenuItem>
+                                  <MenuItem value="Bạn">Bạn</MenuItem>
+                                </Select>
+                              </InputAdornment>
+                            }
+                          />
                         </FormControl>
                       </Grid>
                       <Grid item lg={6} xs={12}>
@@ -507,7 +527,7 @@ export default function Page(): React.JSX.Element {
                             name="customer_dob"
                             type='date'
                             value={customer.dob}
-                            onChange={(e) => setCustomer({ ...customer, dob: e.target.value })}
+                            onChange={(e) => setCustomer({ ...customer, dob: e.target.value})}
                             inputProps={{ max: new Date().toISOString().slice(0, 10) }}
 
                           />

@@ -35,6 +35,8 @@ type EventResponse = {
   endDateTime: string | null;
   place: string | null;
   bannerUrl: string | null;
+  locationInstruction: string | null;
+  timeInstruction: string | null;
   slug: string;
   secureApiKey: string;
   displayOnMarketplace: boolean;
@@ -122,13 +124,13 @@ export default function Page(): React.JSX.Element {
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event.startDateTime && event.endDateTime
                         ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : 'Chưa xác định'}
+                        : 'Chưa xác định'} {event.timeInstruction ? `(${event.timeInstruction})` : ''}
                     </Typography>
                   </Stack>
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {event.place ? event.place : 'Chưa xác định'}
+                      {event.place ? event.place : 'Chưa xác định'} {event.locationInstruction ? `(${event.locationInstruction})` : ''}
                     </Typography>
                   </Stack>
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
