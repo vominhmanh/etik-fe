@@ -208,7 +208,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
 
-  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (formValues && event_id) {
       try {

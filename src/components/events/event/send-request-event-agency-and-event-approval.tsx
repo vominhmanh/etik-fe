@@ -332,10 +332,10 @@ export default function SendRequestEventAgencyAndEventApproval({ open, onClose, 
                 <Box sx={{ display: "flex", flexWrap: "wrap", mt: 2, gap: 1 }}>
                   {formData.registrationImages.map((imageUrl, index) => (
                     <Box key={index} sx={{ position: "relative", width: 80, height: 80 }}>
-                      <img
+                      <Box component="img"
                         src={imageUrl}
                         alt={`uploaded-${index}`}
-                        style={{ width: "100%", height: "100%", borderRadius: 4, objectFit: "cover", cursor: "pointer" }}
+                        sx={{ width: "100%", height: "100%", borderRadius: 4, objectFit: "cover", cursor: "pointer" }}
                         onClick={() => window.open(imageUrl, "_blank")}
                       />
                       <Button

@@ -5,6 +5,7 @@ import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import axios, { AxiosResponse } from 'axios';
 import NotificationContext from '@/contexts/notification-context';
 import dayjs from 'dayjs';
+import { Box } from '@mui/material';
 
 export interface LeaderboardEntry {
   position: number;
@@ -98,10 +99,10 @@ export default function Page(): React.JSX.Element {
         justifyContent: 'center',
       }}
     >
-      <img
+      <Box component="img"
         src={'/assets/BANG-XEP-HANG-A-2-TRAN.jpg'}
         alt="Event Image"
-        style={{
+        sx={{
           width: 'auto',
           height: '100%',
           display: 'block',

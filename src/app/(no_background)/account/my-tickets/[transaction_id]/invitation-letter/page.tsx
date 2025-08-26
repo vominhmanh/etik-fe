@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { AxiosResponse } from "axios";
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import dayjs from "dayjs";
+import { Box } from "@mui/material";
 
 // Define TypeScript interface matching FastAPI schema
 interface TransactionECodeResponse {
@@ -119,10 +120,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
             containerType: 'inline-size'
           }}
         >
-          <img
+          <Box component="img"
             src={imagePreview}
             alt="Event Image"
-            style={{
+            sx={{
               width: "100%",
               height: "auto",
               display: "block",
@@ -152,7 +153,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
               }}
             >
               {key === 'eCodeQr' ?
-                <img
+                <Box component="img"
                   style={{
                     width: "100%", // Image takes full width of the wrapper
                     height: "auto", // Height is adjusted to maintain aspect ratio

@@ -3,14 +3,20 @@ LABEL author="etik"
 
 WORKDIR /app
 
+# Copy only package.json and package-lock.json first for caching
+COPY package.json package-lock.json ./
 
-COPY package.json yarn.lock ./
-RUN  yarn install \
-     && yarn cache clean
+# Install dependencies
+RUN npm install --legacy-peer-deps \
+    && npm cache clean --force
 
+# Copy the rest of the project files
 COPY . .
-RUN yarn build
+
+# Build the app
+RUN npm run build
 
 EXPOSE 3000
 
-CMD ["yarn", "start"]
+# Start the app
+CMD ["npm", "start"]

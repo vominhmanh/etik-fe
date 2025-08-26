@@ -75,7 +75,9 @@ export interface TransactionResponse {
 
 
 // Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (paymentStatus: string) => {
+const getPaymentStatusDetails = (
+  paymentStatus: string
+): { label: string; color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
       return { label: 'Chờ thanh toán', color: 'warning' };

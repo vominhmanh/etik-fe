@@ -425,7 +425,7 @@
 //             <CardContent>
 //               <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} >
 //                 <div>
-//                   <img src="/assets/inline-gate-curved.jpg" style={{ borderRadius: '20px', maxWidth: '200px', width: '100%' }} alt="" />
+//                   <Box component="img" src="/assets/inline-gate-curved.jpg" style={{ borderRadius: '20px', maxWidth: '200px', width: '100%' }} alt="" />
 //                 </div>
 //                 <Stack spacing={3}>
 //                   <Stack spacing={1} direction={'row'}>

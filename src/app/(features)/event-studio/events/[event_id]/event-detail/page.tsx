@@ -10,7 +10,6 @@ import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import CircularProgress from '@mui/material/CircularProgress';
-import { orange } from '@mui/material/colors';
 import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
@@ -447,7 +446,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Backdrop
           open={isLoading}
           sx={{
-            color: '#fff',
+            color: 'common.white',
             zIndex: (theme) => theme.zIndex.drawer + 1,
             marginLeft: '0px !important',
           }}
@@ -467,16 +466,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 backgroundColor: 'gray',
               }}
             >
-              <img
+              <Box component="img"
                 src={event?.bannerUrl}
                 alt="Car"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: 'auto',
-                  objectFit: 'cover', // or 'contain' depending on your preference
+                sx={{
+                  position: 'absolute', top: 0, left: 0,
+                  width: '100%', height: '100%', objectFit: 'cover',
                 }}
               />
             </Box>
@@ -487,10 +482,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
               >
                 <Stack direction="column" spacing={2}>
-                  <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
+                  <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                     <div>
                       {event?.avatarUrl ?
-                        <img src={event?.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                        <Box component="img" src={event?.avatarUrl} sx={{ height: '80px', width: '80px', borderRadius: '50%' }} />
                         :
                         <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
                           {(event?.name[0] ?? 'a').toUpperCase()}
@@ -526,7 +521,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Storefront fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event?.displayOnMarketplace ? "Có thể truy cập từ Marketplace" : 'Chỉ có thể truy cập bằng link'}
-                      <a href='#otherSettings' style={{ textDecoration: 'none' }}> Thay đổi</a>
+                      <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}> Thay đổi</Box>
 
                     </Typography>
                   </Stack>
@@ -535,20 +530,20 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <Stack direction="row" spacing={1} >
                     <Eye fontSize="var(--icon-fontSize-sm)" />
                     {event?.displayOption !== 'display_with_everyone' ?
-                      <Typography display="inline" variant="body2" sx={{ color: orange[500] }}>
+                      <Typography display="inline" variant="body2" sx={{ color: 'warning.main' }}>
                         Sự kiện không hiển thị công khai
-                        <a href='#otherSettings' style={{ textDecoration: 'none' }}> Thay đổi</a>
+                        <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}> Thay đổi</Box>
                       </Typography>
                       :
                       <Typography display="inline" variant="body2" color="text.secondary">
                         Đang hiển thị công khai
-                        <a href='#otherSettings' style={{ textDecoration: 'none' }}> Thay đổi</a>
+                        <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}> Thay đổi</Box>
                       </Typography>
                     }
                   </Stack>
 
                 </Stack>
-                <div style={{ marginTop: '20px' }}>
+                <Box sx={{ mt: 2.5 }}>
                   <Button
                     fullWidth
                     variant="contained"
@@ -560,8 +555,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   >
                     Đến trang Khách hàng tự đăng ký vé
                   </Button>
-                </div>
-                <div style={{ marginTop: '20px' }}>
+                </Box>
+                <Box sx={{ mt: 2.5 }}>
                   {eventAgencyRegistrationAndEventApprovalRequest &&
                     (
                       <>
@@ -620,7 +615,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </>
                     )
                   }
-                </div>
+                </Box>
               </CardContent>
             </Card>
           </Grid>

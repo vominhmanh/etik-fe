@@ -26,6 +26,7 @@ import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
 import * as React from 'react';
 import ReCAPTCHA from 'react-google-recaptcha';
+import type { SelectChangeEvent } from '@mui/material/Select';
 
 import NotificationContext from '@/contexts/notification-context';
 
@@ -255,15 +256,20 @@ export default function Page(): React.JSX.Element {
     }));
   };
 
-  const handleInputChange = (event) => {
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setAdditionalAnswers(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleSelectChange = (event: SelectChangeEvent<string>) => {
+    const { name, value } = event.target;
+    setAdditionalAnswers(prev => ({ ...prev, [name]: value as string }));
+  };
+
   const handleSelectionChange = (selected: Show[]) => {
     setSelectedSchedules(selected);
-    const tmpObj = {}
-    selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || null })
+    const tmpObj: Record<number, number | null> = {};
+    selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] ?? null })
     setSelectedCategories(tmpObj);
   };
 
@@ -411,10 +417,10 @@ export default function Page(): React.JSX.Element {
                   backgroundColor: 'gray',
                 }}
               >
-                <img
+                <Box component="img"
                   src={event?.bannerUrl || ''}
                   alt="Car"
-                  style={{
+                  sx={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
@@ -434,7 +440,7 @@ export default function Page(): React.JSX.Element {
                     <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
                       <div>
                         {event?.avatarUrl ?
-                          <img src={event?.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                          <Box component="img" src={event?.avatarUrl} sx={{ height: '80px', width: '80px', borderRadius: '50%' }} />
                           :
                           <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
                             {(event?.name[0] ?? 'a').toUpperCase()}
@@ -621,7 +627,7 @@ export default function Page(): React.JSX.Element {
                             label="Chọn một phương án"
                             name="arrivalTime"
                             value={additionalAnswers.arrivalTime}
-                            onChange={handleInputChange}
+                            onChange={handleSelectChange}
                           >
                             <MenuItem value={'15:30'}>15:30</MenuItem>
                             <MenuItem value={'16:30'}>16:30</MenuItem>
@@ -655,7 +661,7 @@ export default function Page(): React.JSX.Element {
                             label="Số lượng người"
                             name="teamPlayers"
                             value={additionalAnswers.teamPlayers}
-                            onChange={handleInputChange}
+                            onChange={handleSelectChange}
                           >
                             <MenuItem value={5}>5</MenuItem>
                             <MenuItem value={7}>7</MenuItem>

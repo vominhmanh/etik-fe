@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, InputAdornment, Select, Stack, Tooltip } from '@mui/material';
+import { Avatar, Box, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, InputAdornment, Select, Stack, Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -27,18 +27,20 @@ import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { SealPercent as SealPercentIcon } from '@phosphor-icons/react/dist/ssr/SealPercent';
 import { StackPlus as StackPlusIcon } from '@phosphor-icons/react/dist/ssr/StackPlus';
 import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
-import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
 
 import NotificationContext from '@/contexts/notification-context';
 import { Link } from '@phosphor-icons/react';
+import { AxiosResponse } from 'axios';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
 };
 
 // Function to map payment methods to corresponding labels and icons
-const getPaymentMethodDetails = (paymentMethod: string) => {
+const getPaymentMethodDetails = (
+  paymentMethod: string
+): { label: string; icon?: React.ReactElement } => {
   switch (paymentMethod) {
     case 'cash':
       return { label: 'Tiền mặt', icon: <MoneyIcon /> };
@@ -47,7 +49,7 @@ const getPaymentMethodDetails = (paymentMethod: string) => {
     case 'napas247':
       return { label: 'Napas 247', icon: <LightningIcon /> };
     default:
-      return { label: 'Unknown', icon: null };
+      return { label: 'Unknown' };
   }
 };
 
@@ -66,7 +68,9 @@ const getCreatedSource = (paymentMethod: string) => {
 };
 
 // Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (paymentStatus: string) => {
+const getPaymentStatusDetails = (
+  paymentStatus: string
+): { label: string; color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
       return { label: 'Chờ thanh toán', color: 'warning' };
@@ -199,6 +203,11 @@ export interface ECodeResponse {
   eCode: string;
 }
 
+interface CancelTransactionResponse {
+  message: string;
+  cancelRequestStatus: 'pending' | 'accepted' | 'rejected';
+}
+
 export default function Page({ params }: { params: { transaction_id: number } }): React.JSX.Element {
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [eCode, setECode] = useState<string | null>(null);
@@ -213,7 +222,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
     handleClose();
   };
 
-  function shareTicket(eventSlug: string, txUuid: string, eventName: string, buyerName: string) {
+  function shareTicket(eventSlug: string, txUuid: string, eventName: string, buyerName: string, ticketQuantity: number) {
     const shareUrl = `https://etik.vn/share/${eventSlug}/${txUuid}`;
     const text = `${buyerName} đã sở hữu vé của sự kiện ${eventName} trên ETIK`;
     const webSharer = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
@@ -284,7 +293,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
 
     try {
       setIsLoading(true);
-      const response = await baseHttpServiceInstance.post(
+      const response: AxiosResponse<CancelTransactionResponse> = await baseHttpServiceInstance.get(
         `/account/transactions/${transaction_id}/cancel-transaction`
       );
 
@@ -343,7 +352,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
                     <div>
                       {transaction.event.avatarUrl ?
-                        <img src={transaction.event.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                        <Box component="img" src={transaction.event.avatarUrl} alt={`${transaction.event.name} avatar`} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
                         :
                         <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
                           {(transaction.event.name[0] ?? 'a').toUpperCase()}
@@ -385,13 +394,13 @@ export default function Page({ params }: { params: { transaction_id: number } })
                 <Stack spacing={2}>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Trạng thái đơn:</Typography>
-                    <Stack spacing={0} direction={'row'}>
+                    <Stack spacing={0} direction="row">
                       <Chip color={statusDetails.color} label={statusDetails.label} />
-                      {transaction.cancelRequestStatus == 'pending' &&
+                      {transaction.cancelRequestStatus === 'pending' &&
                         <Tooltip title={
                           <Typography>Khách hàng yêu cầu hủy</Typography>
                         }>
-                          <Chip color={'error'} label={<WarningCircle size={16} />} />
+                          <Chip color="error" label={<WarningCircle size={16} />} />
                         </Tooltip>
                       }
                     </Stack>
@@ -437,7 +446,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     <div key={categoryIndex}>
                       {/* Show Name */}
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                           <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Show:</Typography>
                         </Stack>
                         <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name}</Typography>
@@ -445,13 +454,13 @@ export default function Page({ params }: { params: { transaction_id: number } })
 
                       {/* Ticket Category Name */}
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                           <Typography variant="body1">Loại vé:</Typography>
                         </Stack>
                         <Typography variant="body1">{transactionTicketCategory.ticketCategory.name}</Typography>
                       </Grid>
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                           <HashIcon fontSize="var(--icon-fontSize-md)" />
                           <Typography variant="body1">Số lượng:</Typography>
                         </Stack>
@@ -461,10 +470,10 @@ export default function Page({ params }: { params: { transaction_id: number } })
                       {/* Loop through tickets for this category */}
                       {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
                         <Grid key={ticketIndex} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                             <Typography variant="body1">Người tham dự {ticketIndex + 1}:</Typography>
                           </Stack>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                             <Typography variant="body1">{ticket.holder}</Typography>
                             <Tooltip title={
                               <Stack spacing={1}>
@@ -478,7 +487,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                         </Grid>
                       ))}
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                           <TagIcon fontSize="var(--icon-fontSize-md)" />
                           <Typography variant="body1">Đơn giá:</Typography>
                         </Stack>
@@ -491,7 +500,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   {/* Additional details for this category */}
 
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                       <StackPlusIcon fontSize="var(--icon-fontSize-md)" />
                       <Typography variant="body1">Phụ phí:</Typography>
                     </Stack>
@@ -499,7 +508,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   </Grid>
 
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                       <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
                       <Typography variant="body1">Giảm giá:</Typography>
                     </Stack>
@@ -507,7 +516,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   </Grid>
 
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                       <CoinsIcon fontSize="var(--icon-fontSize-md)" />
                       <Typography variant="body1">Thành tiền:</Typography>
                     </Stack>
@@ -568,7 +577,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                 <Stack spacing={0}>
                   {/* createdAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">Thời gian khởi tạo:</Typography>
                     </Stack>
                     <Typography variant="body1">
@@ -577,21 +586,21 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   </Grid>
                   {/* Created source */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">Người khởi tạo:</Typography>
                     </Stack>
                     <Typography variant="body1">{transaction.creator?.fullName || 'Không có thông tin'}</Typography>
                   </Grid>
                   {/* Created source */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">Nguồn khởi tạo:</Typography>
                     </Stack>
                     <Typography variant="body1">{createdSource.label || 'Chưa xác định'}</Typography>
                   </Grid>
                   {/* sentPaymentInstructionAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">Thời gian gửi hướng dẫn t.toán:</Typography>
                     </Stack>
                     <Typography variant="body1">
@@ -600,7 +609,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   </Grid>
                   {/* exportedTicketAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">Thời gian xuất vé:</Typography>
                     </Stack>
                     <Typography variant="body1">
@@ -659,14 +668,14 @@ export default function Page({ params }: { params: { transaction_id: number } })
               </CardContent>
             </Card>
 
-            {eCode && (
+            {Boolean(eCode) && (
               <Card>
                 <CardHeader title="Mã QR check-in" subheader="Vui lòng bảo mật mã QR check-in" />
                 <Divider />
                 <CardContent>
                   <Stack spacing={1} sx={{ display: 'flex', alignItems: 'center' }}>
                     <div style={{ width: '100px' }}>
-                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${eCode}`} />
+                      <Box component="img" src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${eCode}`} alt="Check-in QR code" />
                     </div>
                     <Typography sx={{ textAlign: 'center' }}>{eCode}</Typography>
                   </Stack>
@@ -724,7 +733,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
           <Button onClick={handleClose} color="primary">
             Hủy bỏ
           </Button>
-          <Button onClick={handleConfirmCancel} color="error" autoFocus disabled={isLoading}>
+          <Button onClick={handleConfirmCancel} color="error" disabled={isLoading}>
             {isLoading ? 'Đang hủy...' : 'Xác nhận'}
           </Button>
         </DialogActions>

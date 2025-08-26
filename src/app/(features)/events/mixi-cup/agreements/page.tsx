@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Checkbox, Container, FormControlLabel, FormGroup, Modal, Stack } from '@mui/material';
+import { Box, Checkbox, Container, FormControlLabel, FormGroup, Modal, Stack } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -14,6 +14,7 @@ import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { ArrowRight, Bank as BankIcon, CheckCircle, Lightning as LightningIcon, Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import * as React from 'react';
+import type { ChangeEvent } from 'react';
 import { useEffect, useState } from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
@@ -58,7 +59,9 @@ const getCreatedSource = (paymentMethod: string) => {
 };
 
 // Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (paymentStatus: string) => {
+const getPaymentStatusDetails = (
+  paymentStatus: string
+): { label: string; color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
       return { label: 'Chờ thanh toán', color: 'warning' };
@@ -218,7 +221,7 @@ export default function Page(): React.JSX.Element {
     window.location.href = redirectUrl;
   }
 
-  const handleChange = (event) => {
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     setChecked({
       ...checked,
       [event.target.name]: event.target.checked,
@@ -478,7 +481,7 @@ export default function Page(): React.JSX.Element {
             <CardContent>
               <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} >
                 <div>
-                  <img src="/assets/inline-gate-curved.jpg" style={{ borderRadius: '20px', maxWidth: '200px', width: '100%' }} alt="" />
+                  <Box component="img" src="/assets/inline-gate-curved.jpg" sx={{ borderRadius: '20px', maxWidth: '200px', width: '100%' }} alt="" />
                 </div>
                 <Stack spacing={3}>
                   <Stack spacing={1} direction={'row'}>

@@ -290,7 +290,7 @@
 //                   <Card key={face.requestId} style={{ marginBottom: '20px' }}>
 //                     <Stack spacing={3} direction='row'>
 //                       <Box>
-//                         <img style={{ borderRadius: '20px', width: '100px', marginRight: '10px' }} src={face.fileUrl} alt={`Cropped Face ${face.requestId}`} />
+//                         <Box component="img" style={{ borderRadius: '20px', width: '100px', marginRight: '10px' }} src={face.fileUrl} alt={`Cropped Face ${face.requestId}`} />
 //                       </Box>
 //                       {face.errorMessage && <Typography variant="body2">{face.errorMessage}</Typography>}
 //                       <Stack spacing={2}>
@@ -311,7 +311,7 @@
 //                       </Stack>
 //                       {face.matchedFaces.map((matchedFace) => (
 //                         <Box key={matchedFace.similarity}>
-//                           <img style={{ borderRadius: '20px', width: '100px', marginRight: '10px' }} src={matchedFace.imageUrl} alt={`Cropped Face ${matchedFace.similarity}`} />
+//                           <Box component="img" style={{ borderRadius: '20px', width: '100px', marginRight: '10px' }} src={matchedFace.imageUrl} alt={`Cropped Face ${matchedFace.similarity}`} />
 //                         </Box>
 //                       ))}
 //                     </Stack>

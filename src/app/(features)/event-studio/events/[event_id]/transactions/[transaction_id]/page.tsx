@@ -503,7 +503,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
                     <div>
                       {transaction.event.avatarUrl ?
-                        <img src={transaction.event.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                        <Box component="img" src={transaction.event.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
                         :
                         <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
                           {(transaction.event.name[0] ?? 'a').toUpperCase()}
@@ -937,9 +937,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
-
-
-
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel htmlFor="customer-name">Người mua</InputLabel>
@@ -1025,13 +1022,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     Lưu
                   </Button>
                 </Grid>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader title="Thay đổi trạng thái đơn hàng" />
-              <Divider />
-              <CardContent>
-
               </CardContent>
             </Card>
             <Card>

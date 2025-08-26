@@ -161,8 +161,8 @@ export default function Page(): React.JSX.Element {
 
   const handleSelectionChange = (selected: Show[]) => {
     setSelectedSchedules(selected);
-    const tmpObj = {}
-    selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || null })
+    const tmpObj: Record<number, number | null> = {};
+    selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] ?? null })
     setSelectedCategories(tmpObj);
   };
 
@@ -349,10 +349,10 @@ export default function Page(): React.JSX.Element {
                   backgroundColor: 'gray',
                 }}
               >
-                <img
+                <Box component="img"
                   src={event?.bannerUrl || ''}
                   alt="Sự kiện"
-                  style={{
+                  sx={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
@@ -369,10 +369,10 @@ export default function Page(): React.JSX.Element {
                   sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                 >
                   <Stack direction="column" spacing={2}>
-                    <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
+                    <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                       <div>
                         {event?.avatarUrl ?
-                          <img src={event?.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                          <Box component="img" src={event?.avatarUrl} sx={{ height: '80px', width: '80px', borderRadius: '50%' }} />
                           :
                           <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
                             {(event?.name[0] ?? 'a').toUpperCase()}

@@ -101,61 +101,6 @@ type MyDynamicObject = {
   [key: string]: boolean; // key is a string, and value is also a string
 };
 
-// Function to map payment methods to corresponding labels and icons
-const getPaymentMethodDetails = (paymentMethod: string) => {
-  switch (paymentMethod) {
-    case 'cash':
-      return { label: 'Tiền mặt', icon: <Money /> };
-    case 'transfer':
-      return { label: 'Chuyển khoản', icon: <Bank /> };
-    case 'napas247':
-      return { label: 'Napas 247', icon: <Lightning /> };
-    default:
-      return { label: 'Unknown', icon: null };
-  }
-};
-
-
-// Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (paymentStatus: string) => {
-  switch (paymentStatus) {
-    case 'waiting_for_payment':
-      return { label: 'Chờ thanh toán', color: 'warning' };
-    case 'paid':
-      return { label: 'Đã thanh toán', color: 'success' };
-    case 'refund':
-      return { label: 'Đã hoàn tiền', color: 'secondary' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
-
-// Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
-  switch (status) {
-    case 'normal':
-      return { label: 'Bình thường', color: 'success' };
-    case 'wait_for_response':
-      return { label: 'Đang chờ', color: 'warning' };
-    case 'customer_cancelled':
-      return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
-    case 'staff_locked':
-      return { label: 'Khoá bởi NV', color: 'error' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
-
-const getSentEmailTicketStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
-  switch (status) {
-    case 'sent':
-      return { label: 'Đã xuất', color: 'success' };
-    case 'not_sent':
-      return { label: 'Chưa xuất', color: 'default' }; // error for danger
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
 
 export default function Page(): React.JSX.Element {
   const params = { event_id: 43 }
@@ -375,13 +320,22 @@ export default function Page(): React.JSX.Element {
     }
   };
 
-  const handleManualCheckIn = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const runManualCheckIn = () => {
     if (qrManualInput) {
       setIsCheckinControllerOpen(true);
       setECode(qrManualInput);
       getTransactionByECode(qrManualInput, true);
     }
+  }
+
+  const handleManualCheckInSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    runManualCheckIn();
+  }
+
+  const handleManualCheckInClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    runManualCheckIn();
   }
 
   const Puller = styled('div')(({ theme }) => ({
@@ -430,7 +384,7 @@ export default function Page(): React.JSX.Element {
                 <CardHeader subheader="Vui lòng nhập mã để check-in thủ công nếu không quét được mã QR." title="Check-in thủ công" />
                 <Divider />
                 <CardContent>
-                  <form onSubmit={handleManualCheckIn}>
+                  <form onSubmit={handleManualCheckInSubmit}>
                     <Grid container rowSpacing={2} spacing={2}>
                       <Grid item md={8} xs={12}>
                         <FormControl fullWidth required>
@@ -444,7 +398,7 @@ export default function Page(): React.JSX.Element {
                         </FormControl>
                       </Grid>
                       <Grid item md={4} xs={12}>
-                        <Button variant='contained' sx={{ width: '100%', height: '100%' }} onClick={handleManualCheckIn} startIcon={<EyeIcon />}>
+                        <Button variant='contained' sx={{ width: '100%', height: '100%' }} onClick={handleManualCheckInClick} startIcon={<EyeIcon />}>
                           Kiểm tra
                         </Button>
                       </Grid>

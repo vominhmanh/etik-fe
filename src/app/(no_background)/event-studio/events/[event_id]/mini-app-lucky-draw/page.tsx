@@ -7,7 +7,7 @@ import dayjs from "dayjs";
 import NotificationContext from "@/contexts/notification-context";
 import React from "react";
 import { RandomReveal } from "react-random-reveal";
-import { Button } from "@mui/material";
+import { Box, Button } from "@mui/material";
 import { useRouter } from "next/navigation";
 
 // Define TypeScript interface matching FastAPI schema
@@ -112,9 +112,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             containerType: 'inline-size',
           }}
         >
-          <img
+          <Box component="img"
             src="/assets/lucky_draw_main_app_background.jpg"
-            style={{
+            sx={{
               width: '100%',
               height: '100%',
               objectFit: 'contain',
@@ -147,10 +147,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               cursor: 'pointer'
             }}
           >
-            <img
+            <Box component="img"
               src="/assets/ghost-legend-2025-icon.png"  // Path to the app icon image
               alt="App Icon"
-              style={{
+              sx={{
                 width: '100%',  // Image takes up 100% of the parent width
                 height: 'auto',  // Maintain the image's aspect ratio
                 borderRadius: '10%',  // Rounded corners
@@ -185,10 +185,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               cursor: 'pointer'
             }}
           >
-            <img
+            <Box component="img"
               src="/assets/ghost-legend-2025-icon.png"  // Path to the app icon image
               alt="App Icon"
-              style={{
+              sx={{
                 width: '100%',  // Image takes up 100% of the parent width
                 height: 'auto',  // Maintain the image's aspect ratio
                 borderRadius: '10%',  // Rounded corners

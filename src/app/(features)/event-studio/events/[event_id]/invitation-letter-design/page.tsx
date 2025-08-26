@@ -3,7 +3,7 @@
 import NotificationContext from "@/contexts/notification-context";
 import { baseHttpServiceInstance } from "@/services/BaseHttp.service";
 import { CloudUpload } from "@mui/icons-material";
-import { Button, Card, CardContent, CardHeader, Checkbox, Divider, FormControlLabel, Grid, Input, List, ListItem, Stack, TextField } from "@mui/material";
+import { Box, Button, Card, CardContent, CardHeader, Checkbox, Divider, FormControlLabel, Grid, Input, List, ListItem, Stack, TextField } from "@mui/material";
 import { AxiosResponse } from "axios";
 import { useContext, useEffect, useState } from "react";
 
@@ -205,10 +205,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 containerType: 'inline-size'
               }}
             >
-              <img
+              <Box component="img"
                 src={imagePreview}
                 alt="Event Image"
-                style={{
+                sx={{
                   width: "100%",
                   height: "auto",
                   display: "block",

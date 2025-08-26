@@ -3,6 +3,7 @@
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { Accordion, AccordionDetails, AccordionSummary, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Chip, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, OutlinedInput, Stack, styled, SwipeableDrawer, Typography } from '@mui/material';
+import type { ChipProps } from '@mui/material/Chip';
 import { grey } from '@mui/material/colors';
 import { ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
@@ -101,23 +102,9 @@ type MyDynamicObject = {
   [key: string]: boolean; // key is a string, and value is also a string
 };
 
-// Function to map payment methods to corresponding labels and icons
-const getPaymentMethodDetails = (paymentMethod: string) => {
-  switch (paymentMethod) {
-    case 'cash':
-      return { label: 'Tiền mặt', icon: <Money /> };
-    case 'transfer':
-      return { label: 'Chuyển khoản', icon: <Bank /> };
-    case 'napas247':
-      return { label: 'Napas 247', icon: <Lightning /> };
-    default:
-      return { label: 'Unknown', icon: null };
-  }
-};
-
 
 // Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (paymentStatus: string) => {
+const getPaymentStatusDetails = (paymentStatus: string): { label: string, color: ChipProps['color'] } => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
       return { label: 'Chờ thanh toán', color: 'warning' };
@@ -131,7 +118,7 @@ const getPaymentStatusDetails = (paymentStatus: string) => {
 };
 
 // Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+const getRowStatusDetails = (status: string): { label: string, color: ChipProps['color'] } => {
   switch (status) {
     case 'normal':
       return { label: 'Bình thường', color: 'success' };
@@ -146,7 +133,7 @@ const getRowStatusDetails = (status: string): { label: string, color: "success" 
   }
 };
 
-const getSentEmailTicketStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+const getSentEmailTicketStatusDetails = (status: string): { label: string, color: ChipProps['color'] } => {
   switch (status) {
     case 'sent':
       return { label: 'Đã xuất', color: 'success' };
@@ -374,13 +361,22 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     }
   };
 
-  const handleManualCheckIn = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const runManualCheckIn = () => {
     if (qrManualInput) {
       setIsCheckinControllerOpen(true);
       setECode(qrManualInput);
       getTransactionByECode(qrManualInput, true);
     }
+  }
+
+  const handleManualCheckInSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    runManualCheckIn();
+  }
+
+  const handleManualCheckInClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    runManualCheckIn();
   }
 
   const Puller = styled('div')(({ theme }) => ({
@@ -429,7 +425,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 <CardHeader subheader="Vui lòng nhập mã để check-in thủ công nếu không quét được mã QR." title="Check-in thủ công" />
                 <Divider />
                 <CardContent>
-                  <form onSubmit={handleManualCheckIn}>
+                  <form onSubmit={handleManualCheckInSubmit}>
                     <Grid container rowSpacing={2} spacing={2}>
                       <Grid item md={8} xs={12}>
                         <FormControl fullWidth required>
@@ -443,7 +439,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                         </FormControl>
                       </Grid>
                       <Grid item md={4} xs={12}>
-                        <Button variant='contained' sx={{ width: '100%', height: '100%' }} onClick={handleManualCheckIn} startIcon={<EyeIcon />}>
+                        <Button variant='contained' sx={{ width: '100%', height: '100%' }} onClick={handleManualCheckInClick} startIcon={<EyeIcon />}>
                           Kiểm tra
                         </Button>
                       </Grid>

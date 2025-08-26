@@ -3,7 +3,7 @@
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { Chip, Stack, Tooltip } from '@mui/material';
+import { Box, Chip, Stack, Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -42,7 +42,7 @@ const getPaymentMethodDetails = (paymentMethod: string) => {
     case 'napas247':
       return { label: 'Napas 247', icon: <LightningIcon /> };
     default:
-      return { label: 'Unknown', icon: null };
+      return { label: 'Unknown', icon: undefined };
   }
 };
 
@@ -61,7 +61,9 @@ const getCreatedSource = (paymentMethod: string): { label: string } => {
 };
 
 // Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (paymentStatus: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+const getPaymentStatusDetails = (
+  paymentStatus: string
+): { label: string; color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
       return { label: 'Chờ thanh toán', color: 'warning' };
@@ -73,7 +75,6 @@ const getPaymentStatusDetails = (paymentStatus: string): { label: string, color:
       return { label: 'Unknown', color: 'default' };
   }
 };
-
 // Function to map row statuses to corresponding labels and colors
 const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
@@ -340,7 +341,7 @@ export default function Page(): React.JSX.Element {
                     <CardContent>
                       <Stack spacing={1} sx={{ display: 'flex', alignItems: 'center' }}>
                         <div style={{ width: '100px' }}>
-                          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${eCode}`} />
+                          <Box component="img" src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${eCode}`} />
                         </div>
                         <Typography sx={{ textAlign: 'center' }}>{eCode}</Typography>
                       </Stack>
