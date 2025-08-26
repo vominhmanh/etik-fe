@@ -57,6 +57,7 @@
     "react-webcam": "^7.2.0",
     "react-zxing": "^2.0.2",
     "scheduler": "^0.26.0",
+    "sharp": "^0.34.3",
     "swiper": "^11.1.15",
     "uuid": "^10.0.0",
     "xlsx": "^0.18.5",

@@ -51,7 +51,7 @@ export function MainNav(): React.JSX.Element {
         >
           <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
             <div style={{width: '45px'}}>
-              <Box component="img" src='/assets/etik-logo.png' style={{width: '100%'}}></img>
+              <Box component="img" src='/assets/etik-logo.png' style={{width: '100%'}}/>
             </div>
           </Stack>
           {user ? (
