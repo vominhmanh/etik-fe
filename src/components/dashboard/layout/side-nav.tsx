@@ -132,7 +132,7 @@ export function SideNav(): React.JSX.Element {
     >
       <Stack sx={{ position: 'sticky', top: 0 }}>
         <Stack spacing={2} sx={{ p: 3 }}>
-          <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
+          <Box sx={{ display: 'inline-flex' }}>
             <IconButton
               sx={{ color: 'var(--mui-palette-neutral-400)' }}
               component={RouterLink}
@@ -140,7 +140,9 @@ export function SideNav(): React.JSX.Element {
             >
               <CaretLeftIcon />
             </IconButton>
-            <Logo color="light" height={32} width={122} />
+            <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
+              <Logo color="light" height={32} width={122} />
+            </Box>
           </Box>
           <Box
             sx={{
