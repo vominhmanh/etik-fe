@@ -80,7 +80,7 @@ const colorMap: ColorMap = {
 };
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   React.useEffect(() => {
-    document.title = "Loại vé theo suất diễn | ETIK - Vé điện tử & Quản lý sự kiện";
+    document.title = "Hạng mục vé | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -155,7 +155,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         </Backdrop>
         <Stack direction="row" spacing={3}>
           <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-            <Typography variant="h4">Loại vé theo suất diễn</Typography>
+            <Typography variant="h4">Hạng mục vé</Typography>
           </Stack>
 
         </Stack>

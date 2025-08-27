@@ -1,4 +1,5 @@
 'use client';
+import { Notifications } from '@/components/dashboard/settings/notifications';
 import NotificationContext from '@/contexts/notification-context';
 import { useUser } from '@/hooks/use-user';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
@@ -185,18 +186,10 @@ export default function Page(): React.JSX.Element {
               <CardContent>
                 <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="body1">Tài khoản ETIK</Typography>
-                  </Stack>
-                  <Typography variant="body1">
-                    Chưa tạo
-                  </Typography>
-                </Grid>
-                <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                     <Typography variant="body1">Tài khoản Google</Typography>
                   </Stack>
                   <Typography variant="body1">
-                    Đã liên kết
+                    Chưa liên kết
                   </Typography>
                 </Grid>
                 <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -213,34 +206,19 @@ export default function Page(): React.JSX.Element {
               <CardHeader title="Ví" />
               <Divider />
               <CardContent>
+                  
                 <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="body1">Ví trả trước</Typography>
+                    <Typography variant="body1">Tài khoản cá nhân</Typography>
                   </Stack>
                   <Typography variant="body1">
-                    0 VNĐ
-                  </Typography>
-                </Grid>
-                <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="body1">Ví khuyến mãi</Typography>
-                  </Stack>
-                  <Typography variant="body1">
-                    0 VNĐ
-                  </Typography>
-                </Grid>
-                <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="body1">T.khoản doanh thu liên kết</Typography>
-                  </Stack>
-                  <Typography variant="body1">
-                    MB Bank V**MANH
+                    Chưa liên kết
                   </Typography>
                 </Grid>
 
                 <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="body1">Ví doanh thu ETIK</Typography>
+                    <Typography variant="body1">Ví ETIK</Typography>
                   </Stack>
                   <Typography variant="body1">
                     0 VNĐ
@@ -346,6 +324,7 @@ export default function Page(): React.JSX.Element {
                 </Button>
               </CardActions>
             </Card>
+            <Notifications />
           </Stack>
         </Grid>
       </Grid>

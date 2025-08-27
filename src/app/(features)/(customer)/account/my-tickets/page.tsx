@@ -57,6 +57,7 @@ export interface ListTransactionEventResponse {
   endDateTime?: Date;
   place?: string;
   bannerUrl?: string;
+  avatarUrl?: string;
   locationInstruction?: string;
   timeInstruction?: string;
 }
@@ -134,7 +135,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Vé của tôi</Typography>
-
         </Stack>
         <div>
 
@@ -144,45 +144,43 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       <Grid container spacing={3}>
         {transactions.map((transaction) => (
           <Grid key={transaction.id} lg={4} md={6} xs={12}>
-            <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Card sx={{ display: 'flex', flexDirection: 'column'}}>
               <CardMedia
-                sx={{ height: 140 }}
+                sx={{ height: 170 }}
                 image={transaction.event.bannerUrl || ''}
                 title={transaction.event.name}>
               </CardMedia>
-              <CardContent sx={{ flex: '1 1 auto' }}>
+              <CardContent>
                 <Stack spacing={2}>
-                  <Stack spacing={1} direction={'row'}>
-                    <Box sx={{ display: 'flex', justifyContent: 'center', mr: 2, width: '50px', height: '50px' }}>
-                      <Avatar
-                        sx={{ height: '45px', width: '45px', fontSize: '2rem', borderRadius: '5px', bgcolor: colorMap[transaction.id % 8] }}
-                        variant="square"
-                      >
-                        {transaction.event.name[0]}
-                      </Avatar>
+                  <Stack spacing={1} direction={'row'} sx={{ alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mr: 2, width: '80px', height: '80px' }}>
+                      {transaction.event.avatarUrl ?
+                        <Box component="img" src={transaction.event.avatarUrl} sx={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                        :
+                        <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
+                          {(transaction.event.name[0] ?? 'a').toUpperCase()}
+                        </Avatar>}
                     </Box>
-                    <Stack spacing={2}>
-                      <Typography align="left" variant="h6">
-                        {transaction.event.name}
-                      </Typography>
-                      <Stack direction="row" spacing={1}>
-                        <ClockIcon fontSize="var(--icon-fontSize-sm)" />
-                        <Typography color="text.secondary" display="inline" variant="body2">
-                          {transaction.event.startDateTime && transaction.event.endDateTime
-                            ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                            : 'Chưa xác định'} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
-                        </Typography>
-                      </Stack>
-                      <Stack direction="row" spacing={1}>
-                        <MapPin fontSize="var(--icon-fontSize-sm)" />
-                        <Typography color="text.secondary" display="inline" variant="body2">
-                          {transaction.event.place ? transaction.event.place : 'Chưa xác định'} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
-                        </Typography>
-                      </Stack>
-                    </Stack>
+                    <Typography align="center" variant="h5">
+                      {transaction.event.name}
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" spacing={1}>
+                    <ClockIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {transaction.event.startDateTime && transaction.event.endDateTime
+                        ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
+                        : 'Chưa xác định'} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <MapPin fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {transaction.event.place ? transaction.event.place : 'Chưa xác định'} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
+                    </Typography>
                   </Stack>
                 </Stack>
-
                 <Stack spacing={2} direction={'row'} sx={{ mt: 2 }}>
                   <Chip color='success' size='small' label={`${transaction.ticketQuantity} vé`} />
                   <Chip

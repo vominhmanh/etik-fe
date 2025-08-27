@@ -2,7 +2,7 @@
 
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Avatar, Box, CardMedia, Container, FormHelperText, IconButton, InputAdornment, MenuItem, Modal, Select, Stack, TextField } from '@mui/material';
+import { Avatar, Box, CardMedia, Checkbox, Container, FormControlLabel, FormGroup, FormHelperText, IconButton, InputAdornment, MenuItem, Modal, Select, Stack, TextField } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -10,14 +10,13 @@ import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import CircularProgress from '@mui/material/CircularProgress';
-import { orange } from '@mui/material/colors';
 import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { ArrowSquareIn, Clipboard, CurrencyDollar, Eye, Storefront } from '@phosphor-icons/react/dist/ssr';
+import { ArrowSquareIn, Clipboard, Eye, Storefront } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
@@ -47,6 +46,7 @@ type EventResponse = {
   slug: string;
   secureApiKey: string;
   locationInstruction: string | null;
+  timeInstruction: string | null;
   displayOnMarketplace: boolean;
   displayOption: string;
   adminReviewStatus: 'no_request_from_user' | 'waiting_for_acceptance' | 'accepted' | 'rejected';
@@ -69,7 +69,7 @@ export interface SMTPConfig {
 }
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
-    document.title = "Doanh thu & Phí dịch vụ | ETIK - Vé điện tử & Quản lý sự kiện";
+    document.title = "Cài đặt nâng cao | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
@@ -446,7 +446,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Backdrop
           open={isLoading}
           sx={{
-            color: '#fff',
+            color: 'common.white',
             zIndex: (theme) => theme.zIndex.drawer + 1,
             marginLeft: '0px !important',
           }}
@@ -455,170 +455,210 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Backdrop>
 
         <div>
-          <Typography variant="h4">Doanh thu & Phí dịch vụ</Typography>
+          <Typography variant="h4">Cài đặt nâng cao</Typography>
         </div>
         <Grid container spacing={3}>
           <Grid lg={4} md={6} xs={12}>
             <Stack spacing={3}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent>
-                  <Stack spacing={3}>
-                    <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
-                      <Stack spacing={1}>
-                        <Typography color="text.secondary" variant="overline">
-                          Tài khoản Doanh thu Sự kiện
-                        </Typography>
-                        <Typography variant="h4">
-                          0 đ
-                        </Typography>
-                      </Stack>
-                      <Avatar sx={{ backgroundColor: 'var(--mui-palette-primary-main)', height: '56px', width: '56px' }}>
-                        <CurrencyDollar fontSize="var(--icon-fontSize-lg)" />
-                      </Avatar>
-                    </Stack>
-                    <Stack direction="row" spacing={2}>
-                      <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-                        <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
-                          <Typography color='var(--mui-palette-primary-main)' variant="body2">
-                            Rút tiền
-                          </Typography>
-                        </Stack>
-                      </Stack>
-                      <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-                        <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
-                          <Typography color='var(--mui-palette-primary-main)' variant="body2">
-                            Lịch sử giao dịch
-                          </Typography>
-                        </Stack>
-                      </Stack>
-                    </Stack>
-                  </Stack>
-
-                </CardContent>
-              </Card>
               <Card>
-                <CardHeader title="Thống kê" />
+                <CardHeader title="Phương thức gửi vé điện tử" />
                 <Divider />
                 <CardContent>
-                  <Stack spacing={0}>
-                    {/* createdAt */}
-                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body1">Tổng doanh thu thuần</Typography>
+                  <Grid container spacing={6} wrap="wrap">
+                    <Grid md={12} sm={12} xs={12}>
+                      <Stack spacing={1}>
+                        <Typography variant="h6">Email</Typography>
+                        <FormGroup>
+                          <FormControlLabel control={<Checkbox defaultChecked />} label="Mặc định gửi khi tạo đơn hàng" />
+                        </FormGroup>
                       </Stack>
-                      <Typography variant="body1">
-                        0 đ
-                      </Typography>
                     </Grid>
-                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body1">Phí dịch vụ</Typography>
+                    <Grid md={12} sm={12} xs={12}>
+                      <Stack spacing={1}>
+                        <Typography variant="h6">Zalo</Typography>
+                        <FormGroup>
+                          <FormControlLabel control={<Checkbox defaultChecked />} label="Mặc định gửi khi tạo đơn hàng" />
+                          <FormHelperText>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Phương thức này chỉ khả dụng với một số sự kiện. Vui lòng liên hệ ETIK để biết thêm chi tiết.
+                            </Typography>
+                          </FormHelperText>
+                        </FormGroup>
                       </Stack>
-                      <Typography variant="body1">
-                        0 đ
-                      </Typography>
                     </Grid>
-                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body1">Phí khác</Typography>
-                      </Stack>
-                      <Typography variant="body1">
-                        0 đ
-                      </Typography>
-                    </Grid>
-                  </Stack>
+                  </Grid>
                 </CardContent>
               </Card>
             </Stack>
           </Grid>
           <Grid lg={8} md={6} xs={12}>
             <Stack spacing={3}>
-              <Grid container spacing={3}>
-                <Grid lg={6} md={6} xs={12}>
-                  <Card>
-                    <CardHeader title="Phí dịch vụ" />
-                    <Divider />
-                    <CardContent>
-                      <Stack spacing={0}>
-                        {/* createdAt */}
-                        <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Cách tính phí</Typography>
-                          </Stack>
-                          <Typography variant="body1">
-                            Tính theo giao dịch
-                          </Typography>
-                        </Grid>
-                        {/* Created source */}
-                        <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Phí cố định</Typography>
-                          </Stack>
-                          <Typography variant="body1">Thỏa thuận</Typography>
-                        </Grid>
-                        {/* Created source */}
-                        <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Phí chia sẻ doanh thu</Typography>
-                          </Stack>
-                          <Typography variant="body1">Thỏa thuận</Typography>
-                        </Grid>
-                        <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Phí SMS/Zalo</Typography>
-                          </Stack>
-                          <Typography variant="body1">Thỏa thuận</Typography>
-                        </Grid>
-                        <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Phí email</Typography>
-                          </Stack>
-                          <Typography variant="body1">Thỏa thuận</Typography>
-                        </Grid>
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid lg={6} md={6} xs={12}>
-                  <Card>
-                    <CardHeader title="Cách nhận và thanh toán tiền" />
-                    <Divider />
-                    <CardContent>
-                      <Stack spacing={0}>
-                        {/* createdAt */}
-                        <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Nhận tiền vé</Typography>
-                          </Stack>
-                          <Typography variant="body1">
-                            Tài khoản cá nhân
-                          </Typography>
-                        </Grid>
-                        {/* Created source */}
-                        <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Cách thanh toán phí</Typography>
-                          </Stack>
-                          <Typography variant="body1">
-                            Đối soát
-                          </Typography>
-                        </Grid>
-                        {/* Created source */}
-                        <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Phí phát sinh</Typography>
-                          </Stack>
-                          <Typography variant="body1">Đối soát</Typography>
-                        </Grid>
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
+
+              <Card>
+                <CardHeader title="Cấu hình gửi Email SMTP" />
+                <Divider />
+                <CardContent>
+                  {isLoading ? (
+                    <CircularProgress />
+                  ) : (
+                    <Grid container spacing={3}>
+                      {/* SMTP Provider Selection */}
+                      <Grid md={12} xs={12}>
+                        <FormControl fullWidth required>
+                          <InputLabel>Dịch vụ mail</InputLabel>
+                          <Select
+                            label="Dịch vụ mail"
+                            name="smtpProvider"
+                            value={smtpFormValues.smtpProvider}
+                            onChange={(event: any) => handleSmtpInputChange(event)}
+                          >
+                            <MenuItem value={'use_etik_smtp'}>Sử dụng ETIK SMTP</MenuItem>
+                            <MenuItem value={'use_custom_smtp'}>Tùy chỉnh SMTP server</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+
+                      {/* SMTP Fields (Only for Custom SMTP) */}
+                      {smtpFormValues.smtpProvider === 'use_custom_smtp' && (
+                        <>
+                          <Grid md={6} xs={12}>
+                            <FormControl fullWidth>
+                              <InputLabel>SMTP Host</InputLabel>
+                              <OutlinedInput
+                                label="SMTP Host"
+                                name="smtpHost"
+                                value={smtpFormValues.smtpHost}
+                                onChange={handleSmtpInputChange}
+                              />
+                            </FormControl>
+                          </Grid>
+
+                          <Grid md={6} xs={12}>
+                            <FormControl fullWidth>
+                              <InputLabel>SMTP Port</InputLabel>
+                              <OutlinedInput
+                                label="SMTP Port"
+                                type="number"
+                                name="smtpPort"
+                                value={smtpFormValues.smtpPort || ""}
+                                onChange={handleSmtpInputChange}
+                              />
+                            </FormControl>
+                          </Grid>
+
+                          <Grid md={6} xs={12}>
+                            <FormControl fullWidth>
+                              <InputLabel>SMTP Username</InputLabel>
+                              <OutlinedInput
+                                label="SMTP Username"
+                                name="smtpUsername"
+                                value={smtpFormValues.smtpUsername}
+                                onChange={handleSmtpInputChange}
+                              />
+                            </FormControl>
+                          </Grid>
+
+                          <Grid md={6} xs={12}>
+                            <FormControl fullWidth>
+                              <InputLabel>SMTP Password</InputLabel>
+                              <OutlinedInput
+                                label='SMTP Password'
+                                type="password"
+                                name="smtpPassword"
+                                value={smtpFormValues.smtpPassword}
+                                onChange={handleSmtpInputChange}
+                              />
+                            </FormControl>
+                          </Grid>
+
+                          <Grid md={6} xs={12}>
+                            <FormControl fullWidth>
+                              <InputLabel>Email gửi</InputLabel>
+                              <OutlinedInput
+                                label='Email gửi'
+
+                                name="smtpSenderEmail"
+                                value={smtpFormValues.smtpSenderEmail}
+                                onChange={handleSmtpInputChange}
+                              />
+                            </FormControl>
+                          </Grid>
+                        </>
+                      )}
+
+
+                    </Grid>
+                  )}
+                </CardContent>
+                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                  {/* Save Button */}
+                  <Button variant="contained" color="primary" onClick={handleSaveSmtpSettings} disabled={isLoading}>
+                    {isLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
+                  </Button>
+                </CardActions>
+              </Card>
             </Stack>
           </Grid>
         </Grid>
       </Stack>
+      <SendRequestEventAgencyAndEventApproval open={openEventAgencyRegistrationModal} onClose={handleOnCloseEventAgencyRegistrationModal} eventId={event_id} />
+      <Modal
+        open={openConfirmSubmitEventApprovalModal}
+        onClose={() => setOpenConfirmSubmitEventApprovalModal(false)}
+        aria-labelledby="ticket-category-description-modal-title"
+        aria-describedby="ticket-category-description-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: { sm: "500px", xs: "90%" },
+              bgcolor: "background.paper",
+              boxShadow: 24,
+            }}
+          >
+            <CardHeader title='Quy định chung' />
+            <Divider />
+            <CardContent>
+              <Stack spacing={1} textAlign={'justify'}>
+                <Typography variant="body2">
+                  <b>Để sự kiện được phê duyệt, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:</b>
+                </Typography>
+                <Typography variant="body2">
+                  - Tài khoản dùng để tạo sự kiện đã được xác thực <b style={{ color: 'text.success' }}>tài khoản Event Agency</b>. Xem tình trạng xác thực tại mục <a href='/account-event-agency' target='_blank'><b>Tài khoản của tôi</b></a>
+                </Typography>
+                <Typography variant="body2">
+                  - Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.
+                </Typography>
+                <Typography variant="body2">
+                  - Thời gian và địa điểm rõ ràng, chính xác. Hạn chế thay đổi thông tin về thời gian, địa điểm và phải thông báo cho ETIK trước khi thay đổi.
+                </Typography>
+
+                <Typography variant="body2">
+                  - Chính sách Giá vé, chính sách hoàn trả, hủy vé rõ ràng, minh bạch.
+                </Typography>
+                <Typography variant="body2">
+                  - Sự kiện tuân thủ quy định của pháp luật Việt Nam, phù hợp chuẩn mực đạo đức, thuần phong mỹ tục.
+                </Typography>
+                <Typography variant="body2">
+                  - Cung cấp cho ETIK các thông tin, giấy tờ để xác minh khi được yêu cầu.
+                </Typography>
+                <Typography variant="body2">
+                  Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH <b>0333.247.242</b> hoặc email <b>tienphongsmart@gmail.com</b>
+                </Typography>
+              </Stack>
+              <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                <Button variant="contained" color="primary" onClick={handleSendRequestEventApproval} disabled={isLoading}>
+                  Gửi yêu cầu
+                </Button>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
     </>
   );
 }

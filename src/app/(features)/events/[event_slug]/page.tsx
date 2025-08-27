@@ -74,6 +74,7 @@ export type EventResponse = {
   adminReviewStatus: 'no_request_from_user' | 'waiting_for_acceptance' | 'accepted' | 'rejected';
   displayOnMarketplace: boolean;
   displayOption: string;
+  externalLink: string | null;
 };
 
 const options = {
@@ -148,6 +149,8 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   }, [selectedCategories])
 
   const handleCloseSuccessModal = (event: {}, reason: "backdropClick" | "escapeKeyDown") => {
+    if (reason && reason == "backdropClick" && "escapeKeyDown")
+      return;
     setOpenSuccessModal(false)
   }
 
@@ -656,13 +659,36 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 </div>
                 <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
                   <Typography variant="h5">Đăng ký thành công !</Typography>
-                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn quý khách đã sử dụng ETIK. Nếu quý khách cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
+                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn {customer.title} {customer.name} đã sử dụng ETIK. Nếu {customer.title} cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
                 </Stack>
               </Stack>
               <div style={{ marginTop: '20px', justifyContent: 'center' }}>
-                <Button fullWidth variant='contained' size="small" endIcon={<ArrowRight />} onClick={() => setOpenSuccessModal(false)} >
-                  Khám phá trang thông tin sự kiện.
-                </Button>
+                <Stack spacing={2}>
+                  {event?.externalLink && (
+                    <Button 
+                      fullWidth 
+                      variant='contained' 
+                      size="small" 
+                      endIcon={<ArrowRight />} 
+                      onClick={() => {
+                        window.location.href = event?.externalLink || '';
+                      }}
+                    >
+                      Khám phá trang thông tin sự kiện.
+                    </Button>
+                  )}
+                  <Button 
+                    fullWidth 
+                    variant='outlined' 
+                    size="small" 
+                    onClick={() => {
+                      setOpenSuccessModal(false);
+                      window.location.reload();
+                    }}
+                  >
+                    Tạo một đơn hàng khác
+                  </Button>
+                </Stack>
               </div>
             </CardContent>
           </Card>

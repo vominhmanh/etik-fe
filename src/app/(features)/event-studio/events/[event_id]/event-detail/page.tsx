@@ -20,6 +20,7 @@ import { ArrowSquareIn, Clipboard, Eye, Storefront } from '@phosphor-icons/react
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
+import { Pencil as PencilIcon } from '@phosphor-icons/react/dist/ssr/Pencil';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
 import RouterLink from 'next/link';
@@ -50,6 +51,7 @@ type EventResponse = {
   displayOnMarketplace: boolean;
   displayOption: string;
   adminReviewStatus: 'no_request_from_user' | 'waiting_for_acceptance' | 'accepted' | 'rejected';
+  externalLink: string;
 };
 
 export interface CheckEventAgencyRegistrationAndEventApprovalRequestResponse {
@@ -69,7 +71,7 @@ export interface SMTPConfig {
 }
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
-    document.title = "Chỉnh sửa chi tiết sự kiện| ETIK - Vé điện tử & Quản lý sự kiện";
+    document.title = "Thông tin & Hiển thị  | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
@@ -455,226 +457,308 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Backdrop>
         <Grid container spacing={3}>
           <Grid lg={8} md={6} xs={12}>
-            <Box
-              sx={{
-                position: 'relative',
-                width: '100%',
-                aspectRatio: 16 / 6, // 16:9 aspect ratio (modify as needed)
-                overflow: 'hidden',
-                border: 'grey 1px',
-                borderRadius: '20px',
-                backgroundColor: 'gray',
-              }}
-            >
-              <Box component="img"
-                src={event?.bannerUrl}
-                alt="Car"
+            <Stack spacing={3}>
+              <Box
                 sx={{
-                  position: 'absolute', top: 0, left: 0,
-                  width: '100%', height: '100%', objectFit: 'cover',
+                  position: 'relative',
+                  width: '100%',
+                  aspectRatio: 16 / 6, // 16:9 aspect ratio (modify as needed)
+                  overflow: 'hidden',
+                  border: 'grey 1px',
+                  borderRadius: '20px',
+                  backgroundColor: 'gray',
                 }}
-              />
-            </Box>
+              >
+                <Box component="img"
+                  src={previewBannerUrl || event?.bannerUrl}
+                  alt="Car"
+                  sx={{
+                    position: 'absolute', top: 0, left: 0,
+                    width: '100%', height: '100%', objectFit: 'cover',
+                  }}
+                />
+                <IconButton
+                  component="label"
+                  sx={{
+                    position: 'absolute',
+                    top: 16,
+                    right: 16,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                    },
+                  }}
+                >
+                  <PencilIcon fontSize="var(--icon-fontSize-sm)" />
+                  <input type="file" hidden accept="image/*" onChange={handleBannerImageChange} />
+                </IconButton>
+                {isImageSelected && (
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{
+                      position: 'absolute',
+                      bottom: 16,
+                      right: 16,
+                    }}
+                  >
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={handleSaveBannerImage}
+                      sx={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        color: 'text.primary',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 1)',
+                        },
+                      }}
+                    >
+                      Lưu
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={handleSelectBannerOther}
+                      sx={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 1)',
+                        },
+                      }}
+                    >
+                      Hủy
+                    </Button>
+                  </Stack>
+                )}
+              </Box>
+
+            </Stack>
           </Grid>
           <Grid lg={4} md={6} xs={12}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent
-                sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-              >
-                <Stack direction="column" spacing={2}>
-                  <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                    <div>
-                      {event?.avatarUrl ?
-                        <Box component="img" src={event?.avatarUrl} sx={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+            <Stack spacing={3}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent
+                  sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                >
+                  <Stack direction="column" spacing={2}>
+                    <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                      <div style={{ position: 'relative' }}>
+                        {previewAvatarUrl || event?.avatarUrl ? (
+                          <Box 
+                            component="img" 
+                            src={previewAvatarUrl || event?.avatarUrl} 
+                            sx={{ 
+                              height: '80px', 
+                              width: '80px', 
+                              borderRadius: '50%',
+                              objectFit: 'cover'
+                            }} 
+                          />
+                        ) : (
+                          <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
+                            {(event?.name[0] ?? 'a').toUpperCase()}
+                          </Avatar>
+                        )}
+                        <IconButton
+                          component="label"
+                          sx={{
+                            position: 'absolute',
+                            bottom: 0,
+                            right: 0,
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            width: 28,
+                            height: 28,
+                            '&:hover': {
+                              backgroundColor: 'rgba(255, 255, 255, 1)',
+                            },
+                          }}
+                        >
+                          <PencilIcon fontSize="var(--icon-fontSize-xs)" />
+                          <input type="file" hidden accept="image/*" onChange={handleAvatarChange} />
+                        </IconButton>
+                        {isAvatarSelected && (
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            sx={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              mt: 1,
+                            }}
+                          >
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={handleSaveAvatar}
+                              sx={{
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                color: 'text.primary',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(255, 255, 255, 1)',
+                                },
+                              }}
+                            >
+                              Lưu
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={handleSelectOtherAvatar}
+                              sx={{
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(255, 255, 255, 1)',
+                                },
+                              }}
+                            >
+                              Hủy
+                            </Button>
+                          </Stack>
+                        )}
+                      </div>
+                      <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
+                        {event?.name}
+                      </Typography>
+                    </Stack>
+
+                    <Stack direction="row" spacing={1}>
+                      <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        Đơn vị tổ chức: {event?.organizer}
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={1}>
+                      <ClockIcon fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {event?.startDateTime && event?.endDateTime
+                          ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
+                          : 'Chưa xác định'} {event.timeInstruction ? `(${event.timeInstruction})` : ''}
+                      </Typography>
+                    </Stack>
+
+                    <Stack direction="row" spacing={1}>
+                      <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {event?.place ? event?.place : 'Chưa xác định'} {event.locationInstruction ? `(${event.locationInstruction})` : ''}
+                      </Typography>
+                    </Stack>
+                    <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
+                      <Storefront fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {event?.displayOnMarketplace ? "Có thể truy cập từ Marketplace" : 'Chỉ có thể truy cập bằng link'}
+                        <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}> Thay đổi</Box>
+
+                      </Typography>
+                    </Stack>
+
+
+                    <Stack direction="row" spacing={1} >
+                      <Eye fontSize="var(--icon-fontSize-sm)" />
+                      {event?.displayOption !== 'display_with_everyone' ?
+                        <Typography display="inline" variant="body2" sx={{ color: 'warning.main' }}>
+                          Sự kiện không hiển thị công khai
+                          <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}> Thay đổi</Box>
+                        </Typography>
                         :
-                        <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
-                          {(event?.name[0] ?? 'a').toUpperCase()}
-                        </Avatar>}
-                    </div>
-                    <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
-                      {event?.name}
-                    </Typography>
-                  </Stack>
+                        <Typography display="inline" variant="body2" color="text.secondary">
+                          Đang hiển thị công khai
+                          <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}> Thay đổi</Box>
+                        </Typography>
+                      }
+                    </Stack>
 
-                  <Stack direction="row" spacing={1}>
-                    <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      Đơn vị tổ chức: {event?.organizer}
-                    </Typography>
                   </Stack>
-                  <Stack direction="row" spacing={1}>
-                    <ClockIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {event?.startDateTime && event?.endDateTime
-                        ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : 'Chưa xác định'} {event.timeInstruction ? `(${event.timeInstruction})` : ''}
-                    </Typography>
-                  </Stack>
-
-                  <Stack direction="row" spacing={1}>
-                    <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {event?.place ? event?.place : 'Chưa xác định'} {event.locationInstruction ? `(${event.locationInstruction})` : ''}
-                    </Typography>
-                  </Stack>
-                  <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
-                    <Storefront fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {event?.displayOnMarketplace ? "Có thể truy cập từ Marketplace" : 'Chỉ có thể truy cập bằng link'}
-                      <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}> Thay đổi</Box>
-
-                    </Typography>
-                  </Stack>
-
-
-                  <Stack direction="row" spacing={1} >
-                    <Eye fontSize="var(--icon-fontSize-sm)" />
-                    {event?.displayOption !== 'display_with_everyone' ?
-                      <Typography display="inline" variant="body2" sx={{ color: 'warning.main' }}>
-                        Sự kiện không hiển thị công khai
-                        <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}> Thay đổi</Box>
-                      </Typography>
-                      :
-                      <Typography display="inline" variant="body2" color="text.secondary">
-                        Đang hiển thị công khai
-                        <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}> Thay đổi</Box>
-                      </Typography>
+                  <Box sx={{ mt: 2.5 }}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      target="_blank"
+                      component={RouterLink}
+                      href={`/events/${event?.slug}`}
+                      size="small"
+                      endIcon={<ArrowSquareIn />}
+                    >
+                      Đến trang Khách hàng tự đăng ký vé
+                    </Button>
+                  </Box>
+                  <Box sx={{ mt: 2.5 }}>
+                    {eventAgencyRegistrationAndEventApprovalRequest &&
+                      (
+                        <>
+                          {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'accepted' && (
+                            <Button
+                              fullWidth
+                              variant="outlined"
+                              size="small"
+                              color='success'
+                            >
+                              <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                                <span>Sự kiện đã được phê duyệt</span>
+                                <small>bán vé có thanh toán online, gửi email marketing,...</small>
+                              </Stack>
+                            </Button>
+                          )}
+                          {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'waiting_for_acceptance' && (
+                            <Button
+                              fullWidth
+                              variant="outlined"
+                              size="small"
+                              disabled
+                            >
+                              <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                                <span>Sự kiện đang chờ duyệt</span>
+                              </Stack>
+                            </Button>
+                          )}
+                          {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'rejected' && (
+                            <Button
+                              fullWidth
+                              variant="outlined"
+                              color='error'
+                              size="small"
+                              onClick={handleRequestEventApprovalClick}
+                            >
+                              <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                                <small color='error'>Yêu cầu phê duyệt bị từ chối</small>
+                                <span>Nhấn để yêu cầu lại</span>
+                              </Stack>
+                            </Button>
+                          )}
+                          {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'no_request_from_user' && (
+                            <Button
+                              fullWidth
+                              variant="contained"
+                              size="small"
+                              onClick={handleRequestEventApprovalClick}
+                            >
+                              <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                                <span>Gửi yêu cầu Phê duyệt sự kiện</span>
+                                <small>Để bán vé có thanh toán online, gửi email marketing,...</small>
+                              </Stack>
+                            </Button>
+                          )}
+                        </>
+                      )
                     }
-                  </Stack>
+                  </Box>
+                </CardContent>
+              </Card>
 
-                </Stack>
-                <Box sx={{ mt: 2.5 }}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    target="_blank"
-                    component={RouterLink}
-                    href={`/events/${event?.slug}`}
-                    size="small"
-                    endIcon={<ArrowSquareIn />}
-                  >
-                    Đến trang Khách hàng tự đăng ký vé
-                  </Button>
-                </Box>
-                <Box sx={{ mt: 2.5 }}>
-                  {eventAgencyRegistrationAndEventApprovalRequest &&
-                    (
-                      <>
-                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'accepted' && (
-                          <Button
-                            fullWidth
-                            variant="outlined"
-                            size="small"
-                            color='success'
-                          >
-                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                              <span>Sự kiện đã được phê duyệt</span>
-                              <small>bán vé có thanh toán online, gửi email marketing,...</small>
-                            </Stack>
-                          </Button>
-                        )}
-                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'waiting_for_acceptance' && (
-                          <Button
-                            fullWidth
-                            variant="outlined"
-                            size="small"
-                            disabled
-                          >
-                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                              <span>Sự kiện đang chờ duyệt</span>
-                            </Stack>
-                          </Button>
-                        )}
-                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'rejected' && (
-                          <Button
-                            fullWidth
-                            variant="outlined"
-                            color='error'
-                            size="small"
-                            onClick={handleRequestEventApprovalClick}
-                          >
-                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                              <small color='error'>Yêu cầu phê duyệt bị từ chối</small>
-                              <span>Nhấn để yêu cầu lại</span>
-                            </Stack>
-                          </Button>
-                        )}
-                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'no_request_from_user' && (
-                          <Button
-                            fullWidth
-                            variant="contained"
-                            size="small"
-                            onClick={handleRequestEventApprovalClick}
-                          >
-                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                              <span>Gửi yêu cầu Phê duyệt sự kiện</span>
-                              <small>Để bán vé có thanh toán online, gửi email marketing,...</small>
-                            </Stack>
-                          </Button>
-                        )}
-                      </>
-                    )
-                  }
-                </Box>
-              </CardContent>
-            </Card>
+
+
+            </Stack>
           </Grid>
         </Grid>
         <div>
-          <Typography variant="h4">Chỉnh sửa chi tiết sự kiện</Typography>
+          <Typography variant="h4">Thông tin & Hiển thị</Typography>
         </div>
         <Grid container spacing={3}>
           <Grid lg={4} md={6} xs={12}>
             <Stack spacing={3}>
-              <Card>
-                {previewBannerUrl &&
-                  <>
-                    <CardMedia sx={{ height: 140 }} image={previewBannerUrl || ''} title={event.name} />
-                    <Divider />
-                  </>}
-                <CardActions>
-                  {isImageSelected ? (
-                    <Stack direction="row" spacing={2} sx={{ width: '100%' }}>
-                      <Button fullWidth variant="contained" onClick={handleSaveBannerImage}>
-                        Lưu ảnh bìa
-                      </Button>
-                      <Button fullWidth variant="outlined" onClick={handleSelectBannerOther}>
-                        Chọn ảnh khác
-                      </Button>
-                    </Stack>
-                  ) : (
-                    <Button fullWidth variant="text" component="label">
-                      Thay đổi ảnh bìa
-                      <input type="file" hidden accept="image/*" onChange={handleBannerImageChange} />
-                    </Button>
-                  )}
-                </CardActions>
-              </Card>
-              <Card>
-                {previewAvatarUrl &&
-                  <>
-                    <CardMedia sx={{ height: 80, width: 80, justifyContent: 'center', display: 'flex' }} image={previewAvatarUrl || ''} title={event.name} />
-                    <Divider />
-                  </>}
 
-                <CardActions>
-                  {isAvatarSelected ? (
-                    <Stack direction="row" spacing={2} sx={{ width: '100%' }}>
-                      <Button fullWidth variant="contained" onClick={handleSaveAvatar}>
-                        Lưu ảnh đại diện
-                      </Button>
-                      <Button fullWidth variant="outlined" onClick={handleSelectOtherAvatar}>
-                        Chọn ảnh khác
-                      </Button>
-                    </Stack>
-                  ) : (
-                    <Button fullWidth variant="text" component="label">
-                      Thay đổi ảnh đại diện
-                      <input type="file" hidden accept="image/*" onChange={handleAvatarChange} />
-                    </Button>
-                  )}
-                </CardActions>
-              </Card>
               <Card>
                 <CardHeader title="Đơn vị tổ chức" />
                 <Divider />
@@ -802,7 +886,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         />
                       </FormControl>
                     </Grid>
-                    
+
                     <Grid md={4} xs={12}>
                       <FormControl fullWidth required>
                         <TextField
@@ -845,6 +929,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           onChange={handleInputChange}
                           startAdornment={<InputAdornment position="start">etik.vn/</InputAdornment>}
                           endAdornment={<IconButton size="small" onClick={() => handleCopyToClipboard(`etik.vn/${event?.slug}`)}><Clipboard /></IconButton>}
+                        />
+                      </FormControl>
+                    </Grid>
+
+                    <Grid md={12} xs={12}>
+                      <FormControl fullWidth>
+                        <InputLabel>Liên kết ngoài (trang thông tin sự kiện)</InputLabel>
+                        <OutlinedInput
+                          value={formValues.externalLink}
+                          label="Liên kết ngoài (trang thông tin sự kiện)"
+                          name="externalLink"
+                          onChange={handleInputChange}
                         />
                       </FormControl>
                     </Grid>
@@ -908,109 +1004,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Button>
               </Grid>
 
-              <Card>
-                <CardHeader title="Cấu hình gửi Email SMTP" />
-                <Divider />
-                <CardContent>
-                  {isLoading ? (
-                    <CircularProgress />
-                  ) : (
-                    <Grid container spacing={3}>
-                      {/* SMTP Provider Selection */}
-                      <Grid md={12} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Dịch vụ mail</InputLabel>
-                          <Select
-                            label="Dịch vụ mail"
-                            name="smtpProvider"
-                            value={smtpFormValues.smtpProvider}
-                            onChange={(event: any) => handleSmtpInputChange(event)}
-                          >
-                            <MenuItem value={'use_etik_smtp'}>Sử dụng ETIK SMTP</MenuItem>
-                            <MenuItem value={'use_custom_smtp'}>Tùy chỉnh SMTP server</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Grid>
-
-                      {/* SMTP Fields (Only for Custom SMTP) */}
-                      {smtpFormValues.smtpProvider === 'use_custom_smtp' && (
-                        <>
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth>
-                              <InputLabel>SMTP Host</InputLabel>
-                              <OutlinedInput
-                                label="SMTP Host"
-                                name="smtpHost"
-                                value={smtpFormValues.smtpHost}
-                                onChange={handleSmtpInputChange}
-                              />
-                            </FormControl>
-                          </Grid>
-
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth>
-                              <InputLabel>SMTP Port</InputLabel>
-                              <OutlinedInput
-                                label="SMTP Port"
-                                type="number"
-                                name="smtpPort"
-                                value={smtpFormValues.smtpPort || ""}
-                                onChange={handleSmtpInputChange}
-                              />
-                            </FormControl>
-                          </Grid>
-
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth>
-                              <InputLabel>SMTP Username</InputLabel>
-                              <OutlinedInput
-                                label="SMTP Username"
-                                name="smtpUsername"
-                                value={smtpFormValues.smtpUsername}
-                                onChange={handleSmtpInputChange}
-                              />
-                            </FormControl>
-                          </Grid>
-
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth>
-                              <InputLabel>SMTP Password</InputLabel>
-                              <OutlinedInput
-                                label='SMTP Password'
-                                type="password"
-                                name="smtpPassword"
-                                value={smtpFormValues.smtpPassword}
-                                onChange={handleSmtpInputChange}
-                              />
-                            </FormControl>
-                          </Grid>
-
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth>
-                              <InputLabel>Email gửi</InputLabel>
-                              <OutlinedInput
-                                label='Email gửi'
-
-                                name="smtpSenderEmail"
-                                value={smtpFormValues.smtpSenderEmail}
-                                onChange={handleSmtpInputChange}
-                              />
-                            </FormControl>
-                          </Grid>
-                        </>
-                      )}
-
-
-                    </Grid>
-                  )}
-                </CardContent>
-                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-                  {/* Save Button */}
-                  <Button variant="contained" color="primary" onClick={handleSaveSmtpSettings} disabled={isLoading}>
-                    {isLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
-                  </Button>
-                </CardActions>
-              </Card>
             </Stack>
           </Grid>
         </Grid>

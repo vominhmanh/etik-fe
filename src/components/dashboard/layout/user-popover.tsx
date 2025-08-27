@@ -18,7 +18,7 @@ import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
-import { BuildingOffice, Wallet } from '@phosphor-icons/react/dist/ssr';
+import { BuildingOffice, CodesandboxLogo, Invoice, SealCheck, Wallet } from '@phosphor-icons/react/dist/ssr';
 
 export interface UserPopoverProps {
   anchorEl: Element | null;
@@ -74,12 +74,7 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
       </Box>
       <Divider />
       <MenuList disablePadding sx={{ p: '8px', '& .MuiMenuItem-root': { borderRadius: 1 } }}>
-        <MenuItem component={RouterLink} href={'/account/settings'} onClick={onClose}>
-          <ListItemIcon>
-            <GearSixIcon fontSize="var(--icon-fontSize-md)" />
-          </ListItemIcon>
-          Quyền riêng tư
-        </MenuItem>
+        
         <MenuItem component={RouterLink} href={'/account'} onClick={onClose}>
           <ListItemIcon>
             <UserIcon fontSize="var(--icon-fontSize-md)" />
@@ -99,11 +94,23 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
           </ListItemIcon>
           Vé của tôi
         </MenuItem>
+        <MenuItem component={RouterLink} href={'/account/my-tickets'} onClick={onClose}>
+          <ListItemIcon>
+            <Invoice fontSize="var(--icon-fontSize-md)" />
+          </ListItemIcon>
+          Đơn hàng của tôi
+        </MenuItem>
         <MenuItem component={RouterLink} href={'/account-event-agency'} onClick={onClose}>
           <ListItemIcon>
-            <BuildingOffice fontSize="var(--icon-fontSize-md)" />
+            <SealCheck fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
           Tài khoản Event Agency
+        </MenuItem>
+        <MenuItem component={RouterLink} href={'/event-studio/events'} onClick={onClose}>
+          <ListItemIcon>
+            <CodesandboxLogo fontSize="var(--icon-fontSize-md)" />
+          </ListItemIcon>
+          Trang quản trị sự kiện
         </MenuItem>
         <MenuItem onClick={handleSignOut}>
           <ListItemIcon>

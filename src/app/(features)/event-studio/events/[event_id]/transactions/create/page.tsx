@@ -82,7 +82,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     name: '',
     email: '',
     phoneNumber: '',
-    dob: null,
+    dob: null as string | null,
     address: '',
   });
   const [paymentMethod, setPaymentMethod] = React.useState<string>('napas247');
@@ -123,7 +123,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleSelectionChange = (selected: Show[]) => {
     setSelectedSchedules(selected);
-    const tmpObj = {}
+    const tmpObj: Record<number, number | null> = {}
     selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || null })
     setSelectedCategories(tmpObj);
   };
@@ -234,55 +234,55 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <Divider />
               <CardContent>
 
+
+
                 <Grid container spacing={3}>
-                  <Grid lg={2} xs={4}>
+                  <Grid lg={6} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel id="title-label">Danh xưng</InputLabel>
-                      <Select
-                        labelId="title-label"
-                        id="title-select"
-                        name="title"
-                        value={customer.title || "Bạn"}
-                        onChange={(e) => {
-                          setCustomer({ ...customer, title: e.target.value });
-                        }}
-                        label="Danh xưng"   // 🔑 thêm dòng này để label không bị lỗi UI
-                      >
-                        <MenuItem value="Anh">Anh</MenuItem>
-                        <MenuItem value="Chị">Chị</MenuItem>
-                        <MenuItem value="Bạn">Bạn</MenuItem>
-                        <MenuItem value="Em">Em</MenuItem>
-                        <MenuItem value="Ông">Ông</MenuItem>
-                        <MenuItem value="Bà">Bà</MenuItem>
-                        <MenuItem value="Cô">Cô</MenuItem>
-                        <MenuItem value="Mr.">Mr.</MenuItem>
-                        <MenuItem value="Ms.">Ms.</MenuItem>
-                        <MenuItem value="Miss">Miss</MenuItem>
-                        <MenuItem value="Thầy">Thầy</MenuItem>
-                        
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid md={4} xs={8}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Họ và tên</InputLabel>
+                      <InputLabel htmlFor="customer-name">Danh xưng* &emsp; Họ và tên</InputLabel>
                       <OutlinedInput
-                        label="Họ và tên"
+                        id="customer-name"
+                        label="Danh xưng* &emsp; Họ và tên"
                         name="customer_name"
                         value={customer.name}
                         onChange={(e) => {
                           !ticketHolderEditted && ticketHolders.length > 0 &&
                             setTicketHolders((prev) => {
                               const updatedHolders = [...prev];
-                              // Update the first item
-                              updatedHolders[0] = e.target.value;
+                              updatedHolders[0] = e.target.value; // update first ticket holder
                               return updatedHolders;
                             });
-                          setCustomer({ ...customer, name: e.target.value })
+                          setCustomer({ ...customer, name: e.target.value });
                         }}
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <Select
+                              variant="standard"
+                              disableUnderline
+                              value={customer.title || "Bạn"}
+                              onChange={(e) =>
+                                setCustomer({ ...customer, title: e.target.value })
+                              }
+                              sx={{ minWidth: 65 }} // chiều rộng tối thiểu để gọn
+                            >
+                              <MenuItem value="Anh">Anh</MenuItem>
+                              <MenuItem value="Chị">Chị</MenuItem>
+                              <MenuItem value="Bạn">Bạn</MenuItem>
+                              <MenuItem value="Em">Em</MenuItem>
+                              <MenuItem value="Ông">Ông</MenuItem>
+                              <MenuItem value="Bà">Bà</MenuItem>
+                              <MenuItem value="Cô">Cô</MenuItem>
+                              <MenuItem value="Mr.">Mr.</MenuItem>
+                              <MenuItem value="Ms.">Ms.</MenuItem>
+                              <MenuItem value="Miss">Miss</MenuItem>
+                              <MenuItem value="Thầy">Thầy</MenuItem>
+                            </Select>
+                          </InputAdornment>
+                        }
                       />
                     </FormControl>
                   </Grid>
+                  
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Địa chỉ Email</InputLabel>

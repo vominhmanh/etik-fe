@@ -32,7 +32,7 @@ import { isNavItemActive } from '@/lib/is-nav-item-active';
 import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
-import { CurrencyCircleDollar, DiceSix, Image, ImageSquare, Mailbox, SpinnerBall, SquaresFour, StackPlus, StarHalf, UserList } from '@phosphor-icons/react/dist/ssr';
+import { CurrencyCircleDollar, DiceSix, Image, ImageSquare, Mailbox, Sliders, SpinnerBall, SquaresFour, StackPlus, StarHalf, UserList } from '@phosphor-icons/react/dist/ssr';
 import NotificationContext from '@/contexts/notification-context';
 import { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
@@ -157,10 +157,17 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             <NavItemCollapseChildItem
               pathname={pathname}
               key="configuration-event-info"
-              title="Chỉnh sửa sự kiện"
+              title="Thông tin & Hiển thị"
               href={`/event-studio/events/${dynamicId}/event-detail`}
               icon={InfoIcon}
             />
+            <NavItemCollapseChildItem
+                pathname={pathname}
+                key="advanced-settings"
+                title="Cài đặt nâng cao"
+                href={`/event-studio/events/${dynamicId}/advanced-settings`}
+                icon={Sliders}
+              />
             <NavItemCollapseChildItem
               pathname={pathname}
               key="revenue-and-fee"
@@ -171,7 +178,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             <NavItemCollapseChildItem
               pathname={pathname}
               key="invitation-letter-design"
-              title="Thiết kế ảnh thư mời"
+              title="Thiết kế thư mời"
               href={`/event-studio/events/${dynamicId}/invitation-letter-design`}
               icon={ImageSquare}
             />
@@ -185,7 +192,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             <NavItemCollapseChildItem
               pathname={pathname}
               key="configuration-shows-ticket-categories"
-              title="Loại vé theo suất diễn"
+              title="Hạng mục vé"
               href={`/event-studio/events/${dynamicId}/shows`}
               icon={TicketIcon}
             />

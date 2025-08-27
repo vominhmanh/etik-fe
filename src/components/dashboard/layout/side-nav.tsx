@@ -20,6 +20,7 @@ import {
   ImageSquare,
   Mailbox,
   Plus,
+  Sliders,
   SquaresFour,
   StackPlus,
   StarHalf,
@@ -205,9 +206,16 @@ export function SideNav(): React.JSX.Element {
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="configuration-event-info"
-                title="Chỉnh sửa sự kiện"
+                title="Thông tin & Hiển thị"
                 href={`/event-studio/events/${dynamicId}/event-detail`}
                 icon={InfoIcon}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="advanced-settings"
+                title="Cài đặt nâng cao"
+                href={`/event-studio/events/${dynamicId}/advanced-settings`}
+                icon={Sliders}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
@@ -219,7 +227,7 @@ export function SideNav(): React.JSX.Element {
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="invitation-letter-design"
-                title="Thiết kế ảnh thư mời"
+                title="Thiết kế thư mời"
                 href={`/event-studio/events/${dynamicId}/invitation-letter-design`}
                 icon={ImageSquare}
               />
@@ -233,7 +241,7 @@ export function SideNav(): React.JSX.Element {
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="configuration-shows-ticket-categories"
-                title="Loại vé theo suất diễn"
+                title="Hạng mục vé"
                 href={`/event-studio/events/${dynamicId}/shows`}
                 icon={TicketIcon}
               />
