@@ -283,7 +283,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
   const router = useRouter(); // Use useRouter from next/navigation
 
-  const handleFormChange = (event: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+  const handleFormChange = (event: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
     setFormData((prevData) => ({
       ...prevData,
@@ -385,7 +385,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         setTransaction((prev) => prev ? { ...prev, exportedTicketAt: '.' } : prev);
       }
     } catch (error) {
-      notificationCtx.error('Có lỗi xảy ra khi gửi email vé:', error);
+      notificationCtx.error(error);
     } finally {
       setIsLoading(false); // Optional: Hide loading state
     }
@@ -403,7 +403,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         notificationCtx.success('Hướng dẫn thanh toán đã được gửi thành công!');
       }
     } catch (error) {
-      notificationCtx.error('Có lỗi xảy ra khi gửi hướng dẫn thanh toán:', error);
+      notificationCtx.error(error);
     } finally {
       setIsLoading(false); // Optional: Hide loading state
     }
@@ -420,7 +420,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         setTransaction((prev) => prev ? { ...prev, paymentStatus: 'paid' } : prev);
       }
     } catch (error) {
-      notificationCtx.error('Có lỗi xảy ra khi cập nhật trạng thái đơn hàng:', error);
+      notificationCtx.error(error);
     }
   };
 
@@ -939,13 +939,13 @@ export default function Page({ params }: { params: { event_id: number; transacti
                 <Grid container spacing={3}>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel htmlFor="customer-name">Người mua</InputLabel>
+                      <InputLabel htmlFor="customer-name">Danh xưng* &emsp; Họ và tên</InputLabel>
                       <OutlinedInput
                         id="customer-name"
                         name="name"
                         value={formData.name}
                         onChange={(event) => handleFormChange(event)}
-                        label="Người mua"
+                        label="Danh xưng* &emsp; Họ và tên"
                         startAdornment={
                           <InputAdornment position="start">
                             <Select

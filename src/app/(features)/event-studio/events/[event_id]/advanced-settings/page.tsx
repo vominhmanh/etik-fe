@@ -67,6 +67,13 @@ export interface SMTPConfig {
   smtpUseSsl?: boolean;
   smtpSenderEmail?: string;
 }
+
+export interface SendTicketMethodsRequest {
+  useEmailMethod: boolean;
+  useEmailMethodAsDefault: boolean;
+  useZaloMethod: boolean;
+  useZaloMethodAsDefault: boolean;
+}
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
     document.title = "Cài đặt nâng cao | ETIK - Vé điện tử & Quản lý sự kiện";
@@ -81,6 +88,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const reactQuillRef = React.useRef<ReactQuill>(null);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSmtpLoading, setIsSmtpLoading] = useState<boolean>(false);
+  const [isSendTicketMethodsLoading, setIsSendTicketMethodsLoading] = useState<boolean>(false);
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const [previewAvatarUrl, setPreviewAvatarUrl] = useState<string>(event?.avatarUrl || '');
   const [isAvatarSelected, setIsAvatarSelected] = useState(false);
@@ -99,6 +108,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     smtpSenderEmail: "",
   });
 
+  const [sendTicketMethods, setSendTicketMethods] = useState<SendTicketMethodsRequest>({
+    useEmailMethod: false,
+    useEmailMethodAsDefault: false,
+    useZaloMethod: false,
+    useZaloMethodAsDefault: false,
+  });
+
 
   useEffect(() => {
     async function fetchData() {
@@ -106,6 +122,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       try {
         const data = await getSMTPSettings(params.event_id);
         if (data) setSmtpFormValues(data);
+        const sendMethods = await getSendTicketMethods(params.event_id);
+        if (sendMethods) setSendTicketMethods(sendMethods);
       } catch (error) {
         notificationCtx.error(error);
       } finally {
@@ -186,13 +204,38 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleSaveSmtpSettings = async () => {
     try {
-      setIsLoading(true);
+      setIsSmtpLoading(true);
       await saveSMTPSettings(event_id, smtpFormValues);
       notificationCtx.success("Cấu hình SMTP đã được lưu thành công!");
     } catch (error) {
       notificationCtx.error(error);
     } finally {
-      setIsLoading(false);
+      setIsSmtpLoading(false);
+    }
+  };
+
+  const handleSendTicketMethodsChange = (name: keyof SendTicketMethodsRequest, checked: boolean) => {
+    setSendTicketMethods((prev) => {
+      const next = { ...prev, [name]: checked } as SendTicketMethodsRequest;
+      if (name === 'useEmailMethod' && !checked) {
+        next.useEmailMethodAsDefault = false;
+      }
+      if (name === 'useZaloMethod' && !checked) {
+        next.useZaloMethodAsDefault = false;
+      }
+      return next;
+    });
+  };
+
+  const handleSaveSendTicketMethods = async () => {
+    try {
+      setIsSendTicketMethodsLoading(true);
+      await saveSendTicketMethods(event_id, sendTicketMethods);
+      notificationCtx.success('Cập nhật thành công');
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsSendTicketMethodsLoading(false);
     }
   };
 
@@ -435,6 +478,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   }
 
+  async function getSendTicketMethods(eventId: number): Promise<SendTicketMethodsRequest | null> {
+    try {
+      const response: AxiosResponse<SendTicketMethodsRequest> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${eventId}/send-ticket-methods`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async function saveSendTicketMethods(eventId: number, payload: SendTicketMethodsRequest): Promise<void> {
+    try {
+      await baseHttpServiceInstance.post(`/event-studio/events/${eventId}/send-ticket-methods`, payload);
+    } catch (error) {
+      throw error;
+    }
+  }
+
 
   if (!event || !formValues) {
     return <Typography>Loading...</Typography>;
@@ -469,7 +531,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       <Stack spacing={1}>
                         <Typography variant="h6">Email</Typography>
                         <FormGroup>
-                          <FormControlLabel control={<Checkbox defaultChecked />} label="Mặc định gửi khi tạo đơn hàng" />
+                          <FormControlLabel
+                            control={<Checkbox checked={sendTicketMethods.useEmailMethod}
+                              onChange={(_e, checked) => handleSendTicketMethodsChange('useEmailMethod', checked)} />}
+                            label="Sử dụng phương thức này"
+                          />
+                          <FormControlLabel
+                            control={<Checkbox checked={sendTicketMethods.useEmailMethodAsDefault}
+                              onChange={(_e, checked) => handleSendTicketMethodsChange('useEmailMethodAsDefault', checked)}
+                              disabled={!sendTicketMethods.useEmailMethod}
+                            />}
+                            label="Tự động sử dụng khi tạo đơn hàng"
+                          />
                         </FormGroup>
                       </Stack>
                     </Grid>
@@ -477,7 +550,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       <Stack spacing={1}>
                         <Typography variant="h6">Zalo</Typography>
                         <FormGroup>
-                          <FormControlLabel control={<Checkbox defaultChecked />} label="Mặc định gửi khi tạo đơn hàng" />
+                          <FormControlLabel
+                            control={<Checkbox checked={sendTicketMethods.useZaloMethod}
+                              onChange={(_e, checked) => handleSendTicketMethodsChange('useZaloMethod', checked)} />}
+                            label="Sử dụng phương thức này"
+                          />
+                          <FormControlLabel
+                            control={<Checkbox checked={sendTicketMethods.useZaloMethodAsDefault}
+                              onChange={(_e, checked) => handleSendTicketMethodsChange('useZaloMethodAsDefault', checked)}
+                              disabled={!sendTicketMethods.useZaloMethod}
+                            />}
+                            label="Tự động sử dụng khi tạo đơn hàng"
+                          />
                           <FormHelperText>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                               Phương thức này chỉ khả dụng với một số sự kiện. Vui lòng liên hệ ETIK để biết thêm chi tiết.
@@ -488,6 +572,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </Grid>
                   </Grid>
                 </CardContent>
+                <Divider />
+                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button variant="contained" color="primary" onClick={handleSaveSendTicketMethods} disabled={isSendTicketMethodsLoading}>
+                    {isSendTicketMethodsLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
+                  </Button>
+                </CardActions>
               </Card>
             </Stack>
           </Grid>
@@ -498,102 +588,96 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <CardHeader title="Cấu hình gửi Email SMTP" />
                 <Divider />
                 <CardContent>
-                  {isLoading ? (
-                    <CircularProgress />
-                  ) : (
-                    <Grid container spacing={3}>
-                      {/* SMTP Provider Selection */}
-                      <Grid md={12} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Dịch vụ mail</InputLabel>
-                          <Select
-                            label="Dịch vụ mail"
-                            name="smtpProvider"
-                            value={smtpFormValues.smtpProvider}
-                            onChange={(event: any) => handleSmtpInputChange(event)}
-                          >
-                            <MenuItem value={'use_etik_smtp'}>Sử dụng ETIK SMTP</MenuItem>
-                            <MenuItem value={'use_custom_smtp'}>Tùy chỉnh SMTP server</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Grid>
-
-                      {/* SMTP Fields (Only for Custom SMTP) */}
-                      {smtpFormValues.smtpProvider === 'use_custom_smtp' && (
-                        <>
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth>
-                              <InputLabel>SMTP Host</InputLabel>
-                              <OutlinedInput
-                                label="SMTP Host"
-                                name="smtpHost"
-                                value={smtpFormValues.smtpHost}
-                                onChange={handleSmtpInputChange}
-                              />
-                            </FormControl>
-                          </Grid>
-
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth>
-                              <InputLabel>SMTP Port</InputLabel>
-                              <OutlinedInput
-                                label="SMTP Port"
-                                type="number"
-                                name="smtpPort"
-                                value={smtpFormValues.smtpPort || ""}
-                                onChange={handleSmtpInputChange}
-                              />
-                            </FormControl>
-                          </Grid>
-
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth>
-                              <InputLabel>SMTP Username</InputLabel>
-                              <OutlinedInput
-                                label="SMTP Username"
-                                name="smtpUsername"
-                                value={smtpFormValues.smtpUsername}
-                                onChange={handleSmtpInputChange}
-                              />
-                            </FormControl>
-                          </Grid>
-
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth>
-                              <InputLabel>SMTP Password</InputLabel>
-                              <OutlinedInput
-                                label='SMTP Password'
-                                type="password"
-                                name="smtpPassword"
-                                value={smtpFormValues.smtpPassword}
-                                onChange={handleSmtpInputChange}
-                              />
-                            </FormControl>
-                          </Grid>
-
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth>
-                              <InputLabel>Email gửi</InputLabel>
-                              <OutlinedInput
-                                label='Email gửi'
-
-                                name="smtpSenderEmail"
-                                value={smtpFormValues.smtpSenderEmail}
-                                onChange={handleSmtpInputChange}
-                              />
-                            </FormControl>
-                          </Grid>
-                        </>
-                      )}
-
-
+                  <Grid container spacing={3}>
+                    {/* SMTP Provider Selection */}
+                    <Grid md={12} xs={12}>
+                      <FormControl fullWidth required>
+                        <InputLabel>Dịch vụ mail</InputLabel>
+                        <Select
+                          label="Dịch vụ mail"
+                          name="smtpProvider"
+                          value={smtpFormValues.smtpProvider}
+                          onChange={(event: any) => handleSmtpInputChange(event)}
+                        >
+                          <MenuItem value={'use_etik_smtp'}>Sử dụng ETIK SMTP</MenuItem>
+                          <MenuItem value={'use_custom_smtp'}>Tùy chỉnh SMTP server</MenuItem>
+                        </Select>
+                      </FormControl>
                     </Grid>
-                  )}
+
+                    {/* SMTP Fields (Only for Custom SMTP) */}
+                    {smtpFormValues.smtpProvider === 'use_custom_smtp' && (
+                      <>
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>SMTP Host</InputLabel>
+                            <OutlinedInput
+                              label="SMTP Host"
+                              name="smtpHost"
+                              value={smtpFormValues.smtpHost}
+                              onChange={handleSmtpInputChange}
+                            />
+                          </FormControl>
+                        </Grid>
+
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>SMTP Port</InputLabel>
+                            <OutlinedInput
+                              label="SMTP Port"
+                              type="number"
+                              name="smtpPort"
+                              value={smtpFormValues.smtpPort || ""}
+                              onChange={handleSmtpInputChange}
+                            />
+                          </FormControl>
+                        </Grid>
+
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>SMTP Username</InputLabel>
+                            <OutlinedInput
+                              label="SMTP Username"
+                              name="smtpUsername"
+                              value={smtpFormValues.smtpUsername}
+                              onChange={handleSmtpInputChange}
+                            />
+                          </FormControl>
+                        </Grid>
+
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>SMTP Password</InputLabel>
+                            <OutlinedInput
+                              label='SMTP Password'
+                              type="password"
+                              name="smtpPassword"
+                              value={smtpFormValues.smtpPassword}
+                              onChange={handleSmtpInputChange}
+                            />
+                          </FormControl>
+                        </Grid>
+
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>Email gửi</InputLabel>
+                            <OutlinedInput
+                              label='Email gửi'
+
+                              name="smtpSenderEmail"
+                              value={smtpFormValues.smtpSenderEmail}
+                              onChange={handleSmtpInputChange}
+                            />
+                          </FormControl>
+                        </Grid>
+                      </>
+                    )}
+                  </Grid>
                 </CardContent>
-                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-                  {/* Save Button */}
+                <Divider />
+                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button variant="contained" color="primary" onClick={handleSaveSmtpSettings} disabled={isLoading}>
-                    {isLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
+                    {isSmtpLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
                   </Button>
                 </CardActions>
               </Card>
