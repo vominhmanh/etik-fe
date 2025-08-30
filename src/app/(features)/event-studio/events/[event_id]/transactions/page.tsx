@@ -742,12 +742,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       </Card>
       {bulkErrorMessage &&
         <Card>
-          <Box sx={{ overflowX: 'auto', pl: '50px', bgcolor: theme.palette.warning[200], }} >
+          <Box sx={{ overflowX: 'auto', pl: '50px', bgcolor: theme.palette.warning.light, }} >
             <Typography variant='body2' >
               <b>{bulkErrorMessage}</b>
             </Typography>
           </Box>
-          <Box sx={{ overflow: 'auto', pl: '35px', maxHeight: '200px', bgcolor: theme.palette.warning[200] }} >
+          <Box sx={{ overflow: 'auto', pl: '35px', maxHeight: '200px', bgcolor: theme.palette.warning.light }} >
             <Table size="small" sx={{ minWidth: '500px' }}>
               <TableBody>
                 {bulkErrorDetails.map((error) => (

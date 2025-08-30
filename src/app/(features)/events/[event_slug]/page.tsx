@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, Checkbox, Container, FormControlLabel, FormHelperText, InputAdornment, Modal } from '@mui/material';
+import { Avatar, Box, Checkbox, Container, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormHelperText, IconButton, InputAdornment, Modal } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -17,7 +17,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { ArrowRight, Eye, UserPlus } from '@phosphor-icons/react/dist/ssr';
+import { ArrowRight, Eye, Pencil, UserPlus } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
@@ -82,10 +82,17 @@ const options = {
   timeout: 5000,
   maximumAge: 0,
 };
+type TicketHolderInfo = { title: string; name: string; email: string; phone: string };
+
+const paymentMethodLabelMap: Record<string, string> = {
+  cash: 'Tiền mặt',
+  transfer: 'Chuyển khoản',
+  napas247: 'Napas 247',
+};
 
 export default function Page({ params }: { params: { event_slug: string } }): React.JSX.Element {
   const [event, setEvent] = React.useState<EventResponse | null>(null);
-  const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
+  const [selectedCategories, setSelectedCategories] = React.useState<Record<number, Record<number, number>>>({});
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
   const [customer, setCustomer] = React.useState({
     title: 'Bạn',
@@ -105,6 +112,12 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [ticketHolderEditted, setTicketHolderEditted] = React.useState<boolean>(false);
   const [openNotifModal, setOpenNotifModal] = React.useState<boolean>(false);
   const [prevent24h, setPrevent24h] = React.useState(false);
+  const [qrOption, setQrOption] = React.useState<string>("shared");
+  const [requestedCategoryModalId, setRequestedCategoryModalId] = React.useState<number | null>(null);
+  const [ticketHoldersByCategory, setTicketHoldersByCategory] = React.useState<Record<string, TicketHolderInfo[]>>({});
+  const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
+
+
   const NOTIF_KEY = 'hideNotifMarketplaceEventNotApprovedUntil';
 
   React.useEffect(() => {
@@ -141,10 +154,14 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     setOpenNotifModal(false);
   };
   const totalAmount = React.useMemo(() => {
-    return Object.entries(selectedCategories).reduce((total, [showId, category]) => {
+    return Object.entries(selectedCategories).reduce((total, [showId, categories]) => {
       const show = event?.shows.find((show) => show.id === parseInt(showId));
-      const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
-      return total + (ticketCategory?.price || 0) * (ticketQuantity || 0);
+      const categoriesTotal = Object.entries(categories || {}).reduce((sub, [categoryIdStr, qty]) => {
+        const categoryId = parseInt(categoryIdStr);
+        const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
+        return sub + (ticketCategory?.price || 0) * (qty || 0);
+      }, 0);
+      return total + categoriesTotal;
     }, 0)
   }, [selectedCategories])
 
@@ -174,36 +191,119 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       fetchEventDetails();
     }
   }, [params.event_slug]);
+  const handleAddToCartQuantity = (showId: number, categoryId: number, quantity: number, holders?: TicketHolderInfo[]) => {
+    setSelectedCategories(prev => {
+      const forShow = prev[showId] || {};
+      const updatedForShow = { ...forShow } as Record<number, number>;
+      if (quantity <= 0) {
+        delete updatedForShow[categoryId];
+      } else {
+        updatedForShow[categoryId] = quantity;
+      }
+      return {
+        ...prev,
+        [showId]: updatedForShow,
+      };
+    });
+
+    const key = `${showId}-${categoryId}`;
+    setTicketHoldersByCategory(prev => {
+      if (quantity <= 0) {
+        const next = { ...prev } as Record<string, TicketHolderInfo[]>;
+        delete next[key];
+        return next;
+      }
+      if (holders && holders.length > 0) {
+        return { ...prev, [key]: holders.slice(0, quantity) };
+      }
+      // ensure existing array is sized to quantity
+      const existing = prev[key] || [];
+      const sized = Array.from({ length: quantity }, (_, i) => existing[i] || { title: 'Bạn', name: '', email: '', phone: '' });
+      return { ...prev, [key]: sized };
+    });
+  };
 
 
   const handleCategorySelection = (showId: number, categoryId: number) => {
-    setSelectedCategories(prevCategories => ({
-      ...prevCategories,
-      [showId]: categoryId,
-    }));
+    setSelectedCategories(prevCategories => {
+      const existingForShow = prevCategories[showId] || {};
+      const exists = Object.prototype.hasOwnProperty.call(existingForShow, categoryId);
+      const nextForShow = { ...existingForShow } as Record<number, number>;
+      if (exists) {
+        delete nextForShow[categoryId];
+      } else {
+        nextForShow[categoryId] = 1; // default quantity when toggled via list
+      }
+      return {
+        ...prevCategories,
+        [showId]: nextForShow,
+      };
+    });
   };
 
   const handleSelectionChange = (selected: Show[]) => {
     setSelectedSchedules(selected);
-    const tmpObj: Record<number, number | null> = {};
-    selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] ?? null })
+    const tmpObj: Record<number, Record<number, number>> = {}
+    selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || {} })
     setSelectedCategories(tmpObj);
-  };
 
-  const handleTicketQuantityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const quantity = Number(event.target.value);
-    setTicketQuantity(quantity);
-    setTicketHolders(Array(quantity).fill('')); // Dynamically update ticket holders array
-  };
-
-  const handleTicketHolderChange = (index: number, value: string) => {
-    const updatedHolders = [...ticketHolders];
-    updatedHolders[index] = value;
-    setTicketHolders(updatedHolders);
+    // filter holders to only keep keys for selected shows
+    const allowedShowIds = new Set(selected.map(s => s.id));
+    setTicketHoldersByCategory(prev => {
+      const next: Record<string, TicketHolderInfo[]> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const showIdStr = k.split('-')[0];
+        const sid = parseInt(showIdStr);
+        if (allowedShowIds.has(sid)) next[k] = v;
+      });
+      return next;
+    });
   };
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
+  };
+
+
+  const handleCreateClick = () => {
+    if (!customer.name || !customer.email || !customer.phoneNumber || ticketQuantity <= 0) {
+      notificationCtx.warning('Vui lòng điền đầy đủ các thông tin bắt buộc');
+      return;
+    }
+
+    const totalSelectedCategories = Object.values(selectedCategories).reduce((sum, catMap) => sum + Object.keys(catMap || {}).length, 0);
+    if (totalSelectedCategories === 0) {
+      notificationCtx.warning('Vui lòng chọn ít nhất 1 loại vé');
+      return;
+    }
+
+
+    // Validate per-ticket holder info when separate QR is selected
+    if (qrOption === 'separate') {
+      for (const [showId, categories] of Object.entries(selectedCategories)) {
+        for (const [categoryIdStr, qty] of Object.entries(categories || {})) {
+          const categoryId = parseInt(categoryIdStr);
+          const quantity = qty || 0;
+          if (quantity <= 0) continue;
+          const key = `${showId}-${categoryId}`;
+          const holders = ticketHoldersByCategory[key] || [];
+          let invalid = holders.length < quantity;
+          if (!invalid) {
+            for (let i = 0; i < quantity; i++) {
+              const h = holders[i];
+              if (!h || !h.title || !h.name) { invalid = true; break; }
+            }
+          }
+          if (invalid) {
+            notificationCtx.warning('Vui lòng điền đủ thông tin người tham dự cho từng vé.');
+            setRequestedCategoryModalId(categoryId);
+            return;
+          }
+        }
+      }
+    }
+
+    setConfirmOpen(true);
   };
 
   const handleSubmit = async () => {
@@ -223,26 +323,53 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       return;
     }
 
-    const emptyTicketShowIds = Object.entries(selectedCategories).filter(([showId, ticketCategoryId]) => (ticketCategoryId == null)).map(([showId, ticketCategoryId]) => (Number.parseInt(showId)));
-    if (emptyTicketShowIds.length > 0) {
-      const emptyTicketNames = event?.shows.filter(show => emptyTicketShowIds.includes(show.id)).map(show => show.name)
-      notificationCtx.warning(`Vui lòng chọn loại vé cho ${emptyTicketNames?.join(', ')}`);
-      return;
-    }
     try {
+      if (qrOption === 'separate') {
+        for (const [showId, categories] of Object.entries(selectedCategories)) {
+          for (const [categoryIdStr, qty] of Object.entries(categories || {})) {
+            const categoryId = parseInt(categoryIdStr);
+            const quantity = qty || 0;
+            if (quantity <= 0) continue;
+            const key = `${showId}-${categoryId}`;
+            const holders = ticketHoldersByCategory[key] || [];
+            let invalid = holders.length < quantity;
+            if (!invalid) {
+              for (let i = 0; i < quantity; i++) {
+                const h = holders[i];
+                if (!h || !h.title || !h.name) { invalid = true; break; }
+              }
+            }
+            if (invalid) {
+              setConfirmOpen(false);
+              notificationCtx.warning('Vui lòng điền đủ thông tin người tham dự cho từng vé.');
+              setRequestedCategoryModalId(categoryId);
+              return;
+            }
+          }
+        }
+      }
+
+      setConfirmOpen(false);
       setIsLoading(true);
 
-      const tickets = Object.entries(selectedCategories).map(([showId, ticketCategoryId]) => ({
-        showId: parseInt(showId),
-        ticketCategoryId,
-      }));
+      const tickets = Object.entries(selectedCategories).flatMap(([showId, catMap]) => (
+        Object.entries(catMap || {}).map(([categoryIdStr, qty]) => {
+          const key = `${showId}-${categoryIdStr}`;
+          const holders = ticketHoldersByCategory[key] || [];
+          return {
+            showId: parseInt(showId),
+            ticketCategoryId: parseInt(categoryIdStr),
+            quantity: qty || 0,
+            holders: qrOption === 'separate' ? holders : undefined,
+          };
+        })
+      ));
 
       const transactionData = {
         customer,
         tickets,
         paymentMethod,
-        ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
-        quantity: ticketQuantity,
+        qrOption,
         captchaValue,
         "latitude": position?.latitude,
         "longitude": position?.longitude
@@ -415,7 +542,14 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
               <Stack spacing={3}>
                 <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
                 {selectedSchedules && selectedSchedules.map(show => (
-                  <TicketCategories key={show.id} show={show} onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
+                  <TicketCategories
+                    key={show.id}
+                    show={show}
+                    qrOption={qrOption}
+                    requestedCategoryModalId={requestedCategoryModalId || undefined}
+                    onModalRequestHandled={() => setRequestedCategoryModalId(null)}
+                    onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
+                    onAddToCart={(categoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; }[]) => handleAddToCartQuantity(show.id, categoryId, quantity, holders)}
                   />
                 ))}
               </Stack>
@@ -508,33 +642,90 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 {/* Ticket Quantity and Ticket Holders */}
                 <Card>
                   <CardHeader
-                    title="Số lượng người tham dự"
+                    title="Danh sách vé"
                     action={
-                      <OutlinedInput
-                        sx={{ maxWidth: 130 }}
-                        type="number"
-                        value={ticketQuantity}
-                        onChange={handleTicketQuantityChange}
-                        inputProps={{ min: 1 }}
-                      />
+                      <FormControl size="small" sx={{ width: 210 }}>
+                        <InputLabel id="qr-option-label">Thông tin trên vé</InputLabel>
+                        <Select
+                          labelId="qr-option-label"
+                          value={qrOption}
+                          label="Thông tin trên vé"
+                          onChange={(e) => {
+                            setQrOption(e.target.value);
+                            if (e.target.value === 'separate') {
+                              notificationCtx.info("Vui lòng điền thông tin người sở hữu cho từng vé");
+                            }
+                          }}
+                        >
+                          <MenuItem value="shared">
+                            <Stack>
+                              <Typography variant="body2">Giống thông tin người đ.ký</Typography>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                dùng một QR check-in tất cả vé
+                              </Typography>
+                            </Stack>
+                          </MenuItem>
+                          <MenuItem value="separate">
+                            <Stack>
+                              <Typography variant="body2">Nhập thông tin từng vé</Typography>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                mỗi vé một mã QR
+                              </Typography>
+                            </Stack>
+                          </MenuItem>
+                        </Select>
+                      </FormControl>
                     }
                   />
                   <Divider />
                   <CardContent>
-                    <Grid container spacing={3}>
-                      {ticketHolders.map((holder, index) => (
-                        <Grid item lg={12} xs={12} key={index}>
-                          <FormControl fullWidth required>
-                            <InputLabel>Họ và tên người tham dự {index + 1}</InputLabel>
-                            <OutlinedInput
-                              label={`Họ và tên người tham dự ${index + 1}`}
-                              value={holder}
-                              onChange={(e) => { setTicketHolderEditted(true); handleTicketHolderChange(index, e.target.value) }}
-                            />
-                          </FormControl>
-                        </Grid>
-                      ))}
-                    </Grid>
+                    <Stack spacing={3}>
+                      {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
+                        const show = event?.shows.find((show) => show.id === parseInt(showId));
+                        return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
+                          const categoryId = parseInt(categoryIdStr);
+                          const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
+                          const quantity = qty || 0;
+                          return (
+                            <Stack spacing={3} key={`${showId}-${categoryId}`}>
+                              <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
+                                  <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => setRequestedCategoryModalId(categoryId)}><Pencil /></IconButton>
+                                </Stack>
+                                <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                                  <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
+                                  <Typography variant="caption">x {quantity}</Typography>
+                                  <Typography variant="caption">
+                                    = {formatPrice((ticketCategory?.price || 0) * quantity)}
+                                  </Typography>
+                                </Stack>
+                              </Stack>
+
+                              {qrOption === 'separate' && quantity > 0 && (
+                                <Stack spacing={2}>
+                                  {Array.from({ length: quantity }, (_, index) => {
+                                    const holderInfo = ticketHoldersByCategory[`${showId}-${categoryId}`]?.[index];
+                                    return (
+                                      <Box key={index} sx={{ ml: 2, pl: 2, borderLeft: '2px solid', borderColor: 'divider' }}>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
+                                          {index + 1}. {holderInfo?.name ? `${holderInfo?.title} ${holderInfo?.name}` : 'Chưa có thông tin'}
+                                        </Typography>
+                                        <br />
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          {holderInfo?.email || 'Chưa có email'} - {holderInfo?.phone || 'Chưa có SĐT'}
+                                        </Typography>
+                                      </Box>
+                                    );
+                                  })}
+                                </Stack>
+                              )}
+                            </Stack >
+                          );
+                        });
+                      })}
+                    </Stack>
                   </CardContent>
                 </Card>
 
@@ -562,41 +753,17 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   </Card>
                 }
                 {/* Payment Summary */}
-                {Object.keys(selectedCategories).length > 0 && (
+                {Object.values(selectedCategories).some((catMap) => Object.keys(catMap || {}).length > 0) && (
                   <Card>
-                    <CardHeader title="Thanh toán" />
-                    <Divider />
                     <CardContent>
-                      <Stack spacing={2}>
-                        {Object.entries(selectedCategories).map(([showId, category]) => {
-                          const show = event?.shows.find((show) => show.id === parseInt(showId));
-                          const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
-
-                          return (
-                            <Stack direction={{ xs: 'column', sm: 'row' }} key={showId} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
-                              </Stack>
-                              <Stack spacing={2} direction={'row'}>
-                                <Typography variant="body1">Giá: {formatPrice(ticketCategory?.price || 0)}</Typography>
-                                <Typography variant="body1">SL: {ticketQuantity || 0}</Typography>
-                                <Typography variant="body1">
-                                  Thành tiền: {formatPrice((ticketCategory?.price || 0) * (ticketQuantity || 0))}
-                                </Typography>
-                              </Stack>
-                            </Stack>
-                          );
-                        })}
-
-                        {/* Total Amount */}
-                        <Grid item sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng:</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                            {formatPrice(totalAmount)}
-                          </Typography>
-                        </Grid>
-                      </Stack>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                          {formatPrice(
+                            totalAmount
+                          )}
+                        </Typography>
+                      </Box>
                     </CardContent>
                   </Card>
                 )}
@@ -610,7 +777,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   </Grid>
                   <Grid item sm={3} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
                     <div>
-                      <Button variant="contained" onClick={handleSubmit}>
+                      <Button variant="contained" onClick={handleCreateClick}>
                         Đăng ký
                       </Button>
                     </div>
@@ -622,6 +789,94 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         </Stack>
       </Container>
 
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} fullWidth maxWidth="md">
+        <DialogTitle sx={{ color: "primary.main" }}>Xác nhận tạo đơn hàng</DialogTitle>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Thông tin người mua</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Họ và tên</Typography>
+              <Typography variant="body2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Email</Typography>
+              <Typography variant="body2">{customer.email}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Số điện thoại</Typography>
+              <Typography variant="body2">{customer.phoneNumber}</Typography>
+            </Box>
+            <Divider />
+
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Danh sách vé</Typography>
+            <Stack spacing={1}>
+              {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
+                const show = event?.shows.find((show) => show.id === parseInt(showId));
+                return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
+                  const categoryId = parseInt(categoryIdStr);
+                  const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
+                  const quantity = qty || 0;
+                  return (
+                    <Stack spacing={0} key={`confirm-${showId}-${categoryId}`}>
+                      <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
+                        </Stack>
+                        <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                          <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
+                          <Typography variant="caption">x {quantity}</Typography>
+                          <Typography variant="caption">
+                            = {formatPrice((ticketCategory?.price || 0) * quantity)}
+                          </Typography>
+                        </Stack>
+                      </Stack>
+
+                      {qrOption === 'separate' && quantity > 0 && (
+                        <Box sx={{ ml: 2 }}>
+                          <Stack spacing={1}>
+                            {Array.from({ length: quantity }, (_, index) => {
+                              const holderInfo = ticketHoldersByCategory[`${showId}-${categoryId}`]?.[index];
+                              return (
+                                <Box key={index} sx={{ pl: 2, borderLeft: '2px solid', borderColor: 'divider' }}>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
+                                    {index + 1}. {holderInfo?.name ? `${holderInfo?.title} ${holderInfo?.name}` : 'Chưa có thông tin'}
+                                  </Typography>
+                                  <br />
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    {holderInfo?.email || 'Chưa có email'} - {holderInfo?.phone || 'Chưa có SĐT'}
+                                  </Typography>
+                                </Box>
+                              );
+                            })}
+                          </Stack>
+                        </Box>
+                      )}
+                    </Stack>
+                  );
+                });
+              })}
+            </Stack>
+            <Divider />
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Phương thức thanh toán</Typography>
+              <Typography variant="body2">{paymentMethodLabelMap[paymentMethod] || paymentMethod}</Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                {formatPrice(totalAmount)}
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>Quay lại</Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={isLoading}>Xác nhận</Button>
+        </DialogActions>
+      </Dialog>
       <Modal
         open={openSuccessModal}
         onClose={handleCloseSuccessModal}
@@ -665,11 +920,11 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
               <div style={{ marginTop: '20px', justifyContent: 'center' }}>
                 <Stack spacing={2}>
                   {event?.externalLink && (
-                    <Button 
-                      fullWidth 
-                      variant='contained' 
-                      size="small" 
-                      endIcon={<ArrowRight />} 
+                    <Button
+                      fullWidth
+                      variant='contained'
+                      size="small"
+                      endIcon={<ArrowRight />}
                       onClick={() => {
                         window.location.href = event?.externalLink || '';
                       }}
@@ -677,10 +932,10 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                       Khám phá trang thông tin sự kiện.
                     </Button>
                   )}
-                  <Button 
-                    fullWidth 
-                    variant='outlined' 
-                    size="small" 
+                  <Button
+                    fullWidth
+                    variant='outlined'
+                    size="small"
                     onClick={() => {
                       setOpenSuccessModal(false);
                       window.location.reload();

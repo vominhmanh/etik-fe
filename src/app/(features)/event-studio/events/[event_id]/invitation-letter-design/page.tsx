@@ -42,7 +42,7 @@ const defaultComponents: { label: string; key: string }[] = [
 ];
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
-  React.useEffect(() => {
+  useEffect(() => {
     document.title = "Thiết kế thư mời | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
   const { event_id } = params;

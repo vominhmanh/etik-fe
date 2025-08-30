@@ -55,6 +55,7 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
             </ListItemAvatar>
             <ListItemText
               primary={show.name}
+              primaryTypographyProps={{ variant: 'subtitle2' }}
               secondary={(show.startDateTime && show.endDateTime
                 ? `${dayjs(show.startDateTime).format('HH:mm')} - ${dayjs(show.endDateTime).format('HH:mm | DD/MM/YYYY')}` : "")
                 + (show.disabled
@@ -67,7 +68,7 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
                         : ""
                     : "")
               }
-              secondaryTypographyProps={{ variant: 'body2' }}
+              secondaryTypographyProps={{ variant: 'caption' }}
             />
           </ListItem>
         ))}

@@ -2,7 +2,7 @@
 
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Box, CardActions, IconButton, InputAdornment, styled, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Box, CardActions, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, InputLabel, styled, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -24,7 +24,7 @@ import * as XLSX from 'xlsx';
 
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
-import { Download, Plus, Upload, X } from '@phosphor-icons/react/dist/ssr';
+import { Download, Pencil, Plus, Upload, X } from '@phosphor-icons/react/dist/ssr';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 
@@ -69,12 +69,14 @@ export type EventResponse = {
 
 // Define the Customer type
 type Customer = {
+  title: string;
   name: string;
   email: string;
   phoneNumber: string;
   address: string;
 };
 type CustomerExcelInput = {
+  'Danh xưng': string;
   'Họ tên': string;
   'Email': string;
   'Số điện thoại': string;
@@ -91,7 +93,14 @@ const VisuallyHiddenInput = styled('input')({
   whiteSpace: 'nowrap',
   width: 1,
 });
+type TicketHolderInfo = { title: string; name: string; email: string; phone: string };
 
+
+const paymentMethodLabelMap: Record<string, string> = {
+  cash: 'Tiền mặt',
+  transfer: 'Chuyển khoản',
+  napas247: 'Napas 247',
+};
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
@@ -101,15 +110,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
   const [extraFee, setExtraFee] = React.useState<number>(0);
   const router = useRouter(); // Use useRouter from next/navigation
-  const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
+  const [selectedCategories, setSelectedCategories] = React.useState<Record<number, Record<number, number>>>({});
   const [paymentMethod, setPaymentMethod] = React.useState<string>('napas247');
   const [ticketHolders, setTicketHolders] = React.useState<string[]>(['']);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [selectedSchedules, setSelectedSchedules] = React.useState<Show[]>([]);
+  const [ticketHoldersByCategory, setTicketHoldersByCategory] = React.useState<Record<string, TicketHolderInfo[]>>({});
+  const [requestedCategoryModalId, setRequestedCategoryModalId] = React.useState<number | null>(null);
+  const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
 
   const [customers, setCustomers] = React.useState<Customer[]>([
-    { name: '', email: '', phoneNumber: '', address: '' },
+    { title: 'Bạn', name: '', email: '', phoneNumber: '', address: '' },
   ]);
 
   // Handle change in customer fields
@@ -121,7 +133,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   // Add a new customer
   const addCustomer = () => {
-    setCustomers([...customers, { name: '', email: '', phoneNumber: '', address: '' }]);
+    setCustomers([...customers, { title: 'Bạn', name: '', email: '', phoneNumber: '', address: '' }]);
   };
 
   // Remove a customer
@@ -153,24 +165,95 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   }, [params.event_id]);
 
   const handleCategorySelection = (showId: number, categoryId: number) => {
-    setSelectedCategories(prevCategories => ({
-      ...prevCategories,
-      [showId]: categoryId,
-    }));
+    setSelectedCategories(prevCategories => {
+      const existingForShow = prevCategories[showId] || {};
+      const exists = Object.prototype.hasOwnProperty.call(existingForShow, categoryId);
+      const nextForShow = { ...existingForShow } as Record<number, number>;
+      if (exists) {
+        delete nextForShow[categoryId];
+      } else {
+        nextForShow[categoryId] = 1; // default quantity when toggled via list
+      }
+      return {
+        ...prevCategories,
+        [showId]: nextForShow,
+      };
+    });
+  };
+
+  const handleAddToCartQuantity = (showId: number, categoryId: number, quantity: number, holders?: TicketHolderInfo[]) => {
+    setSelectedCategories(prev => {
+      const forShow = prev[showId] || {};
+      const updatedForShow = { ...forShow } as Record<number, number>;
+      if (quantity <= 0) {
+        delete updatedForShow[categoryId];
+      } else {
+        updatedForShow[categoryId] = quantity;
+      }
+      return {
+        ...prev,
+        [showId]: updatedForShow,
+      };
+    });
+
+    const key = `${showId}-${categoryId}`;
+    setTicketHoldersByCategory(prev => {
+      if (quantity <= 0) {
+        const next = { ...prev } as Record<string, TicketHolderInfo[]>;
+        delete next[key];
+        return next;
+      }
+      if (holders && holders.length > 0) {
+        return { ...prev, [key]: holders.slice(0, quantity) };
+      }
+      // ensure existing array is sized to quantity
+      const existing = prev[key] || [];
+      const sized = Array.from({ length: quantity }, (_, i) => existing[i] || { title: 'Bạn', name: '', email: '', phone: '' });
+      return { ...prev, [key]: sized };
+    });
   };
 
   const handleSelectionChange = (selected: Show[]) => {
     setSelectedSchedules(selected);
-    const tmpObj = {}
-    selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || null })
+    const tmpObj: Record<number, Record<number, number>> = {}
+    selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || {} })
     setSelectedCategories(tmpObj);
+
+    // filter holders to only keep keys for selected shows
+    const allowedShowIds = new Set(selected.map(s => s.id));
+    setTicketHoldersByCategory(prev => {
+      const next: Record<string, TicketHolderInfo[]> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const showIdStr = k.split('-')[0];
+        const sid = parseInt(showIdStr);
+        if (allowedShowIds.has(sid)) next[k] = v;
+      });
+      return next;
+    });
   };
 
+  const handleCreateClick = () => {
+    // Validate all customers
+    for (let i = 0; i < customers.length; i++) {
+      const customer = customers[i];
+      if (!customer.name || !customer.email || !customer.phoneNumber) {
+        notificationCtx.warning(`Vui lòng điền đầy đủ các thông tin bắt buộc cho khách hàng ${i + 1}`);
+        return;
+      }
+    }
 
-  const handleTicketQuantityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const quantity = Number(event.target.value);
-    setTicketQuantity(quantity);
-    setTicketHolders(Array(quantity).fill('')); // Dynamically update ticket holders array
+    if (ticketQuantity <= 0) {
+      notificationCtx.warning('Vui lòng điền đầy đủ các thông tin bắt buộc');
+      return;
+    }
+
+    const totalSelectedCategories = Object.values(selectedCategories).reduce((sum, catMap) => sum + Object.keys(catMap || {}).length, 0);
+    if (totalSelectedCategories === 0) {
+      notificationCtx.warning('Vui lòng chọn ít nhất 1 loại vé');
+      return;
+    }
+
+    setConfirmOpen(true);
   };
 
   // Handle file upload and parse the Excel file
@@ -185,7 +268,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         const sheet = workbook.Sheets[sheetName];
         const parsedData = XLSX.utils.sheet_to_json<CustomerExcelInput>(sheet);
         const formattedData: Customer[] = parsedData.map(d => ({
-          name: d['Họ tên'], email: d['Email'], phoneNumber: d['Số điện thoại'], address: d['Địa chỉ']
+          title: d['Danh xưng'], name: d['Họ tên'], email: d['Email'], phoneNumber: d['Số điện thoại'], address: d['Địa chỉ']
         }))
         setCustomers(formattedData);
         event.target.value = ''
@@ -227,17 +310,23 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     try {
       setIsLoading(true);
 
-      const tickets = Object.entries(selectedCategories).map(([showId, ticketCategoryId]) => ({
-        showId: parseInt(showId),
-        ticketCategoryId,
-      }));
+      const tickets = Object.entries(selectedCategories).flatMap(([showId, catMap]) => (
+        Object.entries(catMap || {}).map(([categoryIdStr, qty]) => {
+          const key = `${showId}-${categoryIdStr}`;
+          const holders = ticketHoldersByCategory[key] || [];
+          return {
+            showId: parseInt(showId),
+            ticketCategoryId: parseInt(categoryIdStr),
+            quantity: qty || 0,
+          };
+        })
+      ));
 
       const transactionData = {
         customers,
         tickets,
+        qrOption: "shared",
         paymentMethod,
-        ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
-        quantity: ticketQuantity,
         extraFee,
       };
 
@@ -277,7 +366,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           <Stack spacing={3}>
             <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
             {selectedSchedules && selectedSchedules.map(show => (
-              <TicketCategories key={show.id} show={show} onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
+              <TicketCategories
+                key={show.id}
+                show={show}
+                qrOption={'shared'}
+                requestedCategoryModalId={requestedCategoryModalId || undefined}
+                onModalRequestHandled={() => setRequestedCategoryModalId(null)}
+                onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
+                onAddToCart={(categoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; }[]) => handleAddToCartQuantity(show.id, categoryId, quantity, holders)}
               />
             ))}
           </Stack>
@@ -327,6 +423,31 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               }
                               size="small"
                               sx={{ fontSize: '11px' }}
+                              startAdornment={
+                                <InputAdornment position="start">
+                                  <Select
+                                    variant="standard"
+                                    sx={{ fontSize: '11px' }}
+                                    disableUnderline
+                                    value={customer.title || "Bạn"}
+                                    onChange={(e) =>
+                                      handleCustomerChange(index, 'title', e.target.value)
+                                    }
+                                  >
+                                    <MenuItem value="Anh">Anh</MenuItem>
+                                    <MenuItem value="Chị">Chị</MenuItem>
+                                    <MenuItem value="Bạn">Bạn</MenuItem>
+                                    <MenuItem value="Em">Em</MenuItem>
+                                    <MenuItem value="Ông">Ông</MenuItem>
+                                    <MenuItem value="Bà">Bà</MenuItem>
+                                    <MenuItem value="Cô">Cô</MenuItem>
+                                    <MenuItem value="Mr.">Mr.</MenuItem>
+                                    <MenuItem value="Ms.">Ms.</MenuItem>
+                                    <MenuItem value="Miss">Miss</MenuItem>
+                                    <MenuItem value="Thầy">Thầy</MenuItem>
+                                  </Select>
+                                </InputAdornment>
+                              }
                             />
                           </FormControl>
                         </TableCell>
@@ -392,22 +513,67 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Button>
               </CardActions>
             </Card>
+
+
             {/* Ticket Quantity and Ticket Holders */}
             <Card>
               <CardHeader
-                title="Số lượng người tham dự"
-                subheader='Mặc định 1 người tham dự / 1 đơn hàng'
+                title="Danh sách vé"
                 action={
-                  <OutlinedInput
-                    sx={{ maxWidth: 180 }}
-                    type="number"
-                    value={ticketQuantity}
-                    onChange={handleTicketQuantityChange}
-                    inputProps={{ min: 1, max: 1 }}
-                  />
+                  <FormControl size="small" sx={{ width: 210 }}>
+                    <InputLabel id="qr-option-label">Thông tin trên vé</InputLabel>
+                    <Select
+                      labelId="qr-option-label"
+                      value={'shared'}
+                      label="Thông tin trên vé"
+                      disabled
+                    >
+                      <MenuItem value="shared">
+                        <Stack>
+                          <Typography variant="body2">Giống thông tin người mua</Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            dùng một QR check-in tất cả vé
+                          </Typography>
+                        </Stack>
+                      </MenuItem>
+
+                    </Select>
+                  </FormControl>
                 }
               />
+              <Divider />
+              <CardContent>
+                <Stack spacing={3}>
+                  {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
+                    const show = event?.shows.find((show) => show.id === parseInt(showId));
+                    return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
+                      const categoryId = parseInt(categoryIdStr);
+                      const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
+                      const quantity = qty || 0;
+                      return (
+                        <Stack spacing={3} key={`${showId}-${categoryId}`}>
+                          <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                              <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
+                              <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => setRequestedCategoryModalId(categoryId)}><Pencil /></IconButton>
+                            </Stack>
+                            <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                              <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
+                              <Typography variant="caption">x {quantity}</Typography>
+                              <Typography variant="caption">
+                                = {formatPrice((ticketCategory?.price || 0) * quantity)}
+                              </Typography>
+                            </Stack>
+                          </Stack>
+                        </Stack >
+                      );
+                    });
+                  })}
+                </Stack>
+              </CardContent>
             </Card>
+
 
             {/* Extra Fee */}
             <Card>
@@ -426,6 +592,28 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               />
             </Card>
 
+            {Object.values(selectedCategories).some((catMap) => Object.keys(catMap || {}).length > 0) && (
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng:</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                      {formatPrice(
+                        Object.entries(selectedCategories).reduce((total, [showId, categories]) => {
+                          const show = event?.shows.find((show) => show.id === parseInt(showId));
+                          const categoriesTotal = Object.entries(categories || {}).reduce((sub, [categoryIdStr, qty]) => {
+                            const categoryId = parseInt(categoryIdStr);
+                            const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
+                            return sub + (ticketCategory?.price || 0) * (qty || 0);
+                          }, 0);
+                          return total + categoriesTotal;
+                        }, 0) + extraFee
+                      )}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            )}
             {/* Payment Method */}
             <Card>
               <CardHeader
@@ -447,60 +635,102 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               />
             </Card>
 
-            {Object.keys(selectedCategories).length > 0 && (
-              <Card>
-                <CardHeader title="Thanh toán mỗi đơn hàng" />
-                <Divider />
-                <CardContent>
-                  <Stack spacing={2}>
-                    {Object.entries(selectedCategories).map(([showId, category]) => {
-                      const show = event?.shows.find((show) => show.id === parseInt(showId));
-                      const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
 
-                      return (
-                        <Stack direction={{ xs: 'column', sm: 'row' }} key={showId} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
-                          </Stack>
-                          <Stack spacing={2} direction={'row'}>
-                            <Typography variant="body1">Giá: {formatPrice(ticketCategory?.price || 0)}</Typography>
-                            <Typography variant="body1">SL: {ticketQuantity || 0}</Typography>
-                            <Typography variant="body1">
-                              Thành tiền: {formatPrice((ticketCategory?.price || 0) * (ticketQuantity || 0))}
-                            </Typography>
-                          </Stack>
-                        </Stack>
-                      );
-                    })}
-
-                    {/* Total Amount */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body1">Phụ phí:</Typography>
-                      <Typography variant="body1">{formatPrice(extraFee)}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng:</Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                        {formatPrice(
-                          Object.entries(selectedCategories).reduce((total, [showId, category]) => {
-                            const show = event?.shows.find((show) => show.id === parseInt(showId));
-                            const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
-                            return total + (ticketCategory?.price || 0) * (ticketQuantity || 0);
-                          }, 0) + extraFee
-                        )}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </CardContent>
-              </Card>
-            )}
             {/* Submit Button */}
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
-              <Button variant="contained" onClick={handleSubmit}>
+              <Button variant="contained" onClick={handleCreateClick}>
                 Tạo
               </Button>
             </Grid>
+            <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} fullWidth maxWidth="md">
+              <DialogTitle sx={{ color: "primary.main" }}>Xác nhận tạo đơn hàng</DialogTitle>
+              <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                <Stack spacing={2} sx={{ mt: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Thông tin người mua</Typography>
+                  <Box sx={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    {customers.map((customer, index) => (
+                      <Box key={index} sx={{ mb: 2, p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                          Khách hàng {index + 1}
+                        </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                          <Typography variant="body2">Họ và tên</Typography>
+                          <Typography variant="body2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                          <Typography variant="body2">Email</Typography>
+                          <Typography variant="body2">{customer.email}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="body2">Số điện thoại</Typography>
+                          <Typography variant="body2">{customer.phoneNumber}</Typography>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                  <Divider />
+
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Danh sách vé</Typography>
+                  <Stack spacing={1}>
+                    {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
+                      const show = event?.shows.find((show) => show.id === parseInt(showId));
+                      return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
+                        const categoryId = parseInt(categoryIdStr);
+                        const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
+                        const quantity = qty || 0;
+                        return (
+                          <Stack spacing={0} key={`confirm-${showId}-${categoryId}`}>
+                            <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                                <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
+                              </Stack>
+                              <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                                <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
+                                <Typography variant="caption">x {quantity}</Typography>
+                                <Typography variant="caption">
+                                  = {formatPrice((ticketCategory?.price || 0) * quantity)}
+                                </Typography>
+                              </Stack>
+                            </Stack>
+                          </Stack>
+                        );
+                      });
+                    })}
+                  </Stack>
+                  <Divider />
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2">Phương thức thanh toán</Typography>
+                    <Typography variant="body2">{paymentMethodLabelMap[paymentMethod] || paymentMethod}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2">Phụ phí</Typography>
+                    <Typography variant="body2">{formatPrice(extraFee)}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                      {formatPrice(
+                        Object.entries(selectedCategories).reduce((total, [showId, categories]) => {
+                          const show = event?.shows.find((show) => show.id === parseInt(showId));
+                          const categoriesTotal = Object.entries(categories || {}).reduce((sub, [categoryIdStr, qty]) => {
+                            const categoryId = parseInt(categoryIdStr);
+                            const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
+                            return sub + (ticketCategory?.price || 0) * (qty || 0);
+                          }, 0);
+                          return total + categoriesTotal;
+                        }, 0) + extraFee
+                      )}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setConfirmOpen(false)}>Quay lại</Button>
+                <Button variant="contained" onClick={handleSubmit} disabled={isLoading}>Xác nhận</Button>
+              </DialogActions>
+            </Dialog>
           </Stack>
         </Grid>
       </Grid>
