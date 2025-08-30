@@ -211,6 +211,7 @@ export default function Page(): React.JSX.Element {
 
       const tickets = Object.entries(selectedCategories).map(([showId, ticketCategoryId]) => ({
         showId: parseInt(showId),
+        quantity: 1,
         ticketCategoryId,
       }));
 
