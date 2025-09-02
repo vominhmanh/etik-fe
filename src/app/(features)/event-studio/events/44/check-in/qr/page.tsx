@@ -21,7 +21,7 @@ const iOS =
 // Ticket.ts
 export interface Ticket {
   id: number;
-  holder: string;
+  holderName: string;
   checkInAt: Date | null;
 }
 

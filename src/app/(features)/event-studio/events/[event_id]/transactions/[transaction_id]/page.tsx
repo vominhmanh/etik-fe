@@ -383,6 +383,46 @@ export default function Page({ params }: { params: { event_id: number; transacti
     }
   };
 
+
+  const exportTicket = async () => {
+    try {
+      setIsLoading(true); // Optional: Show loading state
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/export-ticket`
+      );
+
+      // Optionally handle response
+      if (response.status === 200) {
+        notificationCtx.success(response.data.message);
+        setTransaction((prev) => prev ? { ...prev, exportedTicketAt: '.' } : prev);
+      }
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false); // Optional: Hide loading state
+    }
+  };
+
+
+  const sendTransaction = async (channel: string | null) => {
+    try {
+      setIsLoading(true); // Optional: Show loading state
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/send-transaction`, channel ? { channel: channel } : {}
+      );
+
+      // Optionally handle response
+      if (response.status === 200) {
+        notificationCtx.success(response.data.message);
+        setTransaction((prev) => prev ? { ...prev, exportedTicketAt: '.' } : prev);
+      }
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false); // Optional: Hide loading state
+    }
+  };
+
   const sendTicket = async (channel: string | null) => {
     try {
       setIsLoading(true); // Optional: Show loading state
@@ -420,6 +460,34 @@ export default function Page({ params }: { params: { event_id: number; transacti
     }
   };
 
+  const checkInAllTickets = async () => {
+    try {
+      setIsLoading(true);
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/check-in-all`
+      );
+
+      if (response.status === 200) {
+        notificationCtx.success(response.data?.message || 'Check-in tất cả vé thành công!');
+        setTransaction((prev) => {
+          if (!prev) return prev;
+          const updatedCategories = prev.transactionTicketCategories.map((cat) => ({
+            ...cat,
+            tickets: cat.tickets.map((t) => ({
+              ...t,
+              checkInAt: t.checkInAt || new Date().toISOString(),
+            })),
+          }));
+          return { ...prev, transactionTicketCategories: updatedCategories };
+        });
+      }
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const openEditCategoryModal = (category: TransactionTicketCategory) => {
     setEditingCategory(category);
     const infos = category.tickets.map((t) => ({
@@ -446,9 +514,45 @@ export default function Page({ params }: { params: { event_id: number; transacti
     setActiveMenuTicket(null);
   };
 
+  const handleCheckInSpecificTicket = async () => {
+    if (!activeMenuTicket || !transaction) return;
+    const { categoryIndex, ticketIndex } = activeMenuTicket;
+    const category = transaction.transactionTicketCategories[categoryIndex];
+    const ticket = category?.tickets[ticketIndex];
+    if (!ticket) return;
+    try {
+      setIsLoading(true);
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/check-in/${ticket.id}`
+      );
+
+      if (response.status === 200) {
+        notificationCtx.success(response.data?.message || 'Check-in thành công!');
+        setTransaction((prev) => {
+          if (!prev) return prev;
+          const updatedCategories = prev.transactionTicketCategories.map((cat, cIdx) => {
+            if (cIdx !== categoryIndex) return cat;
+            return {
+              ...cat,
+              tickets: cat.tickets.map((t, tIdx) =>
+                tIdx === ticketIndex ? { ...t, checkInAt: new Date().toISOString() } : t
+              ),
+            };
+          });
+          return { ...prev, transactionTicketCategories: updatedCategories };
+        });
+        handleCloseTicketMenu();
+      }
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSaveTicketHolders = async () => {
     if (!editingCategory) return;
-    const hasInvalid = editingHolderInfos.some((h) => !h.title || !h.name || !h.phone);
+    const hasInvalid = editingHolderInfos.some((h) => !h.title || !h.name );
     if (hasInvalid) {
       notificationCtx.warning('Vui lòng điền đủ Danh xưng, Họ tên và SĐT cho mỗi vé.');
       return;
@@ -709,42 +813,53 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt == null && (
                     <>
                       <Stack spacing={1} direction={'row'} flexWrap={'wrap'}>
-                        <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                          Xuất vé + gửi email
-                        </Button>
-                        <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<DeviceMobile />}>
-                          Xuất vé + gửi Zalo
-                        </Button>
-                        <Button onClick={() => sendTicket(null)} size="small" startIcon={<TicketIcon />}>
-                          Xuất vé không gửi
+                        <Button onClick={() => exportTicket()} size="small" startIcon={<TicketIcon />}>
+                          Xuất vé
                         </Button>
                       </Stack>
                     </>
                   )}
                   {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
-                    <Stack spacing={0} direction={'row'} flexWrap={'wrap'}>
-                      <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                        Gửi vé qua Email
-                      </Button>
-                      <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<DeviceMobile />}>
-                        Gửi vé qua Zalo
-                      </Button>
-                      <Button
-                        onClick={() => window.open(`/event-studio/events/${event_id}/transactions/${transaction_id}/invitation-letter`, '_blank')}
-                        size="small"
-                        startIcon={<ImageSquare />} // Icon for document-like invitation letter
-                      >
-                        Xem ảnh thư mời
-                      </Button>
-                    </Stack>
+                    <>
+                      <Stack spacing={0} direction={'row'} flexWrap={'wrap'}>
+                        {transaction.qrOption === 'shared' && (
+                          <>
+                            <Button onClick={() => sendTransaction('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                              Gửi Email đơn hàng
+                            </Button>
+                            <Button onClick={() => sendTransaction('zalo')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                              Gửi Zalo đơn hàng
+                            </Button>
+                          </>
+                        )}
+                        {transaction.qrOption === 'separate' && (
+                          <>
+                            <Button onClick={() => sendTransaction('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                              Gửi Email cho người đại diện (ng.mua)
+                            </Button>
+                            <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                              Gửi Email cho từng người sở hữu
+                            </Button>
+                            <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                              Gửi Zalo cho từng người sở hữu
+                            </Button>
+                          </>
+                        )}
+
+                        <Button
+                          onClick={() => window.open(`/event-studio/events/${event_id}/transactions/${transaction_id}/invitation-letter`, '_blank')}
+                          size="small"
+                          startIcon={<ImageSquare />} // Icon for document-like invitation letter
+                        >
+                          Xem ảnh thư mời
+                        </Button>
+                      </Stack>
+                    </>
                   )}
                   {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
                     <Stack spacing={2} direction={'row'}>
-                      <Button size="small" startIcon={<SignIn />}>
+                      <Button size="small" startIcon={<SignIn />} onClick={checkInAllTickets}>
                         Check-in
-                      </Button>
-                      <Button size="small" startIcon={<SignOut />}>
-                        Check-out
                       </Button>
                     </Stack>
                   )}
@@ -1103,13 +1218,13 @@ export default function Page({ params }: { params: { event_id: number; transacti
                         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                       >
-                        <MenuItem onClick={handleCloseTicketMenu} sx={{ fontSize: '14px', color: 'primary' }}>
+                        {/* <MenuItem onClick={handleCloseTicketMenu} sx={{ fontSize: '14px', color: 'primary' }}>
                           <EnvelopeSimpleIcon style={{ marginRight: 8 }} /> Gửi vé qua Email
                         </MenuItem>
                         <MenuItem onClick={handleCloseTicketMenu} sx={{ fontSize: '14px', color: 'primary' }}>
                           <DeviceMobile style={{ marginRight: 8 }} /> Gửi vé qua Zalo
-                        </MenuItem>
-                        <MenuItem onClick={handleCloseTicketMenu} sx={{ fontSize: '14px', color: 'primary' }}>
+                        </MenuItem> */}
+                        <MenuItem disabled={!!isLoading || !!(activeMenuTicket && !!transaction.transactionTicketCategories[activeMenuTicket.categoryIndex]?.tickets[activeMenuTicket.ticketIndex]?.checkInAt)} onClick={handleCheckInSpecificTicket} sx={{ fontSize: '14px', color: 'primary' }}>
                           <Check style={{ marginRight: 8 }} /> Check-in
                         </MenuItem>
                       </Menu>
@@ -1144,7 +1259,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
               </CardContent>
             </Card>
             <Card>
-              <CardHeader title="Lịch sử gửi" subheader='Lịch sử gửi email và gửi tin nhắn Zalo đến khách hàng' />
+              <CardHeader title="Lịch sử gửi" subheader='Lịch sử gửi email và gửi Zalo đến khách hàng' />
               <Divider />
               <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 300 }}>
                 <Table>
@@ -1281,7 +1396,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                 </FormControl>
                               </Grid>
                               <Grid md={3} xs={12}>
-                                <FormControl fullWidth size="small" required>
+                                <FormControl fullWidth size="small">
                                   <InputLabel>SĐT vé {index + 1}</InputLabel>
                                   <OutlinedInput
                                     label={`SĐT vé ${index + 1}`}

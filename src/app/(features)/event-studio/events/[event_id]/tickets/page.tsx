@@ -71,7 +71,7 @@ export interface Ticket {
   transactionId: number;
   createdAt: string; // ISO date string
   ticketCategoryId: number;
-  holder: string;
+  holderName: string;
   checkInAt?: string | null; // ISO date string or null
   transactionTicketCategory: TransactionTicketCategory;
 }
@@ -229,7 +229,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       // Search filter
       if (querySearch && !(
         (ticket.id.toString().includes(querySearch.toLocaleLowerCase())) ||
-        (ticket.holder.toLowerCase().includes(querySearch.toLowerCase())) ||
+        (ticket.holderName.toLowerCase().includes(querySearch.toLowerCase())) ||
         (ticket.transactionTicketCategory.transaction.id.toString().includes(querySearch.toLocaleLowerCase())) ||
         (ticket.transactionTicketCategory.transaction.email.toLowerCase().includes(querySearch.toLowerCase())) ||
         (ticket.transactionTicketCategory.transaction.name.toLowerCase().includes(querySearch.toLowerCase())) ||

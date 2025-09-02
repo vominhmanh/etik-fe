@@ -92,7 +92,7 @@ const getRowStatusDetails = (status: string): { label: string, color: "success" 
 
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
-  holder: string;        // Name of the ticket holder
+  holderName: string;        // Name of the ticket holder
   createdAt: string;   // The date the ticket was created
   checkInAt: string | null; // The date/time the ticket was checked in, nullable
 }

@@ -16,7 +16,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import * as React from 'react';
 
-import { Chip } from '@mui/material';
+import { Chip, ChipProps } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import { WarningCircle } from '@phosphor-icons/react/dist/ssr';
 import { ArrowSquareUpRight as ArrowSquareUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowSquareUpRight';
@@ -226,7 +226,7 @@ export function TicketsTable({
                           <Typography>SĐT: {row.transactionTicketCategory.transaction.phoneNumber}</Typography>
                         </Stack>
                       }>
-                        <Avatar {...stringAvatar(row.holder)} />
+                        <Avatar {...stringAvatar(row.holderName)} />
                       </Tooltip>
                       <Tooltip title={
                         <Stack spacing={1}>
@@ -236,7 +236,7 @@ export function TicketsTable({
                           <Typography>SĐT: {row.transactionTicketCategory.transaction.phoneNumber}</Typography>
                         </Stack>
                       }>
-                        <Typography variant="subtitle2">{row.holder}</Typography>
+                        <Typography variant="subtitle2">{row.holderName}</Typography>
                       </Tooltip>
 
                     </Stack>
@@ -262,7 +262,7 @@ export function TicketsTable({
                   </TableCell>
                   <TableCell>
                     <Chip
-                      color={getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus).color}
+                      color={getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus).color as ChipProps['color']}
                       label={
                         getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus).label
                       }
@@ -271,7 +271,7 @@ export function TicketsTable({
                   </TableCell>
                   <TableCell>
                     <Chip
-                      color={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent').color}
+                      color={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent').color as ChipProps['color']}
                       label={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent').label}
                       size="small"
                     />

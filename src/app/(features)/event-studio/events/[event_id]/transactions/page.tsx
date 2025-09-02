@@ -210,7 +210,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     setter(null);
   };
 
-  const handleSendTicketBulk = async (channel: string | null = null) => {
+
+  const handleExportTicketBulk = async () => {
     let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
     if (!userConfirmed) {
       return
@@ -225,7 +226,49 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     try {
       setIsLoading(true); // Optional: Show loading state
       const response: AxiosResponse = await baseHttpServiceInstance.post(
-        `/event-studio/events/${params.event_id}/transactions/send-ticket-bulk`, channel ? { transactionIds: Array.from(selected), channel: channel } : { transactionIds: Array.from(selected) },
+        `/event-studio/events/${params.event_id}/transactions/export-ticket-bulk`, { transactionIds: Array.from(selected) },
+        {}, true
+      )
+
+      // Optionally handle response
+      if (response.status === 200) {
+        notificationCtx.success(response.data.message);
+        fetchTransactions()
+      }
+    } catch (error: any) {
+      if (error.response?.data.detail.message) {
+        // Access the message and errors array
+        const message = error.response?.data.detail.message; // "Không thể thực hiện bởi các lỗi sau"
+        const errors = error.response?.data.detail.errorDetails || []; // Array of error details
+        // You can also use this data in your UI
+        setBulkErrorMessage(message);
+        setBulkErrorDetails(errors);
+      } else if (error.response?.data.detail) {
+        notificationCtx.error(error.response?.data.detail);
+      } else {
+        notificationCtx.error(error);
+      }
+    } finally {
+      setIsLoading(false); // Optional: Hide loading state
+    }
+  };
+
+  const handleSendTransactionAndTicketBulk = async (channel: string | null = null) => {
+    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    if (!userConfirmed) {
+      return
+    }
+    setTicketAnchorEl(null)
+    if (selected.size === 0) {
+      notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
+      return
+    }
+    setBulkErrorMessage('');
+    setBulkErrorDetails([]);
+    try {
+      setIsLoading(true); // Optional: Show loading state
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${params.event_id}/transactions/send-transaction-and-ticket-bulk`, channel ? { transactionIds: Array.from(selected), channel: channel } : { transactionIds: Array.from(selected) },
         {}, true
       )
 
@@ -700,9 +743,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 'aria-labelledby': 'ticket-button',
               }}
             >
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTicketBulk('email') }}>Xuất vé + gửi Email</MenuItem>
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTicketBulk('zalo') }}>Xuất vé + gửi Zalo</MenuItem>
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTicketBulk() }}>Xuất vé không gửi</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleExportTicketBulk() }}>Xuất vé</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTransactionAndTicketBulk('email') }}>Gửi Email</MenuItem>
             </Menu>
 
             {/* Menu for Thanh toán */}
