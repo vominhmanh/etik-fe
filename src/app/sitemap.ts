@@ -5,7 +5,7 @@ type PageEntry = {
     priority: number;
   };
 export default function sitemap(): MetadataRoute.Sitemap {
-  const siteUrl = "https://etik.io.vn";
+  const siteUrl = "https://etik.vn";
 
   const pages: PageEntry[] = [
     { url: "/", changeFreq: "daily", priority: 1.0 },

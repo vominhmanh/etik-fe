@@ -142,7 +142,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             ${description}
           </div>
           <footer>
-            <p>Email được phát hành bởi <a href="https://etik.io.vn">ETIK</a></p>
+            <p>Email được phát hành bởi <a href="https://etik.vn">ETIK</a></p>
             <small>Bạn nhận được email này vì đã điền biểu mẫu đăng ký. Ngừng nhận thư tại đây: <a href="https://api.etik.io.vn/unsubscribe-mail">Unsubscribe</a></small>
             <small>You received this email because you filled out the registration form. Unsubscribe here: <a href="https://api.etik.io.vn/unsubscribe-mail">Unsubscribe</a></small>
           </footer>
