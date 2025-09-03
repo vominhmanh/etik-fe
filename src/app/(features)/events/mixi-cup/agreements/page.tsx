@@ -335,7 +335,7 @@ export default function Page(): React.JSX.Element {
                                     <Typography variant="body1">Người tham dự {ticketIndex + 1}:</Typography>
                                   </Stack>
                                   <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <Typography variant="body1">{ticket.holder}</Typography>
+                                    <Typography variant="body1">{ticket.holderName}</Typography>
                                   </Stack>
                                 </Grid>
                               ))}

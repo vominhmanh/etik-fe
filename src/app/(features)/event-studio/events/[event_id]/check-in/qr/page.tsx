@@ -588,7 +588,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                             }
                             label={
                               <Typography>
-                                {ticket.holder} {ticket.checkInAt && renderTooltip(ticket.checkInAt)}
+                                {ticket.holderName} {ticket.checkInAt && renderTooltip(ticket.checkInAt)}
                               </Typography>
                             }
                           />

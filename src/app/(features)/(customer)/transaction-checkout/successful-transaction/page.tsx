@@ -3,7 +3,7 @@
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { Box, Chip, Stack, Tooltip } from '@mui/material';
+import { Box, Chip, MenuItem, Select, Stack, Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -15,12 +15,10 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, Info, Lightning as LightningIcon, Money as MoneyIcon, WarningCircle } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, Info, Lightning as LightningIcon, Money as MoneyIcon, Ticket, WarningCircle } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
-import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
 import { SealPercent as SealPercentIcon } from '@phosphor-icons/react/dist/ssr/SealPercent';
 import { StackPlus as StackPlusIcon } from '@phosphor-icons/react/dist/ssr/StackPlus';
-import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
 import RouterLink from 'next/link';
@@ -105,6 +103,9 @@ const getSentEmailTicketStatusDetails = (status: string): { label: string, color
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
   holderName: string;        // Name of the ticket holder
+  holderPhone: string;        // Name of the ticket holder
+  holderEmail: string;        // Name of the ticket holder
+  holderTitle: string;        // Name of the ticket holder
   createdAt: string;   // The date the ticket was created
   checkInAt: string | null; // The date/time the ticket was checked in, nullable
 }
@@ -171,6 +172,7 @@ export interface Transaction {
   createdSource: string;            // Source of the transaction creation
   creator: Creator | null;          // Related creator of the transaction, nullable
   cancelRequestStatus: string | null;
+  qrOption: string;
 }
 
 
@@ -348,103 +350,6 @@ export default function Page(): React.JSX.Element {
                     </CardContent>
                   </Card>
                 )}
-                <Card>
-                  <CardHeader
-                    title="Số lượng vé"
-                    action={
-                      <OutlinedInput disabled sx={{ maxWidth: 180 }} type="number" value={transaction.ticketQuantity} />
-                    }
-                  />
-                  <Divider />
-                  <CardContent>
-                    <Stack spacing={0}>
-                      {/* Loop through each transactionShowTicketCategory */}
-                      {transaction.transactionTicketCategories.map((transactionTicketCategory, categoryIndex) => (
-                        <div key={categoryIndex}>
-                          {/* Show Name */}
-                          <Grid sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                            <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Show:</Typography>
-                            </Stack>
-                            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name}</Typography>
-                          </Grid>
-
-                          {/* Ticket Category Name */}
-                          <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Typography variant="body1">Loại vé:</Typography>
-                            </Stack>
-                            <Typography variant="body1">{transactionTicketCategory.ticketCategory.name}</Typography>
-                          </Grid>
-
-                          <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                              <HashIcon fontSize="var(--icon-fontSize-md)" />
-                              <Typography variant="body1">Số lượng:</Typography>
-                            </Stack>
-                            <Typography variant="body1">{transactionTicketCategory.tickets.length}</Typography>
-                          </Grid>
-
-                          {/* Loop through tickets for this category */}
-                          {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
-                            <Grid key={ticketIndex} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                <Typography variant="body1">Người tham dự {ticketIndex + 1}:</Typography>
-                              </Stack>
-                              <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                <Typography variant="body1">{ticket.holder}</Typography>
-                                <Tooltip title={
-                                  <Stack spacing={1}>
-                                    <Typography>Trạng thái check-in: {ticket.checkInAt ? `Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
-                                    {/* <Typography>ID giao dịch: {row.transactionId}</Typography> */}
-                                  </Stack>
-                                }>
-                                  <Typography variant="subtitle2"><Info /></Typography>
-                                </Tooltip>
-                              </Stack>
-                            </Grid>
-                          ))}
-                          <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                              <TagIcon fontSize="var(--icon-fontSize-md)" />
-                              <Typography variant="body1">Đơn giá:</Typography>
-                            </Stack>
-                            <Typography variant="body1">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography>
-                          </Grid>
-
-
-
-                          <Divider sx={{ marginY: 2 }} />
-                        </div>
-                      ))}
-                      {/* Additional details for this category */}
-
-                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <StackPlusIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1">Phụ phí:</Typography>
-                        </Stack>
-                        <Typography variant="body1">{formatPrice(transaction.extraFee || 0)}</Typography>
-                      </Grid>
-
-                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1">Giảm giá:</Typography>
-                        </Stack>
-                        <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
-                      </Grid>
-
-                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <CoinsIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1">Thành tiền:</Typography>
-                        </Stack>
-                        <Typography variant="body1">{formatPrice(transaction.totalAmount || 0)}</Typography>
-                      </Grid>
-                    </Stack>
-                  </CardContent>
-                </Card>
                 {transaction.paymentMethod === 'napas247' && (
                   <Card>
                     <CardHeader title="Chi tiết thanh toán Napas 247" />
@@ -576,6 +481,110 @@ export default function Page(): React.JSX.Element {
                   </CardContent>
                 </Card>
 
+                <Card>
+                  <CardHeader
+                    title={`Danh sách vé: ${transaction.ticketQuantity} vé`}
+                    action={
+                      <FormControl size="small" sx={{ width: 210 }}>
+                        <InputLabel id="qr-option-label">Thông tin trên vé</InputLabel>
+                        <Select
+                          labelId="qr-option-label"
+                          value={transaction.qrOption}
+                          label="Thông tin trên vé"
+                          disabled
+                        >
+                          <MenuItem value="shared">
+                            <Stack>
+                              <Typography variant="body2">Giống thông tin người mua</Typography>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                dùng một QR check-in tất cả vé
+                              </Typography>
+                            </Stack>
+                          </MenuItem>
+                          <MenuItem value="separate">
+                            <Stack>
+                              <Typography variant="body2">Nhập thông tin từng vé</Typography>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                mỗi vé một mã QR
+                              </Typography>
+                            </Stack>
+                          </MenuItem>
+                        </Select>
+                      </FormControl>
+                    }
+                  />
+                  <Divider />
+                  <CardContent>
+                    <Stack spacing={2}>
+                      {/* Loop through each transactionShowTicketCategory */}
+                      {transaction.transactionTicketCategories.map((transactionTicketCategory, categoryIndex) => (
+                        <div key={categoryIndex}>
+                          <Stack direction={{ xs: 'column', md: 'row' }} sx={{ mb: 2, display: 'flex', justifyContent: 'space-between' }}>
+                            <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Ticket fontSize="var(--icon-fontSize-md)" />
+                              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name} - {transactionTicketCategory.ticketCategory.name}</Typography>
+                            </Stack>
+                            <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                              <Typography variant="body2">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography>
+                              <Typography variant="body2">x {transactionTicketCategory.tickets.length}</Typography>
+                              <Typography variant="body2">= {formatPrice((transactionTicketCategory.netPricePerOne || 0) * transactionTicketCategory.tickets.length)}</Typography>
+                            </Stack>
+                          </Stack>
+                          {transactionTicketCategory.tickets.length > 0 && (
+                            <Stack spacing={2}>
+                              {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
+                                <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
+                                  {transaction.qrOption === 'separate' && (
+                                    <>
+                                      <div>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
+                                          {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : 'Chưa có thông tin'}
+                                        </Typography>
+                                      </div>
+                                      <div>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          {ticket.holderEmail || 'Chưa có email'} - {ticket.holderPhone || 'Chưa có SĐT'}
+                                        </Typography>
+                                      </div>
+                                    </>
+                                  )}
+                                  <div>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.checkInAt ? `Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
+                                  </div>
+                                </Box>
+                              ))}
+                            </Stack>
+                          )}
+                        </div>
+                      ))}
+                      {/* Additional details for this category */}
+                      <Divider sx={{ marginY: 2 }} />
+                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <StackPlusIcon fontSize="var(--icon-fontSize-md)" />
+                          <Typography variant="body1">Phụ phí:</Typography>
+                        </Stack>
+                        <Typography variant="body1">{formatPrice(transaction.extraFee || 0)}</Typography>
+                      </Grid>
+
+                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
+                          <Typography variant="body1">Giảm giá:</Typography>
+                        </Stack>
+                        <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
+                      </Grid>
+
+                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <CoinsIcon fontSize="var(--icon-fontSize-md)" />
+                          <Typography variant="body1">Thành tiền:</Typography>
+                        </Stack>
+                        <Typography variant="body1">{formatPrice(transaction.totalAmount || 0)}</Typography>
+                      </Grid>
+                    </Stack>
+                  </CardContent>
+                </Card>
 
               </Stack>
             </Grid>

@@ -22,6 +22,9 @@ const iOS =
 export interface Ticket {
   id: number;
   holderName: string;
+  holderPhone: string;
+  holderEmail: string;
+  holderTitle: string;
   checkInAt: Date | null;
 }
 
@@ -477,7 +480,7 @@ export default function Page(): React.JSX.Element {
                                   }
                                   label={
                                     <Stack direction="column" alignItems="left">
-                                      <Typography variant="body2">{ticket.holder}</Typography>
+                                      <Typography variant="body2">{ticket.holderName}</Typography>
                                       {ticket.checkInAt &&
                                         <Typography variant="caption">
                                           Đã check-in lúc {dayjs(ticket.checkInAt).format("HH:mm:ss DD/MM/YYYY")}
@@ -513,7 +516,7 @@ export default function Page(): React.JSX.Element {
                             }
                             label={
                               <Typography>
-                                {ticket.holder} {ticket.checkInAt && renderTooltip(ticket.checkInAt)}
+                                {ticket.holderName} {ticket.checkInAt && renderTooltip(ticket.checkInAt)}
                               </Typography>
                             }
                           />
