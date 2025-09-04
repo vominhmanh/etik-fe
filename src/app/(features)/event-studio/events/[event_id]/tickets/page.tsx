@@ -16,7 +16,7 @@ import Card from '@mui/material/Card';
 import CircularProgress from '@mui/material/CircularProgress';
 import InputAdornment from '@mui/material/InputAdornment';
 import OutlinedInput from '@mui/material/OutlinedInput';
-import { ArrowCounterClockwise, Empty, X } from '@phosphor-icons/react/dist/ssr';
+import { ArrowCounterClockwise, Empty, MicrosoftExcelLogo, X } from '@phosphor-icons/react/dist/ssr';
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { debounce } from 'lodash';
 import RouterLink from 'next/link';
@@ -312,6 +312,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             </Button>
             <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
               Xuất file excel
+            </Button>
+            <Button color="inherit" startIcon={<MicrosoftExcelLogo fontSize="var(--icon-fontSize-md)" />}>
+              Đồng bộ Google Sheets
             </Button>
           </Stack>
         </Stack>
