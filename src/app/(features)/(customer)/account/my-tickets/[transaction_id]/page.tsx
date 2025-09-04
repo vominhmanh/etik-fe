@@ -297,7 +297,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
 
     try {
       setIsLoading(true);
-      const response: AxiosResponse<CancelTransactionResponse> = await baseHttpServiceInstance.get(
+      const response: AxiosResponse<CancelTransactionResponse> = await baseHttpServiceInstance.post(
         `/account/transactions/${transaction_id}/cancel-transaction`
       );
 

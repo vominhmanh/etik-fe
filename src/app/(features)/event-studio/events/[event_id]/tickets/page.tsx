@@ -147,6 +147,41 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   }
 
+  const handleExportExcel = async () => {
+    try {
+      setIsLoading(true);
+      const response: AxiosResponse<Blob> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${params.event_id}/tickets/export`,
+        { responseType: 'blob' }
+      );
+
+      const defaultFilename = `tickets-${params.event_id}.xlsx`;
+      const contentDisposition = (response.headers as any)?.['content-disposition'] as string | undefined;
+      let filename = defaultFilename;
+      if (contentDisposition) {
+        const match = /filename\*?=(?:UTF-8''|")?([^;\n"]+)/i.exec(contentDisposition);
+        if (match && match[1]) {
+          filename = decodeURIComponent(match[1].replace(/\"/g, '')); 
+        }
+      }
+
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      notificationCtx.success('Đã xuất file Excel');
+    } catch (error) {
+      notificationCtx.error('Xuất file thất bại:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   React.useEffect(() => {
     fetchTickets();
   }, [params.event_id]);
@@ -310,7 +345,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={fetchTickets}>
               Tải lại
             </Button>
-            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
+            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />} onClick={handleExportExcel}>
               Xuất file excel
             </Button>
             <Button color="inherit" startIcon={<MicrosoftExcelLogo fontSize="var(--icon-fontSize-md)" />}>
