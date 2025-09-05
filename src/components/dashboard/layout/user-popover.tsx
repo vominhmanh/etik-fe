@@ -27,17 +27,17 @@ export interface UserPopoverProps {
 }
 
 export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): React.JSX.Element {
-  const { checkSession, getUser } = useUser();
-  const [user, setUser] = React.useState<User | null>(null);
+  const { checkSession, user, setUser } = useUser();
+  const [authUser, setAuthUser] = React.useState<User | null>(null);
 
   React.useEffect(() => {
     const fetchUser = async () => {
-      const fetchedUser = getUser();
-      setUser(fetchedUser);
+      const fetchedUser = user;
+      setAuthUser(fetchedUser);
     };
 
     fetchUser();
-  }, [getUser]);
+  }, [user]);
 
   const router = useRouter();
 
@@ -50,8 +50,9 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
         return;
       }
 
-      // UserProvider, for this case, will not refresh the router and we need to do it manually
-      router.push(paths.auth.signIn); // After refresh, AuthGuard will handle the redirect
+      // Clear user from context immediately to avoid guard loops, then navigate
+      setUser(null);
+      router.push(paths.auth.signIn);
       // After refresh, AuthGuard will handle the redirect
     } catch (err) {
       logger.error('Sign out error', err);
@@ -67,9 +68,9 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
       slotProps={{ paper: { sx: { width: '240px' } } }}
     >
       <Box sx={{ p: '16px 20px ' }}>
-        <Typography variant="subtitle1">{user?.fullName}</Typography>
+        <Typography variant="subtitle1">{authUser?.fullName}</Typography>
         <Typography color="text.secondary" variant="body2">
-          {user?.email}
+          {authUser?.email}
         </Typography>
       </Box>
       <Divider />

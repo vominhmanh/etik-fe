@@ -3,6 +3,7 @@ import { merge, set } from 'lodash';
 import queryString from 'query-string';
 
 const instance = axios.create({
+  withCredentials: true,
   paramsSerializer: (params: { [s: string]: unknown } | ArrayLike<unknown>) => {
     const filteredParams = Object.fromEntries(Object.entries(params).filter(([_k, v]) => v));
     return queryString.stringify(filteredParams, { arrayFormat: 'bracket' });
@@ -15,6 +16,10 @@ export default class BaseHttpService {
   private accessToken: string | null = '';
 
   private router: any;
+
+  private isRefreshing: boolean = false;
+
+  private refreshRequestQueue: Array<(ok: boolean) => void> = [];
 
   constructor(router?: any) {
     this.router = router;
@@ -72,7 +77,10 @@ export default class BaseHttpService {
       });
     }
     const { statusCode, message } = error?.response?.data ?? {};
-    if (statusCode !== 401) {
+    const httpStatus = error?.response?.status;
+
+    // Non-401: Bubble up an error
+    if (httpStatus !== 401 && statusCode !== 401) {
       throw new Error(
         error.response?.data?.detail?.[0]?.msg ||
         error.response?.data?.detail ||
@@ -80,51 +88,109 @@ export default class BaseHttpService {
         error.message ||
         'Unknown Error',
       );
-    } else {
+    }
+
+    // Avoid infinite loop on refresh/login endpoints
+    const originalRequest = error?.config ?? {};
+    if (originalRequest?.__isRetryRequest || /\/auth\/refresh$/.test(originalRequest?.url || '') || /\/auth\/login$/.test(originalRequest?.url || '')) {
       return this.handle401();
     }
+
+    // Queue requests while we refresh
+    if (this.isRefreshing) {
+      return new Promise((resolve, reject) => {
+        this.refreshRequestQueue.push((ok: boolean) => {
+          if (ok) {
+            try {
+              originalRequest.__isRetryRequest = true;
+              resolve(instance.request(originalRequest));
+            } catch (e) {
+              reject(e);
+            }
+          } else {
+            reject(error);
+          }
+        });
+      });
+    }
+
+    this.isRefreshing = true;
+    return this.refreshSession()
+      .then((ok) => {
+        this.isRefreshing = false;
+        this.refreshRequestQueue.forEach((cb) => cb(ok));
+        this.refreshRequestQueue = [];
+        if (ok) {
+          originalRequest.__isRetryRequest = true;
+          return instance.request(originalRequest);
+        }
+        this.handle401();
+        return Promise.reject(new Error('Vui lòng đăng nhập lại'));
+      })
+      .catch(() => {
+        this.isRefreshing = false;
+        this.refreshRequestQueue.forEach((cb) => cb(false));
+        this.refreshRequestQueue = [];
+        this.handle401();
+        return Promise.reject(new Error('Vui lòng đăng nhập lại'));
+      });
   }
 
   handle401(): void {
     // Unauthorized -> Push to sign in page
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname || '/';
+      const search = window.location.search || '';
+      const isAuth = /^\/auth(\/|$)/.test(path);
+      if (!isAuth) {
+        const returnUrl = encodeURIComponent(`${path}${search}`);
+        const loginUrl = `/auth/login?returnUrl=${returnUrl}`;
+        if (this.router) {
+          this.router.push(loginUrl);
+        } else {
+          if (window.location.pathname + window.location.search !== loginUrl) {
+            window.location.href = loginUrl;
+          }
+        }
+      }
+      return;
+    }
     if (this.router) {
-      this.router.push('/login');
+      this.router.push('/auth/login');
     }
   }
 
-  getCommonOptions(): {
-    headers?: {
-      Authorization: string;
-    };
-  } {
-    if (typeof window !== 'undefined') {
-      const token = this.loadToken();
-      return {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-    }
-    return {};
+  getCommonOptions(): Record<string, unknown> {
+    // Using httpOnly cookies; no Authorization header
+    return { withCredentials: true };
   }
 
   get newAccessToken(): string | null {
-    return this.accessToken ? this.accessToken : this.loadToken();
+    return this.accessToken ?? null;
   }
 
   saveToken(newAccessToken: string): any {
     this.accessToken = newAccessToken;
-    return localStorage.setItem('accessToken', newAccessToken);
+    return undefined;
   }
 
   loadToken(): string | null {
-    const token = localStorage.getItem('accessToken');
-    this.accessToken = token;
-    return token;
+    this.accessToken = null;
+    return null;
   }
 
   static removeToken(): void {
-    localStorage.removeItem('accessToken');
+    // Tokens handled by cookies now
+  }
+
+  private async refreshSession(): Promise<boolean> {
+    try {
+      const url = `${this.BASE_URL}/auth/refresh`;
+      await instance.post(url, {}, { withCredentials: true });
+      return true;
+    } catch (_e) {
+      return false;
+    }
   }
 }
 

@@ -19,6 +19,7 @@ import { green, red } from '@mui/material/colors';
 import { AxiosResponse } from 'axios';
 import React, { FC, useEffect, useRef, useState } from 'react';
 import Spreadsheet from 'react-spreadsheet';
+import type { CellBase, Matrix } from 'react-spreadsheet';
 
 // Types
 interface TicketCategoryOfShow {
@@ -36,7 +37,7 @@ interface SheetDTO {
   id: number;
   showId: number;
   name: string | null;
-  userList: Cell[][];
+  userList: SpreadsheetCell[][];
   saved: boolean;
   // ...other fields if needed
 }
@@ -46,10 +47,10 @@ interface DraftSheetDTO {
   showId: number;
   headers: string[];
   headerIds: number[];
-  userList: Cell[][];
+  userList: SpreadsheetCell[][];
   saved: boolean;
 }
-interface Cell { value: string; ticketHolder: string; ticketCheckIn: boolean }
+type SpreadsheetCell = CellBase<string> & { ticketHolder?: string; ticketCheckIn?: boolean };
 
 interface Show {
   id: number;
@@ -106,16 +107,16 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
   const [current, setCurrent] = useState<number>(0);
   const ticketPollRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleChange = (newuserList: Cell[][]) => {
+  const handleChange = (data: Matrix<CellBase<any>>) => {
     setSheets(prev => {
       const copy = [...prev];
-      copy[current].userList = newuserList;
+      copy[current].userList = data as SpreadsheetCell[][];
       return copy;
     });
   };
 
   // helpers
-  const makeEmpty = (cols: number): Cell[][] =>
+  const makeEmpty = (cols: number): SpreadsheetCell[][] =>
     Array.from({ length: 8 }, () =>
       Array.from({ length: cols }, () => ({ value: '', ticketHolder: '', ticketCheckIn: false }))
     );
@@ -141,7 +142,7 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
           return match
             ? {
               ...cell,
-              ticketHolder: match.holder,
+              ticketHolder: match.holderName,
               ticketCheckIn: Boolean(match.checkInAt),
             }
             : cell;
@@ -229,10 +230,10 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
     const sheet = sheets[current];
 
     // pad non-empty values to 3 digits for both state update and payload
-    const paddedList: Cell[][] = sheet.userList.map(row =>
+    const paddedList: SpreadsheetCell[][] = sheet.userList.map(row =>
       row.map(cell => ({
         ...cell,
-        value: cell.value.trim().length > 0 ? cell.value.toString().padStart(3, '0') : cell.value,
+        value: (cell.value || '').toString().trim().length > 0 ? (cell.value || '').toString().padStart(3, '0') : cell.value,
       }))
     );
 
@@ -402,10 +403,8 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
         <Box sx={{ width: '100%', overflowX: 'auto' }}>
           <Box sx={{ minWidth: `${active.headers.length * 120}px` }}>
             <Spreadsheet
-              data={active.userList}
+              data={active.userList as unknown as Matrix<CellBase<any>>}
               onChange={handleChange}
-              showColumnLabels
-              showRowLabels={false}
               columnLabels={active.headers}
             />
           </Box>

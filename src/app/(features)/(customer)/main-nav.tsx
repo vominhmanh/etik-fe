@@ -16,23 +16,13 @@ import { UserPopover } from '@/components/dashboard/layout/user-popover';
 import { usePopover } from '@/hooks/use-popover';
 import { useUser } from '@/hooks/use-user';
 import { paths } from '@/paths';
-import { User } from '@/types/auth';
 
 export function MainNav(): React.JSX.Element {
-  const [user, setUser] = React.useState<User | null>(null);
 
   const userPopover = usePopover<HTMLDivElement>();
 
-  const { getUser } = useUser();
+  const { user } = useUser();
 
-  React.useEffect(() => {
-    const fetchUser = async () => {
-      const fetchedUser = getUser();
-      setUser(fetchedUser);
-    };
-
-    fetchUser();
-  }, [getUser]);
 
   return (
     <React.Fragment>

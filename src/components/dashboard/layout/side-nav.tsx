@@ -93,13 +93,7 @@ export function SideNav(): React.JSX.Element {
   }, [dynamicId]);
 
   const handleRedirectToCheckInFace = (eventId: number) => {
-    const accessToken = localStorage.getItem('accessToken'); // Retrieve accessToken from localStorage
-    if (!accessToken) {
-      console.error('Access token not found in localStorage.');
-      return;
-    }
-
-    const url = `https://ekyc.etik.io.vn/check-in-face?event_id=${eventId}&accessToken=${accessToken}`;
+    const url = `https://ekyc.etik.io.vn/check-in-face?event_id=${eventId}`;
     window.location.href = url; // Redirect to the URL
   };
 

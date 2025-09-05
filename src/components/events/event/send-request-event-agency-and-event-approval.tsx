@@ -70,24 +70,24 @@ export default function SendRequestEventAgencyAndEventApproval({ open, onClose, 
   });
   const [isLoading, setIsLoading] = useState(false);
   const notificationCtx = useContext(NotificationContext);
-  const [user, setUser] = useState<User | null>(null);
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const [onEditingEventAgency, setOnEditingEventAgency] = useState<boolean>(false);
-  const { getUser } = useUser();
+  const { user } = useUser();
 
   useEffect(() => {
     const fetchUser = async () => {
-      const fetchedUser = getUser();
-      setUser(fetchedUser);
+      const authUser = user;
+      setAuthUser(authUser);
       setFormData((prev) => ({
         ...prev,
-        contactFullName: fetchedUser?.fullName || '',
-        contactPhoneNumber: fetchedUser?.phoneNumber || '',
-        contactEmail: fetchedUser?.email || '',
+        contactFullName: authUser?.fullName || '',
+        contactPhoneNumber: authUser?.phoneNumber || '',
+        contactEmail: authUser?.email || '',
       }))
     };
 
     fetchUser();
-  }, [getUser]);
+  }, [user]);
 
   useEffect(() => {
     async function fetchAgencyInfo() {

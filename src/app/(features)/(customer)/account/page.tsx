@@ -48,17 +48,8 @@ export default function Page(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const notificationCtx = useContext(NotificationContext);
   const [userInfo, setUserInfo] = useState<User | null>(null);
-  const { setUser, getUser } = useUser();
+  const { user } = useUser();
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const fetchedUser = getUser();
-      setUser(fetchedUser);
-      setUserInfo(fetchedUser)
-    };
-
-    fetchUser();
-  }, [getUser]);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
@@ -71,12 +62,12 @@ export default function Page(): React.JSX.Element {
         setIsLoading(true);
         const data = await getUserInformation();
         if (data) {
-          setUser(data);
           setFormValues({
             fullName: data.fullName,
             phoneNumber: data.phoneNumber,
             address: data.address
           });
+          setUserInfo(user)
         }
       } catch (error) {
         notificationCtx.error('Không thể tải thông tin cá nhân.');
@@ -130,7 +121,7 @@ export default function Page(): React.JSX.Element {
       setIsLoading(true);
       await updateUserInformation(formValues);
       notificationCtx.success('Cập nhật thông tin thành công.');
-      setUser({email: userInfo?.email || '', fullName: formValues.fullName, phoneNumber: formValues.phoneNumber})
+      setUserInfo({email: userInfo?.email || '', fullName: formValues.fullName, phoneNumber: formValues.phoneNumber})
     } catch (error) {
       notificationCtx.error('Không thể cập nhật thông tin.');
     } finally {

@@ -7,65 +7,55 @@ import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
 
 export interface UserContextValue {
-  error: string | null;
+  user: User | null;
+  checkSession: () => Promise<void>;
   isLoading: boolean;
-  checkSession?: () => Promise<void>;
+  error: string | null;
   setUser: (user: User | null) => void;
-  getUser: () => User | null;
 }
 
 export const UserContext = React.createContext<UserContextValue | undefined>(undefined);
 
-export interface UserProviderProps {
-  children: React.ReactNode;
-}
+export function UserProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = React.useState<User | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
-export function UserProvider({ children }: UserProviderProps): React.JSX.Element {
-  const [state, setState] = React.useState<{ error: string | null; isLoading: boolean }>({
-    error: null,
-    isLoading: true,
-  });
-
-  const checkSession = React.useCallback(async (): Promise<void> => {
+  const checkSession = React.useCallback(async () => {
+    setIsLoading(true);
     try {
-      const { data, error } = await authClient.getUser();
-
+      const { data, error } = await authClient.getUser(); // gọi /auth/me (credentials: 'include')
       if (error) {
-        logger.error(error);
-        setState((prev) => ({ ...prev, error: 'Something went wrong', isLoading: false }));
-        return;
+        setError('Something went wrong');
+        setUser(null);
+      } else {
+        setError(null);
+        const normalized: User | null = data && (data as any).fullName !== undefined
+          ? (data as unknown as User)
+          : data
+            ? {
+                fullName: (data as any).fullName ?? (data as any).name ?? '',
+                email: (data as any).email ?? '',
+                phoneNumber: (data as any).phoneNumber ?? '',
+              }
+            : null;
+        setUser(normalized);
       }
-
-      setState((prev) => ({ ...prev, error: null, isLoading: false }));
     } catch (err) {
-      logger.error(err);
-      setState((prev) => ({ ...prev, error: 'Something went wrong', isLoading: false }));
+      setError('Something went wrong');
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
-
-  const setUser = React.useCallback((user: User | null): void => {
-    localStorage.setItem('user', JSON.stringify(user));
-  }, []);
-
-  const getUser = React.useCallback((): User | null => {
-    const user = localStorage.getItem('user');
-
-    if (!user) {
-      return null;
-    }
-
-    return JSON.parse(user) as User;
   }, []);
 
   React.useEffect(() => {
-    checkSession().catch((err: unknown) => {
-      logger.error(err);
-      // noop
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Expected
-  }, []);
+    checkSession().catch(() => {});
+  }, [checkSession]);
 
-  return <UserContext.Provider value={{ ...state, checkSession, setUser, getUser }}>{children}</UserContext.Provider>;
+  return (
+    <UserContext.Provider value={{ user, checkSession, isLoading, error, setUser }}>
+      {children}
+    </UserContext.Provider>
+  );
 }
-
-export const UserConsumer = UserContext.Consumer;

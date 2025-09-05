@@ -48,7 +48,7 @@ const defaultValues = { fullName: '', phoneNumber: '', email: '', password: '', 
 
 export function SignUpForm(): React.JSX.Element {
   const router = useRouter();
-  const { setUser, checkSession, getUser } = useUser();
+  const { checkSession, user } = useUser();
   const [popupContent, setPopupContent] = React.useState<{ type?: 'error' | 'success' | 'info' | 'warning'; message: string; }>({ type: undefined, message: '' });
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const [isOtpModalOpen, setIsOtpModalOpen] = React.useState<boolean>(false); // State to manage OTP modal visibility
@@ -61,7 +61,6 @@ export function SignUpForm(): React.JSX.Element {
       setIsPending(true);
       try {
         const res: AuthRes = await authClient.signUp(values);
-        // setUser(res.user);
         setIsOtpModalOpen(true); // Open OTP modal on successful signup
 
       } catch (error: any) {
@@ -84,10 +83,9 @@ export function SignUpForm(): React.JSX.Element {
     setIsPending(true);
     try {
       const res: AuthRes = await authClient.verifyOtp(values.email, values.otp || ""); // Call verify API
-      setUser(res.user);
       localStorage.setItem('accessToken', res.access_token);
 
-      const user = getUser()
+      const authUser = user
       router.push(`${returnUrl}`)
     } catch (error: any) {
       setError("otp", { type: "manual", message: error.message || 'Xác thực OTP không thành công' });

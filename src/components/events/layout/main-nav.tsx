@@ -21,20 +21,20 @@ import { MobileNav } from './mobile-nav';
 
 export function MainNav(): React.JSX.Element {
   const [openNav, setOpenNav] = React.useState<boolean>(false);
-  const [user, setUser] = React.useState<User | null>(null);
+  const [authUser, setAuthUser] = React.useState<User | null>(null);
 
   const userPopover = usePopover<HTMLDivElement>();
 
-  const { getUser } = useUser();
+  const { user } = useUser();
 
   React.useEffect(() => {
     const fetchUser = async () => {
-      const fetchedUser = getUser();
-      setUser(fetchedUser);
+      const fetchedUser = user;
+      setAuthUser(fetchedUser);
     };
 
     fetchUser();
-  }, [getUser]);
+  }, [user]);
 
   return (
     <React.Fragment>
@@ -82,7 +82,7 @@ export function MainNav(): React.JSX.Element {
               </Badge>
             </Tooltip>
             <Avatar onClick={userPopover.handleOpen} ref={userPopover.anchorRef} sx={{ cursor: 'pointer' }}>
-            {(user?.email[0] || "").toUpperCase()}
+            {(authUser?.email[0] || "").toUpperCase()}
             </Avatar>
           </Stack>
         </Stack>

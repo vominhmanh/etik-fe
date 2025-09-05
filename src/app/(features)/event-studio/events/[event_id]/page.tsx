@@ -530,7 +530,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </Button>
                   </>
                 }
-                <Button sx={{ minWidth: '190px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/event-detail`} size="small">
+                <Button sx={{ minWidth: '210px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/event-detail`} size="small">
                   Chỉnh sửa thông tin sự kiện
                 </Button>
                 <Button sx={{ minWidth: '120px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/transactions/create`} size="small">

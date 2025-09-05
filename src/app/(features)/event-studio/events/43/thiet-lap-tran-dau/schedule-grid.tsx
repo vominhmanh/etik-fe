@@ -144,7 +144,7 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
           return match
             ? {
               ...cell,
-              ticketHolder: match.holder,
+              ticketHolder: match.holderName,
               ticketCheckIn: Boolean(match.checkInAt),
             }
             : cell;
@@ -406,7 +406,7 @@ const EditableGrid: FC<EditableGridProps> = ({ shows = [] }) => {
           <Box sx={{ minWidth: `${active.headers.length * 120}px` }}>
             <Spreadsheet
               data={active.userList}
-              onChange={handleChange}
+              onChange={handleChange as any}
               showColumnLabels
               showRowLabels={false}
               columnLabels={active.headers}

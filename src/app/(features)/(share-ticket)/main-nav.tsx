@@ -19,18 +19,16 @@ import * as React from 'react';
 
 export function MainNav(): React.JSX.Element {
   const [openNav, setOpenNav] = React.useState<boolean>(false);
-  const [user, setUser] = React.useState<User | null>(null);
   const userPopover = usePopover<HTMLDivElement>();
-  const { getUser } = useUser();
+  const { user } = useUser();
 
   React.useEffect(() => {
     const fetchUser = async () => {
-      const fetchedUser = getUser();
-      setUser(fetchedUser);
+      const fetchedUser = user;
     };
 
     fetchUser();
-  }, [getUser]);
+  }, [user]);
 
   return (
     <React.Fragment>

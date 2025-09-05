@@ -89,24 +89,17 @@ export default function Page(): React.JSX.Element {
   const [agencyInfo, setAgencyInfo] = useState<EventAgencyInfoResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const notificationCtx = useContext(NotificationContext);
-  const [user, setUser] = useState<User | null>(null);
   const [onEditingEventAgency, setOnEditingEventAgency] = useState<boolean>(false);
-  const { getUser } = useUser();
+  const { user } = useUser();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const fetchedUser = getUser();
-      setUser(fetchedUser);
-      setFormData((prev) => ({
-        ...prev,
-        contactFullName: fetchedUser?.fullName || '',
-        contactPhoneNumber: fetchedUser?.phoneNumber || '',
-        contactEmail: fetchedUser?.email || '',
-      }))
-    };
-
-    fetchUser();
-  }, [getUser]);
+    setFormData((prev) => ({
+      ...prev,
+      contactFullName: user?.fullName || '',
+      contactPhoneNumber: user?.phoneNumber || '',
+      contactEmail: user?.email || '',
+    }))
+  }, [user]);
 
   useEffect(() => {
     async function fetchAgencyInfo() {

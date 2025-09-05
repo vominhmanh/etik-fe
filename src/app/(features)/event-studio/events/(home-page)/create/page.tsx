@@ -50,12 +50,7 @@ export default function Page(): React.JSX.Element {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const token = localStorage.getItem('accessToken'); // Assuming the token is stored under 'authToken'
-
-    if (!token) {
-      notificationCtx.error('No authentication token found');
-      return;
-    }
+    // Using httpOnly cookie auth; no token check client-side
 
     try {
       setIsLoading(true);

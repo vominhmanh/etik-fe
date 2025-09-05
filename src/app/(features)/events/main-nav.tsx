@@ -4,7 +4,6 @@ import { UserPopover } from '@/components/dashboard/layout/user-popover';
 import { usePopover } from '@/hooks/use-popover';
 import { useUser } from '@/hooks/use-user';
 import { paths } from '@/paths';
-import { User } from '@/types/auth';
 import Avatar from '@mui/material/Avatar';
 import Badge from '@mui/material/Badge';
 import Box from '@mui/material/Box';
@@ -19,18 +18,16 @@ import * as React from 'react';
 
 export function MainNav(): React.JSX.Element {
   const [openNav, setOpenNav] = React.useState<boolean>(false);
-  const [user, setUser] = React.useState<User | null>(null);
   const userPopover = usePopover<HTMLDivElement>();
-  const { getUser } = useUser();
+  const { user } = useUser();
 
   React.useEffect(() => {
     const fetchUser = async () => {
-      const fetchedUser = getUser();
-      setUser(fetchedUser);
+      const fetchedUser = user;
     };
 
     fetchUser();
-  }, [getUser]);
+  }, [user]);
 
   return (
     <React.Fragment>
