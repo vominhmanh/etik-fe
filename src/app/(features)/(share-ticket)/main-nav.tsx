@@ -15,12 +15,21 @@ import Tooltip from '@mui/material/Tooltip';
 import { Bell as BellIcon } from '@phosphor-icons/react/dist/ssr/Bell';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import RouterLink from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
+import { buildReturnUrl } from '@/lib/auth/urls';
 
 export function MainNav(): React.JSX.Element {
   const [openNav, setOpenNav] = React.useState<boolean>(false);
   const userPopover = usePopover<HTMLDivElement>();
   const { user } = useUser();
+
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const encodedReturnUrl = React.useMemo(() => {
+    const search = searchParams?.toString() ? `?${searchParams.toString()}` : '';
+    return buildReturnUrl(pathname || '/', search);
+  }, [pathname, searchParams]);
 
   React.useEffect(() => {
     const fetchUser = async () => {
@@ -71,7 +80,7 @@ export function MainNav(): React.JSX.Element {
               </Avatar>
             </Stack>
           ) : (
-            <Button variant="contained"  component={RouterLink} href={paths.auth.signIn}>
+            <Button variant="contained"  component={RouterLink} href={`${paths.auth.signIn}?returnUrl=${encodedReturnUrl}`}>
               Đăng nhập
             </Button>
           )}

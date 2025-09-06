@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Alert from '@mui/material/Alert';
 
 import { paths } from '@/paths';
+import { getDecodedReturnUrl } from '@/lib/auth/urls';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
 
@@ -39,18 +40,7 @@ export function GuestGuard({ children }: GuestGuardProps): React.JSX.Element | n
     }
 
     if (user) {
-      const returnUrl = searchParams?.get('returnUrl') || '';
-      let target: string = paths.dashboard.overview;
-      if (returnUrl) {
-        try {
-          // prevent open redirect; allow only same-origin paths
-          if (returnUrl.startsWith('/')) {
-            target = returnUrl;
-          }
-        } catch {
-          // noop; fallback to dashboard
-        }
-      }
+      const target: string = getDecodedReturnUrl(searchParams?.get('returnUrl'), paths.dashboard.overview);
       logger.debug('[GuestGuard]: User is logged in, redirecting', { target });
       router.replace(target);
       return;

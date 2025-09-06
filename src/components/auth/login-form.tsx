@@ -18,6 +18,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
 
 import { AuthRes } from '@/types/auth';
+import { getDecodedReturnUrl } from '@/lib/auth/urls';
 import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { useUser } from '@/hooks/use-user';
@@ -45,7 +46,7 @@ export function SignInForm(): React.JSX.Element {
   const [showPassword, setShowPassword] = React.useState<boolean>();
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl') || '';
+  const returnUrl = React.useMemo(() => getDecodedReturnUrl(searchParams.get('returnUrl'), '/event-studio/events'), [searchParams]);
   const errorParam = useSearchParams().get('error');
   const notificationCtx = React.useContext(NotificationContext);
   const {
@@ -198,7 +199,7 @@ export function SignInForm(): React.JSX.Element {
           }
           onClick={() => {
             // Redirect to Google OAuth endpoint
-            window.location.href = process.env.NEXT_PUBLIC_BASE_URL + '/auth/login/google?returnUrl=' + returnUrl;
+            window.location.href = process.env.NEXT_PUBLIC_BASE_URL + '/auth/login/google?returnUrl=' + encodeURIComponent(returnUrl);
           }}
           sx={{ textTransform: 'none', fontWeight: 500 }}
         >

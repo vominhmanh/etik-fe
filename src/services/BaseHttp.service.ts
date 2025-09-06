@@ -93,7 +93,7 @@ export default class BaseHttpService {
     // Avoid infinite loop on refresh/login endpoints
     const originalRequest = error?.config ?? {};
     if (originalRequest?.__isRetryRequest || /\/auth\/refresh$/.test(originalRequest?.url || '') || /\/auth\/login$/.test(originalRequest?.url || '')) {
-      return this.handle401();
+      return Promise.reject(new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại'));
     }
 
     // Queue requests while we refresh
@@ -124,40 +124,18 @@ export default class BaseHttpService {
           originalRequest.__isRetryRequest = true;
           return instance.request(originalRequest);
         }
-        this.handle401();
-        return Promise.reject(new Error('Vui lòng đăng nhập lại'));
+        return Promise.reject(new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại'));
       })
       .catch(() => {
         this.isRefreshing = false;
         this.refreshRequestQueue.forEach((cb) => cb(false));
         this.refreshRequestQueue = [];
-        this.handle401();
-        return Promise.reject(new Error('Vui lòng đăng nhập lại'));
+        return Promise.reject(new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại'));
       });
   }
 
   handle401(): void {
-    // Unauthorized -> Push to sign in page
-    if (typeof window !== 'undefined') {
-      const path = window.location.pathname || '/';
-      const search = window.location.search || '';
-      const isAuth = /^\/auth(\/|$)/.test(path);
-      if (!isAuth) {
-        const returnUrl = encodeURIComponent(`${path}${search}`);
-        const loginUrl = `/auth/login?returnUrl=${returnUrl}`;
-        if (this.router) {
-          this.router.push(loginUrl);
-        } else {
-          if (window.location.pathname + window.location.search !== loginUrl) {
-            window.location.href = loginUrl;
-          }
-        }
-      }
-      return;
-    }
-    if (this.router) {
-      this.router.push('/auth/login');
-    }
+    // No navigation here; guards decide. Intentionally a no-op.
   }
 
   getCommonOptions(): Record<string, unknown> {

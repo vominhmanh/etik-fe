@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Alert from '@mui/material/Alert';
 
 import { paths } from '@/paths';
+import { buildReturnUrl } from '@/lib/auth/urls';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
 
@@ -25,10 +26,7 @@ export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | nul
       return;
     }
 
-    if (error) {
-      setIsChecking(false);
-      return;
-    }
+    // If there is an auth error, still proceed to check redirect logic below
 
     if (!user) {
       if (!didTryHydrateRef.current) {
@@ -37,9 +35,8 @@ export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | nul
         return; // wait for state update, effect will re-run
       }
       logger.debug('[AuthGuard]: User is not logged in, redirecting to sign in');
-      const qs = searchParams?.toString() ?? '';
-      const returnUrl = `${pathname || '/'}${qs ? `?${qs}` : ''}`;
-      router.replace(`${paths.auth.signIn}?returnUrl=${encodeURIComponent(returnUrl)}`);
+      const encoded = buildReturnUrl(pathname || '/', searchParams?.toString() ? `?${searchParams?.toString()}` : '');
+      router.replace(`${paths.auth.signIn}?returnUrl=${encoded}`);
       return; // stop further processing
     }
 
