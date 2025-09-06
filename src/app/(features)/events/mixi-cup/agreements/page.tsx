@@ -217,7 +217,7 @@ export default function Page(): React.JSX.Element {
   };
 
   const goToEkycRegister = () => {
-    const redirectUrl = `https://ekyc.etik.io.vn/ekyc-register?event_slug=mixi-cup&transaction_id=${transactionId}&response_token=${token}`;
+    const redirectUrl = `https://ekyc.etik.vn/ekyc-register?event_slug=mixi-cup&transaction_id=${transactionId}&response_token=${token}`;
     window.location.href = redirectUrl;
   }
 

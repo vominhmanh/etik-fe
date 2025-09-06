@@ -30,7 +30,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'media.etik.io.vn',
+        hostname: 'media.etik.vn',
         port: '',
         pathname: '/**',
       },

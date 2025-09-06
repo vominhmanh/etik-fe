@@ -115,7 +115,7 @@ export default function PrivacySettings({ eventSlug, eventId }: PrivacySettingsP
                 label="Link truy cập ứng dụng"
                 name="slug"
                 onChange={handleInputChange}
-                startAdornment={<InputAdornment position="start">rating.etik.io.vn/</InputAdornment>}
+                startAdornment={<InputAdornment position="start">rating.etik.vn/</InputAdornment>}
                 endAdornment={
                   <IconButton size="small" onClick={() => handleCopyToClipboard(`https://etik.vn/events/${eventSlug}`)}>
                     <Clipboard />

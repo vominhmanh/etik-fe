@@ -239,7 +239,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               pathname={pathname}
               key="check-in-face"
               title="Soát vé bằng khuôn mặt"
-              href={`https://ekyc.etik.io.vn/check-in-face`}
+              href={`https://ekyc.etik.vn/check-in-face`}
               icon={ScanSmileyIcon}
             />
           </NavItemCollapse>

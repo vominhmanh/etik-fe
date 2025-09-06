@@ -93,7 +93,7 @@ export function SideNav(): React.JSX.Element {
   }, [dynamicId]);
 
   const handleRedirectToCheckInFace = (eventId: number) => {
-    const url = `https://ekyc.etik.io.vn/check-in-face?event_id=${eventId}`;
+    const url = `https://ekyc.etik.vn/check-in-face?event_id=${eventId}`;
     window.location.href = url; // Redirect to the URL
   };
 

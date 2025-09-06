@@ -53,7 +53,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [selectedComponents, setSelectedComponents] = useState<Record<string, SelectedComponent>>({});
   const [componentSettings, setComponentSettings] = useState<Record<string, ComponentSettings>>({});
   const [imagePreview, setImagePreview] = useState<string>(
-    "https://media.etik.io.vn/events/28/event_images/7ebfc214-c468-492a-808a-5b9c9557a6ae.png"
+    "https://media.etik.vn/events/28/event_images/7ebfc214-c468-492a-808a-5b9c9557a6ae.png"
   );
 
   useEffect(() => {

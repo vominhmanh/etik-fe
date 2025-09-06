@@ -397,7 +397,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           }}
         >
           <source
-            src="https://media.etik.io.vn/lucky_wheel_ghost_legend_2025_20_background.webm"
+            src="https://media.etik.vn/lucky_wheel_ghost_legend_2025_20_background.webm"
             type="video/webm"
           />
           Your browser does not support the video tag.
