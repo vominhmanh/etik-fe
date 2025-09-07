@@ -38,8 +38,9 @@ export function ResponsiveAppBar() {
           <Typography
             variant="h6"
             noWrap
-            component="a"
+            component={RouterLink}
             href="/"
+            scroll={false}
             sx={{
               mr: 2,
               display: { xs: 'none', md: 'flex' },
@@ -68,10 +69,10 @@ export function ResponsiveAppBar() {
               onClose={handleCloseNavMenu}
               sx={{ display: { xs: 'block', md: 'none' } }}
             >
-              <MenuItem component={RouterLink} href='/marketplace' >
+              <MenuItem component={RouterLink} href='/marketplace' scroll={false}>
                 <Typography sx={{ textAlign: 'center' }}>Sự kiện mới</Typography>
               </MenuItem>
-              <MenuItem component={RouterLink} href='/event-studio'>
+              <MenuItem component={RouterLink} href='/event-studio' scroll={false}>
                 <Typography sx={{ textAlign: 'center' }}>Event Studio</Typography>
               </MenuItem>
             </Menu>
@@ -81,6 +82,7 @@ export function ResponsiveAppBar() {
             noWrap
             component={RouterLink}
             href="/"
+            scroll={false}
             sx={{
               mr: 2,
               display: { xs: 'flex', md: 'none' },
@@ -97,6 +99,7 @@ export function ResponsiveAppBar() {
             <Button
               component={RouterLink}
               href='/marketplace'
+              scroll={false}
               onClick={handleCloseNavMenu}
               sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
             >
@@ -105,6 +108,7 @@ export function ResponsiveAppBar() {
             <Button
               component={RouterLink}
               href='/event-studio/events'
+              scroll={false}
               onClick={handleCloseNavMenu}
               sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
             >
@@ -114,6 +118,7 @@ export function ResponsiveAppBar() {
               component={RouterLink}
               sx={{ display: { xs: 'none', md: 'block' }, my: 0, color: 'white', py: 0 }}
               href='/blogs'
+              scroll={false}
               onClick={handleCloseNavMenu}
             >
               Blogs

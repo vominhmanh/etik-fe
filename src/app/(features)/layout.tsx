@@ -4,13 +4,17 @@ import '@/styles/global.css';
 import { CircularProgress, Stack, Typography } from '@mui/material';
 import React, { Suspense } from 'react';
 import { ResponsiveAppBar } from './responsive-app-bar';
+import { ScrollToTop } from './scroll-to-top';
 
 export default function Layout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
     <>
       <Suspense fallback={<FallbackUI />}>
         <ResponsiveAppBar />
-        {children}
+        <ScrollToTop />
+        <main>
+          {children}
+        </main>
       </Suspense>
     </>
   );

@@ -115,11 +115,13 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
       open={open}
     >
       <Stack spacing={2} sx={{ p: 3 }}>
-        <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
+        <Box sx={{ display: 'inline-flex' }}>
           <IconButton sx={{ color: "var(--mui-palette-neutral-400)" }} component={RouterLink} href="/event-studio/events/">
             <CaretLeftIcon />
           </IconButton>
-          <Logo color="light" height={32} width={122} />
+          <RouterLink href={paths.home} style={{ display: 'inline-flex' }}>
+            <Logo color="light" height={32} width={122} />
+          </RouterLink>
         </Box>
         <Box
           sx={{

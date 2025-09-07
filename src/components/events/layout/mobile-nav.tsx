@@ -29,6 +29,8 @@ export interface MobileNavProps {
 
 export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element {
   const pathname = usePathname();
+  const { key: firstKey, ...firstItem } = navItems[0];
+  const { key: secondKey, ...secondItem } = navItems[1];
 
   return (
     <Drawer
@@ -59,15 +61,15 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
       open={open}
     >
       <Stack spacing={2} sx={{ p: 3 }}>
-        <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
+        <RouterLink href={paths.home} style={{ display: 'inline-flex' }}>
           <Logo color="light" height={32} width={122} />
-        </Box>
+        </RouterLink>
       </Stack>
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
       <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
         <Stack component="ul" spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }}>
-          <NavItem pathname={pathname} {...navItems[0]} />
-          <NavItem pathname={pathname} {...navItems[1]} />
+          <NavItem key={firstKey} pathname={pathname} {...firstItem} />
+          <NavItem key={secondKey} pathname={pathname} {...secondItem} />
         </Stack>
       </Box>
     </Drawer>

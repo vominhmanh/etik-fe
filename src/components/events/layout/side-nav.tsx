@@ -22,6 +22,8 @@ import Stack from "@mui/material/Stack";
 
 export function SideNav(): React.JSX.Element {
   const pathname = usePathname();
+  const { key: firstKey, ...firstItem } = navItems[0];
+  const { key: secondKey, ...secondItem } = navItems[1];
 
   return (
     <Box
@@ -59,8 +61,8 @@ export function SideNav(): React.JSX.Element {
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
       <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
         <Stack component="ul" spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }}>
-          <NavItem pathname={pathname} {...navItems[0]} />
-          <NavItem pathname={pathname} {...navItems[1]} />
+          <NavItem key={firstKey} pathname={pathname} {...firstItem} />
+          <NavItem key={secondKey} pathname={pathname} {...secondItem} />
         </Stack>
         {/*{renderNavItems({ pathname, items: navItems })}*/}
       </Box>
