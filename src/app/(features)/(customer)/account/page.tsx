@@ -26,6 +26,8 @@ export interface UserInformationResponse {
   email: string;
   phoneNumber: string;
   address: string;
+  hasPassword: boolean;
+  googleConnected: boolean;
 }
 
 export interface UserInformationUpdate {
@@ -47,7 +49,7 @@ export default function Page(): React.JSX.Element {
   });
   const [isLoading, setIsLoading] = useState(false);
   const notificationCtx = useContext(NotificationContext);
-  const [userInfo, setUserInfo] = useState<User | null>(null);
+  const [userInfo, setUserInfo] = useState<UserInformationResponse | null>(null);
   const { user } = useUser();
 
 
@@ -55,26 +57,27 @@ export default function Page(): React.JSX.Element {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+  async function fetchData() {
+    try {
+      setIsLoading(true);
+      const data = await getUserInformation();
+      if (data) {
+        setFormValues({
+          fullName: data.fullName,
+          phoneNumber: data.phoneNumber,
+          address: data.address,
+        });
+        setUserInfo(data)
+      }
+    } catch (error) {
+      notificationCtx.error('Không thể tải thông tin cá nhân.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        setIsLoading(true);
-        const data = await getUserInformation();
-        if (data) {
-          setFormValues({
-            fullName: data.fullName,
-            phoneNumber: data.phoneNumber,
-            address: data.address
-          });
-          setUserInfo(user)
-        }
-      } catch (error) {
-        notificationCtx.error('Không thể tải thông tin cá nhân.');
-      } finally {
-        setIsLoading(false);
-      }
-    }
+
     fetchData();
   }, []);
 
@@ -109,19 +112,20 @@ export default function Page(): React.JSX.Element {
       });
 
       notificationCtx.success('Mật khẩu đã được cập nhật thành công.');
+      fetchData();
     } catch (error: any) {
       notificationCtx.error(error.message);
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   const handleSave = async () => {
     try {
       setIsLoading(true);
       await updateUserInformation(formValues);
       notificationCtx.success('Cập nhật thông tin thành công.');
-      setUserInfo({email: userInfo?.email || '', fullName: formValues.fullName, phoneNumber: formValues.phoneNumber})
+      setUserInfo({ email: userInfo?.email || '', fullName: formValues.fullName, phoneNumber: formValues.phoneNumber, address: formValues.address, hasPassword: userInfo?.hasPassword || false, googleConnected: userInfo?.googleConnected || false })
     } catch (error) {
       notificationCtx.error('Không thể cập nhật thông tin.');
     } finally {
@@ -180,24 +184,17 @@ export default function Page(): React.JSX.Element {
                     <Typography variant="body1">Tài khoản Google</Typography>
                   </Stack>
                   <Typography variant="body1">
-                    Chưa liên kết
+                    {userInfo?.googleConnected ? 'Đã liên kết' : 'Chưa liên kết'}
                   </Typography>
                 </Grid>
-                <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="body1">Tài khoản Facebook</Typography>
-                  </Stack>
-                  <Typography variant="body1">
-                    Chưa liên kết
-                  </Typography>
-                </Grid>
+
               </CardContent>
             </Card>
             <Card>
               <CardHeader title="Ví" />
               <Divider />
               <CardContent>
-                  
+
                 <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                     <Typography variant="body1">Tài khoản cá nhân</Typography>
@@ -224,7 +221,7 @@ export default function Page(): React.JSX.Element {
                     0 VNĐ
                   </Typography>
                 </Grid>
-                
+
               </CardContent>
             </Card>
           </Stack>
@@ -272,20 +269,26 @@ export default function Page(): React.JSX.Element {
             </Card>
 
             <Card>
-              <CardHeader subheader="Thay đổi mật khẩu" title="Mật khẩu" />
+              {userInfo?.hasPassword ? (
+                <CardHeader subheader="Thay đổi mật khẩu" title="Mật khẩu" />
+              ) : (
+                <CardHeader subheader="Tạo mật khẩu để đăng nhập ETIK bằng email và mật khẩu" title="Thiết lập mật khẩu" />
+              )}
               <Divider />
               <CardContent>
                 <Stack spacing={3} sx={{ maxWidth: 'sm' }}>
-                  <FormControl fullWidth>
-                    <InputLabel>Mật khẩu hiện tại</InputLabel>
-                    <OutlinedInput
-                      label="Mật khẩu hiện tại"
-                      name="currentPassword"
-                      type="password"
-                      value={formData.currentPassword}
-                      onChange={handleChange}
-                    />
-                  </FormControl>
+                  {userInfo?.hasPassword && (
+                    <FormControl fullWidth>
+                      <InputLabel>Mật khẩu hiện tại</InputLabel>
+                      <OutlinedInput
+                        label="Mật khẩu hiện tại"
+                        name="currentPassword"
+                        type="password"
+                        value={formData.currentPassword}
+                        onChange={handleChange}
+                      />
+                    </FormControl>
+                  )}
                   <FormControl fullWidth>
                     <InputLabel>Mật khẩu mới</InputLabel>
                     <OutlinedInput

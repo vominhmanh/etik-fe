@@ -42,6 +42,7 @@ export function SideNav(): React.JSX.Element {
         color: 'var(--SideNav-color)',
         display: { xs: 'none', lg: 'flex' },
         flexDirection: 'column',
+        minHeight: '95vh',
         height: '100%',
         left: 0,
         maxWidth: '100%',

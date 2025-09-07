@@ -78,22 +78,32 @@ export default class BaseHttpService {
     }
     const { statusCode, message } = error?.response?.data ?? {};
     const httpStatus = error?.response?.status;
+    const resolvedMessage =
+      error?.response?.data?.detail?.[0]?.msg ||
+      error?.response?.data?.detail ||
+      message ||
+      error?.message ||
+      'Unknown Error';
 
     // Non-401: Bubble up an error
     if (httpStatus !== 401 && statusCode !== 401) {
-      throw new Error(
-        error.response?.data?.detail?.[0]?.msg ||
-        error.response?.data?.detail ||
-        message ||
-        error.message ||
-        'Unknown Error',
-      );
+      throw new Error(resolvedMessage);
     }
 
     // Avoid infinite loop on refresh/login endpoints
     const originalRequest = error?.config ?? {};
-    if (originalRequest?.__isRetryRequest || /\/auth\/refresh$/.test(originalRequest?.url || '') || /\/auth\/login$/.test(originalRequest?.url || '')) {
-      return Promise.reject(new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại'));
+    const requestUrl = originalRequest?.url || '';
+    // For login endpoint, bubble up server-provided message (do not attempt refresh)
+    if (/\/auth\/login$/.test(requestUrl)) {
+      return Promise.reject(new Error(resolvedMessage));
+    }
+    // Avoid infinite loop: if this is a retried request, bubble up the actual error
+    if (originalRequest?.__isRetryRequest) {
+      return Promise.reject(new Error(resolvedMessage));
+    }
+    // If refresh itself failed, instruct user to log in again
+    if (/\/auth\/refresh$/.test(requestUrl)) {
+      return Promise.reject(new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.'));
     }
 
     // Queue requests while we refresh
@@ -124,13 +134,13 @@ export default class BaseHttpService {
           originalRequest.__isRetryRequest = true;
           return instance.request(originalRequest);
         }
-        return Promise.reject(new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại'));
+        return Promise.reject(new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại..'));
       })
       .catch(() => {
         this.isRefreshing = false;
         this.refreshRequestQueue.forEach((cb) => cb(false));
         this.refreshRequestQueue = [];
-        return Promise.reject(new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại'));
+        return Promise.reject(new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.'));
       });
   }
 
