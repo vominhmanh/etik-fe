@@ -88,9 +88,19 @@ export default function Page(): React.JSX.Element {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
-      notificationCtx.warning('Tất cả các trường là bắt buộc.');
-      return;
+    if (userInfo?.hasPassword) {
+      if (!formData.currentPassword) {
+        notificationCtx.warning('Mật khẩu hiện tại là bắt buộc.');
+        return;
+      }
+      if (!formData.newPassword) {
+        notificationCtx.warning('Mật khẩu mới là bắt buộc.');
+        return;
+      }
+      if (!formData.confirmPassword) {
+        notificationCtx.warning('Nhập lại mật khẩu mới là bắt buộc.');
+        return;
+      }
     }
 
     if (formData.newPassword !== formData.confirmPassword) {
