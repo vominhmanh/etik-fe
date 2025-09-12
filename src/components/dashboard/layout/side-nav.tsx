@@ -42,12 +42,12 @@ import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import { AxiosResponse } from 'axios';
-
+import logoImage from "@/images/etik-logo-transparent-dark.png";
+import Image from "next/image";
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
 import NotificationContext from '@/contexts/notification-context';
-import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
 
@@ -136,7 +136,12 @@ export function SideNav(): React.JSX.Element {
               <CaretLeftIcon />
             </IconButton>
             <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
-              <Logo color="light" height={32} width={122} />
+              <Image
+                src={logoImage}
+                alt="Left Logo"
+                height={40}
+                className="mr-2" // Khoảng cách giữa hai logo
+              />
             </Box>
           </Box>
           <Box

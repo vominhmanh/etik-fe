@@ -15,11 +15,12 @@ import { CaretUpDown as CaretUpDownIcon } from '@phosphor-icons/react/dist/ssr/C
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
-import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
 import { navIcons } from './nav-icons';
 import { Stack } from '@mui/material';
+import logoImage from "@/images/etik-logo-transparent-dark.png";
+import Image from "next/image";
 
 export interface MobileNavProps {
   onClose?: () => void;
@@ -62,7 +63,12 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
     >
       <Stack spacing={2} sx={{ p: 3 }}>
         <RouterLink href={paths.home} style={{ display: 'inline-flex' }}>
-          <Logo color="light" height={32} width={122} />
+          <Image
+            src={logoImage}
+            alt="Left Logo"
+            height={40}
+            className="mr-2" // Khoảng cách giữa hai logo
+          />
         </RouterLink>
       </Stack>
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />

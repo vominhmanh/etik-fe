@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://etik.vn
+
+# Sitemaps
+Sitemap: https://etik.vn/sitemap.xml

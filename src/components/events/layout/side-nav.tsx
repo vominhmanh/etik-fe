@@ -4,20 +4,17 @@ import * as React from 'react';
 import RouterLink from 'next/link';
 import { usePathname } from 'next/navigation';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 // import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { ArrowSquareUpRight as ArrowSquareUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowSquareUpRight';
-import { CaretUpDown as CaretUpDownIcon } from '@phosphor-icons/react/dist/ssr/CaretUpDown';
 
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
-import { Logo } from '@/components/core/logo';
+import logoImage from "@/images/etik-logo-transparent-dark.png";
+import Image from "next/image";
 
 import { navItems } from './config';
-import { navIcons } from './nav-icons';
 import Stack from "@mui/material/Stack";
 
 export function SideNav(): React.JSX.Element {
@@ -56,7 +53,12 @@ export function SideNav(): React.JSX.Element {
       <Stack sx={{position: 'sticky', top: 0}}>
         <Stack spacing={2} sx={{ p: 2 }}>
         <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
-          <Logo color="light" height={32} width={122} />
+            <Image
+                src={logoImage}
+                alt="Left Logo"
+                height={40}
+                className="mr-2" // Khoảng cách giữa hai logo
+              />
         </Box>
       </Stack>
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
