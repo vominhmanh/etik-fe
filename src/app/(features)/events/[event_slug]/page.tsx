@@ -806,6 +806,10 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
               <Typography variant="body2">Số điện thoại</Typography>
               <Typography variant="body2">{customer.phoneNumber}</Typography>
             </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Địa chỉ</Typography>
+              <Typography variant="body2">{customer.address}</Typography>
+            </Box>
             <Divider />
 
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Danh sách vé</Typography>

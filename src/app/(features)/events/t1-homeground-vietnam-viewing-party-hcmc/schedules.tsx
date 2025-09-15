@@ -1,4 +1,4 @@
-import { Box, Card, CardHeader, Checkbox, Divider, List, ListItem, ListItemAvatar, ListItemText, Stack } from '@mui/material';
+import { Box, Card, CardHeader, Checkbox, Divider, List, ListItem, ListItemAvatar, ListItemText } from '@mui/material';
 import dayjs from 'dayjs';
 import React, { useState } from 'react';
 import { Show } from './page';
@@ -16,14 +16,8 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
       ? selectedShows.filter((s) => s.id !== show.id)
       : [...selectedShows, show];
 
-    // Combine all conditions to check if the ticket is valid
-    const isValidSelection = show.status === 'on_sale' && !show.disabled;
-
-    // Only proceed if all conditions are met
-    if (isValidSelection) {
-      setSelectedShows(updatedSelectedShows);
-      onSelectionChange(updatedSelectedShows);
-    }
+    setSelectedShows(updatedSelectedShows);
+    onSelectionChange(updatedSelectedShows);
   };
 
 
@@ -44,31 +38,17 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
                 checked={selectedShows.includes(show)}
                 onClick={(e) => e.stopPropagation()} // Prevent checkbox click from bubbling up
                 onChange={() => handleItemClick(show)}
-                disabled={
-                  show.status !== "on_sale" ||
-                  show.disabled
-                }
               />
             </Box>
             <ListItemAvatar>
-              <Box component="img" src={show.avatar ?? '/assets/product-5.png'} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
+              <Box component="img" src={show.avatar ?? '/assets/product-5.png'} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />            
             </ListItemAvatar>
             <ListItemText
               primary={show.name}
-              primaryTypographyProps={{ variant: 'subtitle2' }}
-              secondary={(show.startDateTime && show.endDateTime
-                ? `${dayjs(show.startDateTime).format('HH:mm')} - ${dayjs(show.endDateTime).format('HH:mm | DD/MM/YYYY')}` : "")
-                + (show.disabled
-                  ? " | Đang khóa bởi hệ thống"
-                  : show.status !== "on_sale"
-                    ? show.status === "not_opened_for_sale"
-                      ? " | Chưa mở bán"
-                      : show.status === "temporarily_locked"
-                        ? " | Đang tạm khóa"
-                        : ""
-                    : "")
-              }
-              secondaryTypographyProps={{ variant: 'caption' }}
+              secondary={show.startDateTime && show.endDateTime
+                ? `${dayjs(show.startDateTime).format('HH:mm')} - ${dayjs(show.endDateTime).format('HH:mm ngày DD/MM/YYYY')}`
+                : "Chưa xác định"}
+              secondaryTypographyProps={{ variant: 'body2' }}
             />
           </ListItem>
         ))}

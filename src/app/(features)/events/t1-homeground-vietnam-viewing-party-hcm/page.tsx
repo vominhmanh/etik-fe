@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, Container, FormHelperText, InputAdornment, Modal } from '@mui/material';
+import { Avatar, Box, Checkbox, Container, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormHelperText, IconButton, InputAdornment, Modal } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -17,7 +17,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { ArrowRight, UserPlus } from '@phosphor-icons/react/dist/ssr';
+import { ArrowRight, Eye, Pencil, UserPlus } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
@@ -28,10 +28,9 @@ import * as React from 'react';
 import ReCAPTCHA from 'react-google-recaptcha';
 
 import NotificationContext from '@/contexts/notification-context';
-import { useRouter } from 'next/navigation';
-
 
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { orange } from '@mui/material/colors';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 
@@ -50,6 +49,8 @@ export type TicketCategory = {
 export type Show = {
   id: number;
   name: string;
+  status: string;
+  disabled: boolean;
   avatar: string | null;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
@@ -70,6 +71,10 @@ export type EventResponse = {
   locationInstruction: string | null;
   timeInstruction: string | null;
   shows: Show[];
+  adminReviewStatus: 'no_request_from_user' | 'waiting_for_acceptance' | 'accepted' | 'rejected';
+  displayOnMarketplace: boolean;
+  displayOption: string;
+  externalLink: string | null;
 };
 
 const options = {
@@ -77,22 +82,29 @@ const options = {
   timeout: 5000,
   maximumAge: 0,
 };
+type TicketHolderInfo = { title: string; name: string; email: string; phone: string };
+
+const paymentMethodLabelMap: Record<string, string> = {
+  cash: 'Tiền mặt',
+  transfer: 'Chuyển khoản',
+  napas247: 'Napas 247',
+};
 
 export default function Page(): React.JSX.Element {
   const params = { event_slug: 't1-homeground-vietnam-viewing-party-hcm' }
+
   const [event, setEvent] = React.useState<EventResponse | null>(null);
-  const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
+  const [selectedCategories, setSelectedCategories] = React.useState<Record<number, Record<number, number>>>({});
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
   const [customer, setCustomer] = React.useState({
-    name: '',
     title: 'Bạn',
+    name: '',
     email: '',
     phoneNumber: '',
     address: '',
     dob: '',
   });
   const [paymentMethod, setPaymentMethod] = React.useState<string>('napas247');
-  const [accessingPassword, setAccessingPassword] = React.useState<string>('');
   const [ticketHolders, setTicketHolders] = React.useState<string[]>(['']);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -100,9 +112,15 @@ export default function Page(): React.JSX.Element {
   const captchaRef = React.useRef<ReCAPTCHA | null>(null);
   const [position, setPosition] = React.useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
   const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
-  const [openAccessPasswordModal, setOpenAccessPasswordModal] = React.useState(true);
   const [ticketHolderEditted, setTicketHolderEditted] = React.useState<boolean>(false);
-  const router = useRouter()
+  const [openNotifModal, setOpenNotifModal] = React.useState<boolean>(false);
+  const [prevent24h, setPrevent24h] = React.useState(false);
+  const [qrOption, setQrOption] = React.useState<string>("shared");
+  const [requestedCategoryModalId, setRequestedCategoryModalId] = React.useState<number | null>(null);
+  const [ticketHoldersByCategory, setTicketHoldersByCategory] = React.useState<Record<string, TicketHolderInfo[]>>({});
+  const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
+  const [openAccessPasswordModal, setOpenAccessPasswordModal] = React.useState(true);
+  const [accessingPassword, setAccessingPassword] = React.useState<string>('');
   const VALID_HASH = '668f444694341f0c7979bdd20314f11c91eeec0515d755f3058ebb70723c9722'; // SHA-256 of "password"
 
   const hashSHA256 = async (str: string) => {
@@ -115,20 +133,57 @@ export default function Page(): React.JSX.Element {
   };
 
 
+  const NOTIF_KEY = 'hideNotifMarketplaceEventNotApprovedUntil';
+
   React.useEffect(() => {
     document.title = `Sự kiện ${event?.name} | ETIK - Vé điện tử & Quản lý sự kiện`;
   }, [event]);
 
+
+  // Khi component mount, kiểm tra localStorage
+  React.useEffect(() => {
+    const hideUntil = localStorage.getItem(NOTIF_KEY);
+    if (hideUntil) {
+      const until = parseInt(hideUntil, 10);
+      if (Date.now() < until) {
+        // Nếu chưa hết 24h thì đóng luôn modal
+        setOpenNotifModal(false);
+        return;
+      } else {
+        setOpenNotifModal(true);
+        // Hết hạn, xoá key đi
+        localStorage.removeItem(NOTIF_KEY);
+      }
+    } else {
+      setOpenNotifModal(true);
+    }
+    // Nếu không có key hoặc đã hết hạn, giữ openNotifModal theo prop
+  }, [setOpenNotifModal]);
+
+  const handleCloseNotifModal = () => {
+    if (prevent24h) {
+      // Lưu thời điểm 24h sau vào localStorage
+      const hideUntil = Date.now() + 24 * 60 * 60 * 1000;
+      localStorage.setItem(NOTIF_KEY, hideUntil.toString());
+    }
+    setOpenNotifModal(false);
+  };
   const totalAmount = React.useMemo(() => {
-    return Object.entries(selectedCategories).reduce((total, [showId, category]) => {
+    return Object.entries(selectedCategories).reduce((total, [showId, categories]) => {
       const show = event?.shows.find((show) => show.id === parseInt(showId));
-      const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
-      return total + (ticketCategory?.price || 0) * (ticketQuantity || 0);
+      const categoriesTotal = Object.entries(categories || {}).reduce((sub, [categoryIdStr, qty]) => {
+        const categoryId = parseInt(categoryIdStr);
+        const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
+        return sub + (ticketCategory?.price || 0) * (qty || 0);
+      }, 0);
+      return total + categoriesTotal;
     }, 0)
   }, [selectedCategories])
 
   const handleCloseSuccessModal = (event: {}, reason: "backdropClick" | "escapeKeyDown") => {
-    // setOpenSuccessModal(false)
+    if (reason && reason == "backdropClick" && "escapeKeyDown")
+      return;
+    setOpenSuccessModal(false)
   }
 
   // Fetch event details on component mount
@@ -151,40 +206,123 @@ export default function Page(): React.JSX.Element {
       fetchEventDetails();
     }
   }, [params.event_slug]);
+  const handleAddToCartQuantity = (showId: number, categoryId: number, quantity: number, holders?: TicketHolderInfo[]) => {
+    setSelectedCategories(prev => {
+      const forShow = prev[showId] || {};
+      const updatedForShow = { ...forShow } as Record<number, number>;
+      if (quantity <= 0) {
+        delete updatedForShow[categoryId];
+      } else {
+        updatedForShow[categoryId] = quantity;
+      }
+      return {
+        ...prev,
+        [showId]: updatedForShow,
+      };
+    });
+
+    const key = `${showId}-${categoryId}`;
+    setTicketHoldersByCategory(prev => {
+      if (quantity <= 0) {
+        const next = { ...prev } as Record<string, TicketHolderInfo[]>;
+        delete next[key];
+        return next;
+      }
+      if (holders && holders.length > 0) {
+        return { ...prev, [key]: holders.slice(0, quantity) };
+      }
+      // ensure existing array is sized to quantity
+      const existing = prev[key] || [];
+      const sized = Array.from({ length: quantity }, (_, i) => existing[i] || { title: 'Bạn', name: '', email: '', phone: '' });
+      return { ...prev, [key]: sized };
+    });
+  };
 
 
   const handleCategorySelection = (showId: number, categoryId: number) => {
-    setSelectedCategories(prevCategories => ({
-      ...prevCategories,
-      [showId]: categoryId,
-    }));
+    setSelectedCategories(prevCategories => {
+      const existingForShow = prevCategories[showId] || {};
+      const exists = Object.prototype.hasOwnProperty.call(existingForShow, categoryId);
+      const nextForShow = { ...existingForShow } as Record<number, number>;
+      if (exists) {
+        delete nextForShow[categoryId];
+      } else {
+        nextForShow[categoryId] = 1; // default quantity when toggled via list
+      }
+      return {
+        ...prevCategories,
+        [showId]: nextForShow,
+      };
+    });
   };
 
   const handleSelectionChange = (selected: Show[]) => {
     setSelectedSchedules(selected);
-    const tmpObj: Record<number, number | null> = {};
-    selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] ?? null })
+    const tmpObj: Record<number, Record<number, number>> = {}
+    selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || {} })
     setSelectedCategories(tmpObj);
-  };
 
-  const handleTicketQuantityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const quantity = Number(event.target.value);
-    setTicketQuantity(quantity);
-    setTicketHolders(Array(quantity).fill('')); // Dynamically update ticket holders array
-  };
-
-  const handleTicketHolderChange = (index: number, value: string) => {
-    const updatedHolders = [...ticketHolders];
-    updatedHolders[index] = value;
-    setTicketHolders(updatedHolders);
+    // filter holders to only keep keys for selected shows
+    const allowedShowIds = new Set(selected.map(s => s.id));
+    setTicketHoldersByCategory(prev => {
+      const next: Record<string, TicketHolderInfo[]> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const showIdStr = k.split('-')[0];
+        const sid = parseInt(showIdStr);
+        if (allowedShowIds.has(sid)) next[k] = v;
+      });
+      return next;
+    });
   };
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
   };
 
+
+  const handleCreateClick = () => {
+    if (!customer.name || !customer.email || !customer.phoneNumber || !customer.dob || ticketQuantity <= 0) {
+      notificationCtx.warning('Vui lòng điền đầy đủ các thông tin bắt buộc');
+      return;
+    }
+
+    const totalSelectedCategories = Object.values(selectedCategories).reduce((sum, catMap) => sum + Object.keys(catMap || {}).length, 0);
+    if (totalSelectedCategories === 0) {
+      notificationCtx.warning('Vui lòng chọn ít nhất 1 loại vé');
+      return;
+    }
+
+
+    // Validate per-ticket holder info when separate QR is selected
+    if (qrOption === 'separate') {
+      for (const [showId, categories] of Object.entries(selectedCategories)) {
+        for (const [categoryIdStr, qty] of Object.entries(categories || {})) {
+          const categoryId = parseInt(categoryIdStr);
+          const quantity = qty || 0;
+          if (quantity <= 0) continue;
+          const key = `${showId}-${categoryId}`;
+          const holders = ticketHoldersByCategory[key] || [];
+          let invalid = holders.length < quantity;
+          if (!invalid) {
+            for (let i = 0; i < quantity; i++) {
+              const h = holders[i];
+              if (!h || !h.title || !h.name) { invalid = true; break; }
+            }
+          }
+          if (invalid) {
+            notificationCtx.warning('Vui lòng điền đủ thông tin người tham dự cho từng vé.');
+            setRequestedCategoryModalId(categoryId);
+            return;
+          }
+        }
+      }
+    }
+
+    setConfirmOpen(true);
+  };
+
   const handleSubmit = async () => {
-    if (!customer.name || !customer.email || !customer.address || ticketQuantity <= 0) {
+    if (!customer.name || !customer.email || !customer.address || !customer.dob || ticketQuantity <= 0) {
       notificationCtx.warning('Vui lòng điền các trường thông tin bắt buộc');
       return;
     }
@@ -200,27 +338,53 @@ export default function Page(): React.JSX.Element {
       return;
     }
 
-    const emptyTicketShowIds = Object.entries(selectedCategories).filter(([showId, ticketCategoryId]) => (ticketCategoryId == null)).map(([showId, ticketCategoryId]) => (Number.parseInt(showId)));
-    if (emptyTicketShowIds.length > 0) {
-      const emptyTicketNames = event?.shows.filter(show => emptyTicketShowIds.includes(show.id)).map(show => show.name)
-      notificationCtx.warning(`Vui lòng chọn loại vé cho ${emptyTicketNames?.join(', ')}`);
-      return;
-    }
     try {
+      if (qrOption === 'separate') {
+        for (const [showId, categories] of Object.entries(selectedCategories)) {
+          for (const [categoryIdStr, qty] of Object.entries(categories || {})) {
+            const categoryId = parseInt(categoryIdStr);
+            const quantity = qty || 0;
+            if (quantity <= 0) continue;
+            const key = `${showId}-${categoryId}`;
+            const holders = ticketHoldersByCategory[key] || [];
+            let invalid = holders.length < quantity;
+            if (!invalid) {
+              for (let i = 0; i < quantity; i++) {
+                const h = holders[i];
+                if (!h || !h.title || !h.name) { invalid = true; break; }
+              }
+            }
+            if (invalid) {
+              setConfirmOpen(false);
+              notificationCtx.warning('Vui lòng điền đủ thông tin người tham dự cho từng vé.');
+              setRequestedCategoryModalId(categoryId);
+              return;
+            }
+          }
+        }
+      }
+
+      setConfirmOpen(false);
       setIsLoading(true);
 
-      const tickets = Object.entries(selectedCategories).map(([showId, ticketCategoryId]) => ({
-        showId: parseInt(showId),
-        quantity: 1,
-        ticketCategoryId,
-      }));
+      const tickets = Object.entries(selectedCategories).flatMap(([showId, catMap]) => (
+        Object.entries(catMap || {}).map(([categoryIdStr, qty]) => {
+          const key = `${showId}-${categoryIdStr}`;
+          const holders = ticketHoldersByCategory[key] || [];
+          return {
+            showId: parseInt(showId),
+            ticketCategoryId: parseInt(categoryIdStr),
+            quantity: qty || 0,
+            holders: qrOption === 'separate' ? holders : undefined,
+          };
+        })
+      ));
 
       const transactionData = {
         customer,
         tickets,
         paymentMethod,
-        ticketHolders: ticketHolders.filter(Boolean), // Ensure no empty names
-        quantity: ticketQuantity,
+        qrOption,
         captchaValue,
         "latitude": position?.latitude,
         "longitude": position?.longitude
@@ -301,7 +465,6 @@ export default function Page(): React.JSX.Element {
                       size="small"
                       value={accessingPassword}
                       onChange={(e) => {
-                        
                         const input = e.target.value;
                         setAccessingPassword(input);
 
@@ -336,6 +499,7 @@ export default function Page(): React.JSX.Element {
       >
         <CircularProgress color="inherit" />
       </Backdrop>
+
       <Container maxWidth="xl" sx={{ py: '64px' }}>
         <Stack spacing={3}>
           <Grid container spacing={3}>
@@ -371,7 +535,7 @@ export default function Page(): React.JSX.Element {
                   sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                 >
                   <Stack direction="column" spacing={2}>
-                    <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
+                    <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                       <div>
                         {event?.avatarUrl ?
                           <Box component="img" src={event?.avatarUrl} sx={{ height: '80px', width: '80px', borderRadius: '50%' }} />
@@ -396,16 +560,25 @@ export default function Page(): React.JSX.Element {
                       <Typography color="text.secondary" display="inline" variant="body2">
                         {event?.startDateTime && event?.endDateTime
                           ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                          : 'Chưa xác định'} {event?.timeInstruction ? `(${event?.timeInstruction})` : ''}
+                          : 'Chưa xác định'} {event?.timeInstruction ? `(${event.locationInstruction})` : ''}
                       </Typography>
                     </Stack>
 
-                    <Stack direction="row" spacing={1}>
+                    <Stack direction="row" spacing={1} >
                       <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
                         {event?.place ? `${event?.place}` : 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank'>Xem bản đồ</a>}
                       </Typography>
                     </Stack>
+
+                    {event && event.displayOption !== 'display_with_everyone' &&
+                      <Stack direction="row" spacing={1} sx={{ color: orange[500] }}>
+                        <Eye fontSize="var(--icon-fontSize-sm)" />
+                        <Typography display="inline" variant="body2">
+                          Sự kiện không hiển thị công khai
+                        </Typography>
+                      </Stack>
+                    }
                   </Stack>
                   <div style={{ marginTop: '20px' }}>
                     <Button fullWidth variant="contained" href={`#registration`} size="small" startIcon={<UserPlus />}>
@@ -458,7 +631,14 @@ export default function Page(): React.JSX.Element {
               <Stack spacing={3}>
                 <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
                 {selectedSchedules && selectedSchedules.map(show => (
-                  <TicketCategories key={show.id} show={show} onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
+                  <TicketCategories
+                    key={show.id}
+                    show={show}
+                    qrOption={qrOption}
+                    requestedCategoryModalId={requestedCategoryModalId || undefined}
+                    onModalRequestHandled={() => setRequestedCategoryModalId(null)}
+                    onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
+                    onAddToCart={(categoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; }[]) => handleAddToCartQuantity(show.id, categoryId, quantity, holders)}
                   />
                 ))}
               </Stack>
@@ -528,13 +708,11 @@ export default function Page(): React.JSX.Element {
                             name="customer_dob"
                             type='date'
                             value={customer.dob}
-                            onChange={(e) => setCustomer({ ...customer, dob: e.target.value})}
+                            onChange={(e) => setCustomer({ ...customer, dob: e.target.value })}
                             inputProps={{ max: new Date().toISOString().slice(0, 10) }}
-
                           />
                         </FormControl>
                       </Grid>
-
                       <Grid item lg={6} xs={12}>
                         <FormControl fullWidth required>
                           <InputLabel>Số điện thoại</InputLabel>
@@ -547,7 +725,6 @@ export default function Page(): React.JSX.Element {
                           />
                         </FormControl>
                       </Grid>
-                      
 
                       <Grid item lg={12} xs={12}>
                         <FormControl fullWidth required>
@@ -567,33 +744,82 @@ export default function Page(): React.JSX.Element {
                 {/* Ticket Quantity and Ticket Holders */}
                 <Card>
                   <CardHeader
-                    title="Số lượng người tham dự"
+                    title="Danh sách vé"
                     action={
-                      <OutlinedInput
-                        sx={{ maxWidth: 130 }}
-                        type="number"
-                        value={ticketQuantity}
-                        onChange={handleTicketQuantityChange}
-                        inputProps={{ min: 1 }}
-                      />
+                      <FormControl size="small" sx={{ width: 210 }}>
+                        <InputLabel id="qr-option-label">Thông tin trên vé</InputLabel>
+                        <Select
+                          labelId="qr-option-label"
+                          value={qrOption}
+                          label="Thông tin trên vé"
+                          onChange={(e) => {
+                            setQrOption(e.target.value);
+                            if (e.target.value === 'separate') {
+                              notificationCtx.info("Vui lòng điền thông tin người sở hữu cho từng vé");
+                            }
+                          }}
+                        >
+                          <MenuItem value="shared">
+                            <Stack>
+                              <Typography variant="body2">Giống thông tin người đ.ký</Typography>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                dùng một QR check-in tất cả vé
+                              </Typography>
+                            </Stack>
+                          </MenuItem>
+                        </Select>
+                      </FormControl>
                     }
                   />
                   <Divider />
                   <CardContent>
-                    <Grid container spacing={3}>
-                      {ticketHolders.map((holder, index) => (
-                        <Grid item lg={12} xs={12} key={index}>
-                          <FormControl fullWidth required>
-                            <InputLabel>Họ và tên người tham dự {index + 1}</InputLabel>
-                            <OutlinedInput
-                              label={`Họ và tên người tham dự ${index + 1}`}
-                              value={holder}
-                              onChange={(e) => { setTicketHolderEditted(true); handleTicketHolderChange(index, e.target.value) }}
-                            />
-                          </FormControl>
-                        </Grid>
-                      ))}
-                    </Grid>
+                    <Stack spacing={3}>
+                      {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
+                        const show = event?.shows.find((show) => show.id === parseInt(showId));
+                        return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
+                          const categoryId = parseInt(categoryIdStr);
+                          const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
+                          const quantity = qty || 0;
+                          return (
+                            <Stack spacing={3} key={`${showId}-${categoryId}`}>
+                              <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
+                                  <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => setRequestedCategoryModalId(categoryId)}><Pencil /></IconButton>
+                                </Stack>
+                                <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                                  <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
+                                  <Typography variant="caption">x {quantity}</Typography>
+                                  <Typography variant="caption">
+                                    = {formatPrice((ticketCategory?.price || 0) * quantity)}
+                                  </Typography>
+                                </Stack>
+                              </Stack>
+
+                              {qrOption === 'separate' && quantity > 0 && (
+                                <Stack spacing={2}>
+                                  {Array.from({ length: quantity }, (_, index) => {
+                                    const holderInfo = ticketHoldersByCategory[`${showId}-${categoryId}`]?.[index];
+                                    return (
+                                      <Box key={index} sx={{ ml: 2, pl: 2, borderLeft: '2px solid', borderColor: 'divider' }}>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
+                                          {index + 1}. {holderInfo?.name ? `${holderInfo?.title} ${holderInfo?.name}` : 'Chưa có thông tin'}
+                                        </Typography>
+                                        <br />
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          {holderInfo?.email || 'Chưa có email'} - {holderInfo?.phone || 'Chưa có SĐT'}
+                                        </Typography>
+                                      </Box>
+                                    );
+                                  })}
+                                </Stack>
+                              )}
+                            </Stack >
+                          );
+                        });
+                      })}
+                    </Stack>
                   </CardContent>
                 </Card>
 
@@ -621,41 +847,17 @@ export default function Page(): React.JSX.Element {
                   </Card>
                 }
                 {/* Payment Summary */}
-                {Object.keys(selectedCategories).length > 0 && (
+                {Object.values(selectedCategories).some((catMap) => Object.keys(catMap || {}).length > 0) && (
                   <Card>
-                    <CardHeader title="Thanh toán" />
-                    <Divider />
                     <CardContent>
-                      <Stack spacing={2}>
-                        {Object.entries(selectedCategories).map(([showId, category]) => {
-                          const show = event?.shows.find((show) => show.id === parseInt(showId));
-                          const ticketCategory = show?.ticketCategories.find((cat) => cat.id === category);
-
-                          return (
-                            <Stack direction={{ xs: 'column', sm: 'row' }} key={showId} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
-                              </Stack>
-                              <Stack spacing={2} direction={'row'}>
-                                <Typography variant="body1">Giá: {formatPrice(ticketCategory?.price || 0)}</Typography>
-                                <Typography variant="body1">SL: {ticketQuantity || 0}</Typography>
-                                <Typography variant="body1">
-                                  Thành tiền: {formatPrice((ticketCategory?.price || 0) * (ticketQuantity || 0))}
-                                </Typography>
-                              </Stack>
-                            </Stack>
-                          );
-                        })}
-
-                        {/* Total Amount */}
-                        <Grid item sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng:</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                            {formatPrice(totalAmount)}
-                          </Typography>
-                        </Grid>
-                      </Stack>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                          {formatPrice(
+                            totalAmount
+                          )}
+                        </Typography>
+                      </Box>
                     </CardContent>
                   </Card>
                 )}
@@ -669,7 +871,7 @@ export default function Page(): React.JSX.Element {
                   </Grid>
                   <Grid item sm={3} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
                     <div>
-                      <Button variant="contained" onClick={handleSubmit}>
+                      <Button variant="contained" onClick={handleCreateClick}>
                         Đăng ký
                       </Button>
                     </div>
@@ -681,8 +883,103 @@ export default function Page(): React.JSX.Element {
         </Stack>
       </Container>
 
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} fullWidth maxWidth="md">
+        <DialogTitle sx={{ color: "primary.main" }}>Xác nhận tạo đơn hàng</DialogTitle>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Thông tin người mua</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Họ và tên</Typography>
+              <Typography variant="body2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Email</Typography>
+              <Typography variant="body2">{customer.email}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Ngày tháng năm sinh</Typography>
+              <Typography variant="body2">{dayjs(customer.dob).format('DD/MM/YYYY')}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Số điện thoại</Typography>
+              <Typography variant="body2">{customer.phoneNumber}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Địa chỉ</Typography>
+              <Typography variant="body2">{customer.address}</Typography>
+            </Box>
+            <Divider />
+
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Danh sách vé</Typography>
+            <Stack spacing={1}>
+              {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
+                const show = event?.shows.find((show) => show.id === parseInt(showId));
+                return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
+                  const categoryId = parseInt(categoryIdStr);
+                  const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
+                  const quantity = qty || 0;
+                  return (
+                    <Stack spacing={0} key={`confirm-${showId}-${categoryId}`}>
+                      <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
+                        </Stack>
+                        <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                          <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
+                          <Typography variant="caption">x {quantity}</Typography>
+                          <Typography variant="caption">
+                            = {formatPrice((ticketCategory?.price || 0) * quantity)}
+                          </Typography>
+                        </Stack>
+                      </Stack>
+
+                      {qrOption === 'separate' && quantity > 0 && (
+                        <Box sx={{ ml: 2 }}>
+                          <Stack spacing={1}>
+                            {Array.from({ length: quantity }, (_, index) => {
+                              const holderInfo = ticketHoldersByCategory[`${showId}-${categoryId}`]?.[index];
+                              return (
+                                <Box key={index} sx={{ pl: 2, borderLeft: '2px solid', borderColor: 'divider' }}>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
+                                    {index + 1}. {holderInfo?.name ? `${holderInfo?.title} ${holderInfo?.name}` : 'Chưa có thông tin'}
+                                  </Typography>
+                                  <br />
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    {holderInfo?.email || 'Chưa có email'} - {holderInfo?.phone || 'Chưa có SĐT'}
+                                  </Typography>
+                                </Box>
+                              );
+                            })}
+                          </Stack>
+                        </Box>
+                      )}
+                    </Stack>
+                  );
+                });
+              })}
+            </Stack>
+            <Divider />
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Phương thức thanh toán</Typography>
+              <Typography variant="body2">{paymentMethodLabelMap[paymentMethod] || paymentMethod}</Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                {formatPrice(totalAmount)}
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>Quay lại</Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={isLoading}>Xác nhận</Button>
+        </DialogActions>
+      </Dialog>
       <Modal
-        
         open={openSuccessModal}
         onClose={handleCloseSuccessModal}
         aria-labelledby="modal-modal-title"
@@ -719,24 +1016,91 @@ export default function Page(): React.JSX.Element {
                 </div>
                 <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
                   <Typography variant="h5">Đăng ký thành công !</Typography>
-                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn quý khách đã sử dụng ETIK. Vé đã được gửi qua Email. Quý khách vui lòng kiểm tra hòm mail (bao gồm cả spam) để xem vé. Nếu quý khách cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
+                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn {customer.title} {customer.name} đã sử dụng ETIK. Nếu {customer.title} cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
                 </Stack>
               </Stack>
               <div style={{ marginTop: '20px', justifyContent: 'center' }}>
-
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="small"
-                  endIcon={<ArrowRight />}
-                  onClick={() => {
-                    // setOpenSuccessModal(false)
-                    window.location.reload()  
-                  }}
-                >
-                  Đăng ký vé mới
-                </Button>
+                <Stack spacing={2}>
+                  {event?.externalLink && (
+                    <Button
+                      fullWidth
+                      variant='contained'
+                      size="small"
+                      endIcon={<ArrowRight />}
+                      onClick={() => {
+                        window.location.href = event?.externalLink || '';
+                      }}
+                    >
+                      Khám phá trang thông tin sự kiện.
+                    </Button>
+                  )}
+                  <Button
+                    fullWidth
+                    variant='outlined'
+                    size="small"
+                    onClick={() => {
+                      setOpenSuccessModal(false);
+                      window.location.reload();
+                    }}
+                  >
+                    Tạo một đơn hàng khác
+                  </Button>
+                </Stack>
               </div>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+      <Modal
+        open={openNotifModal && event && event?.adminReviewStatus !== 'accepted' && event?.displayOption !== 'display_with_everyone' || false}
+        onClose={handleCloseNotifModal}
+        aria-labelledby="ticket-category-description-modal-title"
+        aria-describedby="ticket-category-description-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: { sm: "500px", xs: "90%" },
+              bgcolor: "background.paper",
+              boxShadow: 24,
+            }}
+          >
+            <CardHeader title="Thông báo: Sự kiện này không hiển thị công khai" />
+            <Divider />
+            <CardContent>
+              <Stack spacing={3}>
+                <Stack spacing={1}>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Hiện tại, sự kiện này chỉ hiển thị với <b>người quản lý sự kiện</b> do sự kiện chưa được phê duyệt.
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Để sự kiện được hiển thị công khai, quý khách vui lòng hoàn tất quá trình gửi yêu cầu phê duyệt tại trang quản trị sự kiện. Xin cảm ơn!
+                  </Typography>
+                </Stack>
+
+                <Stack spacing={1}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={prevent24h}
+                        onChange={(e: any) => setPrevent24h(e.target.checked)}
+                      />
+                    }
+                    label="Không hiển thị lại trong 24 giờ"
+                  />
+
+                  <div style={{ textAlign: 'center' }}>
+                    <Button fullWidth variant="contained" size="small" onClick={handleCloseNotifModal}>
+                      Đã hiểu
+                    </Button>
+                  </div>
+                </Stack>
+
+              </Stack>
             </CardContent>
           </Card>
         </Container>
