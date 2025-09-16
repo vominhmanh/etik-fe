@@ -33,6 +33,7 @@ import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { orange } from '@mui/material/colors';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
+import { sha256 } from 'js-sha256';
 
 export type TicketCategory = {
   id: number;
@@ -76,6 +77,19 @@ export type EventResponse = {
   displayOption: string;
   externalLink: string | null;
 };
+
+
+// TransactionResponse.ts
+export interface Transaction {
+  id: number;
+  email: string;
+  name: string;
+  paymentCheckoutUrl: string | null;
+  status: string;
+  createdAt: Date;
+  exportedTicketAt: string | null;
+  customerResponseToken: string | null;
+}
 
 const options = {
   enableHighAccuracy: true,
@@ -121,15 +135,24 @@ export default function Page(): React.JSX.Element {
   const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
   const [openAccessPasswordModal, setOpenAccessPasswordModal] = React.useState(true);
   const [accessingPassword, setAccessingPassword] = React.useState<string>('');
+  const [responseTransaction, setResponseTransaction] = React.useState<Transaction | null>(null);
   const VALID_HASH = '668f444694341f0c7979bdd20314f11c91eeec0515d755f3058ebb70723c9722'; // SHA-256 of "password"
 
   const hashSHA256 = async (str: string) => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(str);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(hashBuffer))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+    try {
+      if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(str);
+        const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+        return Array.from(new Uint8Array(hashBuffer))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+      }
+    } catch (err) {
+      // Ignore and fallback to js-sha256
+    }
+    // Fallback for environments without SubtleCrypto (e.g., non-secure context)
+    return sha256(str);
   };
 
 
@@ -390,11 +413,12 @@ export default function Page(): React.JSX.Element {
         "longitude": position?.longitude
       };
 
-      const response = await baseHttpServiceInstance.post(
+      const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.post(
         `/marketplace/events/${params.event_slug}/transactions`,
         transactionData
       );
       // notificationCtx.success('Transaction created successfully!');
+      setResponseTransaction(response.data);
       setOpenSuccessModal(true)
 
       // Redirect to the payment checkout URL
@@ -1016,7 +1040,7 @@ export default function Page(): React.JSX.Element {
                 </div>
                 <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
                   <Typography variant="h5">Đăng ký thành công !</Typography>
-                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn {customer.title} {customer.name} đã sử dụng ETIK. Nếu {customer.title} cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
+                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn {customer.title} {customer.name} đã sử dụng ETIK. Hãy kiểm tra Email để xem vé. Nếu {customer.title} cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
                 </Stack>
               </Stack>
               <div style={{ marginTop: '20px', justifyContent: 'center' }}>
@@ -1034,6 +1058,18 @@ export default function Page(): React.JSX.Element {
                       Khám phá trang thông tin sự kiện.
                     </Button>
                   )}
+                  <Button
+                    fullWidth
+                    variant='outlined'
+                    size="small"
+                    component="a"
+                    href={`https://ekyc.etik.vn/ekyc-register?event_slug=${params.event_slug}&transaction_id=${responseTransaction?.id}&response_token=${responseTransaction?.customerResponseToken}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    startIcon={<UserPlus />}
+                  >
+                    Đăng ký Check-in bằng khuôn mặt
+                  </Button>
                   <Button
                     fullWidth
                     variant='outlined'

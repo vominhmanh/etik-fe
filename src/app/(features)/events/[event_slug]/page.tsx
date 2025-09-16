@@ -918,7 +918,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 </div>
                 <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
                   <Typography variant="h5">Đăng ký thành công !</Typography>
-                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn {customer.title} {customer.name} đã sử dụng ETIK. Nếu {customer.title} cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
+                  <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn {customer.title} {customer.name} đã sử dụng ETIK. Hãy kiểm tra Email để xem vé. Nếu {customer.title} cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
                 </Stack>
               </Stack>
               <div style={{ marginTop: '20px', justifyContent: 'center' }}>
