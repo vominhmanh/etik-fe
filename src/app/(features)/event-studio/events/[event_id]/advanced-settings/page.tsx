@@ -20,6 +20,7 @@ import { ArrowSquareIn, Clipboard, Eye, Storefront } from '@phosphor-icons/react
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
+import { ScanSmiley as ScanSmileyIcon } from '@phosphor-icons/react/dist/ssr/ScanSmiley';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
 import RouterLink from 'next/link';
@@ -74,6 +75,9 @@ export interface SendTicketMethodsRequest {
   useZaloMethod: boolean;
   useZaloMethodAsDefault: boolean;
 }
+export interface CheckInFaceConfig {
+  useCheckInFace: boolean;
+}
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
     document.title = "Cài đặt nâng cao | ETIK - Vé điện tử & Quản lý sự kiện";
@@ -90,6 +94,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSmtpLoading, setIsSmtpLoading] = useState<boolean>(false);
   const [isSendTicketMethodsLoading, setIsSendTicketMethodsLoading] = useState<boolean>(false);
+  const [isCheckInFaceLoading, setIsCheckInFaceLoading] = useState<boolean>(false);
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const [previewAvatarUrl, setPreviewAvatarUrl] = useState<string>(event?.avatarUrl || '');
   const [isAvatarSelected, setIsAvatarSelected] = useState(false);
@@ -114,6 +119,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     useZaloMethod: false,
     useZaloMethodAsDefault: false,
   });
+  const [checkInFaceConfig, setCheckInFaceConfig] = useState<CheckInFaceConfig>({
+    useCheckInFace: false,
+  });
 
 
   useEffect(() => {
@@ -124,6 +132,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         if (data) setSmtpFormValues(data);
         const sendMethods = await getSendTicketMethods(params.event_id);
         if (sendMethods) setSendTicketMethods(sendMethods);
+        const faceCfg = await getCheckInFaceConfig(params.event_id);
+        if (faceCfg) setCheckInFaceConfig(faceCfg);
       } catch (error) {
         notificationCtx.error(error);
       } finally {
@@ -236,6 +246,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       notificationCtx.error(error);
     } finally {
       setIsSendTicketMethodsLoading(false);
+    }
+  };
+
+  const handleCheckInFaceChange = (_e: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+    setCheckInFaceConfig((prev) => ({ ...prev, useCheckInFace: checked }));
+  };
+
+  const handleSaveCheckInFaceConfig = async () => {
+    try {
+      setIsCheckInFaceLoading(true);
+      await baseHttpServiceInstance.post(`/event-studio/events/${event_id}/check-in-face-settings`, checkInFaceConfig);
+      notificationCtx.success('Cập nhật thành công');
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsCheckInFaceLoading(false);
     }
   };
 
@@ -497,6 +523,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   }
 
+  async function getCheckInFaceConfig(eventId: number): Promise<CheckInFaceConfig | null> {
+    try {
+      const response: AxiosResponse<CheckInFaceConfig> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${eventId}/check-in-face-settings`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+
 
   if (!event || !formValues) {
     return <Typography>Loading...</Typography>;
@@ -576,6 +614,37 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button variant="contained" color="primary" onClick={handleSaveSendTicketMethods} disabled={isSendTicketMethodsLoading}>
                     {isSendTicketMethodsLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
+                  </Button>
+                </CardActions>
+              </Card>
+              <Card>
+                <CardHeader title="Check-in bằng khuôn mặt" />
+                <Divider />
+                <CardContent>
+                  <Grid container spacing={6} wrap="wrap">
+                    <Grid md={12} sm={12} xs={12}>
+                      <Stack spacing={1}>
+                        <FormGroup>
+                          <FormControlLabel
+                            control={<Checkbox checked={checkInFaceConfig.useCheckInFace}
+                              onChange={handleCheckInFaceChange} />}
+                            label="Sử dụng Check-in bằng khuôn mặt"
+                          />
+                          <FormHelperText>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Khách hàng sẽ nhận được lời mời đăng ký khuôn mặt khi mua vé thành công
+                            </Typography>
+                          </FormHelperText>
+                        </FormGroup>
+                      </Stack>
+                    </Grid>
+                    
+                  </Grid>
+                </CardContent>
+                <Divider />
+                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button variant="contained" color="primary" onClick={handleSaveCheckInFaceConfig} startIcon={<ScanSmileyIcon />} disabled={isCheckInFaceLoading}>
+                    {isCheckInFaceLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
                   </Button>
                 </CardActions>
               </Card>

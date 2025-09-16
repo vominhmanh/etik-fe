@@ -34,6 +34,7 @@ import { orange } from '@mui/material/colors';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 import { sha256 } from 'js-sha256';
+import { ScanSmiley as ScanSmileyIcon } from '@phosphor-icons/react/dist/ssr/ScanSmiley';
 
 export type TicketCategory = {
   id: number;
@@ -76,6 +77,7 @@ export type EventResponse = {
   displayOnMarketplace: boolean;
   displayOption: string;
   externalLink: string | null;
+  useCheckInFace: boolean;
 };
 
 
@@ -1058,18 +1060,20 @@ export default function Page(): React.JSX.Element {
                       Khám phá trang thông tin sự kiện.
                     </Button>
                   )}
+                  {event?.useCheckInFace && (
                   <Button
                     fullWidth
-                    variant='outlined'
+                    variant='contained'
                     size="small"
                     component="a"
                     href={`https://ekyc.etik.vn/ekyc-register?event_slug=${params.event_slug}&transaction_id=${responseTransaction?.id}&response_token=${responseTransaction?.customerResponseToken}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    startIcon={<UserPlus />}
+                    startIcon={<ScanSmileyIcon />}
                   >
-                    Đăng ký Check-in bằng khuôn mặt
+                    Đăng ký check-in bằng khuôn mặt
                   </Button>
+                  )}
                   <Button
                     fullWidth
                     variant='outlined'

@@ -33,6 +33,7 @@ import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { orange } from '@mui/material/colors';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
+import { ScanSmiley as ScanSmileyIcon } from '@phosphor-icons/react/dist/ssr/ScanSmiley';
 
 export type TicketCategory = {
   id: number;
@@ -75,7 +76,21 @@ export type EventResponse = {
   displayOnMarketplace: boolean;
   displayOption: string;
   externalLink: string | null;
+  useCheckInFace: boolean;
 };
+
+
+// TransactionResponse.ts
+export interface Transaction {
+  id: number;
+  email: string;
+  name: string;
+  paymentCheckoutUrl: string | null;
+  status: string;
+  createdAt: Date;
+  exportedTicketAt: string | null;
+  customerResponseToken: string | null;
+}
 
 const options = {
   enableHighAccuracy: true,
@@ -116,7 +131,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [requestedCategoryModalId, setRequestedCategoryModalId] = React.useState<number | null>(null);
   const [ticketHoldersByCategory, setTicketHoldersByCategory] = React.useState<Record<string, TicketHolderInfo[]>>({});
   const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
-
+  const [responseTransaction, setResponseTransaction] = React.useState<Transaction | null>(null);
 
   const NOTIF_KEY = 'hideNotifMarketplaceEventNotApprovedUntil';
 
@@ -375,12 +390,13 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         "longitude": position?.longitude
       };
 
-      const response = await baseHttpServiceInstance.post(
+      const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.post(
         `/marketplace/events/${params.event_slug}/transactions`,
         transactionData
       );
       // notificationCtx.success('Transaction created successfully!');
-      setOpenSuccessModal(true)
+      setResponseTransaction(response.data);
+      setOpenSuccessModal(true);
 
       // Redirect to the payment checkout URL
       if (response.data.paymentCheckoutUrl) {
@@ -935,6 +951,20 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                     >
                       Khám phá trang thông tin sự kiện.
                     </Button>
+                  )}
+                  {event?.useCheckInFace && (
+                  <Button
+                    fullWidth
+                    variant='contained'
+                    size="small"
+                    component="a"
+                    href={`https://ekyc.etik.vn/ekyc-register?event_slug=${params.event_slug}&transaction_id=${responseTransaction?.id}&response_token=${responseTransaction?.customerResponseToken}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    startIcon={<ScanSmileyIcon />}
+                  >
+                    Đăng ký check-in bằng khuôn mặt
+                  </Button>
                   )}
                   <Button
                     fullWidth
