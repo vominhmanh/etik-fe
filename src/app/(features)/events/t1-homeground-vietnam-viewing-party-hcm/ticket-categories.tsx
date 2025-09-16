@@ -245,7 +245,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                           : ""
                       : ticketCategory.sold >= ticketCategory.quantity
                         ? "| Đã hết"
-                        : `| Còn ${ticketCategory.quantity - ticketCategory.sold}/${ticketCategory.quantity} vé`
+                        : ``
                   }`
                 }
                 secondaryTypographyProps={{ variant: "caption" }}

@@ -25,7 +25,7 @@ import { Role } from './page';
 const getRoleTags = (role: string) => {
   switch (role) {
     case 'owner':
-      return { label: 'Chủ sở hữu', color: 'success' };
+      return { label: 'Quản trị viên', color: 'success' };
     case 'member':
       return { label: 'Thành viên', color: 'default' };
     case 'supporter':
