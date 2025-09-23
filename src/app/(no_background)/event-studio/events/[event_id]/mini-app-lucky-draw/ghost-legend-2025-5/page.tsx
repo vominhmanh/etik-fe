@@ -46,17 +46,17 @@ const titillium = Titillium_Web({ subsets: ["latin"], weight: ["400", "600", "70
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const { event_id } = params;
   const notificationCtx = useContext(NotificationContext);
-  const [initials, setInitials] = useState(Array(20).fill(true));
+  const [initials, setInitials] = useState(Array(5).fill(true));
   const [data, setData] = useState<TransactionECodeResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedComponents, setSelectedComponents] = useState<Record<string, SelectedComponent>>({});
   const [componentSettings, setComponentSettings] = useState<Record<string, ComponentSettings>>({});
   const [imagePreview, setImagePreview] = useState<string>();
-  const [isPlaying, setIsPlaying] = useState(Array(20).fill(false));
-  const [intervals, setIntervals] = useState(Array(20).fill(0.05)); // For 3 reveals, initially set to 0.1 each
-  const [durations, setDurations] = useState(Array(20).fill(Infinity)); // For 3 reveals, initially set to 0.1 each
-  const [results, setResults] = useState<(string | null)[]>(Array(20).fill(null)); // For 3 reveals, initially set to 0.1 each
+  const [isPlaying, setIsPlaying] = useState(Array(5).fill(false));
+  const [intervals, setIntervals] = useState(Array(5).fill(0.05)); // For 3 reveals, initially set to 0.1 each
+  const [durations, setDurations] = useState(Array(5).fill(Infinity)); // For 3 reveals, initially set to 0.1 each
+  const [results, setResults] = useState<(string | null)[]>(Array(5).fill(null)); // For 3 reveals, initially set to 0.1 each
   const [savedResults, setSavedResults] = useState<(string | null)[]>([]); // For 3 reveals, initially set to 0.1 each
   const [formValues, setFormValues] = React.useState<GetLuckyDrawConfigResponse>({
     listType: '',
@@ -111,10 +111,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     timeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
     timeoutsRef.current = [];
 
-    const newIntervals = Array(20).fill(0.05); // Set all intervals to 0.05 initially
-    const newPlaying = Array(20).fill(true); // Set all intervals to 0.05 initially
-    const newInitials = Array(20).fill(false); // Set all intervals to 0.05 initially
-    const newDurations = Array(20).fill(Infinity); // Set all intervals to 0.05 initially
+    const newIntervals = Array(5).fill(0.05); // Set all intervals to 0.05 initially
+    const newPlaying = Array(5).fill(true); // Set all intervals to 0.05 initially
+    const newInitials = Array(5).fill(false); // Set all intervals to 0.05 initially
+    const newDurations = Array(5).fill(Infinity); // Set all intervals to 0.05 initially
     // setDrawList(originalList)
     setIntervals(newIntervals);
     setIsPlaying(newPlaying);
@@ -125,7 +125,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   // Handle Stop button: set individual intervals and stop after 3 seconds
   const handleStopBtn = () => {
-    if (currentRevealIndex < 20) {
+    if (currentRevealIndex < 5) {
       const newIntervals = [...intervals];
       newIntervals[currentRevealIndex] = 0.2; // Set the current reveal to 0.3
       setIntervals(newIntervals);
@@ -478,16 +478,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             // Temporarily enable isPlaying to trigger reveal
 
             setIsPlaying(() => {
-              setInitials(Array(20).fill(true));
-              setResults(Array(20).fill(null));
-              setDurations(Array(20).fill(Infinity)); // Set all intervals to 0.05 initially
+              setInitials(Array(5).fill(true));
+              setResults(Array(5).fill(null));
+              setDurations(Array(5).fill(Infinity)); // Set all intervals to 0.05 initially
 
-              return Array(20).fill(true)
+              return Array(5).fill(true)
 
             });
             // Then stop all after a short timeout (e.g. 100ms)
             setTimeout(() => {
-              setIsPlaying(Array(20).fill(false));
+              setIsPlaying(Array(5).fill(false));
             }, 200); // You can fine-tune this delay
           }}
           sx={{
@@ -514,7 +514,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             timeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
             timeoutsRef.current = [];
 
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < 5; i++) {
               if (!isPlaying[i]) {
                 continue
               }
