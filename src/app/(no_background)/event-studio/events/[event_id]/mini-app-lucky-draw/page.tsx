@@ -220,6 +220,35 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               left: '50%',  // Center horizontally
               width: '10%',  // Parent takes up 90% of the width
               aspectRatio: '1/1.5',  // Maintain aspect ratio for the container
+              cursor: 'pointer'
+            }}
+          >
+            <Box component="img"
+              src="/assets/ghost-legend-2025-icon.png"  // Path to the app icon image
+              alt="App Icon"
+              sx={{
+                width: '100%',  // Image takes up 100% of the parent width
+                height: 'auto',  // Maintain the image's aspect ratio
+                borderRadius: '10%',  // Rounded corners
+                boxShadow: '0 10px 20px rgba(0, 0, 0, 0.3)',
+              }}
+            />
+
+            {/* App name below the icon */}
+            <div
+              style={{
+                position: 'absolute',
+                width: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontSize: '1.5cqw',
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+            >
+              Ghost Legend 5 users
+            </div>
+          </div>
         </div>
       )}
     </>
