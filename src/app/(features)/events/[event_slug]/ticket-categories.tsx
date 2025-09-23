@@ -164,7 +164,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
     } else {
       setCartQuantities((prev) => ({ ...prev, [id]: qty }));
       setTicketHolderInfosByCategory((prev) => ({ ...prev, [id]: ticketHolderInfos.slice(0, qty) }));
-      notificationCtx.info('Lưu thành công');
+      // notificationCtx.info('Lưu thành công');
     }
     if (typeof onAddToCart === 'function') {
       onAddToCart(id, qty, qty > 0 ? ticketHolderInfos.slice(0, qty) : []);

@@ -211,6 +211,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               Ghost Legend 20 users
             </div>
           </div>
+
+          <div
+            onClick={() => { router.push(`/event-studio/events/${event_id}/mini-app-lucky-draw/ghost-legend-2025-5`); }} // Use Next.js router for navigation
+            style={{
+              position: 'absolute',
+              top: '30%',  // Adjust vertical position
+              left: '50%',  // Center horizontally
+              width: '10%',  // Parent takes up 90% of the width
+              aspectRatio: '1/1.5',  // Maintain aspect ratio for the container
         </div>
       )}
     </>
