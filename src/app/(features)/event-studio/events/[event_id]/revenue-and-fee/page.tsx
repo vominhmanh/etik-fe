@@ -154,7 +154,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       // Handle success response
       if (response.status === 200) {
-        notificationCtx.success("Yêu cầu phê duyệt sự kiện đã được gửi thành công!");
+        notificationCtx.success("Yêu cầu nâng cấp thành Sự kiện Được xác thực đã được gửi thành công!");
         setEventAgencyRegistrationAndEventApprovalRequest(eventAgencyRegistrationAndEventApprovalRequest ? ({
           ...eventAgencyRegistrationAndEventApprovalRequest,
           eventApprovalRequest: 'waiting_for_acceptance'

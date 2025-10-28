@@ -1115,10 +1115,10 @@ export default function Page(): React.JSX.Element {
               <Stack spacing={3}>
                 <Stack spacing={1}>
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    Hiện tại, sự kiện này chỉ hiển thị với <b>người quản lý sự kiện</b> do sự kiện chưa được phê duyệt.
+                    Hiện tại, sự kiện này chỉ hiển thị với <b>người quản lý sự kiện</b> do sự kiện chưa được nâng cấp thành Sự kiện Được xác thực.
                   </Typography>
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    Để sự kiện được hiển thị công khai, quý khách vui lòng hoàn tất quá trình gửi yêu cầu phê duyệt tại trang quản trị sự kiện. Xin cảm ơn!
+                    Để sự kiện được hiển thị công khai, quý khách vui lòng nâng cấp thành Sự kiện Được xác thực tại trang quản trị sự kiện. Xin cảm ơn!
                   </Typography>
                 </Stack>
 

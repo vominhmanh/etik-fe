@@ -6,10 +6,18 @@ import { Show } from './page';
 export interface LatestProductsProps {
   shows?: Show[];
   onSelectionChange: (selectedShows: Show[]) => void;  // New prop for selection handling
+  lang?: 'vi' | 'en';
 }
 
-export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps): React.JSX.Element {
+export function Schedules({ shows = [], onSelectionChange, lang = 'vi' }: LatestProductsProps): React.JSX.Element {
   const [selectedShows, setSelectedShows] = useState<Show[]>([]);
+  const tt = React.useCallback((vi: string, en: string) => (lang === 'vi' ? vi : en), [lang]);
+  const formatTimeRange = React.useCallback((start: string, end: string) => {
+    if (lang === 'vi') {
+      return `${dayjs(start).format('HH:mm')} - ${dayjs(end).format('HH:mm | DD/MM/YYYY')}`;
+    }
+    return `${dayjs(start).format('h:mm A')} - ${dayjs(end).format('h:mm A | MMM D, YYYY')}`;
+  }, [lang]);
 
   const handleItemClick = (show: Show) => {
     const updatedSelectedShows = selectedShows.includes(show)
@@ -29,7 +37,7 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
 
   return (
     <Card>
-      <CardHeader title="Chọn lịch" />
+      <CardHeader title={tt('Chọn lịch', 'Choose schedule')} />
       <Divider />
       <List>
         {shows.map((show) => (
@@ -56,15 +64,16 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
             <ListItemText
               primary={show.name}
               primaryTypographyProps={{ variant: 'subtitle2' }}
-              secondary={(show.startDateTime && show.endDateTime
-                ? `${dayjs(show.startDateTime).format('HH:mm')} - ${dayjs(show.endDateTime).format('HH:mm | DD/MM/YYYY')}` : "")
+              secondary={
+                (show.startDateTime && show.endDateTime
+                  ? formatTimeRange(show.startDateTime, show.endDateTime) : "")
                 + (show.disabled
-                  ? " | Đang khóa bởi hệ thống"
+                  ? ` | ${tt('Đang khóa bởi hệ thống', 'Locked by system')}`
                   : show.status !== "on_sale"
                     ? show.status === "not_opened_for_sale"
-                      ? " | Chưa mở bán"
+                      ? ` | ${tt('Chưa mở bán', 'Not opened for sale')}`
                       : show.status === "temporarily_locked"
-                        ? " | Đang tạm khóa"
+                        ? ` | ${tt('Đang tạm khóa', 'Temporarily locked')}`
                         : ""
                     : "")
               }

@@ -263,6 +263,60 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     };
   }, []);
 
+  // Paste image handler (Ctrl+V)
+  const handlePaste = useCallback(async (e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items || items.length === 0) return;
+
+    const imageItems = Array.from(items).filter((item) => item.type && item.type.startsWith('image/'));
+    if (imageItems.length === 0) return;
+
+    e.preventDefault();
+
+    const quill = reactQuillRef.current?.getEditor();
+    if (!quill) return;
+
+    const selection = quill.getSelection(true);
+    let insertIndex = selection ? selection.index : quill.getLength();
+
+    try {
+      setIsLoading(true);
+      for (const item of imageItems) {
+        const file = item.getAsFile();
+        if (!file) continue;
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await baseHttpServiceInstance.post(
+          `/event-studio/events/${event_id}/upload_image`,
+          formData,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          }
+        );
+
+        const imageUrl = response.data.imageUrl;
+        quill.insertEmbed(insertIndex, 'image', imageUrl);
+        insertIndex += 1;
+      }
+    } catch (error) {
+      notificationCtx.error('Lỗi:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [event_id]);
+
+  useEffect(() => {
+    const quill = reactQuillRef.current?.getEditor();
+    if (!quill) return;
+    const root = quill.root as HTMLElement;
+    const listener = (evt: Event) => handlePaste(evt as ClipboardEvent);
+    root.addEventListener('paste', listener);
+    return () => {
+      root.removeEventListener('paste', listener);
+    };
+  }, [handlePaste]);
+
   // Custom Toolbar Options
   const modules = {
     toolbar: {

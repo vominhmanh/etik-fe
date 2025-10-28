@@ -251,7 +251,7 @@ export default function Page({
                     {formData.type === 'public' && (
                       <Grid md={4} xs={12}>
                         <FormControl fullWidth required>
-                          <InputLabel>Cách phê duyệt yêu cầu mua vé của khách hàng</InputLabel>
+                          <InputLabel>Cách phê duyệt đơn hàng</InputLabel>
                           <Select label="Cách phê duyệt yêu cầu mua vé của khách hàng" name="approvalMethod" value={formData.approvalMethod} onChange={(event: any) => handleChange(event)}>
                             <MenuItem value="auto">Tự động phê duyệt</MenuItem>
                             <MenuItem value="manual">Phê duyệt thủ công</MenuItem>

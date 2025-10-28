@@ -16,7 +16,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { ArrowSquareIn, Clipboard, Eye, Storefront } from '@phosphor-icons/react/dist/ssr';
+import { ArrowSquareIn, CheckCircle, Clipboard, Eye, Storefront } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
@@ -156,7 +156,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       // Handle success response
       if (response.status === 200) {
-        notificationCtx.success("Yêu cầu phê duyệt sự kiện đã được gửi thành công!");
+        notificationCtx.success("Yêu cầu nâng cấp thành Sự kiện Được xác thực đã được gửi thành công!");
         setEventAgencyRegistrationAndEventApprovalRequest(eventAgencyRegistrationAndEventApprovalRequest ? ({
           ...eventAgencyRegistrationAndEventApprovalRequest,
           eventApprovalRequest: 'waiting_for_acceptance'
@@ -397,6 +397,62 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     };
   }, []);
 
+  // Paste image handler (Ctrl+V)
+  const handlePaste = useCallback(async (e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items || items.length === 0) return;
+
+    const imageItems = Array.from(items).filter((item) => item.type && item.type.startsWith('image/'));
+    if (imageItems.length === 0) return;
+
+    // Prevent default paste when we detect images
+    e.preventDefault();
+
+    const quill = reactQuillRef.current?.getEditor();
+    if (!quill) return;
+
+    const selection = quill.getSelection(true);
+    let insertIndex = selection ? selection.index : quill.getLength();
+
+    try {
+      setIsLoading(true);
+      for (const item of imageItems) {
+        const file = item.getAsFile();
+        if (!file) continue;
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await baseHttpServiceInstance.post(
+          `/event-studio/events/${event_id}/upload_image`,
+          formData,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          }
+        );
+
+        const imageUrl = response.data.imageUrl;
+        quill.insertEmbed(insertIndex, 'image', imageUrl);
+        insertIndex += 1;
+      }
+    } catch (error) {
+      notificationCtx.error('Lỗi:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [event_id]);
+
+  // Attach paste listener to Quill root
+  useEffect(() => {
+    const quill = reactQuillRef.current?.getEditor();
+    if (!quill) return;
+    const root = quill.root as HTMLElement;
+    const listener = (evt: Event) => handlePaste(evt as ClipboardEvent);
+    root.addEventListener('paste', listener);
+    return () => {
+      root.removeEventListener('paste', listener);
+    };
+  }, [handlePaste]);
+
   // Custom Toolbar Options
   const modules = {
     toolbar: {
@@ -462,19 +518,24 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 sx={{
                   position: 'relative',
                   width: '100%',
-                  aspectRatio: 16 / 6, // 16:9 aspect ratio (modify as needed)
+                  aspectRatio: 16 / 6,
                   overflow: 'hidden',
                   border: 'grey 1px',
                   borderRadius: '20px',
                   backgroundColor: 'gray',
                 }}
               >
-                <Box component="img"
-                  src={previewBannerUrl || event?.bannerUrl}
-                  alt="Car"
+                <Box
+                  component="img"
+                  src={previewBannerUrl || event?.bannerUrl || ''}
+                  alt="Sự kiện"
                   sx={{
-                    position: 'absolute', top: 0, left: 0,
-                    width: '100%', height: '100%', objectFit: 'cover',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: 'auto',
+                    objectFit: 'cover',
                   }}
                 />
                 <IconButton
@@ -545,15 +606,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                       <div style={{ position: 'relative' }}>
                         {previewAvatarUrl || event?.avatarUrl ? (
-                          <Box 
-                            component="img" 
-                            src={previewAvatarUrl || event?.avatarUrl} 
-                            sx={{ 
-                              height: '80px', 
-                              width: '80px', 
+                          <Box
+                            component="img"
+                            src={previewAvatarUrl || event?.avatarUrl}
+                            sx={{
+                              height: '80px',
+                              width: '80px',
                               borderRadius: '50%',
                               objectFit: 'cover'
-                            }} 
+                            }}
                           />
                         ) : (
                           <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
@@ -696,7 +757,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               color='success'
                             >
                               <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                                <span>Sự kiện đã được phê duyệt</span>
+                                <Box
+                                  component="span"
+                                  sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, lineHeight: 1 }}
+                                >
+                                  <CheckCircle size={16} weight="fill" />
+                                  Sự kiện Được xác thực
+                                </Box>
                                 <small>bán vé có thanh toán online, gửi email marketing,...</small>
                               </Stack>
                             </Button>
@@ -722,7 +789,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               onClick={handleRequestEventApprovalClick}
                             >
                               <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                                <small color='error'>Yêu cầu phê duyệt bị từ chối</small>
+                                <small color='error'>Yêu cầu nâng cấp bị từ chối</small>
                                 <span>Nhấn để yêu cầu lại</span>
                               </Stack>
                             </Button>
@@ -735,8 +802,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               onClick={handleRequestEventApprovalClick}
                             >
                               <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                                <span>Gửi yêu cầu Phê duyệt sự kiện</span>
-                                <small>Để bán vé có thanh toán online, gửi email marketing,...</small>
+                                <span>nâng cấp thành Sự kiện Được xác thực</span>
+                                <small>Để bật thanh toán online, gửi email marketing,...</small>
                               </Stack>
                             </Button>
                           )}
@@ -760,21 +827,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <Stack spacing={3}>
 
               <Card>
-                <CardHeader title="Đơn vị tổ chức" />
+                <CardHeader title="Thông tin liên hệ" />
                 <Divider />
                 <CardContent>
                   <Grid container spacing={3}>
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel>Đơn vị tổ chức</InputLabel>
-                        <OutlinedInput
-                          value={formValues.organizer}
-                          onChange={handleInputChange}
-                          label="Đơn vị tổ chức"
-                          name="organizer"
-                        />
-                      </FormControl>
-                    </Grid>
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth required>
                         <InputLabel>Email đơn vị tổ chức</InputLabel>
@@ -818,6 +874,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           onChange={handleInputChange}
                           label="Tên sự kiện"
                           name="name"
+                        />
+                      </FormControl>
+                    </Grid>
+                    <Grid md={12} xs={12}>
+                      <FormControl fullWidth required>
+                        <InputLabel>Đơn vị tổ chức</InputLabel>
+                        <OutlinedInput
+                          value={formValues.organizer}
+                          onChange={handleInputChange}
+                          label="Đơn vị tổ chức"
+                          name="organizer"
                         />
                       </FormControl>
                     </Grid>
@@ -989,7 +1056,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         </Select>
                         {!(event.adminReviewStatus === 'accepted') &&
                           <FormHelperText>
-                            Bạn cần gửi yêu cầu phê duyệt sự kiện để có thể thay đổi chế độ hiển thị sự kiện
+                            Vui lòng nâng cấp thành Sự kiện Được xác thực để thay đổi chế độ hiển thị sự kiện
                           </FormHelperText>
                         }
                       </FormControl>
@@ -1032,10 +1099,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <CardContent>
               <Stack spacing={1} textAlign={'justify'}>
                 <Typography variant="body2">
-                  <b>Để sự kiện được phê duyệt, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:</b>
-                </Typography>
-                <Typography variant="body2">
-                  - Tài khoản dùng để tạo sự kiện đã được xác thực <b style={{ color: 'text.success' }}>tài khoản Event Agency</b>. Xem tình trạng xác thực tại mục <a href='/account-event-agency' target='_blank'><b>Tài khoản của tôi</b></a>
+                  <b>Để sự kiện được nâng cấp thành Sự kiện Được xác thực, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:</b>
                 </Typography>
                 <Typography variant="body2">
                   - Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.

@@ -182,7 +182,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       // Handle success response
       if (response.status === 200) {
-        notificationCtx.success("Yêu cầu phê duyệt sự kiện đã được gửi thành công!");
+        notificationCtx.success("Yêu cầu nâng cấp thành Sự kiện Được xác thực đã được gửi thành công!");
         setEventAgencyRegistrationAndEventApprovalRequest(eventAgencyRegistrationAndEventApprovalRequest ? ({
           ...eventAgencyRegistrationAndEventApprovalRequest,
           eventApprovalRequest: 'waiting_for_acceptance'
@@ -778,10 +778,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <CardContent>
               <Stack spacing={1} textAlign={'justify'}>
                 <Typography variant="body2">
-                  <b>Để sự kiện được phê duyệt, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:</b>
-                </Typography>
-                <Typography variant="body2">
-                  - Tài khoản dùng để tạo sự kiện đã được xác thực <b style={{ color: 'text.success' }}>tài khoản Event Agency</b>. Xem tình trạng xác thực tại mục <a href='/account-event-agency' target='_blank'><b>Tài khoản của tôi</b></a>
+                  <b>Để sự kiện được nâng cấp thành Sự kiện Được xác thực, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:</b>
                 </Typography>
                 <Typography variant="body2">
                   - Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.
@@ -789,7 +786,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Typography variant="body2">
                   - Thời gian và địa điểm rõ ràng, chính xác. Hạn chế thay đổi thông tin về thời gian, địa điểm và phải thông báo cho ETIK trước khi thay đổi.
                 </Typography>
-
                 <Typography variant="body2">
                   - Chính sách Giá vé, chính sách hoàn trả, hủy vé rõ ràng, minh bạch.
                 </Typography>

@@ -20,13 +20,14 @@ import { Plus, Ticket, X } from "@phosphor-icons/react/dist/ssr";
 import NotificationContext from "@/contexts/notification-context";
 
 
-interface TicketCategoriesProps {
+export interface TicketCategoriesProps {
   show: Show;
   qrOption?: string;
   requestedCategoryModalId?: number;
   onModalRequestHandled?: () => void;
   onCategorySelect: (ticketCategoryId: number) => void;
   onAddToCart?: (ticketCategoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; }[]) => void;
+  lang?: 'vi' | 'en';
 }
 
 type ColorMap = {
@@ -44,7 +45,7 @@ const colorMap: ColorMap = {
   7: deepPurple[300],
 };
 
-export function TicketCategories({ show, qrOption, requestedCategoryModalId, onModalRequestHandled, onCategorySelect, onAddToCart }: TicketCategoriesProps): React.JSX.Element {
+export function TicketCategories({ show, qrOption, requestedCategoryModalId, onModalRequestHandled, onCategorySelect, onAddToCart, lang = 'vi' }: TicketCategoriesProps): React.JSX.Element {
   const ticketCategories = show.ticketCategories;
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [ticketCategoryDescriptionModalOpen, setTicketCategoryDescriptionModalOpen] = useState(false);
@@ -57,6 +58,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
   const [ticketHolderInfos, setTicketHolderInfos] = useState<{ title: string; name: string; email: string; phone: string; }[]>([]);
   const [ticketHolderInfosByCategory, setTicketHolderInfosByCategory] = useState<Record<number, TicketHolderInfo[]>>({});
   // no separate holder modal; details are inside the description modal
+  const tt = React.useCallback((vi: string, en: string) => (lang === 'vi' ? vi : en), [lang]);
 
   React.useEffect(() => {
     if (!requestedCategoryModalId) return;
@@ -145,7 +147,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
     if (qty > 0 && qrOption === 'separate') {
       const hasInvalid = ticketHolderInfos.slice(0, qty).some((h) => !h.title || !h.name );
       if (hasInvalid) {
-        notificationCtx.warning('Vui lòng điền đủ thông tin người tham dự (họ tên, email, số điện thoại) cho mỗi vé.');
+        notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự (họ tên, email, số điện thoại) cho mỗi vé.', 'Please complete attendee information (full name, email, phone) for each ticket.'));
         return;
       }
     }
@@ -160,7 +162,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
         delete next[id];
         return next;
       });
-      notificationCtx.info('Xóa khỏi đơn hàng thành công');
+      notificationCtx.info(tt('Xóa khỏi đơn hàng thành công', 'Removed from cart'));
     } else {
       setCartQuantities((prev) => ({ ...prev, [id]: qty }));
       setTicketHolderInfosByCategory((prev) => ({ ...prev, [id]: ticketHolderInfos.slice(0, qty) }));
@@ -173,11 +175,23 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
 
   };
 
+  const getAvailabilityLabel = (ticketCategory: any) => {
+    if (ticketCategory.disabled) return `| ${tt('Đang khóa bởi hệ thống', 'Locked by system')}`;
+    if (ticketCategory.status !== 'on_sale') {
+      if (ticketCategory.status === 'not_opened_for_sale') return `| ${tt('Chưa mở bán', 'Not opened for sale')}`;
+      if (ticketCategory.status === 'temporarily_locked') return `| ${tt('Đang tạm khóa', 'Temporarily locked')}`;
+      return '';
+    }
+    if (ticketCategory.sold >= ticketCategory.quantity) return `| ${tt('Đã hết', 'Sold out')}`;
+    const left = (ticketCategory.quantity - ticketCategory.sold);
+    return `| ${tt(`Còn ${left} vé`, `${left}/${ticketCategory.quantity} tickets left`)}`;
+  };
+
   return (
     <>
       <Card>
         <CardHeader
-          title={`Chọn loại vé cho ${show.name}`}
+          title={`${tt('Chọn loại vé cho', 'Choose ticket type for')} ${show.name}`}
           action={
             <IconButton>
               <ArrowCounterClockwiseIcon fontSize="var(--icon-fontSize-md)" />
@@ -234,20 +248,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                 onClick={() => handleOpenDescriptionModal(ticketCategory)}
                 primary={ticketCategory.name}
                 primaryTypographyProps={{ variant: "subtitle2" }}
-                secondary={
-                  `${formatPrice(ticketCategory.price)} ${ticketCategory.disabled
-                    ? "| Đang khóa bởi hệ thống"
-                    : ticketCategory.status !== "on_sale"
-                      ? ticketCategory.status === "not_opened_for_sale"
-                        ? "| Chưa mở bán"
-                        : ticketCategory.status === "temporarily_locked"
-                          ? "| Đang tạm khóa"
-                          : ""
-                      : ticketCategory.sold >= ticketCategory.quantity
-                        ? "| Đã hết"
-                        : `| Còn ${ticketCategory.quantity - ticketCategory.sold}/${ticketCategory.quantity} vé`
-                  }`
-                }
+                secondary={`${formatPrice(ticketCategory.price)} ${getAvailabilityLabel(ticketCategory)}`}
                 secondaryTypographyProps={{ variant: "caption" }}
               />
               {cartQuantities[ticketCategory.id] ? (
@@ -321,30 +322,26 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                       {showMore && (
                         <>
                           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                            Số vé tối đa mỗi đơn hàng:{" "}
-                            {selectedTicketCategory?.limitPerTransaction || "Không giới hạn"}
+                            {tt('Số vé tối đa mỗi đơn hàng', 'Max tickets per order')}: {selectedTicketCategory?.limitPerTransaction || tt('Không giới hạn', 'No limit')}
                           </Typography>
                           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                            Số vé tối đa mỗi khách hàng:{" "}
-                            {selectedTicketCategory?.limitPerCustomer || "Không giới hạn"}
+                            {tt('Số vé tối đa mỗi khách hàng', 'Max tickets per customer')}: {selectedTicketCategory?.limitPerCustomer || tt('Không giới hạn', 'No limit')}
                           </Typography>
                         </>
                       )}
                       {!showMore && (
                         <Button size="small" variant="text" onClick={() => setShowMore(true)} sx={{ alignSelf: 'flex-start', px: 0 }}>
-                          Xem thêm
+                          {tt('Xem thêm', 'Show more')}
                         </Button>
                       )}
                     </>
                   ) : (
                     <>
                       <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                        Số vé tối đa mỗi đơn hàng:{" "}
-                        {selectedTicketCategory?.limitPerTransaction || "Không giới hạn"}
+                        {tt('Số vé tối đa mỗi đơn hàng', 'Max tickets per order')}: {selectedTicketCategory?.limitPerTransaction || tt('Không giới hạn', 'No limit')}
                       </Typography>
                       <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                        Số vé tối đa mỗi khách hàng:{" "}
-                        {selectedTicketCategory?.limitPerCustomer || "Không giới hạn"}
+                        {tt('Số vé tối đa mỗi khách hàng', 'Max tickets per customer')}: {selectedTicketCategory?.limitPerCustomer || tt('Không giới hạn', 'No limit')}
                       </Typography>
                     </>
                   )}
@@ -353,7 +350,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                   {/* createdAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Đơn giá</Typography>
+                      <Typography variant="body1">{tt('Đơn giá', 'Unit price')}</Typography>
                     </Stack>
                     <Typography variant="body1">
                       {formatPrice(selectedTicketCategory?.price || 0)}
@@ -361,7 +358,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                   </Grid>
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Số lượng vé</Typography>
+                      <Typography variant="body1">{tt('Số lượng vé', 'Ticket quantity')}</Typography>
                     </Stack>
                     <Typography variant="body1">
                       <OutlinedInput
@@ -376,7 +373,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                   </Grid>
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Thành tiền</Typography>
+                      <Typography variant="body1">{tt('Thành tiền', 'Total')}</Typography>
                     </Stack>
                     <Typography variant="body1">
                       {formatPrice((selectedTicketCategory?.price || 0) * (ticketQuantities[selectedTicketCategory?.id as number] ?? 0))}
@@ -385,15 +382,15 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                 </Stack>
                 {qrOption === 'separate' && (
                   <Stack spacing={1}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Thông tin người tham dự</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt('Thông tin người tham dự', 'Attendee information')}</Typography>
                     <Grid container spacing={2}>
                       {ticketHolderInfos.map((holder, index) => (
                         <React.Fragment key={`holder-${index}`}>
                           <Grid item md={5} xs={12}>
                             <FormControl fullWidth size="small" required>
-                              <InputLabel>Danh xưng* &emsp; Họ và tên vé {index + 1}</InputLabel>
+                              <InputLabel>{tt('Danh xưng*  Họ và tên vé', 'Title*  Full name (ticket)')} {index + 1}</InputLabel>
                               <OutlinedInput
-                                label={`Danh xưng* &emsp; Họ và tên vé ${index + 1}`}
+                                label={`${tt('Danh xưng*  Họ và tên vé', 'Title*  Full name (ticket)')} ${index + 1}`}
                                 value={holder.name}
                                 onChange={(e) => {
                                   setTicketHolderInfos((prev) => {
@@ -436,9 +433,9 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                           </Grid>
                           <Grid item md={4} xs={12}>
                             <FormControl fullWidth size="small">
-                              <InputLabel>Email vé {index + 1}</InputLabel>
+                              <InputLabel>{tt('Email vé', 'Ticket email')} {index + 1}</InputLabel>
                               <OutlinedInput
-                                label={`Email vé ${index + 1}`}
+                                label={`${tt('Email vé', 'Ticket email')} ${index + 1}`}
                                 type="email"
                                 value={holder.email}
                                 onChange={(e) => {
@@ -453,9 +450,9 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                           </Grid>
                           <Grid item md={3} xs={12}>
                             <FormControl fullWidth size="small">
-                              <InputLabel>SĐT vé {index + 1}</InputLabel>
+                              <InputLabel>{tt('SĐT vé', 'Ticket phone')} {index + 1}</InputLabel>
                               <OutlinedInput
-                                label={`SĐT vé ${index + 1}`}
+                                label={`${tt('SĐT vé', 'Ticket phone')} ${index + 1}`}
                                 type="tel"
                                 value={holder.phone}
                                 onChange={(e) => {
@@ -492,7 +489,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                   (ticketQuantities[selectedTicketCategory?.id as number] ?? 0) < 0
                 }
               >
-                {(ticketQuantities[selectedTicketCategory?.id as number] ?? 1) > 0 ? 'Lưu' : 'Xóa khỏi giỏ hàng'}
+                {(ticketQuantities[selectedTicketCategory?.id as number] ?? 1) > 0 ? tt('Lưu', 'Save') : tt('Xóa khỏi giỏ hàng', 'Remove from cart')}
               </Button>
             </CardActions>
           </Card>
