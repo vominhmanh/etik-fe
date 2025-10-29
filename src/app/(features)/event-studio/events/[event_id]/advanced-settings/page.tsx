@@ -69,6 +69,12 @@ export interface SMTPConfig {
   smtpSenderEmail?: string;
 }
 
+export interface EmailTemplateConfig {
+  type: "template_default" | "template_english" | "template_other";
+  templateOtherNameTransaction?: string;
+  templateOtherNameTicket?: string;
+}
+
 export interface SendTicketMethodsRequest {
   useEmailMethod: boolean;
   useEmailMethodAsDefault: boolean;
@@ -93,6 +99,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSmtpLoading, setIsSmtpLoading] = useState<boolean>(false);
+  const [isEmailTemplateLoading, setIsEmailTemplateLoading] = useState<boolean>(false);
   const [isSendTicketMethodsLoading, setIsSendTicketMethodsLoading] = useState<boolean>(false);
   const [isCheckInFaceLoading, setIsCheckInFaceLoading] = useState<boolean>(false);
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
@@ -113,6 +120,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     smtpSenderEmail: "",
   });
 
+  const [emailTemplateFormValues, setEmailTemplateFormValues] = useState<EmailTemplateConfig>({
+    type: "template_default",
+    templateOtherNameTransaction: "",
+    templateOtherNameTicket: "",
+  });
+
   const [sendTicketMethods, setSendTicketMethods] = useState<SendTicketMethodsRequest>({
     useEmailMethod: false,
     useEmailMethodAsDefault: false,
@@ -128,14 +141,36 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     async function fetchData() {
       setIsLoading(true);
       try {
-        const data = await getSMTPSettings(params.event_id);
-        if (data) setSmtpFormValues(data);
-        const sendMethods = await getSendTicketMethods(params.event_id);
-        if (sendMethods) setSendTicketMethods(sendMethods);
-        const faceCfg = await getCheckInFaceConfig(params.event_id);
-        if (faceCfg) setCheckInFaceConfig(faceCfg);
-      } catch (error) {
-        notificationCtx.error(error);
+        const [smtpRes, emailTplRes, sendMethodsRes, faceCfgRes] = await Promise.allSettled([
+          getSMTPSettings(params.event_id),
+          getEmailTemplateSettings(params.event_id),
+          getSendTicketMethods(params.event_id),
+          getCheckInFaceConfig(params.event_id),
+        ]);
+
+        if (smtpRes.status === 'fulfilled' && smtpRes.value) {
+          setSmtpFormValues(smtpRes.value);
+        } else if (smtpRes.status === 'rejected') {
+          notificationCtx.warning('Không tải được cài đặt SMTP');
+        }
+
+        if (emailTplRes.status === 'fulfilled' && emailTplRes.value) {
+          setEmailTemplateFormValues(emailTplRes.value);
+        } else if (emailTplRes.status === 'rejected') {
+          notificationCtx.warning('Không tải được cài đặt template email');
+        }
+
+        if (sendMethodsRes.status === 'fulfilled' && sendMethodsRes.value) {
+          setSendTicketMethods(sendMethodsRes.value);
+        } else if (sendMethodsRes.status === 'rejected') {
+          notificationCtx.warning('Không tải được phương thức gửi vé');
+        }
+
+        if (faceCfgRes.status === 'fulfilled' && faceCfgRes.value) {
+          setCheckInFaceConfig(faceCfgRes.value);
+        } else if (faceCfgRes.status === 'rejected') {
+          notificationCtx.warning('Không tải được cài đặt Check-in bằng khuôn mặt');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -163,14 +198,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
     fetchEventApprovalStatus();
   }, [params.event_id]);
-
-  const handleRequestEventApprovalClick = () => {
-    if (!eventAgencyRegistrationAndEventApprovalRequest?.eventAgencyRegistration) {
-      setOpenEventAgencyRegistrationModal(true); // Show modal if eventAgencyRegistration is false
-    } else {
-      setOpenConfirmSubmitEventApprovalModal(true)
-    }
-  };
 
   const handleSendRequestEventApproval = async () => {
     try {
@@ -265,111 +292,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   };
 
-  // Handle avatar selection
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedAvatar(file);
-      setPreviewAvatarUrl(URL.createObjectURL(file)); // Generate preview URL
-      setIsAvatarSelected(true); // Toggle button state
-    }
-  };
-
-  // Handle saving the avatar
-  const handleSaveAvatar = async () => {
-    if (!selectedAvatar) return;
-
-    const formData = new FormData();
-    formData.append('file', selectedAvatar);
-
-    try {
-      // Call API to upload the avatar
-      setIsLoading(true);
-      await baseHttpServiceInstance.post(`/event-studio/events/${event?.id}/upload-avatar`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }, true);
-
-      // On successful upload, reload the page or update the avatar state
-      window.location.reload(); // Optionally, you could call a function to update the state instead of reloading
-    } catch (error: any) {
-      const message =
-        // 1) If it’s a JS Error instance
-        error instanceof Error ? error.message
-          // 2) If it’s an AxiosError with a response body
-          : error.response?.data?.message
-            ? error.response.data.message
-            // 3) If it’s a plain string
-            : typeof error === 'string'
-              ? error
-              // 4) Fallback to JSON‐dump of the object
-              : JSON.stringify(error);
-      notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle selecting another avatar
-  const handleSelectOtherAvatar = () => {
-    setSelectedAvatar(null);
-    setPreviewAvatarUrl(event?.avatarUrl || '');
-    setIsAvatarSelected(false); // Reset state
-  };
-
-  // Handle image selection
-  const handleBannerImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      setPreviewBannerUrl(URL.createObjectURL(file)); // Generate preview URL
-      setIsImageSelected(true); // Toggle button state
-    }
-  };
-
-  // Handle saving the image
-  const handleSaveBannerImage = async () => {
-    if (!selectedImage) return;
-
-    const formData = new FormData();
-    formData.append('file', selectedImage);
-
-    try {
-      // Call API to upload the image
-      setIsLoading(true);
-      await baseHttpServiceInstance.post(`/event-studio/events/${event?.id}/upload_banner`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }, true);
-
-      // On successful upload, reload the page or handle success
-      window.location.reload(); // You can also call a function to update the state instead of reloading
-    } catch (error: any) {
-      const message =
-        // 1) If it’s a JS Error instance
-        error instanceof Error ? error.message
-          // 2) If it’s an AxiosError with a response body
-          : error.response?.data?.message
-            ? error.response.data.message
-            // 3) If it’s a plain string
-            : typeof error === 'string'
-              ? error
-              // 4) Fallback to JSON‐dump of the object
-              : JSON.stringify(error);
-      notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle selecting another image
-  const handleSelectBannerOther = () => {
-    setSelectedImage(null);
-    setPreviewBannerUrl(event?.bannerUrl || '');
-    setIsImageSelected(false); // Reset state
-  };
 
   useEffect(() => {
     if (event_id) {
@@ -391,39 +313,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       fetchEventDetails();
     }
   }, [event_id]);
-
-  // Handle form value changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormValues((prevValues) => (prevValues ? { ...prevValues, [name]: value } : null));
-  };
-
-  const handleDescriptionChange = (value: string) => {
-    setDescription(value);
-    setFormValues((prevValues) => (prevValues ? { ...prevValues, description: value } : null));
-  };
-
-  const handleFormSubmit = async () => {
-    if (formValues && event_id) {
-      try {
-        setIsLoading(true);
-        await baseHttpServiceInstance.put(`/event-studio/events/${event_id}`, { ...formValues, description });
-        notificationCtx.success('Sửa thành công. Sẽ cập nhật lên trang chủ sau 1 phút.');
-      } catch (error) {
-        notificationCtx.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const handleCopyToClipboard = (data: string) => {
-    navigator.clipboard.writeText(data).then(() => {
-      notificationCtx.success("Đã sao chép vào bộ nhớ tạm"); // Show success message
-    }).catch(() => {
-      notificationCtx.warning("Không thể sao chép, vui lòng thử lại"); // Handle errors
-    });
-  };
 
   // Image Upload Handler
   const handleImageUpload = useCallback(() => {
@@ -495,6 +384,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       throw error;
     }
   }
+  
 
   async function saveSMTPSettings(eventId: number, smtpConfig: SMTPConfig): Promise<void> {
     try {
@@ -503,6 +393,53 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       throw error;
     }
   }
+
+  async function getEmailTemplateSettings(eventId: number): Promise<EmailTemplateConfig | null> {
+    try {
+      const response: AxiosResponse<EmailTemplateConfig> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${eventId}/email-template/settings`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+  
+
+  async function saveEmailTemplateSettings(eventId: number, emailTemplateConfig: EmailTemplateConfig): Promise<void> {
+    try {
+      await baseHttpServiceInstance.post(`/event-studio/events/${eventId}/email-template/settings`, emailTemplateConfig);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  const handleEmailTemplateInputChange = (event: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+    setEmailTemplateFormValues((prevValues) => ({
+      ...prevValues,
+      [event.target.name as string]: event.target.value,
+    }));
+  };
+
+  const handleSaveEmailTemplateConfig = async () => {
+    try {
+      if (emailTemplateFormValues.type === 'template_other') {
+        const nameTxn = emailTemplateFormValues.templateOtherNameTransaction?.trim();
+        const nameTicket = emailTemplateFormValues.templateOtherNameTicket?.trim();
+        if (!nameTxn || !nameTicket) {
+          notificationCtx.warning('Vui lòng nhập tên template tùy chỉnh cho cả giao dịch và vé.');
+          return;
+        }
+      }
+      setIsEmailTemplateLoading(true);
+      await saveEmailTemplateSettings(event_id, emailTemplateFormValues);
+      notificationCtx.success('Cấu hình template email đã được lưu thành công!');
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsEmailTemplateLoading(false);
+    }
+  };
 
   async function getSendTicketMethods(eventId: number): Promise<SendTicketMethodsRequest | null> {
     try {
@@ -747,6 +684,62 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button variant="contained" color="primary" onClick={handleSaveSmtpSettings} disabled={isLoading}>
                     {isSmtpLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
+                  </Button>
+                </CardActions>
+              </Card>
+              <Card>
+                <CardHeader title="Cấu hình template Email vé" />
+                <Divider />
+                <CardContent>
+                  <Grid container spacing={3}>
+                    {/* Template selection */}
+                    <Grid md={12} xs={12}>
+                      <FormControl fullWidth required>
+                        <InputLabel>Template</InputLabel>
+                        <Select
+                          label="Template"
+                          name="type"
+                          value={emailTemplateFormValues.type}
+                          onChange={(event: any) => handleEmailTemplateInputChange(event)}
+                        >
+                          <MenuItem value={'template_default'}>Template mặc định</MenuItem>
+                          <MenuItem value={'template_english'}>Template English</MenuItem>
+                          <MenuItem value={'template_other'}>Template tùy chỉnh</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    {emailTemplateFormValues.type === 'template_other' && (
+                      <>
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth required>
+                            <InputLabel>Tên template (Email giao dịch)</InputLabel>
+                            <OutlinedInput
+                              label="Tên template (Email giao dịch)"
+                              name="templateOtherNameTransaction"
+                              value={emailTemplateFormValues.templateOtherNameTransaction || ''}
+                              onChange={handleEmailTemplateInputChange}
+                            />
+                          </FormControl>
+                        </Grid>
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth required>
+                            <InputLabel>Tên template (Email vé)</InputLabel>
+                            <OutlinedInput
+                              label="Tên template (Email vé)"
+                              name="templateOtherNameTicket"
+                              value={emailTemplateFormValues.templateOtherNameTicket || ''}
+                              onChange={handleEmailTemplateInputChange}
+                            />
+                          </FormControl>
+                        </Grid>
+                      </>
+                    )}
+                  </Grid>
+                </CardContent>
+                <Divider />
+                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button variant="contained" color="primary" onClick={handleSaveEmailTemplateConfig} disabled={isEmailTemplateLoading}>
+                    {isEmailTemplateLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
                   </Button>
                 </CardActions>
               </Card>

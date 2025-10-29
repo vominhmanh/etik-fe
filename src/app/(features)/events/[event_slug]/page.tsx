@@ -152,7 +152,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     if (lang === 'en') {
       if (customer.title === 'Anh') return 'Mr.';
       if (customer.title === 'Chị') return 'Ms.';
-      return 'You';
+      return 'Mx.';
     }
     return customer.title;
   }, [lang, customer.title]);
@@ -738,7 +738,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                                 >
                                   <MenuItem value="Anh">{tt('Anh', 'Mr.')}</MenuItem>
                                   <MenuItem value="Chị">{tt('Chị', 'Ms.')}</MenuItem>
-                                  <MenuItem value="Bạn">{tt('Bạn', 'You')}</MenuItem>
+                                  <MenuItem value="Bạn">{tt('Bạn', 'Mx.')}</MenuItem>
                                 </Select>
                               </InputAdornment>
                             }
