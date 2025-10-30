@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, InputAdornment, MenuItem, Select, Stack, Tooltip } from '@mui/material';
+import { Avatar, Box, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, InputAdornment, Stack, Tooltip, Checkbox } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -581,34 +581,6 @@ export default function Page({ params }: { params: { transaction_id: number } })
             <Card>
               <CardHeader
                 title={`Danh sách vé: ${transaction.ticketQuantity} vé`}
-                action={
-                  <FormControl size="small" sx={{ width: 210 }}>
-                    <InputLabel id="qr-option-label">Thông tin trên vé</InputLabel>
-                    <Select
-                      labelId="qr-option-label"
-                      value={transaction.qrOption}
-                      label="Thông tin trên vé"
-                      disabled
-                    >
-                      <MenuItem value="shared">
-                        <Stack>
-                          <Typography variant="body2">Giống thông tin người mua</Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            dùng một QR check-in tất cả vé
-                          </Typography>
-                        </Stack>
-                      </MenuItem>
-                      <MenuItem value="separate">
-                        <Stack>
-                          <Typography variant="body2">Nhập thông tin từng vé</Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            mỗi vé một mã QR
-                          </Typography>
-                        </Stack>
-                      </MenuItem>
-                    </Select>
-                  </FormControl>
-                }
               />
               <Divider />
               <CardContent>
@@ -683,6 +655,32 @@ export default function Page({ params }: { params: { transaction_id: number } })
                 </Stack>
               </CardContent>
             </Card>
+            {transaction.ticketQuantity > 1 && (
+              <Card>
+                <CardHeader title="Tùy chọn bổ sung" />
+                <Divider />
+                <CardContent>
+                  <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                    <Stack>
+                      <Typography variant="body2">Sử dụng mã QR riêng cho từng vé</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        Bạn cần nhập thông tin cho từng vé.
+                      </Typography>
+                    </Stack>
+                    <Checkbox
+                      checked={transaction.qrOption === 'separate'}
+                      disabled
+                      onChange={(_e, checked) => {
+                        setTransaction({ ...transaction, qrOption: checked ? 'separate' : 'shared' });
+                        if (checked) {
+                          notificationCtx.info('Vui lòng điền thông tin cho từng vé');
+                        }
+                      }}
+                    />
+                  </Stack>
+                </CardContent>
+              </Card>
+            )}
             {Boolean(eCode) && (
               <Card>
                 <CardHeader title="Mã QR check-in" subheader="Vui lòng bảo mật mã QR check-in" />

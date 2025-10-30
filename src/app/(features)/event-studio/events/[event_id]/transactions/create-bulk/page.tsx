@@ -2,7 +2,7 @@
 
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Box, CardActions, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, InputLabel, styled, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Box, CardActions, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, InputLabel, styled, Table, TableBody, TableCell, TableHead, TableRow, Checkbox } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -16,7 +16,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
-import { AxiosResponse } from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import RouterLink from 'next/link';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -119,6 +119,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [ticketHoldersByCategory, setTicketHoldersByCategory] = React.useState<Record<string, TicketHolderInfo[]>>({});
   const [requestedCategoryModalId, setRequestedCategoryModalId] = React.useState<number | null>(null);
   const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
+  const [customerValidationErrors, setCustomerValidationErrors] = React.useState<Array<{ lineId: number; field: string; input: string; msg: string }>>([]);
 
   const [customers, setCustomers] = React.useState<Customer[]>([
     { title: 'Bạn', name: '', email: '', phoneNumber: '', address: '' },
@@ -309,6 +310,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
     try {
       setIsLoading(true);
+      setCustomerValidationErrors([]);
 
       const tickets = Object.entries(selectedCategories).flatMap(([showId, catMap]) => (
         Object.entries(catMap || {}).map(([categoryIdStr, qty]) => {
@@ -338,11 +340,41 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       router.push(`/event-studio/events/${params.event_id}/transactions`); // Navigate to a different page on success
       notificationCtx.success('Tạo giao dịch thành công');
     } catch (error) {
-      notificationCtx.error(error);
+      const err: any = error as any;
+      if ((axios.isAxiosError && axios.isAxiosError(err) && err.response?.status === 422) || err?.response?.status === 422) {
+        const detail = err?.response?.data?.detail || [];
+        const items = Array.isArray(detail)
+          ? detail
+              .map((d: any) => {
+                const loc = d?.loc || [];
+                const idx = typeof loc[2] === 'number' ? loc[2] : null;
+                const field = String(loc[3] ?? '');
+                if (idx == null) return null;
+                return {
+                  lineId: idx + 1,
+                  field,
+                  input: String(d?.input ?? ''),
+                  msg: String(d?.msg ?? ''),
+                };
+              })
+              .filter(Boolean)
+          : [];
+        setCustomerValidationErrors(items as Array<{ lineId: number; field: string; input: string; msg: string }>);
+        setConfirmOpen(false);
+      } else {
+        notificationCtx.error(error);
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  const totalSelectedTickets = React.useMemo(() => {
+    return Object.values(selectedCategories).reduce((sum, catMap) => {
+      const subtotal = Object.values(catMap || {}).reduce((s, q) => s + (q || 0), 0);
+      return sum + subtotal;
+    }, 0);
+  }, [selectedCategories]);
 
   return (
     <Stack spacing={3}>
@@ -513,33 +545,28 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Button>
               </CardActions>
             </Card>
+            {customerValidationErrors.length > 0 && (
+            <Card sx={{ backgroundColor: (theme) => theme.palette.warning.light, borderLeft: '4px solid', borderColor: 'warning.main' }}>
+              <CardHeader title="Lỗi dữ liệu người mua" subheader="Vui lòng sửa các lỗi bên dưới" />
+              <Divider />
+              <CardContent sx={{ py: 1 }}>
+                <Stack spacing={0.5}>
+                  {customerValidationErrors.map((e, i) => (
+                    <Typography key={i} variant="body2">
+                      Dòng {e.lineId} - {e.field}: {e.input} — {e.msg}
+                    </Typography>
+                  ))}
+                </Stack>
+              </CardContent>
+            </Card>
+            )}
 
 
             {/* Ticket Quantity and Ticket Holders */}
+            {totalSelectedTickets > 0 && (
             <Card>
               <CardHeader
                 title="Danh sách vé"
-                action={
-                  <FormControl size="small" sx={{ width: 210 }}>
-                    <InputLabel id="qr-option-label">Thông tin trên vé</InputLabel>
-                    <Select
-                      labelId="qr-option-label"
-                      value={'shared'}
-                      label="Thông tin trên vé"
-                      disabled
-                    >
-                      <MenuItem value="shared">
-                        <Stack>
-                          <Typography variant="body2">Giống thông tin người mua</Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            dùng một QR check-in tất cả vé
-                          </Typography>
-                        </Stack>
-                      </MenuItem>
-
-                    </Select>
-                  </FormControl>
-                }
               />
               <Divider />
               <CardContent>
@@ -573,6 +600,26 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Stack>
               </CardContent>
             </Card>
+            )}
+
+            {/* Additional options (read-only) */}
+            {totalSelectedTickets > 1 && (
+            <Card>
+              <CardHeader title="Tùy chọn bổ sung" />
+              <Divider />
+              <CardContent>
+                <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                  <Stack>
+                    <Typography variant="body2">Sử dụng mã QR riêng cho từng vé</Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Bạn cần nhập email cho từng vé.
+                    </Typography>
+                  </Stack>
+                  <Checkbox checked={false} disabled />
+                </Stack>
+              </CardContent>
+            </Card>
+            )}
 
 
             {/* Extra Fee */}

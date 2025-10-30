@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Box, InputAdornment, TextField, Dialog, DialogTitle, DialogContent, DialogActions, IconButton } from '@mui/material';
+import { Box, InputAdornment, TextField, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Checkbox } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -309,6 +309,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   };
 
+  const totalSelectedTickets = React.useMemo(() => {
+    return Object.values(selectedCategories).reduce((sum, catMap) => {
+      const subtotal = Object.values(catMap || {}).reduce((s, q) => s + (q || 0), 0);
+      return sum + subtotal;
+    }, 0);
+  }, [selectedCategories]);
+
   return (
     <Stack spacing={3}>
       <Backdrop
@@ -456,42 +463,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             </Card>
 
             {/* Ticket Quantity and Ticket Holders */}
+            {totalSelectedTickets > 0 && (
             <Card>
               <CardHeader
                 title="Danh sách vé"
-                action={
-                  <FormControl size="small" sx={{ width: 210 }}>
-                    <InputLabel id="qr-option-label">Thông tin trên vé</InputLabel>
-                    <Select
-                      labelId="qr-option-label"
-                      value={qrOption}
-                      label="Thông tin trên vé"
-                      onChange={(e) => {
-                        setQrOption(e.target.value);
-                        if (e.target.value === 'separate') {
-                          notificationCtx.info("Vui lòng điền thông tin người sở hữu cho từng vé");
-                        }
-                      }}
-                    >
-                      <MenuItem value="shared">
-                        <Stack>
-                          <Typography variant="body2">Giống thông tin người mua</Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            dùng một QR check-in tất cả vé
-                          </Typography>
-                        </Stack>
-                      </MenuItem>
-                      <MenuItem value="separate">
-                        <Stack>
-                          <Typography variant="body2">Nhập thông tin từng vé</Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            mỗi vé một mã QR
-                          </Typography>
-                        </Stack>
-                      </MenuItem>
-                    </Select>
-                  </FormControl>
-                }
               />
               <Divider />
               <CardContent>
@@ -544,6 +519,36 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Stack>
               </CardContent>
             </Card>
+            )}
+
+            {/* Additional options */}
+            {totalSelectedTickets > 1 && (
+              <Card>
+                <CardHeader title="Tùy chọn bổ sung" />
+                <Divider />
+                <CardContent>
+                  <Grid container spacing={1} alignItems="center">
+                    <Grid xs>
+                      <Typography variant="body2">Sử dụng mã QR riêng cho từng vé</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        Bạn cần nhập email cho từng vé.
+                      </Typography>
+                    </Grid>
+                    <Grid>
+                      <Checkbox
+                        checked={qrOption === 'separate'}
+                        onChange={(_e, checked) => {
+                          setQrOption(checked ? 'separate' : 'shared');
+                          if (checked) {
+                            notificationCtx.info('Vui lòng điền thông tin người sở hữu cho từng vé');
+                          }
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Extra Fee */}
             <Card>

@@ -3,16 +3,13 @@
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { Box, Chip, MenuItem, Select, Stack, Tooltip } from '@mui/material';
+import { Box, Chip, Stack, Tooltip, Checkbox } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Bank as BankIcon, Info, Lightning as LightningIcon, Money as MoneyIcon, Ticket, WarningCircle } from '@phosphor-icons/react/dist/ssr'; // Example icons
@@ -448,6 +445,26 @@ export default function Page(): React.JSX.Element {
             </Grid>
             <Grid lg={7} md={7} xs={12} spacing={3}>
               <Stack spacing={3}>
+                {transaction.ticketQuantity > 1 && (
+                  <Card>
+                    <CardHeader title="Tùy chọn bổ sung" />
+                    <Divider />
+                    <CardContent>
+                      <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                        <Stack>
+                          <Typography variant="body2">Sử dụng mã QR riêng cho từng vé</Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            Bạn cần nhập thông tin cho từng vé.
+                          </Typography>
+                        </Stack>
+                        <Checkbox
+                          checked={transaction.qrOption === 'separate'}
+                          disabled
+                        />
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                )}
                 <Card>
                   <CardHeader title="Thông tin người mua vé" />
                   <Divider />
@@ -484,34 +501,6 @@ export default function Page(): React.JSX.Element {
                 <Card>
                   <CardHeader
                     title={`Danh sách vé: ${transaction.ticketQuantity} vé`}
-                    action={
-                      <FormControl size="small" sx={{ width: 210 }}>
-                        <InputLabel id="qr-option-label">Thông tin trên vé</InputLabel>
-                        <Select
-                          labelId="qr-option-label"
-                          value={transaction.qrOption}
-                          label="Thông tin trên vé"
-                          disabled
-                        >
-                          <MenuItem value="shared">
-                            <Stack>
-                              <Typography variant="body2">Giống thông tin người mua</Typography>
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                dùng một QR check-in tất cả vé
-                              </Typography>
-                            </Stack>
-                          </MenuItem>
-                          <MenuItem value="separate">
-                            <Stack>
-                              <Typography variant="body2">Nhập thông tin từng vé</Typography>
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                mỗi vé một mã QR
-                              </Typography>
-                            </Stack>
-                          </MenuItem>
-                        </Select>
-                      </FormControl>
-                    }
                   />
                   <Divider />
                   <CardContent>
