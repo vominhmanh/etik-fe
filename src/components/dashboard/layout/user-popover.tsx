@@ -19,6 +19,7 @@ import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
 import { BuildingOffice, CodesandboxLogo, Invoice, SealCheck, Wallet } from '@phosphor-icons/react/dist/ssr';
+import { useTranslation } from '@/contexts/locale-context';
 
 export interface UserPopoverProps {
   anchorEl: Element | null;
@@ -27,6 +28,7 @@ export interface UserPopoverProps {
 }
 
 export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): React.JSX.Element {
+  const { tt } = useTranslation();
   const { checkSession, user, setUser } = useUser();
   const [authUser, setAuthUser] = React.useState<User | null>(null);
 
@@ -80,44 +82,44 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
           <ListItemIcon>
             <UserIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Cài đặt tài khoản
+          {tt('Cài đặt tài khoản', 'Account Settings')}
         </MenuItem>
         <MenuItem component={RouterLink} href={'/account'} onClick={onClose}>
           <ListItemIcon>
             <Wallet fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          <span>Ví trả trước: </span><b style={{marginLeft: '8px'}}>0</b><span style={{marginLeft: '8px'}}>VNĐ</span>
+          <span>{tt('Ví trả trước: ', 'Prepaid Wallet: ')}</span><b style={{marginLeft: '8px'}}>0</b><span style={{marginLeft: '8px'}}>{tt('VNĐ', 'VND')}</span>
         </MenuItem>
         
         <MenuItem component={RouterLink} href={'/account/my-tickets'} onClick={onClose}>
           <ListItemIcon>
             <TicketIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Vé của tôi
+          {tt('Vé của tôi', 'My Tickets')}
         </MenuItem>
         <MenuItem component={RouterLink} href={'/account/my-tickets'} onClick={onClose}>
           <ListItemIcon>
             <Invoice fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Đơn hàng của tôi
+          {tt('Đơn hàng của tôi', 'My Orders')}
         </MenuItem>
         <MenuItem component={RouterLink} href={'/account-event-agency'} onClick={onClose}>
           <ListItemIcon>
             <SealCheck fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Tài khoản Event Agency
+          {tt('Tài khoản Event Agency', 'Event Agency Account')}
         </MenuItem>
         <MenuItem component={RouterLink} href={'/event-studio/events'} onClick={onClose}>
           <ListItemIcon>
             <CodesandboxLogo fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Trang quản trị sự kiện
+          {tt('Trang quản trị sự kiện', 'Event Management')}
         </MenuItem>
         <MenuItem onClick={handleSignOut}>
           <ListItemIcon>
             <SignOutIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Đăng xuất
+          {tt('Đăng xuất', 'Sign Out')}
         </MenuItem>
       </MenuList>
     </Popover>

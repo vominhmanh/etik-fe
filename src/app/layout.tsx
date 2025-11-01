@@ -6,6 +6,7 @@ import { NotificationProvider } from '@/contexts/notification-context';
 import '@/styles/global.css';
 
 import { UserProvider } from '@/contexts/user-context';
+import { LocaleProvider } from '@/contexts/locale-context';
 import { LocalizationProvider } from '@/components/core/localization-provider';
 import { ThemeProvider } from '@/components/core/theme-provider/theme-provider';
 import NotificationBar from './notification';
@@ -42,16 +43,18 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
         />
       </head>
       <body>
-        <LocalizationProvider>
-          <UserProvider>
-            <NotificationProvider>
-              <ThemeProvider>
-                <NotificationBar />
-                {children}
-              </ThemeProvider>
-            </NotificationProvider>
-          </UserProvider>
-        </LocalizationProvider>
+        <LocaleProvider>
+          <LocalizationProvider>
+            <UserProvider>
+              <NotificationProvider>
+                <ThemeProvider>
+                  <NotificationBar />
+                  {children}
+                </ThemeProvider>
+              </NotificationProvider>
+            </UserProvider>
+          </LocalizationProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

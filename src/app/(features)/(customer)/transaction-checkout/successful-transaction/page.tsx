@@ -3,7 +3,7 @@
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { Box, Chip, Stack, Tooltip, Checkbox } from '@mui/material';
+import { Box, Chip, Stack, Tooltip, Checkbox, FormControl, InputLabel, OutlinedInput } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -22,80 +22,12 @@ import RouterLink from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/contexts/locale-context';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
 };
 
-// Function to map payment methods to corresponding labels and icons
-const getPaymentMethodDetails = (paymentMethod: string) => {
-  switch (paymentMethod) {
-    case 'cash':
-      return { label: 'Tiền mặt', icon: <MoneyIcon /> };
-    case 'transfer':
-      return { label: 'Chuyển khoản', icon: <BankIcon /> };
-    case 'napas247':
-      return { label: 'Napas 247', icon: <LightningIcon /> };
-    default:
-      return { label: 'Unknown', icon: undefined };
-  }
-};
-
-// Function to map created source to label
-const getCreatedSource = (paymentMethod: string): { label: string } => {
-  switch (paymentMethod) {
-    case 'event_studio':
-      return { label: 'Event Studio' };
-    case 'marketplace':
-      return { label: 'Marketplace' };
-    case 'api':
-      return { label: 'API' };
-    default:
-      return { label: 'Unknown' };
-  }
-};
-
-// Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (
-  paymentStatus: string
-): { label: string; color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
-  switch (paymentStatus) {
-    case 'waiting_for_payment':
-      return { label: 'Chờ thanh toán', color: 'warning' };
-    case 'paid':
-      return { label: 'Đã thanh toán', color: 'success' };
-    case 'refund':
-      return { label: 'Đã hoàn tiền', color: 'secondary' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
-// Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
-  switch (status) {
-    case 'normal':
-      return { label: 'Bình thường', color: 'success' };
-    case 'wait_for_response':
-      return { label: 'Đang chờ', color: 'warning' };
-    case 'customer_cancelled':
-      return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
-    case 'staff_locked':
-      return { label: 'Khoá bởi NV', color: 'error' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
-
-const getSentEmailTicketStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
-  switch (status) {
-    case 'sent':
-      return { label: 'Đã xuất', color: 'success' };
-    case 'not_sent':
-      return { label: 'Chưa xuất', color: 'default' }; // error for danger
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
 
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
@@ -179,9 +111,11 @@ export interface ECodeResponse {
 
 
 export default function Page(): React.JSX.Element {
+  const { tt } = useTranslation();
+  
   React.useEffect(() => {
-    document.title = "Giao dịch thành công | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Giao dịch thành công", "Transaction Successful") + " | ETIK - " + tt("Vé điện tử & Quản lý sự kiện", "E-Tickets & Event Management");
+  }, [tt]);
 
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [eCode, setECode] = useState<string | null>(null);
@@ -191,6 +125,74 @@ export default function Page(): React.JSX.Element {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const transactionId = searchParams.get('transaction_id');
+  
+  // Helper functions that use tt
+  const getPaymentMethodDetails = React.useCallback((paymentMethod: string) => {
+    switch (paymentMethod) {
+      case 'cash':
+        return { label: tt('Tiền mặt', 'Cash'), icon: <MoneyIcon /> };
+      case 'transfer':
+        return { label: tt('Chuyển khoản', 'Bank Transfer'), icon: <BankIcon /> };
+      case 'napas247':
+        return { label: 'Napas 247', icon: <LightningIcon /> };
+      default:
+        return { label: 'Unknown', icon: undefined };
+    }
+  }, [tt]);
+
+  const getCreatedSource = React.useCallback((paymentMethod: string): { label: string } => {
+    switch (paymentMethod) {
+      case 'event_studio':
+        return { label: 'Event Studio' };
+      case 'marketplace':
+        return { label: 'Marketplace' };
+      case 'api':
+        return { label: 'API' };
+      default:
+        return { label: 'Unknown' };
+    }
+  }, []);
+
+  const getPaymentStatusDetails = React.useCallback((
+    paymentStatus: string
+  ): { label: string; color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+    switch (paymentStatus) {
+      case 'waiting_for_payment':
+        return { label: tt('Chờ thanh toán', 'Waiting for payment'), color: 'warning' };
+      case 'paid':
+        return { label: tt('Đã thanh toán', 'Paid'), color: 'success' };
+      case 'refund':
+        return { label: tt('Đã hoàn tiền', 'Refunded'), color: 'secondary' };
+      default:
+        return { label: 'Unknown', color: 'default' };
+    }
+  }, [tt]);
+
+  const getRowStatusDetails = React.useCallback((status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+    switch (status) {
+      case 'normal':
+        return { label: tt('Bình thường', 'Normal'), color: 'success' };
+      case 'wait_for_response':
+        return { label: tt('Đang chờ', 'Waiting'), color: 'warning' };
+      case 'customer_cancelled':
+        return { label: tt('Huỷ bởi KH', 'Cancelled by customer'), color: 'error' };
+      case 'staff_locked':
+        return { label: tt('Khoá bởi NV', 'Locked by staff'), color: 'error' };
+      default:
+        return { label: 'Unknown', color: 'default' };
+    }
+  }, [tt]);
+
+  const getSentEmailTicketStatusDetails = React.useCallback((status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+    switch (status) {
+      case 'sent':
+        return { label: tt('Đã xuất', 'Exported'), color: 'success' };
+      case 'not_sent':
+        return { label: tt('Chưa xuất', 'Not exported'), color: 'default' };
+      default:
+        return { label: 'Unknown', color: 'default' };
+    }
+  }, [tt]);
 
   // Fetch transaction details
   useEffect(() => {
@@ -204,14 +206,14 @@ export default function Page(): React.JSX.Element {
         );
         setTransaction(response.data);
       } catch (error) {
-        notificationCtx.error('Lỗi:', error);
+        notificationCtx.error(tt('Lỗi:', 'Error:'), error);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchTransactionDetails();
-  }, [transactionId, token]);
+  }, [transactionId, token, tt, notificationCtx]);
 
   // Fetch check-in eCode
   useEffect(() => {
@@ -234,10 +236,10 @@ export default function Page(): React.JSX.Element {
   }, [transactionId, token]);
 
 
-  const paymentMethodDetails = React.useMemo(() => getPaymentMethodDetails(transaction?.paymentMethod || ''), [transaction]);
-  const paymentStatusDetails = React.useMemo(() => getPaymentStatusDetails(transaction?.paymentStatus || ''), [transaction]);
-  const statusDetails = React.useMemo(() => getRowStatusDetails(transaction?.status || ''), [transaction]);
-  const createdSource = React.useMemo(() => getCreatedSource(transaction?.createdSource || ''), [transaction]);
+  const paymentMethodDetails = React.useMemo(() => getPaymentMethodDetails(transaction?.paymentMethod || ''), [transaction, getPaymentMethodDetails]);
+  const paymentStatusDetails = React.useMemo(() => getPaymentStatusDetails(transaction?.paymentStatus || ''), [transaction, getPaymentStatusDetails]);
+  const statusDetails = React.useMemo(() => getRowStatusDetails(transaction?.status || ''), [transaction, getRowStatusDetails]);
+  const createdSource = React.useMemo(() => getCreatedSource(transaction?.createdSource || ''), [transaction, getCreatedSource]);
 
   return (
     <Stack spacing={3}>
@@ -264,11 +266,11 @@ export default function Page(): React.JSX.Element {
             </div>
 
             <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
-              <Typography variant="h5">Mua vé thành công !</Typography>
-              <Typography variant="body1" sx={{ textAlign: 'justify' }}>Cảm ơn quý khách đã sử dụng ETIK, dưới đây là vé mời của quý khách.</Typography>
-              <Typography variant="body2" sx={{ textAlign: 'justify' }}>Hãy <b>chụp màn hình</b> mã QR để sử dụng khi check-in. Quý khách có thể <a style={{ textDecoration: 'none' }} target='_blank'
-                href="/auth/login">đăng ký/ đăng nhập</a> bằng email mua vé để xem lại vé đã mua.</Typography>
-              <Typography variant="body2" sx={{ textAlign: 'justify' }}>Nếu quý khách cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
+              <Typography variant="h5">{tt('Mua vé thành công !', 'Ticket purchase successful!')}</Typography>
+              <Typography variant="body1" sx={{ textAlign: 'justify' }}>{tt('Cảm ơn quý khách đã sử dụng ETIK, dưới đây là vé mời của quý khách.', 'Thank you for using ETIK, below are your tickets.')}</Typography>
+              <Typography variant="body2" sx={{ textAlign: 'justify' }}>{tt('Hãy', 'Please')} <b>{tt('chụp màn hình', 'take a screenshot')}</b> {tt('mã QR để sử dụng khi check-in. Quý khách có thể', 'of the QR code to use for check-in. You can')} <a style={{ textDecoration: 'none' }} target='_blank'
+                href="/auth/login">{tt('đăng ký/ đăng nhập', 'register/login')}</a> {tt('bằng email mua vé để xem lại vé đã mua.', 'using your purchase email to view your purchased tickets.')}</Typography>
+              <Typography variant="body2" sx={{ textAlign: 'justify' }}>{tt('Nếu quý khách cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ', 'If you need additional support, please submit a support request')} <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">{tt('tại đây.', 'here.')}</a></Typography>
             </Stack>
           </Stack>
 
@@ -278,24 +280,24 @@ export default function Page(): React.JSX.Element {
       {transaction &&
         <>
           <div>
-            <Typography variant="h4">Chi tiết đơn hàng của {transaction.name}</Typography>
+            <Typography variant="h4">{tt('Chi tiết đơn hàng của', 'Order details for')} {transaction.name}</Typography>
           </div>
           <Grid container spacing={3}>
             <Grid lg={5} md={5} xs={12} spacing={3}>
               <Stack spacing={3}>
 
                 <Card>
-                  <CardHeader title="Thanh toán" />
+                  <CardHeader title={tt('Thanh toán', 'Payment')} />
                   <Divider />
                   <CardContent>
                     <Stack spacing={2}>
                       <Grid container justifyContent="space-between">
-                        <Typography variant="body1">Trạng thái đơn:</Typography>
+                        <Typography variant="body1">{tt('Trạng thái đơn:', 'Order status:')}</Typography>
                         <Stack spacing={0} direction={'row'}>
                           <Chip color={statusDetails.color} label={statusDetails.label} />
                           {transaction.cancelRequestStatus == 'pending' &&
                             <Tooltip title={
-                              <Typography>Khách hàng yêu cầu hủy</Typography>
+                              <Typography>{tt('Khách hàng yêu cầu hủy', 'Customer requested cancellation')}</Typography>
                             }>
                               <Chip color={'error'} label={<WarningCircle size={16} />} />
                             </Tooltip>
@@ -304,22 +306,22 @@ export default function Page(): React.JSX.Element {
 
                       </Grid>
                       <Grid container justifyContent="space-between">
-                        <Typography variant="body1">Phương thức thanh toán:</Typography>
+                        <Typography variant="body1">{tt('Phương thức thanh toán:', 'Payment method:')}</Typography>
                         <Chip icon={paymentMethodDetails.icon} label={paymentMethodDetails.label} />
                       </Grid>
                       <Grid container justifyContent="space-between">
-                        <Typography variant="body1">Trạng thái thanh toán:</Typography>
+                        <Typography variant="body1">{tt('Trạng thái thanh toán:', 'Payment status:')}</Typography>
                         <Chip label={paymentStatusDetails.label} color={paymentStatusDetails.color} />
                       </Grid>
                       <Grid container justifyContent="space-between">
-                        <Typography variant="body1">Trạng thái xuất vé:</Typography>
+                        <Typography variant="body1">{tt('Trạng thái xuất vé:', 'Ticket export status:')}</Typography>
                         <Chip
                           color={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent').color}
                           label={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent').label}
                         />
                       </Grid>
                       <Grid container justifyContent="space-between">
-                        <Typography variant="body1">Tổng số tiền:</Typography>
+                        <Typography variant="body1">{tt('Tổng số tiền:', 'Total amount:')}</Typography>
                         <Chip
                           icon={<MoneyIcon />}
                           label={`${transaction.totalAmount.toLocaleString()} VND`}
@@ -335,7 +337,7 @@ export default function Page(): React.JSX.Element {
                     backgroundColor: '#d1f9db',
                     backgroundImage: `linear-gradient(356deg, #d1f9db 0%, #fffed9 100%)`,
                   }}>
-                    <CardHeader title="Mã QR check-in" subheader="Vui lòng bảo mật mã QR check-in" />
+                    <CardHeader title={tt('Mã QR check-in', 'Check-in QR code')} subheader={tt('Vui lòng bảo mật mã QR check-in', 'Please keep your check-in QR code secure')} />
                     <Divider />
                     <CardContent>
                       <Stack spacing={1} sx={{ display: 'flex', alignItems: 'center' }}>
@@ -349,7 +351,7 @@ export default function Page(): React.JSX.Element {
                 )}
                 {transaction.paymentMethod === 'napas247' && (
                   <Card>
-                    <CardHeader title="Chi tiết thanh toán Napas 247" />
+                    <CardHeader title={tt('Chi tiết thanh toán Napas 247', 'Napas 247 Payment Details')} />
                     <Divider />
                     <CardContent>
                       <Stack spacing={2}>
@@ -360,13 +362,13 @@ export default function Page(): React.JSX.Element {
                         {transaction.paymentStatus === 'waiting_for_payment' && (
                           <>
                             <Grid container justifyContent="space-between">
-                              <Typography variant="body1">Hạn thanh toán:</Typography>
+                              <Typography variant="body1">{tt('Hạn thanh toán:', 'Payment deadline:')}</Typography>
                               <Typography variant="body1">
                                 {dayjs(transaction.paymentDueDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}
                               </Typography>
                             </Grid>
                             <Grid container justifyContent="space-between">
-                              <Typography variant="body1">Trang thanh toán:</Typography>
+                              <Typography variant="body1">{tt('Trang thanh toán:', 'Payment page:')}</Typography>
                               <Typography variant="body1">
                                 <Button
                                   component={RouterLink}
@@ -374,7 +376,7 @@ export default function Page(): React.JSX.Element {
                                   size="small"
                                   startIcon={<LightningIcon />}
                                 >
-                                  Đến trang thanh toán
+                                  {tt('Đến trang thanh toán', 'Go to payment page')}
                                 </Button>
                               </Typography>
                             </Grid>
@@ -382,7 +384,7 @@ export default function Page(): React.JSX.Element {
                         )}
                         {transaction.paymentStatus === 'paid' && (
                           <Grid container justifyContent="space-between">
-                            <Typography variant="body1">Thời gian thanh toán:</Typography>
+                            <Typography variant="body1">{tt('Thời gian thanh toán:', 'Payment time:')}</Typography>
                             <Typography variant="body1">
                               {dayjs(transaction.paymentTransactionDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}
                             </Typography>
@@ -393,14 +395,14 @@ export default function Page(): React.JSX.Element {
                   </Card>
                 )}
                 <Card>
-                  <CardHeader title="Thông tin khác" />
+                  <CardHeader title={tt('Thông tin khác', 'Other Information')} />
                   <Divider />
                   <CardContent>
                     <Stack spacing={0}>
                       {/* createdAt */}
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="body1">Thời gian khởi tạo:</Typography>
+                          <Typography variant="body1">{tt('Thời gian khởi tạo:', 'Created At:')}</Typography>
                         </Stack>
                         <Typography variant="body1">
                           {dayjs(transaction.createdAt).format('HH:mm:ss DD/MM/YYYY')}
@@ -409,33 +411,33 @@ export default function Page(): React.JSX.Element {
                       {/* Created source */}
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="body1">Người khởi tạo:</Typography>
+                          <Typography variant="body1">{tt('Người khởi tạo:', 'Created By:')}</Typography>
                         </Stack>
-                        <Typography variant="body1">{transaction.creator?.fullName || 'Không có thông tin'}</Typography>
+                        <Typography variant="body1">{transaction.creator?.fullName || tt('Không có thông tin', 'No information')}</Typography>
                       </Grid>
                       {/* Created source */}
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="body1">Nguồn khởi tạo:</Typography>
+                          <Typography variant="body1">{tt('Nguồn khởi tạo:', 'Created Source:')}</Typography>
                         </Stack>
-                        <Typography variant="body1">{createdSource.label || 'Chưa xác định'}</Typography>
+                        <Typography variant="body1">{createdSource.label || tt('Chưa xác định', 'Not specified')}</Typography>
                       </Grid>
                       {/* sentPaymentInstructionAt */}
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="body1">Thời gian gửi hướng dẫn t.toán:</Typography>
+                          <Typography variant="body1">{tt('Thời gian gửi hướng dẫn t.toán:', 'Payment Instructions Sent:')}</Typography>
                         </Stack>
                         <Typography variant="body1">
-                          {transaction.sentPaymentInstructionAt ? dayjs(transaction.sentPaymentInstructionAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
+                          {transaction.sentPaymentInstructionAt ? dayjs(transaction.sentPaymentInstructionAt).format('HH:mm:ss DD/MM/YYYY') : tt("Chưa gửi", "Not sent")}
                         </Typography>
                       </Grid>
                       {/* exportedTicketAt */}
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="body1">Thời gian xuất vé:</Typography>
+                          <Typography variant="body1">{tt('Thời gian xuất vé:', 'Ticket Export Time:')}</Typography>
                         </Stack>
                         <Typography variant="body1">
-                          {transaction.exportedTicketAt ? dayjs(transaction.exportedTicketAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
+                          {transaction.exportedTicketAt ? dayjs(transaction.exportedTicketAt).format('HH:mm:ss DD/MM/YYYY') : tt("Chưa gửi", "Not sent")}
                         </Typography>
                       </Grid>
                     </Stack>
@@ -447,14 +449,14 @@ export default function Page(): React.JSX.Element {
               <Stack spacing={3}>
                 {transaction.ticketQuantity > 1 && (
                   <Card>
-                    <CardHeader title="Tùy chọn bổ sung" />
+                    <CardHeader title={tt('Tùy chọn bổ sung', 'Additional Options')} />
                     <Divider />
                     <CardContent>
                       <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                         <Stack>
-                          <Typography variant="body2">Sử dụng mã QR riêng cho từng vé</Typography>
+                          <Typography variant="body2">{tt('Sử dụng mã QR riêng cho từng vé', 'Use separate QR code for each ticket')}</Typography>
                           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            Bạn cần nhập thông tin cho từng vé.
+                            {tt('Bạn cần nhập thông tin cho từng vé.', 'You need to enter information for each ticket.')}
                           </Typography>
                         </Stack>
                         <Checkbox
@@ -466,14 +468,14 @@ export default function Page(): React.JSX.Element {
                   </Card>
                 )}
                 <Card>
-                  <CardHeader title="Thông tin người mua vé" />
+                  <CardHeader title={tt('Thông tin người mua vé', 'Buyer Information')} />
                   <Divider />
                   <CardContent>
                     <Grid container spacing={3}>
                       <Grid md={6} xs={12}>
                         <FormControl fullWidth required>
-                          <InputLabel>Tên người mua</InputLabel>
-                          <OutlinedInput value={transaction.name} disabled label="Tên người mua" />
+                          <InputLabel>{tt('Tên người mua', 'Buyer Name')}</InputLabel>
+                          <OutlinedInput value={transaction.name} disabled label={tt('Tên người mua', 'Buyer Name')} />
                         </FormControl>
                       </Grid>
                       <Grid md={6} xs={12}>
@@ -484,14 +486,14 @@ export default function Page(): React.JSX.Element {
                       </Grid>
                       <Grid md={6} xs={12}>
                         <FormControl fullWidth>
-                          <InputLabel>Số điện thoại</InputLabel>
-                          <OutlinedInput value={transaction.phoneNumber} disabled label="Số điện thoại" />
+                          <InputLabel>{tt('Số điện thoại', 'Phone Number')}</InputLabel>
+                          <OutlinedInput value={transaction.phoneNumber} disabled label={tt('Số điện thoại', 'Phone Number')} />
                         </FormControl>
                       </Grid>
                       <Grid md={6} xs={12}>
                         <FormControl fullWidth>
-                          <InputLabel>Địa chỉ</InputLabel>
-                          <OutlinedInput value={transaction.address} disabled label="Địa chỉ" />
+                          <InputLabel>{tt('Địa chỉ', 'Address')}</InputLabel>
+                          <OutlinedInput value={transaction.address} disabled label={tt('Địa chỉ', 'Address')} />
                         </FormControl>
                       </Grid>
                     </Grid>
@@ -500,7 +502,7 @@ export default function Page(): React.JSX.Element {
 
                 <Card>
                   <CardHeader
-                    title={`Danh sách vé: ${transaction.ticketQuantity} vé`}
+                    title={`${tt('Danh sách vé:', 'Ticket List:')} ${transaction.ticketQuantity} ${tt('vé', 'tickets')}`}
                   />
                   <Divider />
                   <CardContent>
@@ -527,18 +529,18 @@ export default function Page(): React.JSX.Element {
                                     <>
                                       <div>
                                         <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
-                                          {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : 'Chưa có thông tin'}
+                                          {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : tt('Chưa có thông tin', 'No information')}
                                         </Typography>
                                       </div>
                                       <div>
                                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                          {ticket.holderEmail || 'Chưa có email'} - {ticket.holderPhone || 'Chưa có SĐT'}
+                                          {ticket.holderEmail || tt('Chưa có email', 'No email')} - {ticket.holderPhone || tt('Chưa có SĐT', 'No phone')}
                                         </Typography>
                                       </div>
                                     </>
                                   )}
                                   <div>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.checkInAt ? `Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}</Typography>
                                   </div>
                                 </Box>
                               ))}
@@ -551,7 +553,7 @@ export default function Page(): React.JSX.Element {
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                           <StackPlusIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1">Phụ phí:</Typography>
+                          <Typography variant="body1">{tt('Phụ phí:', 'Extra Fee:')}</Typography>
                         </Stack>
                         <Typography variant="body1">{formatPrice(transaction.extraFee || 0)}</Typography>
                       </Grid>
@@ -559,7 +561,7 @@ export default function Page(): React.JSX.Element {
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                           <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1">Giảm giá:</Typography>
+                          <Typography variant="body1">{tt('Giảm giá:', 'Discount:')}</Typography>
                         </Stack>
                         <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
                       </Grid>
@@ -567,7 +569,7 @@ export default function Page(): React.JSX.Element {
                       <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                           <CoinsIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1">Thành tiền:</Typography>
+                          <Typography variant="body1">{tt('Thành tiền:', 'Total:')}</Typography>
                         </Stack>
                         <Typography variant="body1">{formatPrice(transaction.totalAmount || 0)}</Typography>
                       </Grid>

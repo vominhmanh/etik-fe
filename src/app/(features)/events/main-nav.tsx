@@ -1,6 +1,7 @@
 'use client';
 
 import { UserPopover } from '@/components/dashboard/layout/user-popover';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { usePopover } from '@/hooks/use-popover';
 import { useUser } from '@/hooks/use-user';
 import { paths } from '@/paths';
@@ -64,6 +65,7 @@ export function MainNav(): React.JSX.Element {
           </Stack>
           {user ? (
             <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+              <LanguageSwitcher />
               <Tooltip title="Contacts">
                 <IconButton>
                   <UsersIcon />
@@ -81,9 +83,12 @@ export function MainNav(): React.JSX.Element {
               </Avatar>
             </Stack>
           ) : (
-            <Button variant="contained"  component={RouterLink} href={`${paths.auth.signIn}?returnUrl=${encodedReturnUrl}`}>
-              Đăng nhập
-            </Button>
+            <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+              <LanguageSwitcher />
+              <Button variant="contained"  component={RouterLink} href={`${paths.auth.signIn}?returnUrl=${encodedReturnUrl}`}>
+                Đăng nhập
+              </Button>
+            </Stack>
           )}
         </Stack>
         </Container>

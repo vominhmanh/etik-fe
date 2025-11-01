@@ -1,6 +1,7 @@
 "use client"
 import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { CardMedia, Tooltip } from '@mui/material';
 import Avatar from '@mui/material/Avatar';
@@ -22,17 +23,17 @@ import dayjs from 'dayjs';
 import RouterLink from 'next/link';
 import * as React from 'react';
 
-const statusMap = {
-  not_opened_for_sale: { label: 'Chưa mở bán', color: 'secondary' },
-  on_sale: { label: 'Đang mở bán', color: 'success' },
-  out_of_stock: { label: 'Đã hết', color: 'secondary' },
-  temporarily_locked: { label: 'Đang tạm khoá', color: 'warning' },
-};
+const getStatusMap = (tt: (vi: string, en: string) => string) => ({
+  not_opened_for_sale: { label: tt('Chưa mở bán', 'Not Open for Sale'), color: 'secondary' },
+  on_sale: { label: tt('Đang mở bán', 'On Sale'), color: 'success' },
+  out_of_stock: { label: tt('Đã hết', 'Sold Out'), color: 'secondary' },
+  temporarily_locked: { label: tt('Đang tạm khoá', 'Temporarily Locked'), color: 'warning' },
+});
 
-const typeMap = {
-  private: { label: 'Nội bộ', color: 'warning' },
-  public: { label: 'Công khai', color: 'primary' },
-};
+const getTypeMap = (tt: (vi: string, en: string) => string) => ({
+  private: { label: tt('Nội bộ', 'Private'), color: 'warning' },
+  public: { label: tt('Công khai', 'Public'), color: 'primary' },
+});
 
 type ColorMap = {
   [key: number]: string
@@ -77,43 +78,50 @@ export interface TransactionResponse {
 
 // Function to map payment statuses to corresponding labels and colors
 const getPaymentStatusDetails = (
-  paymentStatus: string
+  paymentStatus: string,
+  tt: (vi: string, en: string) => string
 ): { label: string; color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
-      return { label: 'Chờ thanh toán', color: 'warning' };
+      return { label: tt('Chờ thanh toán', 'Waiting for payment'), color: 'warning' };
     case 'paid':
-      return { label: 'Đã thanh toán', color: 'success' };
+      return { label: tt('Đã thanh toán', 'Paid'), color: 'success' };
     case 'refund':
-      return { label: 'Đã hoàn tiền', color: 'secondary' };
+      return { label: tt('Đã hoàn tiền', 'Refunded'), color: 'secondary' };
     default:
       return { label: 'Unknown', color: 'default' };
   }
 };
 
 // Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+const getRowStatusDetails = (
+  status: string,
+  tt: (vi: string, en: string) => string
+): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'normal':
-      return { label: 'Trạng thái: Bình thường', color: 'success' };
+      return { label: tt('Trạng thái: Bình thường', 'Status: Normal'), color: 'success' };
     case 'wait_for_response':
-      return { label: 'Đang chờ', color: 'warning' };
+      return { label: tt('Đang chờ', 'Waiting'), color: 'warning' };
     case 'customer_cancelled':
-      return { label: 'Trạng thái: Huỷ bởi KH', color: 'error' }; // error for danger
+      return { label: tt('Trạng thái: Huỷ bởi KH', 'Status: Cancelled by Customer'), color: 'error' };
     case 'staff_locked':
-      return { label: 'Trạng thái: Khoá bởi NV', color: 'error' };
+      return { label: tt('Trạng thái: Khoá bởi NV', 'Status: Locked by Staff'), color: 'error' };
     default:
       return { label: 'Unknown', color: 'default' };
   }
 };
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  const { tt } = useTranslation();
+  const statusMap = React.useMemo(() => getStatusMap(tt), [tt]);
+  const typeMap = React.useMemo(() => getTypeMap(tt), [tt]);
   const [transactions, setTransactions] = React.useState<TransactionResponse[]>([]);
   const notificationCtx = React.useContext(NotificationContext);
 
   React.useEffect(() => {
-    document.title = "Vé của tôi | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = `${tt('Vé của tôi', 'My Tickets')} | ETIK - ${tt('Vé điện tử & Quản lý sự kiện', 'E-tickets & Event Management')}`;
+  }, [tt]);
 
   React.useEffect(() => {
     const fetchTicketCategories = async () => {
@@ -123,18 +131,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         );
         setTransactions(response.data);
       } catch (error) {
-        notificationCtx.error('Lỗi', error);
+        notificationCtx.error(tt('Lỗi', 'Error'), error);
       }
     };
 
     fetchTicketCategories();
-  }, [params.event_id]);
+  }, [params.event_id, tt, notificationCtx]);
 
   return (
     <Stack spacing={3}>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Vé của tôi</Typography>
+          <Typography variant="h4">{tt('Vé của tôi', 'My Tickets')}</Typography>
         </Stack>
         <div>
 
@@ -171,32 +179,32 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {transaction.event.startDateTime && transaction.event.endDateTime
                         ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : 'Chưa xác định'} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
+                        : tt('Chưa xác định', 'To be determined')} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
                     </Typography>
                   </Stack>
                   <Stack direction="row" spacing={1}>
                     <MapPin fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {transaction.event.place ? transaction.event.place : 'Chưa xác định'} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
+                      {transaction.event.place ? transaction.event.place : tt('Chưa xác định', 'To be determined')} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
                     </Typography>
                   </Stack>
                 </Stack>
                 <Stack spacing={2} direction={'row'} sx={{ mt: 2 }}>
-                  <Chip color='success' size='small' label={`${transaction.ticketQuantity} vé`} />
+                  <Chip color='success' size='small' label={`${transaction.ticketQuantity} ${tt('vé', 'tickets')}`} />
                   <Chip
-                    color={getPaymentStatusDetails(transaction.paymentStatus).color}
-                    label={getPaymentStatusDetails(transaction.paymentStatus).label}
+                    color={getPaymentStatusDetails(transaction.paymentStatus, tt).color}
+                    label={getPaymentStatusDetails(transaction.paymentStatus, tt).label}
                     size='small'
                   />
                   <Stack spacing={0} direction={'row'}>
                     <Chip
-                      color={getRowStatusDetails(transaction.status).color}
-                      label={getRowStatusDetails(transaction.status).label}
+                      color={getRowStatusDetails(transaction.status, tt).color}
+                      label={getRowStatusDetails(transaction.status, tt).label}
                       size='small'
                     />
                     {transaction.cancelRequestStatus == 'pending' &&
                       <Tooltip title={
-                        <Typography>Khách hàng yêu cầu hủy</Typography>
+                        <Typography>{tt('Khách hàng yêu cầu hủy', 'Customer requested cancellation')}</Typography>
                       }>
                         <Chip size='small' color={'error'} label={<WarningCircle size={16} />} />
                       </Tooltip>
@@ -221,7 +229,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Stack>
                 <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
                   <Button component={RouterLink} href={`/account/my-tickets/${transaction.id}`} size="small" startIcon={<EyeIcon />}>
-                    Xem chi tiết
+                    {tt('Xem chi tiết', 'View Details')}
                   </Button>
                 </Stack>
               </Stack>

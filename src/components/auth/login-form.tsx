@@ -25,17 +25,14 @@ import { useUser } from '@/hooks/use-user';
 
 import Popup from '../core/alert-popup';
 import NotificationContext from '@/contexts/notification-context';
-
-const schema = zod.object({
-  email: zod.string().min(1, { message: 'Email là bắt buộc' }).email(),
-  password: zod.string().min(1, { message: 'Mật khẩu là bắt buộc' }),
-});
+import { useTranslation } from '@/contexts/locale-context';
 
 type Values = zod.infer<typeof schema>;
 
 const defaultValues = { email: '', password: '' } satisfies Values;
 
 export function SignInForm(): React.JSX.Element {
+  const { tt } = useTranslation();
   const router = useRouter();
   const [popupContent, setPopupContent] = React.useState<{
     type?: 'error' | 'success' | 'info' | 'warning';
@@ -49,6 +46,12 @@ export function SignInForm(): React.JSX.Element {
   const returnUrl = React.useMemo(() => getDecodedReturnUrl(searchParams.get('returnUrl'), '/event-studio/events'), [searchParams]);
   const errorParam = useSearchParams().get('error');
   const notificationCtx = React.useContext(NotificationContext);
+  
+  const schema = React.useMemo(() => zod.object({
+    email: zod.string().min(1, { message: tt('Email là bắt buộc', 'Email is required') }).email({ message: tt('Email không hợp lệ', 'Invalid email') }),
+    password: zod.string().min(1, { message: tt('Mật khẩu là bắt buộc', 'Password is required') }),
+  }), [tt]);
+  
   const {
     control,
     handleSubmit,
@@ -71,7 +74,7 @@ export function SignInForm(): React.JSX.Element {
       } catch (error: any) {
         setPopupContent({
           type: 'error',
-          message: error.message || 'Có lỗi xảy ra, vui lòng thử lại sau',
+          message: error.message || tt('Có lỗi xảy ra, vui lòng thử lại sau', 'An error occurred, please try again later'),
         });
         setIsPending(false);
       }
@@ -84,10 +87,10 @@ export function SignInForm(): React.JSX.Element {
     if (errorParam) {
       // notificationCtx.error(...) hoặc Popup của bạn
       const msg =
-        errorParam === 'missing_userinfo' ? 'Không lấy được thông tin Google.'
-        : errorParam === 'email_not_verified' ? 'Email Google chưa xác thực hoặc không khả dụng.'
-        : errorParam === 'db_error' ? 'Có lỗi hệ thống, vui lòng thử lại.'
-        : 'Đăng nhập Google thất bại, vui lòng thử lại.';
+        errorParam === 'missing_userinfo' ? tt('Không lấy được thông tin Google.', 'Unable to retrieve Google information.')
+        : errorParam === 'email_not_verified' ? tt('Email Google chưa xác thực hoặc không khả dụng.', 'Google email not verified or unavailable.')
+        : errorParam === 'db_error' ? tt('Có lỗi hệ thống, vui lòng thử lại.', 'System error, please try again.')
+        : tt('Đăng nhập Google thất bại, vui lòng thử lại.', 'Google login failed, please try again.');
       // ví dụ:
       notificationCtx.error(msg);
     }
@@ -105,11 +108,11 @@ export function SignInForm(): React.JSX.Element {
       )}
 
       <Stack spacing={1}>
-        <Typography variant="h4">Đăng nhập</Typography>
+        <Typography variant="h4">{tt('Đăng nhập', 'Sign In')}</Typography>
         <Typography color="text.secondary" variant="body2">
-          Bạn chưa có tài khoản?{' '}
+          {tt('Bạn chưa có tài khoản?', "Don't have an account?")}{' '}
           <Link component={RouterLink} href={paths.auth.signUp} underline="hover" variant="subtitle2">
-            Đăng ký
+            {tt('Đăng ký', 'Sign Up')}
           </Link>
         </Typography>
       </Stack>
@@ -120,8 +123,8 @@ export function SignInForm(): React.JSX.Element {
             name="email"
             render={({ field }) => (
               <FormControl error={Boolean(errors.email)}>
-                <InputLabel>Địa chỉ email</InputLabel>
-                <OutlinedInput {...field} label="Địa chỉ email" type="email" />
+                <InputLabel>{tt('Địa chỉ email', 'Email address')}</InputLabel>
+                <OutlinedInput {...field} label={tt('Địa chỉ email', 'Email address')} type="email" />
                 {errors.email ? <FormHelperText>{errors.email.message}</FormHelperText> : null}
               </FormControl>
             )}
@@ -131,7 +134,7 @@ export function SignInForm(): React.JSX.Element {
             name="password"
             render={({ field }) => (
               <FormControl error={Boolean(errors.password)}>
-                <InputLabel>Mật khẩu</InputLabel>
+                <InputLabel>{tt('Mật khẩu', 'Password')}</InputLabel>
                 <OutlinedInput
                   {...field}
                   endAdornment={
@@ -153,7 +156,7 @@ export function SignInForm(): React.JSX.Element {
                       />
                     )
                   }
-                  label="Mật khẩu"
+                  label={tt('Mật khẩu', 'Password')}
                   type={showPassword ? 'text' : 'password'}
                 />
                 {errors.password ? <FormHelperText>{errors.password.message}</FormHelperText> : null}
@@ -162,12 +165,12 @@ export function SignInForm(): React.JSX.Element {
           />
           <div>
             <Link component={RouterLink} href={paths.auth.resetPassword} variant="subtitle2">
-              Quên mật khẩu?
+              {tt('Quên mật khẩu?', 'Forgot password?')}
             </Link>
           </div>
           {errors.root ? <Alert color="error">{errors.root.message}</Alert> : null}
           <Button disabled={isPending} type="submit" variant="contained">
-            Đăng nhập
+            {tt('Đăng nhập', 'Sign In')}
           </Button>
         </Stack>
       </form>
@@ -203,7 +206,7 @@ export function SignInForm(): React.JSX.Element {
           }}
           sx={{ textTransform: 'none', fontWeight: 500 }}
         >
-          Đăng nhập bằng Google
+          {tt('Đăng nhập bằng Google', 'Sign in with Google')}
         </Button>
       </Stack>
     </Stack>

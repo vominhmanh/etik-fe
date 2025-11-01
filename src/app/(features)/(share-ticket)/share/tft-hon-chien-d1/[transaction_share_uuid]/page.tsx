@@ -18,6 +18,7 @@ import dayjs from 'dayjs';
 
 import NotificationContext from '@/contexts/notification-context';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { useTranslation } from '@/contexts/locale-context';
 
 
 export interface EventResponse {
@@ -46,6 +47,7 @@ export default function Page({
 }: {
   params: { transaction_share_uuid: string };
 }): React.JSX.Element | null {
+  const { tt } = useTranslation();
   const eventSlug = 'tft-hon-chien-d1'
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [transaction, setTransaction] =
@@ -57,9 +59,9 @@ export default function Page({
   // Update document title when event loads
   React.useEffect(() => {
     if (event && transaction) {
-      document.title = `${transaction.name} đã tham gia sự kiện ${event.name} | ETIK`;
+      document.title = `${transaction.name} ${tt('đã tham gia sự kiện', 'has registered for')} ${event.name} | ETIK`;
     }
-  }, [event, transaction]);
+  }, [event, transaction, tt]);
 
   // 2) Fetch both event & transaction in one go
   React.useEffect(() => {
@@ -84,7 +86,7 @@ export default function Page({
     };
 
     void fetchData();
-  }, [eventSlug, params, notificationCtx]);
+  }, [eventSlug, params, notificationCtx, tt]);
 
   if (!transaction) {
     return null;
@@ -126,7 +128,7 @@ export default function Page({
               >
                 <Box component="img"
                   src={event?.bannerUrl || ''}
-                  alt="Sự kiện"
+                  alt={tt('Sự kiện', 'Event')}
                   style={{
                     position: 'absolute',
                     top: 0,
@@ -147,7 +149,7 @@ export default function Page({
                     <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
                       <div>
                         {event?.avatarUrl ?
-                          <Box component="img" src={event?.avatarUrl || ''} alt="Avatar sự kiện" style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                          <Box component="img" src={event?.avatarUrl || ''} alt={tt('Avatar sự kiện', 'Event Avatar')} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
                           :
                           <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
                             {(event?.name[0] ?? 'a').toUpperCase()}
@@ -161,7 +163,7 @@ export default function Page({
                     <Stack direction="row" spacing={1}>
                       <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
-                        Đơn vị tổ chức: {event?.organizer}
+                        {tt('Đơn vị tổ chức:', 'Organizer:')} {event?.organizer}
                       </Typography>
                     </Stack>
                     <Stack direction="row" spacing={1}>
@@ -169,14 +171,14 @@ export default function Page({
                       <Typography color="text.secondary" display="inline" variant="body2">
                         {event?.startDateTime && event?.endDateTime
                           ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                          : 'Chưa xác định'} {event?.timeInstruction ? `(${event?.timeInstruction})` : ''}
+                          : tt('Chưa xác định', 'To be determined')} {event?.timeInstruction ? `(${event?.timeInstruction})` : ''}
                       </Typography>
                     </Stack>
 
                     <Stack direction="row" spacing={1} >
                       <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.place ? event?.place : 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank' rel="noreferrer">Xem bản đồ</a>}
+                        {event?.place ? event?.place : tt('Chưa xác định', 'To be determined')} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank' rel="noreferrer">{tt('Xem bản đồ', 'View map')}</a>}
                       </Typography>
                     </Stack>
                   </Stack>
@@ -207,20 +209,20 @@ export default function Page({
                       </div>
 
                       <Stack spacing={5} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '340px', maxWidth: '100%' }}>
-                        <Typography variant="h5">Xác nhận đăng ký thành công!</Typography>
+                        <Typography variant="h5">{tt('Xác nhận đăng ký thành công!', 'Registration confirmed!')}</Typography>
                         <Stack spacing={1} sx={{ width: '100%' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                            <Typography variant="body1">Tên người đăng ký:</Typography>
+                            <Typography variant="body1">{tt('Tên người đăng ký:', 'Registrant name:')}</Typography>
                             <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transaction?.name}</Typography>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                            <Typography variant="body1">Số lượng:</Typography>
+                            <Typography variant="body1">{tt('Số lượng:', 'Quantity:')}</Typography>
                             <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transaction?.ticketQuantity}</Typography>
                           </div>
                         </Stack>
 
 
-                        <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn Quý khách đã sử dụng ETIK !</Typography>
+                        <Typography variant="body2" sx={{ textAlign: 'justify' }}>{tt('Cảm ơn Quý khách đã sử dụng ETIK !', 'Thank you for using ETIK!')}</Typography>
                       </Stack>
                     </Stack>
                   </CardContent>

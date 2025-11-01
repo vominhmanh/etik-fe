@@ -18,8 +18,10 @@ import RouterLink from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { buildReturnUrl } from '@/lib/auth/urls';
+import { useTranslation } from '@/contexts/locale-context';
 
 export function MainNav(): React.JSX.Element {
+  const { tt } = useTranslation();
   const [openNav, setOpenNav] = React.useState<boolean>(false);
   const userPopover = usePopover<HTMLDivElement>();
   const { user } = useUser();
@@ -63,12 +65,12 @@ export function MainNav(): React.JSX.Element {
           </Stack>
           {user ? (
             <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-              <Tooltip title="Contacts">
+              <Tooltip title={tt('Liên hệ', 'Contacts')}>
                 <IconButton>
                   <UsersIcon />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Notifications">
+              <Tooltip title={tt('Thông báo', 'Notifications')}>
                 <Badge badgeContent={4} color="success" variant="dot">
                   <IconButton>
                     <BellIcon />
@@ -81,7 +83,7 @@ export function MainNav(): React.JSX.Element {
             </Stack>
           ) : (
             <Button variant="contained"  component={RouterLink} href={`${paths.auth.signIn}?returnUrl=${encodedReturnUrl}`}>
-              Đăng nhập
+              {tt('Đăng nhập', 'Sign In')}
             </Button>
           )}
         </Stack>

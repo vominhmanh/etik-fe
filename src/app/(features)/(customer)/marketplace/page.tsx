@@ -21,6 +21,7 @@ import RouterLink from 'next/link';
 import React, { useEffect, useState } from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 import { UserPlus } from '@phosphor-icons/react/dist/ssr';
 
 // Define response type for the events
@@ -42,9 +43,11 @@ type EventResponse = {
 };
 
 export default function Page(): React.JSX.Element {
+  const { tt } = useTranslation();
+  
   React.useEffect(() => {
-    document.title = "Sự kiện HOT | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Sự kiện HOT", "Hot Events") + " | ETIK - " + tt("Vé điện tử & Quản lý sự kiện", "E-Tickets & Event Management");
+  }, [tt]);
 
   const [events, setEvents] = useState<EventResponse[]>([]);
   const notificationCtx = React.useContext(NotificationContext);
@@ -58,14 +61,14 @@ export default function Page(): React.JSX.Element {
         const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/marketplace/events');
         setEvents(response.data);
       } catch (error) {
-        notificationCtx.error('Lỗi:', error);
+        notificationCtx.error(tt('Lỗi:', 'Error:'), error);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchEvents();
-  }, []);
+  }, [tt, notificationCtx]);
 
   return (
     <Stack spacing={5}>
@@ -81,7 +84,7 @@ export default function Page(): React.JSX.Element {
       </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Sự kiện</Typography>
+          <Typography variant="h4">{tt('Sự kiện', 'Events')}</Typography>
         </Stack>
         <div>
           <Button
@@ -90,7 +93,7 @@ export default function Page(): React.JSX.Element {
             component={RouterLink}
             href="/event-studio/events/create"
           >
-            Tạo sự kiện mới
+            {tt('Tạo sự kiện mới', 'Create New Event')}
           </Button>
         </div>
       </Stack>
@@ -114,7 +117,7 @@ export default function Page(): React.JSX.Element {
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      Đơn vị tổ chức: {event.organizer}
+                      {tt('Đơn vị tổ chức:', 'Organizer:')} {event.organizer}
                     </Typography>
                   </Stack>
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
@@ -122,13 +125,13 @@ export default function Page(): React.JSX.Element {
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event.startDateTime && event.endDateTime
                         ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : 'Chưa xác định'} {event.timeInstruction ? `(${event.timeInstruction})` : ''}
+                        : tt('Chưa xác định', 'To be determined')} {event.timeInstruction ? `(${event.timeInstruction})` : ''}
                     </Typography>
                   </Stack>
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {event.place ? event.place : 'Chưa xác định'} {event.locationInstruction ? `(${event.locationInstruction})` : ''}
+                      {event.place ? event.place : tt('Chưa xác định', 'To be determined')} {event.locationInstruction ? `(${event.locationInstruction})` : ''}
                     </Typography>
                   </Stack>
                 </Stack>
@@ -137,7 +140,7 @@ export default function Page(): React.JSX.Element {
               <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 1 }}>
                 <Button component={RouterLink}
                   href={`/events/${event.slug}`} size="small" startIcon={<UserPlus />}>
-                  Đặt vé sự kiện này
+                  {tt('Đặt vé sự kiện này', 'Book Tickets for This Event')}
                 </Button>
               </Stack>
             </Card>

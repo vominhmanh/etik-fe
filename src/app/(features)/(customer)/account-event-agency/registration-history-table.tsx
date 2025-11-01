@@ -1,6 +1,7 @@
 'use client';
 
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Divider from '@mui/material/Divider';
@@ -20,33 +21,6 @@ import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
 
 
-// Function to map payment statuses to corresponding labels and colors
-const getRoleDetails = (role: string) => {
-  switch (role) {
-    case 'owner':
-      return { label: 'Chủ sở hữu', color: 'success' };
-    case 'member':
-      return { label: 'Thành viên', color: 'default' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
-
-// Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
-  switch (status) {
-    case 'normal':
-      return { label: 'Bình thường', color: 'success' };
-    case 'wait_for_response':
-      return { label: 'Đang chờ', color: 'warning' };
-    case 'customer_cancelled':
-      return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
-    case 'staff_locked':
-      return { label: 'Khoá bởi NV', color: 'error' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
 
 
 export interface EventAgencyRegistration {
@@ -79,22 +53,9 @@ export interface EventAgencyRegistration {
 
 
 
-const getResponseStatusDetail = (responseStatus: string | null) => {
-  switch (responseStatus) {
-    case 'waiting_for_acceptance':
-      return { label: 'Đang kiểm tra', color: 'warning' };
-    case 'accepted':
-      return { label: 'Đã duyệt', color: 'success' };
-    case 'rejected':
-      return { label: 'Đã từ chối', color: 'secondary' };
-    default:
-      return { label: 'Chưa có phản hồi', color: 'default' }; // Handle null or unexpected values
-  }
-};
-
 
 export function RegistrationHistoryTable(): React.JSX.Element {
-
+  const { tt } = useTranslation();
   const [rows, setRows] = React.useState<EventAgencyRegistration[]>([]);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [page, setPage] = React.useState<number>(0);
@@ -117,13 +78,26 @@ export function RegistrationHistoryTable(): React.JSX.Element {
         const data = await fetchRegistrations();
         setRows(data);
       } catch (error) {
-        notificationCtx.error('Không thể tải danh sách đơn đăng ký!');
+        notificationCtx.error(tt('Không thể tải danh sách đơn đăng ký!', 'Unable to load registration list!'));
       } finally {
         setIsLoading(false);
       }
     }
     loadRegistrations();
-  }, []);
+  }, [tt, notificationCtx]);
+  
+  const getResponseStatusDetail = React.useCallback((responseStatus: string | null) => {
+    switch (responseStatus) {
+      case 'waiting_for_acceptance':
+        return { label: tt('Đang kiểm tra', 'Under Review'), color: 'warning' as const };
+      case 'accepted':
+        return { label: tt('Đã duyệt', 'Approved'), color: 'success' as const };
+      case 'rejected':
+        return { label: tt('Đã từ chối', 'Rejected'), color: 'secondary' as const };
+      default:
+        return { label: tt('Chưa có phản hồi', 'No Response'), color: 'default' as const };
+    }
+  }, [tt]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -145,18 +119,18 @@ export function RegistrationHistoryTable(): React.JSX.Element {
           <Table sx={{ minWidth: '800px' }}>
             <TableHead>
               <TableRow>
-                <TableCell>Thời gian gửi</TableCell>
-                <TableCell>Loại hình kinh doanh</TableCell>
-                <TableCell>Tên</TableCell>
-                <TableCell>Mã số thuế</TableCell>
-                <TableCell sx={{ minWidth: '160px' }}>Trạng thái đơn</TableCell>
+                <TableCell>{tt('Thời gian gửi', 'Submission Time')}</TableCell>
+                <TableCell>{tt('Loại hình kinh doanh', 'Business Type')}</TableCell>
+                <TableCell>{tt('Tên', 'Name')}</TableCell>
+                <TableCell>{tt('Mã số thuế', 'Tax Code')}</TableCell>
+                <TableCell sx={{ minWidth: '160px' }}>{tt('Trạng thái đơn', 'Status')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
                 <TableRow hover key={row.id}>
                   <TableCell>{dayjs(row.registrationDate).format('HH:mm:ss DD/MM/YYYY')}</TableCell>
-                  <TableCell>{row.businessType === 'individual' ? 'Cá nhân' : 'Công ty'}</TableCell>
+                  <TableCell>{row.businessType === 'individual' ? tt('Cá nhân', 'Individual') : tt('Công ty', 'Company')}</TableCell>
                   <TableCell>{row.fullName ?? row.companyName}</TableCell>
                   <TableCell>{row.taxCode || 'N/A'}</TableCell>
                   <TableCell>

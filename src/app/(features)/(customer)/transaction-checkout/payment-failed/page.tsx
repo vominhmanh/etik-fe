@@ -7,13 +7,16 @@ import Typography from '@mui/material/Typography';
 import * as React from 'react';
 
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { useTranslation } from '@/contexts/locale-context';
 
 
 
 export default function Page(): React.JSX.Element {
+  const { tt } = useTranslation();
+  
   React.useEffect(() => {
-    document.title = "Giao dịch không thành công | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Giao dịch không thành công", "Transaction Failed") + " | ETIK - " + tt("Vé điện tử & Quản lý sự kiện", "E-Tickets & Event Management");
+  }, [tt]);
 
   return (
     <Stack spacing={3}>
@@ -40,9 +43,9 @@ export default function Page(): React.JSX.Element {
             </div>
 
             <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
-              <Typography variant="h5">Giao dịch không thành công</Typography>
-              <Typography variant="body1" sx={{ textAlign: 'justify' }}>Quý khách vui lòng thử lại sau hoặc liên hệ với chúng tôi để được hỗ trợ.</Typography>
-              <Typography variant="body2" sx={{ textAlign: 'justify' }}>Nếu quý khách cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">tại đây.</a></Typography>
+              <Typography variant="h5">{tt('Giao dịch không thành công', 'Transaction Failed')}</Typography>
+              <Typography variant="body1" sx={{ textAlign: 'justify' }}>{tt('Quý khách vui lòng thử lại sau hoặc liên hệ với chúng tôi để được hỗ trợ.', 'Please try again later or contact us for support.')}</Typography>
+              <Typography variant="body2" sx={{ textAlign: 'justify' }}>{tt('Nếu quý khách cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ', 'If you need additional support, please submit a support request')} <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">{tt('tại đây.', 'here.')}</a></Typography>
             </Stack>
           </Stack>
 

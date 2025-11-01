@@ -1,7 +1,19 @@
+'use client';
+
 import { Box, Card, CardHeader, Checkbox, Divider, List, ListItem, ListItemAvatar, ListItemText } from '@mui/material';
 import dayjs from 'dayjs';
 import React, { useState } from 'react';
-import { Show } from './[event_slug]/[transaction_share_uuid]/page';
+import { useTranslation } from '@/contexts/locale-context';
+
+export interface Show {
+  id: number;
+  name: string;
+  status: string;
+  disabled: boolean;
+  avatar: string | null;
+  startDateTime: string | null;
+  endDateTime: string | null;
+}
 
 export interface LatestProductsProps {
   shows?: Show[];
@@ -9,6 +21,7 @@ export interface LatestProductsProps {
 }
 
 export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps): React.JSX.Element {
+  const { tt } = useTranslation();
   const [selectedShows, setSelectedShows] = useState<Show[]>([]);
 
   const handleItemClick = (show: Show) => {
@@ -30,7 +43,7 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
 
   return (
     <Card>
-      <CardHeader title="Chọn lịch" />
+      <CardHeader title={tt('Chọn lịch', 'Select Schedule')} />
       <Divider />
       <List>
         {shows.map((show) => (
@@ -59,12 +72,12 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
               secondary={(show.startDateTime && show.endDateTime
                 ? `${dayjs(show.startDateTime).format('HH:mm')} - ${dayjs(show.endDateTime).format('HH:mm | DD/MM/YYYY')}` : "")
                 + (show.disabled
-                  ? " | Đang khóa bởi hệ thống"
+                  ? ` | ${tt('Đang khóa bởi hệ thống', 'Locked by system')}`
                   : show.status !== "on_sale"
                     ? show.status === "not_opened_for_sale"
-                      ? " | Chưa mở bán"
+                      ? ` | ${tt('Chưa mở bán', 'Not open for sale')}`
                       : show.status === "temporarily_locked"
-                        ? " | Đang tạm khóa"
+                        ? ` | ${tt('Đang tạm khóa', 'Temporarily locked')}`
                         : ""
                     : "")
               }

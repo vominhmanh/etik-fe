@@ -26,33 +26,43 @@ import { authClient } from '@/lib/auth/client';
 import { useUser } from '@/hooks/use-user';
 
 import Popup from '../core/alert-popup';
+import { useTranslation } from '@/contexts/locale-context';
 
-const schema = zod.object({
-  fullName: zod.string().min(1, { message: 'Tên đầy đủ là bắt buộc' }),
-  phoneNumber: zod.string().min(1, { message: 'Số điện thoại là bắt buộc' }),
-  email: zod.string().email({ message: 'Email không hợp lệ' }),
-  password: zod.string()
-    .min(8, { message: 'Mật khẩu phải có ít nhất 8 ký tự' })
-    .max(64, { message: 'Mật khẩu không được dài hơn 64 ký tự' })
-    .regex(/[A-Z]/, { message: 'Mật khẩu phải chứa ít nhất một chữ cái viết hoa' })
-    .regex(/[a-z]/, { message: 'Mật khẩu phải chứa ít nhất một chữ cái viết thường' })
-    .regex(/\d/, { message: 'Mật khẩu phải chứa ít nhất một chữ số' })
-    .regex(/[^a-zA-Z0-9]/, { message: 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt' }),
-  terms: zod.boolean().refine((value) => value, 'Bạn phải chấp nhận điều khoản và điều kiện'),
-  otp: zod.string().optional(), // For OTP input
-});
-
-type Values = zod.infer<typeof schema>;
+type Values = {
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+  password: string;
+  terms: boolean;
+  otp?: string;
+};
 
 const defaultValues = { fullName: '', phoneNumber: '', email: '', password: '', terms: false, otp: '' } satisfies Values;
 
 export function SignUpForm(): React.JSX.Element {
+  const { tt } = useTranslation();
   const router = useRouter();
   const { checkSession, user } = useUser();
   const [popupContent, setPopupContent] = React.useState<{ type?: 'error' | 'success' | 'info' | 'warning'; message: string; }>({ type: undefined, message: '' });
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const [isOtpModalOpen, setIsOtpModalOpen] = React.useState<boolean>(false); // State to manage OTP modal visibility
   const searchParams = useSearchParams();
+  
+  const schema = React.useMemo(() => zod.object({
+    fullName: zod.string().min(1, { message: tt('Tên đầy đủ là bắt buộc', 'Full name is required') }),
+    phoneNumber: zod.string().min(1, { message: tt('Số điện thoại là bắt buộc', 'Phone number is required') }),
+    email: zod.string().email({ message: tt('Email không hợp lệ', 'Invalid email') }),
+    password: zod.string()
+      .min(8, { message: tt('Mật khẩu phải có ít nhất 8 ký tự', 'Password must be at least 8 characters') })
+      .max(64, { message: tt('Mật khẩu không được dài hơn 64 ký tự', 'Password must not exceed 64 characters') })
+      .regex(/[A-Z]/, { message: tt('Mật khẩu phải chứa ít nhất một chữ cái viết hoa', 'Password must contain at least one uppercase letter') })
+      .regex(/[a-z]/, { message: tt('Mật khẩu phải chứa ít nhất một chữ cái viết thường', 'Password must contain at least one lowercase letter') })
+      .regex(/\d/, { message: tt('Mật khẩu phải chứa ít nhất một chữ số', 'Password must contain at least one number') })
+      .regex(/[^a-zA-Z0-9]/, { message: tt('Mật khẩu phải chứa ít nhất một ký tự đặc biệt', 'Password must contain at least one special character') }),
+    terms: zod.boolean().refine((value) => value, tt('Bạn phải chấp nhận điều khoản và điều kiện', 'You must accept the terms and conditions')),
+    otp: zod.string().optional(),
+  }), [tt]);
+  
   const { control, handleSubmit, setError, formState: { errors } } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
   const returnUrl = searchParams.get('returnUrl') || '/event-studio/events';
 
@@ -64,7 +74,7 @@ export function SignUpForm(): React.JSX.Element {
         setIsOtpModalOpen(true); // Open OTP modal on successful signup
 
       } catch (error: any) {
-        setPopupContent({ type: 'error', message: error.message || 'Có lỗi xảy ra, vui lòng thử lại sau' });
+        setPopupContent({ type: 'error', message: error.message || tt('Có lỗi xảy ra, vui lòng thử lại sau', 'An error occurred, please try again later') });
       } finally {
         setIsPending(false);
       }
@@ -73,9 +83,9 @@ export function SignUpForm(): React.JSX.Element {
   const handleResendOtp = async (email: string) => {
     try {
       await authClient.resendOtp(email); // Call resend OTP API
-      setPopupContent({ type: 'success', message: 'OTP đã được gửi lại' });
+      setPopupContent({ type: 'success', message: tt('OTP đã được gửi lại', 'OTP has been resent') });
     } catch (error: any) {
-      setPopupContent({ type: 'error', message: error.message || 'Có lỗi xảy ra khi gửi lại OTP' });
+      setPopupContent({ type: 'error', message: error.message || tt('Có lỗi xảy ra khi gửi lại OTP', 'An error occurred while resending OTP') });
     }
   };
 
@@ -88,7 +98,7 @@ export function SignUpForm(): React.JSX.Element {
       const authUser = user
       router.push(`${returnUrl}`)
     } catch (error: any) {
-      setError("otp", { type: "manual", message: error.message || 'Xác thực OTP không thành công' });
+      setError("otp", { type: "manual", message: error.message || tt('Xác thực OTP không thành công', 'OTP verification failed') });
     } finally {
       setIsPending(false);
     }
@@ -107,11 +117,11 @@ export function SignUpForm(): React.JSX.Element {
         )}
 
         <Stack spacing={1}>
-          <Typography variant="h4">Đăng ký</Typography>
+          <Typography variant="h4">{tt('Đăng ký', 'Sign Up')}</Typography>
           <Typography color="text.secondary" variant="body2">
-            Bạn đã có tài khoản?{' '}
+            {tt('Bạn đã có tài khoản?', 'Already have an account?')}{' '}
             <Link component={RouterLink} href={paths.auth.signIn} underline="hover" variant="subtitle2">
-              Đăng nhập
+              {tt('Đăng nhập', 'Sign In')}
             </Link>
           </Typography>
         </Stack>
@@ -122,8 +132,8 @@ export function SignUpForm(): React.JSX.Element {
               name="fullName"
               render={({ field }) => (
                 <FormControl error={Boolean(errors.fullName)}>
-                  <InputLabel>Tên đầy đủ</InputLabel>
-                  <OutlinedInput {...field} label="Tên đầy đủ" />
+                  <InputLabel>{tt('Tên đầy đủ', 'Full Name')}</InputLabel>
+                  <OutlinedInput {...field} label={tt('Tên đầy đủ', 'Full Name')} />
                   {errors.fullName ? <FormHelperText>{errors.fullName.message}</FormHelperText> : null}
                 </FormControl>
               )}
@@ -133,8 +143,8 @@ export function SignUpForm(): React.JSX.Element {
               name="phoneNumber"
               render={({ field }) => (
                 <FormControl error={Boolean(errors.phoneNumber)}>
-                  <InputLabel>Số điện thoại</InputLabel>
-                  <OutlinedInput {...field} label="Số điện thoại" />
+                  <InputLabel>{tt('Số điện thoại', 'Phone Number')}</InputLabel>
+                  <OutlinedInput {...field} label={tt('Số điện thoại', 'Phone Number')} />
                   {errors.phoneNumber ? <FormHelperText>{errors.phoneNumber.message}</FormHelperText> : null}
                 </FormControl>
               )}
@@ -144,8 +154,8 @@ export function SignUpForm(): React.JSX.Element {
               name="email"
               render={({ field }) => (
                 <FormControl error={Boolean(errors.email)}>
-                  <InputLabel>Địa chỉ email</InputLabel>
-                  <OutlinedInput {...field} label="Địa chỉ email" type="email" />
+                  <InputLabel>{tt('Địa chỉ email', 'Email address')}</InputLabel>
+                  <OutlinedInput {...field} label={tt('Địa chỉ email', 'Email address')} type="email" />
                   {errors.email ? <FormHelperText>{errors.email.message}</FormHelperText> : null}
                 </FormControl>
               )}
@@ -155,8 +165,8 @@ export function SignUpForm(): React.JSX.Element {
               name="password"
               render={({ field }) => (
                 <FormControl error={Boolean(errors.password)}>
-                  <InputLabel>Mật khẩu</InputLabel>
-                  <OutlinedInput {...field} label="Mật khẩu" type="password" />
+                  <InputLabel>{tt('Mật khẩu', 'Password')}</InputLabel>
+                  <OutlinedInput {...field} label={tt('Mật khẩu', 'Password')} type="password" />
                   {errors.password ? <FormHelperText>{errors.password.message}</FormHelperText> : null}
                 </FormControl>
               )}
@@ -168,7 +178,11 @@ export function SignUpForm(): React.JSX.Element {
                 <div>
                   <FormControlLabel
                     control={<Checkbox {...field} />}
-                    label={<React.Fragment>Tôi đã đọc và đồng ý với <Link>điều khoản và điều kiện</Link></React.Fragment>}
+                    label={
+                      <React.Fragment>
+                        {tt('Tôi đã đọc và đồng ý với', 'I have read and agree to the')} <Link>{tt('điều khoản và điều kiện', 'terms and conditions')}</Link>
+                      </React.Fragment>
+                    }
                   />
                   {errors.terms ? <FormHelperText error>{errors.terms.message}</FormHelperText> : null}
                 </div>
@@ -176,7 +190,7 @@ export function SignUpForm(): React.JSX.Element {
             />
             {errors.root ? <Alert color="error">{errors.root.message}</Alert> : null}
             <Button disabled={isPending} type="submit" variant="contained">
-              Đăng ký
+              {tt('Đăng ký', 'Sign Up')}
             </Button>
           </Stack>
         </form>
@@ -187,23 +201,23 @@ export function SignUpForm(): React.JSX.Element {
           <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { sm: '500px', xs: '90%' }, bgcolor: 'background.paper', boxShadow: 24 }}>
             <CardContent>
               <Stack spacing={4}>
-                <Typography variant="h5">Xác thực địa chỉ email</Typography>
+                <Typography variant="h5">{tt('Xác thực địa chỉ email', 'Verify Email Address')}</Typography>
                 <form onSubmit={handleSubmit(handleVerifyOtp)}>
                   <Stack spacing={2}>
-                    <Typography variant='body2'>Kiểm tra email của bạn và điền mã OTP để hoàn tất đăng ký.</Typography>
+                    <Typography variant='body2'>{tt('Kiểm tra email của bạn và điền mã OTP để hoàn tất đăng ký.', 'Check your email and enter the OTP code to complete registration.')}</Typography>
                     <Controller
                       control={control}
                       name="otp"
                       render={({ field }) => (
                         <FormControl error={Boolean(errors.otp)}>
-                          <InputLabel>Nhập mã OTP</InputLabel>
-                          <OutlinedInput {...field} label="Nhập mã OTP" />
+                          <InputLabel>{tt('Nhập mã OTP', 'Enter OTP code')}</InputLabel>
+                          <OutlinedInput {...field} label={tt('Nhập mã OTP', 'Enter OTP code')} />
                           {errors.otp ? <FormHelperText>{errors.otp.message}</FormHelperText> : null}
                         </FormControl>
                       )}
                     />
                     <Button variant="contained" type="submit" disabled={isPending}>
-                      Xác thực
+                      {tt('Xác thực', 'Verify')}
                     </Button>
                     {/* <Button variant="outlined" disabled={isPending}>
                       Gửi lại

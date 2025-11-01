@@ -30,6 +30,7 @@ import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
 import dayjs from 'dayjs';
 
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 import { Link } from '@phosphor-icons/react';
 import { AxiosResponse } from 'axios';
 
@@ -39,17 +40,18 @@ const formatPrice = (price: number) => {
 
 // Function to map payment methods to corresponding labels and icons
 const getPaymentMethodDetails = (
-  paymentMethod: string
+  paymentMethod: string,
+  tt: (vi: string, en: string) => string
 ): { label: string; icon?: React.ReactElement } => {
   switch (paymentMethod) {
     case 'cash':
-      return { label: 'Tiền mặt', icon: <MoneyIcon /> };
+      return { label: tt('Tiền mặt', 'Cash'), icon: <MoneyIcon /> };
     case 'transfer':
-      return { label: 'Chuyển khoản', icon: <BankIcon /> };
+      return { label: tt('Chuyển khoản', 'Bank Transfer'), icon: <BankIcon /> };
     case 'napas247':
       return { label: 'Napas 247', icon: <LightningIcon /> };
     default:
-      return { label: 'Unknown' };
+      return { label: tt('Không rõ', 'Unknown') };
   }
 };
 
@@ -69,44 +71,45 @@ const getCreatedSource = (paymentMethod: string) => {
 
 // Function to map payment statuses to corresponding labels and colors
 const getPaymentStatusDetails = (
-  paymentStatus: string
+  paymentStatus: string,
+  tt: (vi: string, en: string) => string
 ): { label: string; color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
-      return { label: 'Chờ thanh toán', color: 'warning' };
+      return { label: tt('Chờ thanh toán', 'Awaiting Payment'), color: 'warning' };
     case 'paid':
-      return { label: 'Đã thanh toán', color: 'success' };
+      return { label: tt('Đã thanh toán', 'Paid'), color: 'success' };
     case 'refund':
-      return { label: 'Đã hoàn tiền', color: 'secondary' };
+      return { label: tt('Đã hoàn tiền', 'Refunded'), color: 'secondary' };
     default:
-      return { label: 'Unknown', color: 'default' };
+      return { label: tt('Không rõ', 'Unknown'), color: 'default' };
   }
 };
 
 // Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+const getRowStatusDetails = (status: string, tt: (vi: string, en: string) => string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'normal':
-      return { label: 'Bình thường', color: 'success' };
+      return { label: tt('Bình thường', 'Normal'), color: 'success' };
     case 'wait_for_response':
-      return { label: 'Đang chờ', color: 'warning' };
+      return { label: tt('Đang chờ', 'Waiting'), color: 'warning' };
     case 'customer_cancelled':
-      return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
+      return { label: tt('Huỷ bởi KH', 'Cancelled by Customer'), color: 'error' };
     case 'staff_locked':
-      return { label: 'Khoá bởi NV', color: 'error' };
+      return { label: tt('Khoá bởi NV', 'Locked by Staff'), color: 'error' };
     default:
-      return { label: 'Unknown', color: 'default' };
+      return { label: tt('Không rõ', 'Unknown'), color: 'default' };
   }
 };
 
-const getSentEmailTicketStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+const getSentEmailTicketStatusDetails = (status: string, tt: (vi: string, en: string) => string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'sent':
-      return { label: 'Đã xuất', color: 'success' };
+      return { label: tt('Đã xuất', 'Sent'), color: 'success' };
     case 'not_sent':
-      return { label: 'Chưa xuất', color: 'default' }; // error for danger
+      return { label: tt('Chưa xuất', 'Not Sent'), color: 'default' };
     default:
-      return { label: 'Unknown', color: 'default' };
+      return { label: tt('Không rõ', 'Unknown'), color: 'default' };
   }
 };
 
@@ -213,6 +216,7 @@ interface CancelTransactionResponse {
 }
 
 export default function Page({ params }: { params: { transaction_id: number } }): React.JSX.Element {
+  const { tt } = useTranslation();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [eCode, setECode] = useState<string | null>(null);
   const { transaction_id } = params;
@@ -228,7 +232,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
 
   function shareTicket(eventSlug: string, txUuid: string, eventName: string, buyerName: string, ticketQuantity: number) {
     const shareUrl = `https://etik.vn/share/${eventSlug}/${txUuid}`;
-    const text = `${buyerName} đã sở hữu vé của sự kiện ${eventName} trên ETIK`;
+    const text = `${buyerName} ${tt('đã sở hữu vé của sự kiện', 'has purchased tickets for')} ${eventName} ${tt('trên ETIK', 'on ETIK')}`;
     const webSharer = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
 
     // Prefer native share sheet (lets user pick Instagram, Messenger, Facebook, etc.)
@@ -244,12 +248,12 @@ export default function Page({ params }: { params: { transaction_id: number } })
   function copyShareLink(eventSlug: string, txUuid: string) {
     const shareUrl = `https://etik.vn/share/${eventSlug}/${txUuid}`;
     navigator.clipboard.writeText(shareUrl);
-    notificationCtx.success('Đã sao chép liên kết chia sẻ');
+    notificationCtx.success(tt('Đã sao chép liên kết chia sẻ', 'Share link copied'));
   }
 
   React.useEffect(() => {
-    document.title = "Vé của tôi | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Vé của tôi", "My Tickets") + " | ETIK - " + tt("Vé điện tử & Quản lý sự kiện", "E-Tickets & Event Management");
+  }, [tt]);
 
   // Fetch transaction details
   useEffect(() => {
@@ -261,7 +265,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
         );
         setTransaction(response.data);
       } catch (error) {
-        notificationCtx.error('Lỗi:', error);
+        notificationCtx.error(tt('Lỗi:', 'Error:'), error);
       } finally {
         setIsLoading(false);
       }
@@ -291,7 +295,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
 
   const cancelTransaction = async () => {
     if (!transaction_id) {
-      notificationCtx.error('Không tìm thấy đơn hàng hợp lệ.');
+      notificationCtx.error(tt('Không tìm thấy đơn hàng hợp lệ.', 'Valid order not found.'));
       return;
     }
 
@@ -311,7 +315,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
 
     } catch (error: any) {
       notificationCtx.error(
-        error || 'Lỗi khi hủy đơn hàng, vui lòng thử lại.'
+        error || tt('Lỗi khi hủy đơn hàng, vui lòng thử lại.', 'Error canceling order, please try again.')
       );
     } finally {
       setIsLoading(false);
@@ -320,13 +324,13 @@ export default function Page({ params }: { params: { transaction_id: number } })
 
 
   if (!transaction) {
-    return <Typography>Loading...</Typography>;
+    return <Typography>{tt('Đang tải...', 'Loading...')}</Typography>;
   }
 
 
-  const paymentMethodDetails = getPaymentMethodDetails(transaction.paymentMethod);
-  const paymentStatusDetails = getPaymentStatusDetails(transaction.paymentStatus);
-  const statusDetails = getRowStatusDetails(transaction.status);
+  const paymentMethodDetails = getPaymentMethodDetails(transaction.paymentMethod, tt);
+  const paymentStatusDetails = getPaymentStatusDetails(transaction.paymentStatus, tt);
+  const statusDetails = getRowStatusDetails(transaction.status, tt);
   const createdSource = getCreatedSource(transaction.createdSource);
 
   return (
@@ -343,7 +347,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
       </Backdrop>
 
       <div>
-        <Typography variant="h4">Chi tiết đơn hàng của {transaction.name}</Typography>
+        <Typography variant="h4">{tt('Chi tiết đơn hàng của', 'Order details for')} {transaction.name}</Typography>
       </div>
       <Grid container spacing={3}>
         <Grid lg={5} md={5} xs={12} spacing={3}>
@@ -370,7 +374,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   <Stack direction="row" spacing={1}>
                     <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      Đơn vị tổ chức: {transaction.event.organizer}
+                      {tt('Đơn vị tổ chức:', 'Organizer:')} {transaction.event.organizer}
                     </Typography>
                   </Stack>
                   <Stack direction="row" spacing={1}>
@@ -378,31 +382,31 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {transaction.event.startDateTime && transaction.event.endDateTime
                         ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : 'Chưa xác định'} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
+                        : tt('Chưa xác định', 'To be determined')} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
                     </Typography>
                   </Stack>
 
                   <Stack direction="row" spacing={1}>
                     <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {transaction.event.place ? transaction.event.place : 'Chưa xác định'} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
+                      {transaction.event.place ? transaction.event.place : tt('Chưa xác định', 'To be determined')} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
                     </Typography>
                   </Stack>
                 </Stack>
               </CardContent>
             </Card>
             <Card>
-              <CardHeader title="Thanh toán" />
+              <CardHeader title={tt('Thanh toán', 'Payment')} />
               <Divider />
               <CardContent>
                 <Stack spacing={2}>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái đơn:</Typography>
+                    <Typography variant="body1">{tt('Trạng thái đơn:', 'Order Status:')}</Typography>
                     <Stack spacing={0} direction="row">
                       <Chip color={statusDetails.color} label={statusDetails.label} />
                       {transaction.cancelRequestStatus === 'pending' &&
                         <Tooltip title={
-                          <Typography>Khách hàng yêu cầu hủy</Typography>
+                          <Typography>{tt('Khách hàng yêu cầu hủy', 'Customer requested cancellation')}</Typography>
                         }>
                           <Chip color="error" label={<WarningCircle size={16} />} />
                         </Tooltip>
@@ -410,22 +414,22 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     </Stack>
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Phương thức thanh toán:</Typography>
+                    <Typography variant="body1">{tt('Phương thức thanh toán:', 'Payment Method:')}</Typography>
                     <Chip icon={paymentMethodDetails.icon} label={paymentMethodDetails.label} />
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái thanh toán:</Typography>
+                    <Typography variant="body1">{tt('Trạng thái thanh toán:', 'Payment Status:')}</Typography>
                     <Chip label={paymentStatusDetails.label} color={paymentStatusDetails.color} />
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái xuất vé:</Typography>
+                    <Typography variant="body1">{tt('Trạng thái xuất vé:', 'Ticket Export Status:')}</Typography>
                     <Chip
-                      color={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent').color}
-                      label={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent').label}
+                      color={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent', tt).color}
+                      label={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent', tt).label}
                     />
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Tổng số tiền:</Typography>
+                    <Typography variant="body1">{tt('Tổng số tiền:', 'Total Amount:')}</Typography>
                     <Chip
                       icon={<MoneyIcon />}
                       label={`${transaction.totalAmount.toLocaleString()} VND`}
@@ -438,7 +442,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
             
             {transaction.paymentMethod === 'napas247' && (
               <Card>
-                <CardHeader title="Chi tiết thanh toán Napas 247" />
+                <CardHeader title={tt('Chi tiết thanh toán Napas 247', 'Napas 247 Payment Details')} />
                 <Divider />
                 <CardContent>
                   <Stack spacing={2}>
@@ -449,13 +453,13 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     {transaction.paymentStatus === 'waiting_for_payment' && (
                       <>
                         <Grid container justifyContent="space-between">
-                          <Typography variant="body1">Hạn thanh toán:</Typography>
+                          <Typography variant="body1">{tt('Hạn thanh toán:', 'Payment Deadline:')}</Typography>
                           <Typography variant="body1">
                             {dayjs(transaction.paymentDueDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}
                           </Typography>
                         </Grid>
                         <Grid container justifyContent="space-between">
-                          <Typography variant="body1">Trang thanh toán:</Typography>
+                          <Typography variant="body1">{tt('Trang thanh toán:', 'Payment Page:')}</Typography>
                           <Typography variant="body1">
                             <Button
                               component={RouterLink}
@@ -463,7 +467,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                               size="small"
                               startIcon={<LightningIcon />}
                             >
-                              Đến trang thanh toán
+                              {tt('Đến trang thanh toán', 'Go to payment page')}
                             </Button>
                           </Typography>
                         </Grid>
@@ -471,7 +475,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     )}
                     {transaction.paymentStatus === 'paid' && (
                       <Grid container justifyContent="space-between">
-                        <Typography variant="body1">Thời gian thanh toán:</Typography>
+                        <Typography variant="body1">{tt('Thời gian thanh toán:', 'Payment Time:')}</Typography>
                         <Typography variant="body1">
                           {dayjs(transaction.paymentTransactionDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}
                         </Typography>
@@ -482,14 +486,14 @@ export default function Page({ params }: { params: { transaction_id: number } })
               </Card>
             )}
             <Card>
-              <CardHeader title="Thông tin khác" />
+              <CardHeader title={tt('Thông tin khác', 'Other Information')} />
               <Divider />
               <CardContent>
                 <Stack spacing={0}>
                   {/* createdAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Thời gian khởi tạo:</Typography>
+                      <Typography variant="body1">{tt('Thời gian khởi tạo:', 'Created At:')}</Typography>
                     </Stack>
                     <Typography variant="body1">
                       {dayjs(transaction.createdAt).format('HH:mm:ss DD/MM/YYYY')}
@@ -498,33 +502,33 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   {/* Created source */}
                   {/* <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Người khởi tạo:</Typography>
+                      <Typography variant="body1">{tt('Người khởi tạo:', 'Created By:')}</Typography>
                     </Stack>
-                    <Typography variant="body1">{transaction.creator?.fullName || 'Không có thông tin'}</Typography>
+                    <Typography variant="body1">{transaction.creator?.fullName || tt('Không có thông tin', 'No information')}</Typography>
                   </Grid> */}
                   {/* Created source */}
                   {/* <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Nguồn khởi tạo:</Typography>
+                      <Typography variant="body1">{tt('Nguồn khởi tạo:', 'Created Source:')}</Typography>
                     </Stack>
-                    <Typography variant="body1">{createdSource.label || 'Chưa xác định'}</Typography>
+                    <Typography variant="body1">{createdSource.label || tt('Chưa xác định', 'Not specified')}</Typography>
                   </Grid> */}
                   {/* sentPaymentInstructionAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Thời gian gửi hướng dẫn t.toán:</Typography>
+                      <Typography variant="body1">{tt('Thời gian gửi hướng dẫn t.toán:', 'Payment Instructions Sent:')}</Typography>
                     </Stack>
                     <Typography variant="body1">
-                      {transaction.sentPaymentInstructionAt ? dayjs(transaction.sentPaymentInstructionAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
+                      {transaction.sentPaymentInstructionAt ? dayjs(transaction.sentPaymentInstructionAt).format('HH:mm:ss DD/MM/YYYY') : tt("Chưa gửi", "Not sent")}
                     </Typography>
                   </Grid>
                   {/* exportedTicketAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Thời gian xuất vé:</Typography>
+                      <Typography variant="body1">{tt('Thời gian xuất vé:', 'Ticket Export Time:')}</Typography>
                     </Stack>
                     <Typography variant="body1">
-                      {transaction.exportedTicketAt ? dayjs(transaction.exportedTicketAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
+                      {transaction.exportedTicketAt ? dayjs(transaction.exportedTicketAt).format('HH:mm:ss DD/MM/YYYY') : tt("Chưa gửi", "Not sent")}
                     </Typography>
                   </Grid>
                 </Stack>
@@ -535,20 +539,20 @@ export default function Page({ params }: { params: { transaction_id: number } })
         <Grid lg={7} md={7} xs={12} spacing={3}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader title="Thông tin người mua vé" />
+              <CardHeader title={tt('Thông tin người mua vé', 'Buyer Information')} />
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
 
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel htmlFor="customer-name">Danh xưng * - Họ và tên</InputLabel>
+                      <InputLabel htmlFor="customer-name">{tt('Danh xưng * - Họ và tên', 'Title * - Full Name')}</InputLabel>
                       <OutlinedInput
                         id="customer-name"
                         name="name"
                         value={transaction.name}
                         disabled
-                        label="Danh xưng * - Họ và tên"
+                        label={tt('Danh xưng * - Họ và tên', 'Title * - Full Name')}
                         startAdornment={
                           <InputAdornment position="start">
                             <Typography sx={{ width: 50 }}>{transaction.title}</Typography>
@@ -565,14 +569,14 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth>
-                      <InputLabel>Số điện thoại</InputLabel>
-                      <OutlinedInput value={transaction.phoneNumber} disabled label="Số điện thoại" />
+                      <InputLabel>{tt('Số điện thoại', 'Phone Number')}</InputLabel>
+                      <OutlinedInput value={transaction.phoneNumber} disabled label={tt('Số điện thoại', 'Phone Number')} />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth>
-                      <InputLabel>Địa chỉ</InputLabel>
-                      <OutlinedInput value={transaction.address} disabled label="Địa chỉ" />
+                      <InputLabel>{tt('Địa chỉ', 'Address')}</InputLabel>
+                      <OutlinedInput value={transaction.address} disabled label={tt('Địa chỉ', 'Address')} />
                     </FormControl>
                   </Grid>
                 </Grid>
@@ -580,7 +584,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
             </Card>
             <Card>
               <CardHeader
-                title={`Danh sách vé: ${transaction.ticketQuantity} vé`}
+                title={`${tt('Danh sách vé:', 'Ticket List:')} ${transaction.ticketQuantity} ${tt('vé', 'tickets')}`}
               />
               <Divider />
               <CardContent>
@@ -607,18 +611,18 @@ export default function Page({ params }: { params: { transaction_id: number } })
                                 <>
                                   <div>
                                     <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
-                                      {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : 'Chưa có thông tin'}
+                                      {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : tt('Chưa có thông tin', 'No information')}
                                     </Typography>
                                   </div>
                                   <div>
                                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                      {ticket.holderEmail || 'Chưa có email'} - {ticket.holderPhone || 'Chưa có SĐT'}
+                                      {ticket.holderEmail || tt('Chưa có email', 'No email')} - {ticket.holderPhone || tt('Chưa có SĐT', 'No phone')}
                                     </Typography>
                                   </div>
                                 </>
                               )}
                               <div>
-                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.checkInAt ? `Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}</Typography>
 
                               </div>
                             </Box>
@@ -632,7 +636,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <StackPlusIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">Phụ phí:</Typography>
+                      <Typography variant="body1">{tt('Phụ phí:', 'Extra Fee:')}</Typography>
                     </Stack>
                     <Typography variant="body1">{formatPrice(transaction.extraFee || 0)}</Typography>
                   </Grid>
@@ -640,7 +644,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">Giảm giá:</Typography>
+                      <Typography variant="body1">{tt('Giảm giá:', 'Discount:')}</Typography>
                     </Stack>
                     <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
                   </Grid>
@@ -648,7 +652,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <CoinsIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">Thành tiền:</Typography>
+                      <Typography variant="body1">{tt('Thành tiền:', 'Total:')}</Typography>
                     </Stack>
                     <Typography variant="body1">{formatPrice(transaction.totalAmount || 0)}</Typography>
                   </Grid>
@@ -657,14 +661,14 @@ export default function Page({ params }: { params: { transaction_id: number } })
             </Card>
             {transaction.ticketQuantity > 1 && (
               <Card>
-                <CardHeader title="Tùy chọn bổ sung" />
+                <CardHeader title={tt('Tùy chọn bổ sung', 'Additional Options')} />
                 <Divider />
                 <CardContent>
                   <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                     <Stack>
-                      <Typography variant="body2">Sử dụng mã QR riêng cho từng vé</Typography>
+                      <Typography variant="body2">{tt('Sử dụng mã QR riêng cho từng vé', 'Use separate QR code for each ticket')}</Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        Bạn cần nhập thông tin cho từng vé.
+                        {tt('Bạn cần nhập thông tin cho từng vé.', 'You need to enter information for each ticket.')}
                       </Typography>
                     </Stack>
                     <Checkbox
@@ -673,7 +677,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                       onChange={(_e, checked) => {
                         setTransaction({ ...transaction, qrOption: checked ? 'separate' : 'shared' });
                         if (checked) {
-                          notificationCtx.info('Vui lòng điền thông tin cho từng vé');
+                          notificationCtx.info(tt('Vui lòng điền thông tin cho từng vé', 'Please fill in information for each ticket'));
                         }
                       }}
                     />
@@ -683,7 +687,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
             )}
             {Boolean(eCode) && (
               <Card>
-                <CardHeader title="Mã QR check-in" subheader="Vui lòng bảo mật mã QR check-in" />
+                <CardHeader title={tt('Mã QR check-in', 'Check-in QR Code')} subheader={tt('Vui lòng bảo mật mã QR check-in', 'Please keep your check-in QR code secure')} />
                 <Divider />
                 <CardContent>
                   <Stack spacing={1} sx={{ display: 'flex', alignItems: 'center' }}>
@@ -697,37 +701,37 @@ export default function Page({ params }: { params: { transaction_id: number } })
             )}
 
             <Card>
-              <CardHeader title="Hành động" />
+              <CardHeader title={tt('Hành động', 'Actions')} />
               <Divider />
               <CardContent>
                 <Stack spacing={2} direction="row" sx={{flexWrap:'wrap'}}>
                   <Button size="small" color="error" startIcon={<X />} onClick={handleOpen} disabled={transaction.cancelRequestStatus != null || ['customer_cancelled', 'staff_locked'].includes(transaction.status)}>
-                    {transaction.cancelRequestStatus === 'pending' ? 'Đang chờ phản hồi hủy đơn hàng' : transaction.cancelRequestStatus == 'accepted' ? 'Đơn hàng đã được hủy' : transaction.cancelRequestStatus == 'rejected' ? 'Yêu cầu hủy bị từ chối' : 'Hủy đơn hàng'}
+                    {transaction.cancelRequestStatus === 'pending' ? tt('Đang chờ phản hồi hủy đơn hàng', 'Awaiting cancellation response') : transaction.cancelRequestStatus == 'accepted' ? tt('Đơn hàng đã được hủy', 'Order has been cancelled') : transaction.cancelRequestStatus == 'rejected' ? tt('Yêu cầu hủy bị từ chối', 'Cancellation request rejected') : tt('Hủy đơn hàng', 'Cancel Order')}
                   </Button>
                   <Button
                     onClick={() => window.open(`/account/my-tickets/${transaction_id}/invitation-letter`, '_blank')}
                     size="small"
-                    startIcon={<ImageSquare />} // Icon for document-like invitation letter
+                    startIcon={<ImageSquare />}
                   >
-                    Xem ảnh thư mời
+                    {tt('Xem ảnh thư mời', 'View Invitation Image')}
                   </Button>
                   <Button
                     size="small"
                     startIcon={<Link />}
                     onClick={() => copyShareLink(transaction.event.slug!, transaction.shareUuid!)}
                   >
-                    Copy liên kết chia sẻ
+                    {tt('Copy liên kết chia sẻ', 'Copy Share Link')}
                   </Button>
                   <Button
                     size="small"
                     startIcon={<FacebookLogo />}
                     onClick={() => shareTicket(transaction.event.slug!, transaction.shareUuid!, transaction.event.name, transaction.name, transaction.ticketQuantity)}
                   >
-                    Khoe với bạn bè
+                    {tt('Khoe với bạn bè', 'Share with Friends')}
                   </Button>
                 </Stack>
                 <Typography variant='caption'>
-                  Xin lưu ý: Việc chia sẻ xác nhận sở hữu vé sẽ tiết lộ <b>tên người mua, số lượng vé, và thông tin công khai của sự kiện</b>. Các thông tin khác được bảo mật.
+                  {tt('Xin lưu ý: Việc chia sẻ xác nhận sở hữu vé sẽ tiết lộ', 'Please note: Sharing ticket ownership confirmation will reveal')} <b>{tt('tên người mua, số lượng vé, và thông tin công khai của sự kiện', 'buyer name, ticket quantity, and public event information')}</b>. {tt('Các thông tin khác được bảo mật.', 'Other information is kept confidential.')}
                 </Typography>
               </CardContent>
             </Card>
@@ -736,18 +740,18 @@ export default function Page({ params }: { params: { transaction_id: number } })
       </Grid>
       {/* Confirm Dialog */}
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Xác nhận hủy đơn hàng</DialogTitle>
+        <DialogTitle>{tt('Xác nhận hủy đơn hàng', 'Confirm Order Cancellation')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác.
+            {tt('Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác.', 'Are you sure you want to cancel this order? This action cannot be undone.')}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose} color="primary">
-            Hủy bỏ
+            {tt('Hủy bỏ', 'Cancel')}
           </Button>
           <Button onClick={handleConfirmCancel} color="error" disabled={isLoading}>
-            {isLoading ? 'Đang hủy...' : 'Xác nhận'}
+            {isLoading ? tt('Đang hủy...', 'Cancelling...') : tt('Xác nhận', 'Confirm')}
           </Button>
         </DialogActions>
       </Dialog>

@@ -20,6 +20,7 @@ import dayjs from 'dayjs';
 
 import NotificationContext from '@/contexts/notification-context';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { useTranslation } from '@/contexts/locale-context';
 
 
 export interface EventResponse {
@@ -48,6 +49,7 @@ export default function Page({
 }: {
   params: { event_slug: string; transaction_share_uuid: string };
 }): React.JSX.Element | null {
+  const { tt } = useTranslation();
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [transaction, setTransaction] =
     React.useState<TransactionResponse | null>(null);
@@ -58,9 +60,9 @@ export default function Page({
   // Update document title when event loads
   React.useEffect(() => {
     if (event && transaction) {
-      document.title = `${transaction.name} đã sở hữu vé của sự kiện ${event.name} | ETIK`;
+      document.title = `${transaction.name} ${tt('đã sở hữu vé của sự kiện', 'has purchased tickets for')} ${event.name} | ETIK`;
     }
-  }, [event, transaction]);
+  }, [event, transaction, tt]);
 
   // 2) Fetch both event & transaction in one go
   React.useEffect(() => {
@@ -126,7 +128,7 @@ export default function Page({
               >
                 <Box component="img"
                   src={event?.bannerUrl || ''}
-                  alt="Sự kiện"
+                  alt={tt('Sự kiện', 'Event')}
                   style={{
                     position: 'absolute',
                     top: 0,
@@ -159,20 +161,20 @@ export default function Page({
                     </div>
 
                     <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', maxWidth: '100%' }}>
-                      <Typography variant="h6">Xác nhận mua vé thành công !</Typography>
+                      <Typography variant="h6">{tt('Xác nhận mua vé thành công !', 'Ticket purchase confirmed!')}</Typography>
                       <Stack spacing={1} sx={{ width: '100%' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                          <Typography variant="body1">Tên người mua:</Typography>
+                          <Typography variant="body1">{tt('Tên người mua:', 'Buyer name:')}</Typography>
                           <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transaction?.name}</Typography>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                          <Typography variant="body1">Số lượng:</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transaction?.ticketQuantity} vé</Typography>
+                          <Typography variant="body1">{tt('Số lượng:', 'Quantity:')}</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transaction?.ticketQuantity} {tt('vé', 'tickets')}</Typography>
                         </div>
                       </Stack>
 
 
-                      <Typography variant="body2" sx={{ textAlign: 'justify' }}>Cảm ơn Quý khách đã sử dụng ETIK !</Typography>
+                      <Typography variant="body2" sx={{ textAlign: 'justify' }}>{tt('Cảm ơn Quý khách đã sử dụng ETIK !', 'Thank you for using ETIK!')}</Typography>
                     </Stack>
                   </Stack>
                 </CardContent>
@@ -194,7 +196,7 @@ export default function Page({
                     <Stack direction="row" spacing={2} style={{ justifyContent: 'center', alignItems: 'center' }}>
                       <div>
                         {event?.avatarUrl ?
-                          <Box component="img" src={event?.avatarUrl} alt="Avatar sự kiện" style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                          <Box component="img" src={event?.avatarUrl} alt={tt('Avatar sự kiện', 'Event Avatar')} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
                           :
                           <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
                             {(event?.name[0] ?? 'a').toUpperCase()}
@@ -208,7 +210,7 @@ export default function Page({
                     <Stack direction="row" spacing={1}>
                       <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
-                        Đơn vị tổ chức: {event?.organizer}
+                        {tt('Đơn vị tổ chức:', 'Organizer:')}{' '}{event?.organizer}
                       </Typography>
                     </Stack>
                     <Stack direction="row" spacing={1}>
@@ -216,14 +218,14 @@ export default function Page({
                       <Typography color="text.secondary" display="inline" variant="body2">
                         {event?.startDateTime && event?.endDateTime
                           ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                          : 'Chưa xác định'} {event?.timeInstruction ? `(${event?.timeInstruction})` : ''}
+                          : tt('Chưa xác định', 'To be determined')} {event?.timeInstruction ? `(${event?.timeInstruction})` : ''}
                       </Typography>
                     </Stack>
 
                     <Stack direction="row" spacing={1} >
                       <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.place ? event?.place : 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank' rel="noreferrer">Xem bản đồ</a>}
+                        {event?.place ? event?.place : tt('Chưa xác định', 'To be determined')} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank' rel="noreferrer">{tt('Xem bản đồ', 'View map')}</a>}
                       </Typography>
                     </Stack>
                   </Stack>
@@ -246,7 +248,7 @@ export default function Page({
                       />
                     ) : (
                       <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Chưa có mô tả
+                        {tt('Chưa có mô tả', 'No description available')}
                       </Typography>
                     )}
                   </CardContent>
@@ -260,11 +262,11 @@ export default function Page({
                   >
                     <Stack direction="column" spacing={2} >
                       <Typography variant="body1" sx={{ textAlign: 'center' }}>
-                        Bạn muốn sở hữu vé ?
+                        {tt('Bạn muốn sở hữu vé ?', 'Want to get tickets?')}
                       </Typography>
                       <div>
                         <Button fullWidth variant="contained" href={`/${event?.slug}`} size="small" startIcon={<UserPlus />}>
-                          Đăng ký ngay
+                          {tt('Đăng ký ngay', 'Register Now')}
                         </Button>
                       </div>
                     </Stack>

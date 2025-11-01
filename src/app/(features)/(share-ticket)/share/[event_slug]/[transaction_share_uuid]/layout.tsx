@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactElement, ReactNode } from 'react';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,14 +41,21 @@ export async function generateMetadata(
   { params }: { params: { event_slug: string; transaction_share_uuid: string } }
 ): Promise<Metadata> {
   const { event, transaction } = await fetchShareData(params.event_slug, params.transaction_share_uuid);
+  
+  const cookieStore = await cookies();
+  const locale = cookieStore.get('NEXT_LOCALE')?.value || 'vi';
+  const isEn = locale === 'en';
 
   const title = transaction && event
-    ? `${transaction.name} đã sở hữu vé của sự kiện ${event.name}`
+    ? isEn 
+      ? `${transaction.name} has purchased tickets for ${event.name}`
+      : `${transaction.name} đã sở hữu vé của sự kiện ${event.name}`
     : event?.name ?? 'ETIK';
 
+  const siteSlogan = isEn ? 'E-tickets & Event Management' : 'Vé điện tử & Quản lý sự kiện';
   const description = event?.description 
-    ? `ETIK - Vé điện tử & Quản lý sự kiện | ${event.description.replace(/<[^>]+>/g, '')}`
-    : 'ETIK - Vé điện tử & Quản lý sự kiện';
+    ? `ETIK - ${siteSlogan} | ${event.description.replace(/<[^>]+>/g, '')}`
+    : `ETIK - ${siteSlogan}`;
   const image = event?.bannerUrl || event?.avatarUrl || undefined;
 
   return {

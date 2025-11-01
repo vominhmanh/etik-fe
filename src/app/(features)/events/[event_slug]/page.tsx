@@ -29,6 +29,7 @@ import { useSearchParams } from 'next/navigation';
 import ReCAPTCHA from 'react-google-recaptcha';
 
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { orange } from '@mui/material/colors';
@@ -108,6 +109,7 @@ const paymentMethodLabelMap: Record<string, string> = {
 
 export default function Page({ params }: { params: { event_slug: string } }): React.JSX.Element {
   const searchParams = useSearchParams();
+  const { tt, locale: lang } = useTranslation();
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [selectedCategories, setSelectedCategories] = React.useState<Record<number, Record<number, number>>>({});
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
@@ -134,20 +136,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [ticketHoldersByCategory, setTicketHoldersByCategory] = React.useState<Record<string, TicketHolderInfo[]>>({});
   const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
   const [responseTransaction, setResponseTransaction] = React.useState<Transaction | null>(null);
-  const [lang, setLang] = React.useState<'vi' | 'en'>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('lang');
-      return saved === 'en' ? 'en' : 'vi';
-    }
-    return 'vi';
-  });
-  React.useEffect(() => {
-    const qp = searchParams?.get('lang');
-    if (qp === 'vi' || qp === 'en') {
-      setLang(qp);
-    }
-  }, [searchParams]);
-  const tt = React.useCallback((vi: string, en: string) => (lang === 'vi' ? vi : en), [lang]);
+  
   const displayCustomerTitle = React.useMemo(() => {
     if (lang === 'en') {
       if (customer.title === 'Anh') return 'Mr.';
@@ -464,99 +453,6 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         <CircularProgress color="inherit" />
       </Backdrop>
       <Container maxWidth="xl" sx={{ py: '50px' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 2 }}>
-          <Box
-            component="span"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                setLang('en');
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                if (typeof window !== 'undefined') {
-                  setLang('en');
-                }
-              }
-            }}
-            sx={{
-              mr: 1,
-              display: 'flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-              opacity: lang === 'en' ? 1 : 0.5,
-            }}
-          >
-            <span role="img" aria-label="English">🇬🇧</span>
-          </Box>
-          <Box
-            component="input"
-            type="checkbox"
-            checked={lang === 'vi'}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              if (typeof window !== 'undefined') {
-                const newLang = e.target.checked ? 'vi' : 'en';
-                setLang(newLang as 'vi' | 'en');
-              }
-            }}
-            sx={{
-              width: 34,
-              height: 18,
-              position: 'relative',
-              appearance: 'none',
-              background: '#ddd',
-              borderRadius: 9,
-              outline: 'none',
-              cursor: 'pointer',
-              transition: 'background 0.3s',
-              '&:checked': {
-                background: '#4caf50'
-              },
-              '&::before': {
-                content: '""',
-                display: 'block',
-                position: 'absolute',
-                left: 2,
-                top: 2,
-                width: 14,
-                height: 14,
-                borderRadius: '50%',
-                background: '#fff',
-                transition: 'transform 0.2s',
-                transform: lang === 'vi' ? 'translateX(16px)' : 'translateX(0)'
-              }
-            }}
-            aria-label="language-switch"
-          />
-          <Box
-            component="span"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                setLang('vi');
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                if (typeof window !== 'undefined') {
-                  setLang('vi');
-                }
-              }
-            }}
-            sx={{
-              ml: 1,
-              display: 'flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-              opacity: lang === 'vi' ? 1 : 0.5,
-            }}
-          >
-            <span role="img" aria-label="Vietnamese">🇻🇳</span>
-          </Box>
-        </Box>
         <Stack spacing={3}>
           <Grid container spacing={3}>
             <Grid item lg={8} md={6} xs={12}>
