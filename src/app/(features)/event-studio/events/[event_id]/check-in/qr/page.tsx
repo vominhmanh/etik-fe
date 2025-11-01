@@ -458,12 +458,12 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     {tt('Khách hàng không có mã QR?', 'Customer doesn\'t have QR code?')}
                     {' '}
                     <a
-                      href={`/event-studio/events/${params.event_id}/transactions`}
+                      href={`/event-studio/events/${params.event_id}/tickets`}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{ color: '#1976d2', textDecoration: 'none' }}
                     >
-                      {tt('Tìm kiếm trong danh sách giao dịch', 'Search in transaction list')}
+                      {tt('Tìm kiếm trong danh sách vé', 'Search in tickets list')}
                     </a>
                   </Typography>
                 </CardContent>
