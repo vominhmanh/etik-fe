@@ -14,6 +14,7 @@ interface EventResponse {
 
 interface TransactionResponse {
   name: string;
+  title: string;
   ticketQuantity: number;
 }
 
@@ -42,7 +43,7 @@ export async function generateMetadata(
   const { event, transaction } = await fetchShareData(params.event_slug, params.transaction_share_uuid);
 
   const title = transaction && event
-    ? `${transaction.name} đã sở hữu vé của sự kiện ${event.name}`
+    ? `${transaction.title} ${transaction.name} đã sở hữu vé của sự kiện ${event.name}`
     : event?.name ?? 'ETIK';
 
   const description = event?.description 

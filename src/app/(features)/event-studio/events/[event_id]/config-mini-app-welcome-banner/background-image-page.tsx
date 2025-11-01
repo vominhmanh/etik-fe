@@ -59,10 +59,23 @@ export default function UploadImagePage({ eventId = 0 }: CustomersTableProps) {
         const response = await baseHttpServiceInstance.get(
           `/event-studio/events/${eventId}/mini-app-welcome-banner`
         );
-        setImagePreview(response.data.background_image);
-        setOriginalPreviewImage(response.data.background_image);
+        setImagePreview(response.data.imageUrl);
+        setOriginalPreviewImage(response.data.imageUrl);
+
+        // Load overlay settings from API if provided
+        if (Array.isArray(response.data.selectedComponents)) {
+          setSelectedComponents(
+            response.data.selectedComponents.reduce((acc: Record<string, SelectedComponent>, comp: SelectedComponent) => {
+              acc[comp.key] = comp;
+              return acc;
+            }, {} as Record<string, SelectedComponent>)
+          );
+        }
+        if (response.data.componentSettings) {
+          setComponentSettings(response.data.componentSettings as Record<string, ComponentSettings>);
+        }
       } catch (error: any) {
-        notificationCtx.error(`Lỗi khi tải ảnh nền: ${error?.message || 'Unknown error'}`);
+        // notificationCtx.error(`Lỗi khi tải ảnh nền: ${error?.message || 'Unknown error'}`);
       }
     }
 
@@ -87,7 +100,7 @@ export default function UploadImagePage({ eventId = 0 }: CustomersTableProps) {
     }
 
     fetchBackgroundImage();
-  }, [eventId, notificationCtx, storageKey]);
+  }, [eventId, storageKey]);
 
   // 🟢 Upload Image
   const handleUpload = async (file: File) => {

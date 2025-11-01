@@ -40,6 +40,7 @@ export interface EventResponse {
 // 1) Define the missing TransactionResponse type
 export interface TransactionResponse {
   name: string;
+  title: string;
   ticketQuantity: number;
 }
 
@@ -58,7 +59,7 @@ export default function Page({
   // Update document title when event loads
   React.useEffect(() => {
     if (event && transaction) {
-      document.title = `${transaction.name} đã sở hữu vé của sự kiện ${event.name} | ETIK`;
+      document.title = `${transaction.title} ${transaction.name} đã sở hữu vé của sự kiện ${event.name} | ETIK`;
     }
   }, [event, transaction]);
 
@@ -163,7 +164,7 @@ export default function Page({
                       <Stack spacing={1} sx={{ width: '100%' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                           <Typography variant="body1">Tên người mua:</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transaction?.name}</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transaction?.title} {transaction?.name}</Typography>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                           <Typography variant="body1">Số lượng:</Typography>
