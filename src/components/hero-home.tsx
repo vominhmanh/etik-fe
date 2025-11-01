@@ -126,7 +126,7 @@ export default function HeroHome() {
                 data-aos="zoom-y-out"
                 data-aos-delay={1000}
               >
-                ETIK giúp bạn tạo sự kiện và bán vé nhanh chóng, tiện lợi và hoàn toàn miễn phí *. Không những thế, loạt tính năng hỗ trợ sự kiện đi kèm giúp sự kiện của bạn trở nên hiện đại và chuyên nghiệp hơn bao giờ hết. Khám phá ngay ! 
+                ETIK giúp bạn tạo sự kiện và bán vé nhanh chóng, tiện lợi và tiết kiệm. Không những thế, loạt tính năng hỗ trợ sự kiện đi kèm giúp sự kiện của bạn trở nên hiện đại và chuyên nghiệp hơn bao giờ hết. Khám phá ngay ! 
               </p>
               
               <div className="relative before:absolute before:inset-0 before:border-y before:[border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1]">

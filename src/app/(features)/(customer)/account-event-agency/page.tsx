@@ -1,7 +1,10 @@
 'use client';
-import * as React from 'react';
-import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Unstable_Grid2';
+import NotificationContext from '@/contexts/notification-context';
+import { useUser } from '@/hooks/use-user';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
+import { User } from '@/types/auth';
+import { useTranslation } from '@/contexts/locale-context';
+import { Avatar, Box, Chip, MenuItem, Select, SelectChangeEvent, TextField } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
@@ -12,16 +15,14 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Stack from '@mui/material/Stack';
-import { useState, useEffect, useContext } from 'react';
-import { AxiosResponse } from 'axios';
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import NotificationContext from '@/contexts/notification-context';
-import { User } from '@/types/auth';
-import { useUser } from '@/hooks/use-user';
-import { Avatar, Box, Chip, FormHelperText, Input, MenuItem, Select, SelectChangeEvent, TextField } from '@mui/material';
+import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Unstable_Grid2';
 import { SealCheck } from '@phosphor-icons/react/dist/ssr';
-import { RegistrationHistoryTable } from './registration-history-table';
+import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
+import * as React from 'react';
+import { useContext, useEffect, useState } from 'react';
+import { RegistrationHistoryTable } from './registration-history-table';
 
 export interface EventAgencyInfoResponse {
   id: number;
@@ -71,6 +72,7 @@ interface EventAgencyRegistration {
 }
 
 export default function Page(): React.JSX.Element {
+  const { tt } = useTranslation();
   const [formData, setFormData] = useState<EventAgencyRegistration>({
     businessType: "individual",
     contactFullName: "",
@@ -89,24 +91,17 @@ export default function Page(): React.JSX.Element {
   const [agencyInfo, setAgencyInfo] = useState<EventAgencyInfoResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const notificationCtx = useContext(NotificationContext);
-  const [user, setUser] = useState<User | null>(null);
   const [onEditingEventAgency, setOnEditingEventAgency] = useState<boolean>(false);
-  const { getUser } = useUser();
+  const { user } = useUser();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const fetchedUser = getUser();
-      setUser(fetchedUser);
-      setFormData((prev) => ({
-        ...prev,
-        contactFullName: fetchedUser?.fullName || '',
-        contactPhoneNumber: fetchedUser?.phoneNumber || '',
-        contactEmail: fetchedUser?.email || '',
-      }))
-    };
-
-    fetchUser();
-  }, [getUser]);
+    setFormData((prev) => ({
+      ...prev,
+      contactFullName: user?.fullName || '',
+      contactPhoneNumber: user?.phoneNumber || '',
+      contactEmail: user?.email || '',
+    }))
+  }, [user]);
 
   useEffect(() => {
     async function fetchAgencyInfo() {
@@ -118,7 +113,7 @@ export default function Page(): React.JSX.Element {
         if (error.status === 403) {
           setOnEditingEventAgency(true)
         } else {
-          notificationCtx.error("Không thể lấy thông tin đại lý sự kiện.");
+          notificationCtx.error(tt("Không thể lấy thông tin đại lý sự kiện.", "Unable to fetch event agency information."));
         }
       } finally {
         setIsLoading(false);
@@ -126,7 +121,7 @@ export default function Page(): React.JSX.Element {
     }
 
     fetchAgencyInfo();
-  }, []);
+  }, [tt, notificationCtx]);
 
   const uploadImage = async (file: File): Promise<string | null> => {
     const formData = new FormData();
@@ -142,7 +137,7 @@ export default function Page(): React.JSX.Element {
 
       return response.data.imageUrl; // Return the image URL
     } catch (error) {
-      notificationCtx.error("Lỗi tải ảnh:", error);
+      notificationCtx.error(tt("Lỗi tải ảnh:", "Image upload error:"), error);
       return null;
     }
   };
@@ -195,10 +190,10 @@ export default function Page(): React.JSX.Element {
         },
       });
 
-      notificationCtx.success(`Gửi đơn đăng ký thành công.`,);
+      notificationCtx.success(tt(`Gửi đơn đăng ký thành công.`, "Registration submitted successfully."));
       console.log("Registration Success:", response.data);
     } catch (error) {
-      notificationCtx.error("Lỗi", error);
+      notificationCtx.error(tt("Lỗi", "Error"), error);
     } finally {
       setIsLoading(false);
     }
@@ -227,7 +222,7 @@ export default function Page(): React.JSX.Element {
   return (
     <Stack spacing={3}>
       <div>
-        <Typography variant="h4">Tài khoản Event Agency</Typography>
+        <Typography variant="h4">{tt('Tài khoản Event Agency', 'Event Agency Account')}</Typography>
       </div>
       <Grid container spacing={3}>
         <Grid lg={4} md={6} xs={12}>
@@ -242,7 +237,7 @@ export default function Page(): React.JSX.Element {
                   <Typography color="var(--mui-palette-success-400)" variant="body2">
                     {agencyInfo?.isEventAgencyAccount &&
                       <Chip
-                        label={<Typography variant='body2'><SealCheck /> Tài khoản nhà tổ chức sự kiện</Typography>}
+                        label={<Typography variant='body2'><SealCheck /> {tt('Tài khoản nhà tổ chức sự kiện', 'Event Organizer Account')}</Typography>}
                         color='success'
                       >
                       </Chip>
@@ -255,7 +250,7 @@ export default function Page(): React.JSX.Element {
             <Divider />
             <CardActions>
               <Button fullWidth variant="text">
-                Upload picture
+                {tt('Upload picture', 'Upload picture')}
               </Button>
             </CardActions>
           </Card>
@@ -266,28 +261,28 @@ export default function Page(): React.JSX.Element {
               <>
                 <Card>
                   <CardHeader
-                    title="Thông tin Nhà tổ chức sự kiện"
-                    subheader="Thông tin đã được duyệt"
+                    title={tt("Thông tin Nhà tổ chức sự kiện", "Event Organizer Information")}
+                    subheader={tt("Thông tin đã được duyệt", "Information has been approved")}
                   />
                   <Divider />
                   <CardContent>
                     {isLoading ? (
-                      <Typography>Đang tải...</Typography>
+                      <Typography>{tt('Đang tải...', 'Loading...')}</Typography>
                     ) : (
                       <Grid container spacing={3}>
                         <Grid md={12} xs={12}>
                           <FormControl fullWidth required>
-                            <InputLabel shrink>Loại hình kinh doanh</InputLabel>
+                            <InputLabel shrink>{tt('Loại hình kinh doanh', 'Business Type')}</InputLabel>
                             <Select
                               value={agencyInfo?.eventAgencyBusinessType || ""}
                               displayEmpty
                               disabled
                             >
                               <MenuItem value="" disabled>
-                                -- Chọn loại hình kinh doanh --
+                                -- {tt('Chọn loại hình kinh doanh', 'Select business type')} --
                               </MenuItem>
-                              <MenuItem value="individual">Cá nhân</MenuItem>
-                              <MenuItem value="company">Công ty/ Hộ kinh doanh</MenuItem>
+                              <MenuItem value="individual">{tt('Cá nhân', 'Individual')}</MenuItem>
+                              <MenuItem value="company">{tt('Công ty/ Hộ kinh doanh', 'Company / Business')}</MenuItem>
                             </Select>
                           </FormControl>
                         </Grid>
@@ -297,7 +292,7 @@ export default function Page(): React.JSX.Element {
                           <>
                             <Grid md={12} xs={12}>
                               <FormControl fullWidth>
-                                <InputLabel shrink>Họ và tên</InputLabel>
+                                <InputLabel shrink>{tt('Họ và tên', 'Full Name')}</InputLabel>
                                 <OutlinedInput
                                   notched
                                   value={agencyInfo?.eventAgencyFullName || ""}
@@ -308,7 +303,7 @@ export default function Page(): React.JSX.Element {
 
                             <Grid md={12} xs={12}>
                               <FormControl fullWidth>
-                                <InputLabel shrink>Mã số thuế</InputLabel>
+                                <InputLabel shrink>{tt('Mã số thuế', 'Tax Code')}</InputLabel>
                                 <OutlinedInput
                                   notched
                                   value={agencyInfo?.eventAgencyTaxCode || ""}
@@ -319,7 +314,7 @@ export default function Page(): React.JSX.Element {
 
                             <Grid md={12} xs={12}>
                               <FormControl fullWidth>
-                                <InputLabel shrink>Địa chỉ thường trú</InputLabel>
+                                <InputLabel shrink>{tt('Địa chỉ thường trú', 'Permanent Address')}</InputLabel>
                                 <OutlinedInput
                                   notched
                                   value={agencyInfo?.eventAgencyPlaceOfResidence || ""}
@@ -335,7 +330,7 @@ export default function Page(): React.JSX.Element {
                           <>
                             <Grid md={12} xs={12}>
                               <FormControl fullWidth>
-                                <InputLabel shrink>Tên công ty/ Hộ kinh doanh</InputLabel>
+                                <InputLabel shrink>{tt('Tên công ty/ Hộ kinh doanh', 'Company / Business Name')}</InputLabel>
                                 <OutlinedInput
                                   notched
                                   value={agencyInfo?.eventAgencyCompanyName || ""}
@@ -346,7 +341,7 @@ export default function Page(): React.JSX.Element {
 
                             <Grid md={12} xs={12}>
                               <FormControl fullWidth>
-                                <InputLabel shrink>Địa chỉ đăng ký kinh doanh</InputLabel>
+                                <InputLabel shrink>{tt('Địa chỉ đăng ký kinh doanh', 'Business Registration Address')}</InputLabel>
                                 <OutlinedInput
                                   notched
                                   value={agencyInfo?.eventAgencyBusinessAddress || ""}
@@ -357,7 +352,7 @@ export default function Page(): React.JSX.Element {
 
                             <Grid md={4} xs={12}>
                               <FormControl fullWidth>
-                                <InputLabel shrink>Số GCN ĐKKD / MST</InputLabel>
+                                <InputLabel shrink>{tt('Số GCN ĐKKD / MST', 'Business License / Tax Code')}</InputLabel>
                                 <OutlinedInput
                                   notched
                                   value={agencyInfo?.eventAgencyTaxCode || ""}
@@ -368,7 +363,7 @@ export default function Page(): React.JSX.Element {
 
                             <Grid md={4} xs={12}>
                               <FormControl fullWidth>
-                                <InputLabel shrink>Ngày cấp GCN ĐKKD / MST</InputLabel>
+                                <InputLabel shrink>{tt('Ngày cấp GCN ĐKKD / MST', 'Issue Date')}</InputLabel>
                                 <OutlinedInput
                                   notched
                                   value={dayjs(agencyInfo?.eventAgencyGcnIssueDate || 0).format('DD/MM/YYYY')}
@@ -379,7 +374,7 @@ export default function Page(): React.JSX.Element {
 
                             <Grid md={4} xs={12}>
                               <FormControl fullWidth>
-                                <InputLabel shrink>Nơi cấp GCN ĐKKD / MST</InputLabel>
+                                <InputLabel shrink>{tt('Nơi cấp GCN ĐKKD / MST', 'Issue Place')}</InputLabel>
                                 <OutlinedInput
                                   notched
                                   value={agencyInfo?.eventAgencyGcnIssuePlace || ""}
@@ -395,16 +390,16 @@ export default function Page(): React.JSX.Element {
                 </Card>
 
                 <Card>
-                  <CardHeader title="Thông tin liên lạc" />
+                  <CardHeader title={tt('Thông tin liên lạc', 'Contact Information')} />
                   <Divider />
                   <CardContent>
                     {isLoading ? (
-                      <Typography>Đang tải...</Typography>
+                      <Typography>{tt('Đang tải...', 'Loading...')}</Typography>
                     ) : (
                       <Grid container spacing={3}>
                         <Grid md={12} xs={12}>
                           <FormControl fullWidth>
-                            <InputLabel shrink>Họ tên</InputLabel>
+                            <InputLabel shrink>{tt('Họ tên', 'Full Name')}</InputLabel>
                             <OutlinedInput
                               notched
                               value={agencyInfo?.eventAgencyContactFullName || ""}
@@ -415,7 +410,7 @@ export default function Page(): React.JSX.Element {
 
                         <Grid md={6} xs={12}>
                           <FormControl fullWidth>
-                            <InputLabel shrink>Địa chỉ Email</InputLabel>
+                            <InputLabel shrink>{tt('Địa chỉ Email', 'Email Address')}</InputLabel>
                             <OutlinedInput
                               notched
                               value={agencyInfo?.eventAgencyContactEmail || ""}
@@ -426,7 +421,7 @@ export default function Page(): React.JSX.Element {
 
                         <Grid md={6} xs={12}>
                           <FormControl fullWidth>
-                            <InputLabel shrink>Số điện thoại</InputLabel>
+                            <InputLabel shrink>{tt('Số điện thoại', 'Phone Number')}</InputLabel>
                             <OutlinedInput
                               notched
                               value={agencyInfo?.eventAgencyContactPhoneNumber || ""}
@@ -437,7 +432,7 @@ export default function Page(): React.JSX.Element {
 
                         <Grid md={12} xs={12}>
                           <FormControl fullWidth>
-                            <InputLabel shrink>Địa chỉ liên lạc</InputLabel>
+                            <InputLabel shrink>{tt('Địa chỉ liên lạc', 'Contact Address')}</InputLabel>
                             <OutlinedInput
                               notched
                               value={agencyInfo?.eventAgencyContactAddress || ""}
@@ -451,7 +446,7 @@ export default function Page(): React.JSX.Element {
                 </Card>
                 <CardActions sx={{ justifyContent: 'flex-end' }}>
                   <Button variant="contained" onClick={handleWantToEditEventAgency}>
-                    Chỉnh sửa các thông tin trên
+                    {tt('Chỉnh sửa các thông tin trên', 'Edit Information')}
                   </Button>
                 </CardActions>
 
@@ -461,27 +456,27 @@ export default function Page(): React.JSX.Element {
               <>
                 <Card>
                   <CardHeader
-                    title="Thông tin Nhà tổ chức sự kiện"
-                    subheader="Nhà tổ chức sự kiện cần cung cấp các thông tin dưới đây để có thể tạo sự kiện theo nghị định 52/2013/NĐ-CP"
+                    title={tt("Thông tin Nhà tổ chức sự kiện", "Event Organizer Information")}
+                    subheader={tt("Nhà tổ chức sự kiện cần cung cấp các thông tin dưới đây để có thể tạo sự kiện theo nghị định 52/2013/NĐ-CP", "Event organizers must provide the following information to create events according to Decree 52/2013/NĐ-CP")}
                   />
                   <Divider />
                   <CardContent>
                     <Grid container spacing={3}>
                       <Grid md={12} xs={12}>
                         <FormControl fullWidth required>
-                          <InputLabel shrink>Loại hình kinh doanh</InputLabel>
+                          <InputLabel shrink>{tt('Loại hình kinh doanh', 'Business Type')}</InputLabel>
                           <Select
-                            label="Loại hình kinh doanh"
+                            label={tt('Loại hình kinh doanh', 'Business Type')}
                             value={formData.businessType || ""} // Default to an empty string
                             onChange={handleChangeFormData}
                             displayEmpty // Ensures the placeholder is shown for the empty state
                             name="businessType"
                           >
                             <MenuItem value="" disabled>
-                              -- Chọn loại hình kinh doanh --
+                              -- {tt('Chọn loại hình kinh doanh', 'Select business type')} --
                             </MenuItem>
-                            <MenuItem value="individual">Cá nhân</MenuItem>
-                            <MenuItem value="company">Công ty/ Hộ kinh doanh</MenuItem>
+                            <MenuItem value="individual">{tt('Cá nhân', 'Individual')}</MenuItem>
+                            <MenuItem value="company">{tt('Công ty/ Hộ kinh doanh', 'Company / Business')}</MenuItem>
                           </Select>
                         </FormControl>
                       </Grid>
@@ -490,36 +485,36 @@ export default function Page(): React.JSX.Element {
                         <>
                           <Grid md={12} xs={12}>
                             <FormControl fullWidth required>
-                              <InputLabel shrink>Họ và tên theo Thẻ căn cước</InputLabel>
+                              <InputLabel shrink>{tt('Họ và tên theo Thẻ căn cước', 'Full Name as on ID Card')}</InputLabel>
                               <OutlinedInput
                                 notched
                                 value={formData.fullName}
                                 onChange={handleChangeFormData}
-                                label="Họ và tên theo Thẻ căn cước"
+                                label={tt('Họ và tên theo Thẻ căn cước', 'Full Name as on ID Card')}
                                 name="fullName"
                               />
                             </FormControl>
                           </Grid>
                           <Grid md={12} xs={12}>
                             <FormControl fullWidth required>
-                              <InputLabel shrink>Mã số thuế</InputLabel>
+                              <InputLabel shrink>{tt('Mã số thuế', 'Tax Code')}</InputLabel>
                               <OutlinedInput
                                 notched
                                 value={formData.taxCode}
                                 onChange={handleChangeFormData}
-                                label="Mã số thuế"
+                                label={tt('Mã số thuế', 'Tax Code')}
                                 name="taxCode"
                               />
                             </FormControl>
                           </Grid>
                           <Grid md={12} xs={12}>
                             <FormControl fullWidth required>
-                              <InputLabel shrink>Địa chỉ thường trú</InputLabel>
+                              <InputLabel shrink>{tt('Địa chỉ thường trú', 'Permanent Address')}</InputLabel>
                               <OutlinedInput
                                 notched
                                 value={formData.placeOfResidence}
                                 onChange={handleChangeFormData}
-                                label="Địa chỉ thường trú"
+                                label={tt('Địa chỉ thường trú', 'Permanent Address')}
                                 name="placeOfResidence"
                               />
                             </FormControl>
@@ -529,35 +524,35 @@ export default function Page(): React.JSX.Element {
                       ) : (<>
                         <Grid md={12} xs={12}>
                           <FormControl fullWidth required>
-                            <InputLabel shrink>Tên công ty/ Hộ kinh doanh</InputLabel>
+                            <InputLabel shrink>{tt('Tên công ty/ Hộ kinh doanh', 'Company / Business Name')}</InputLabel>
                             <OutlinedInput
                               notched
                               value={formData.companyName}
                               onChange={handleChangeFormData}
-                              label="Tên công ty/ Hộ kinh doanh"
+                              label={tt('Tên công ty/ Hộ kinh doanh', 'Company / Business Name')}
                               name="companyName"
                             />
                           </FormControl>
                         </Grid>
                         <Grid md={12} xs={12}>
                           <FormControl fullWidth required>
-                            <InputLabel>Địa chỉ đăng ký kinh doanh</InputLabel>
+                            <InputLabel>{tt('Địa chỉ đăng ký kinh doanh', 'Business Registration Address')}</InputLabel>
                             <OutlinedInput
                               value={formData.businessAddress}
                               onChange={handleChangeFormData}
-                              label="Địa chỉ đăng ký kinh doanh"
+                              label={tt('Địa chỉ đăng ký kinh doanh', 'Business Registration Address')}
                               name="businessAddress"
                             />
                           </FormControl>
                         </Grid>
                         <Grid md={4} xs={12}>
                           <FormControl fullWidth required>
-                            <InputLabel shrink>Số GCN ĐKKD / MST</InputLabel>
+                            <InputLabel shrink>{tt('Số GCN ĐKKD / MST', 'Business License / Tax Code')}</InputLabel>
                             <OutlinedInput
                               notched
                               value={formData.taxCode}
                               onChange={handleChangeFormData}
-                              label="Số GCN ĐKKD / MST"
+                              label={tt('Số GCN ĐKKD / MST', 'Business License / Tax Code')}
                               name="taxCode"
                             />
                           </FormControl>
@@ -565,12 +560,12 @@ export default function Page(): React.JSX.Element {
 
                         <Grid md={4} xs={12}>
                           <FormControl fullWidth required>
-                            <InputLabel shrink>Ngày cấp GCN ĐKKD / MST</InputLabel>
+                            <InputLabel shrink>{tt('Ngày cấp GCN ĐKKD / MST', 'Issue Date')}</InputLabel>
                             <OutlinedInput
                               notched
                               value={formData.gcnIssueDate}
                               onChange={handleChangeFormData}
-                              label="Ngày cấp GCN ĐKKD / MST"
+                              label={tt('Ngày cấp GCN ĐKKD / MST', 'Issue Date')}
                               name="gcnIssueDate"
                               type="date"
                             />
@@ -579,19 +574,19 @@ export default function Page(): React.JSX.Element {
 
                         <Grid md={4} xs={12}>
                           <FormControl fullWidth required>
-                            <InputLabel shrink>Nơi cấp GCN ĐKKD / MST</InputLabel>
+                            <InputLabel shrink>{tt('Nơi cấp GCN ĐKKD / MST', 'Issue Place')}</InputLabel>
                             <OutlinedInput
                               notched
                               value={formData.gcnIssuePlace}
                               onChange={handleChangeFormData}
-                              label="Nơi cấp GCN ĐKKD / MST"
+                              label={tt('Nơi cấp GCN ĐKKD / MST', 'Issue Place')}
                               name="gcnIssuePlace"
                             />
                           </FormControl>
                         </Grid>
                         <Grid md={12} xs={12}>
                           <Typography color="text.secondary" variant="body2">
-                            Tải lên ảnh giấy chứng nhận đăng ký kinh doanh bản gốc
+                            {tt('Tải lên ảnh giấy chứng nhận đăng ký kinh doanh bản gốc', 'Upload original business registration certificate image')}
                           </Typography>
 
                           <FormControl fullWidth>
@@ -599,7 +594,7 @@ export default function Page(): React.JSX.Element {
                               variant="standard"
                               inputProps={{ type: "file", multiple: true, accept: ".jpg,.jpeg,.png,.pdf" }}
                               onChange={handleImageChange}
-                              helperText="Định dạng .JPG, .JPEG, .PNG, .PDF, tối đa 5MB"
+                              helperText={tt('Định dạng .JPG, .JPEG, .PNG, .PDF, tối đa 5MB', 'Format .JPG, .JPEG, .PNG, .PDF, max 5MB')}
                             />
                           </FormControl>
 
@@ -607,7 +602,7 @@ export default function Page(): React.JSX.Element {
                           <Box sx={{ display: "flex", flexWrap: "wrap", mt: 2, gap: 1 }}>
                             {formData.registrationImages.map((imageUrl, index) => (
                               <Box key={index} sx={{ position: "relative", width: 80, height: 80 }}>
-                                <img
+                                <Box component="img"
                                   src={imageUrl}
                                   alt={`uploaded-${index}`}
                                   style={{ width: "100%", height: "100%", borderRadius: 4, objectFit: "cover", cursor: "pointer" }}
@@ -629,33 +624,33 @@ export default function Page(): React.JSX.Element {
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardHeader title="Thông tin liên lạc" />
+                  <CardHeader title={tt('Thông tin liên lạc', 'Contact Information')} />
                   <Divider />
                   <CardContent>
                     <Grid container spacing={3}>
                       <Grid md={12} xs={12}>
                         <FormControl fullWidth required>
-                          <InputLabel shrink >Họ tên</InputLabel>
-                          <OutlinedInput notched value={formData?.contactFullName} onChange={handleChangeFormData} inputProps={{ shrink: true }} label="Họ tên" name="contactFullName"  />
+                          <InputLabel shrink >{tt('Họ tên', 'Full Name')}</InputLabel>
+                          <OutlinedInput notched value={formData?.contactFullName} onChange={handleChangeFormData} inputProps={{ shrink: true }} label={tt('Họ tên', 'Full Name')} name="contactFullName"  />
                         </FormControl>
                       </Grid>
                       <Grid md={6} xs={12}>
                         <FormControl fullWidth required disabled>
-                          <InputLabel shrink>Địa chỉ Email</InputLabel>
-                          <OutlinedInput notched value={formData?.contactEmail} label="Địa chỉ Email" name="contactEmail" onChange={handleChangeFormData} inputProps={{ shrink: true }} />
+                          <InputLabel shrink>{tt('Địa chỉ Email', 'Email Address')}</InputLabel>
+                          <OutlinedInput notched value={formData?.contactEmail} label={tt('Địa chỉ Email', 'Email Address')} name="contactEmail" onChange={handleChangeFormData} inputProps={{ shrink: true }} />
                         </FormControl>
                       </Grid>
                       <Grid md={6} xs={12}>
                         <FormControl fullWidth>
-                          <InputLabel shrink>Số điện thoại</InputLabel>
-                          <OutlinedInput notched value={formData?.contactPhoneNumber} label="Số điện thoại" name="contactPhoneNumber" type="tel" onChange={handleChangeFormData} inputProps={{ shrink: true }}  />
+                          <InputLabel shrink>{tt('Số điện thoại', 'Phone Number')}</InputLabel>
+                          <OutlinedInput notched value={formData?.contactPhoneNumber} label={tt('Số điện thoại', 'Phone Number')} name="contactPhoneNumber" type="tel" onChange={handleChangeFormData} inputProps={{ shrink: true }}  />
                         </FormControl>
                       </Grid>
 
                       <Grid md={12} xs={12}>
                         <FormControl fullWidth>
-                          <InputLabel>Địa chỉ liên lạc</InputLabel>
-                          <OutlinedInput label="Địa chỉ liên lạc" notched value={formData?.contactAddress} name="contactAddress" type="text" onChange={handleChangeFormData} inputProps={{ shrink: true }} />
+                          <InputLabel>{tt('Địa chỉ liên lạc', 'Contact Address')}</InputLabel>
+                          <OutlinedInput label={tt('Địa chỉ liên lạc', 'Contact Address')} notched value={formData?.contactAddress} name="contactAddress" type="text" onChange={handleChangeFormData} inputProps={{ shrink: true }} />
                         </FormControl>
                       </Grid>
                     </Grid>
@@ -663,7 +658,7 @@ export default function Page(): React.JSX.Element {
                 </Card>
                 <CardActions sx={{ justifyContent: 'flex-end' }}>
                   <Button variant="contained" onClick={submitRegistration} disabled={isLoading} >
-                    {isLoading ? 'Đang lưu...' : 'Lưu'}
+                    {isLoading ? tt('Đang lưu...', 'Saving...') : tt('Lưu', 'Save')}
                   </Button>
                 </CardActions>
               </>

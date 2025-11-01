@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useContext } from "react";
-import { AxiosResponse } from "axios";
-import { baseHttpServiceInstance } from "@/services/BaseHttp.service";
 import NotificationContext from "@/contexts/notification-context";
-import { Stack, Checkbox, FormControlLabel, TextField, CardHeader, Card, List, ListItem, ListItemText, Typography, Grid, Divider, CardContent, Button, Input } from "@mui/material";
+import { baseHttpServiceInstance } from "@/services/BaseHttp.service";
 import { CloudUpload } from "@mui/icons-material";
+import { Box, Button, Card, CardHeader, Checkbox, Divider, FormControlLabel, Grid, Input, List, ListItem, Stack, TextField, Typography } from "@mui/material";
+import { AxiosResponse } from "axios";
+import { useContext, useEffect, useState } from "react";
 
 interface SelectedComponent {
   key: string;
@@ -42,6 +42,9 @@ const defaultComponents: { label: string; key: string }[] = [
 ];
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  useEffect(() => {
+    document.title = "Thiết kế thư mời | ETIK - Vé điện tử & Quản lý sự kiện";
+  }, []);
   const { event_id } = params;
   const notificationCtx = useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,8 +53,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [selectedComponents, setSelectedComponents] = useState<Record<string, SelectedComponent>>({});
   const [componentSettings, setComponentSettings] = useState<Record<string, ComponentSettings>>({});
   const [imagePreview, setImagePreview] = useState<string>(
-    "https://media.etik.io.vn/events/28/event_images/7ebfc214-c468-492a-808a-5b9c9557a6ae.png"
+    "https://media.etik.vn/events/28/event_images/7ebfc214-c468-492a-808a-5b9c9557a6ae.png"
   );
+  const [originalPreviewImage, setOriginalPreviewImage] = useState<string | null>(null);
+  const [onPreviewMode, setOnPreviewMode] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -65,6 +70,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           const { imageUrl, selectedComponents, componentSettings } = response.data;
 
           setImagePreview(imageUrl);
+          setOriginalPreviewImage(imageUrl);
           setSelectedComponents(
             selectedComponents.reduce((acc, component) => {
               acc[component.key] = component;
@@ -120,12 +126,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
-        }
+        },
+        true
       );
 
       setImagePreview(response.data.imageUrl); // Set new image preview
+      setOnPreviewMode(true);
     } catch (error: any) {
-      notificationCtx.error(`Lỗi tải ảnh: ${error.message}`);
+      const message =
+        // 1) If it’s a JS Error instance
+        error instanceof Error ? error.message
+        // 2) If it’s an AxiosError with a response body
+        : error.response?.data?.message
+          ? error.response.data.message
+        // 3) If it’s a plain string
+        : typeof error === 'string'
+          ? error
+        // 4) Fallback to JSON‐dump of the object
+        : JSON.stringify(error);
+      notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
     }
   };
 
@@ -190,13 +209,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 display: "inline-block",
                 width: "100%",
                 height: "auto",
-                containerType: 'inline-size'
+                containerType: 'inline-size',
               }}
             >
-              <img
+              <Box
+                component="img"
                 src={imagePreview}
                 alt="Event Image"
-                style={{
+                sx={{
                   width: "100%",
                   height: "auto",
                   display: "block",
@@ -231,105 +251,153 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               ))}
             </div>
           </div>
+
+          {/* Upload controls below preview */}
+          <div>
+            <Input
+              type="file"
+              inputProps={{ accept: "image/*" }}
+              onChange={handleFileChange}
+              sx={{ display: "none" }}
+              id="upload-image"
+            />
+            <label htmlFor="upload-image">
+              <Button
+                variant="contained"
+                component="span"
+                startIcon={<CloudUpload />}
+                size="small"
+                sx={{ mt: 1 }}
+              >
+                Chọn ảnh thư mời
+              </Button>
+            </label>
+            <Box sx={{ mt: 1.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {onPreviewMode && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => {
+                    setOnPreviewMode(false);
+                    setImagePreview(originalPreviewImage || imagePreview);
+                  }}
+                >
+                  Hủy chọn
+                </Button>
+              )}
+            </Box>
+          </div>
         </Grid>
+        {/* Controls */}
         <Grid item xs={12} sm={6} md={6}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader title="Tải ảnh template thiệp mời" />
+              <CardHeader title="Chọn thành phần" titleTypographyProps={{ variant: 'subtitle2' }} />
               <Divider />
-              <CardContent>
-                <Input
-                  type="file"
-                  inputProps={{ accept: "image/*" }}
-                  onChange={handleFileChange}
-                  sx={{ display: "none" }}
-                  id="upload-image"
-                />
-                <label htmlFor="upload-image">
-                  <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<CloudUpload />}
-                    fullWidth
-                    sx={{ marginTop: "10px" }}
-                  >
-                    Chọn ảnh
-                  </Button>
-                </label>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader title="Chọn thành phần" />
-              <Divider />
-              <List>
+              <List dense>
                 {defaultComponents.map(({ label, key }) => (
                   <ListItem
+                    dense
                     divider
                     key={key}
                     sx={{
                       cursor: 'pointer',
-                      '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.1)' },
+                      '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.08)' },
                       display: 'flex',
-                      justifyContent: 'space-between'
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      py: 0,
+                      px: 1,
+                      minHeight: 36,
                     }}
                   >
-                    <Grid container spacing={1}>
-                      <Grid item xs={12} md={4}>
+                    <Grid container spacing={0.5} alignItems="center">
+                      <Grid item xs={12} md={4} sx={{ display: 'flex', alignItems: 'center' }}>
                         <FormControlLabel
                           control={
-                            <Checkbox
+                            <Checkbox size="small"
                               checked={!!selectedComponents[key]}
                               onChange={() => handleCheckboxChange(key, label)}
                             />
                           }
-                          label={label}
+                          label={<Typography variant="caption">{label}</Typography>}
                         />
                       </Grid>
                       <Grid item xs={12} md={8}>
                         {selectedComponents[key] && (
-                          <Stack direction={'row'} style={{ gap: "5px" }}>
+                          <Stack direction={'row'} style={{ gap: '4px' }}>
                             <TextField
-                              sx={{ width: '80px' }}
-                              label="Width (%)"
+                              sx={{
+                                width: '64px',
+                                '& .MuiInputBase-input, & .MuiOutlinedInput-input': { fontSize: 11, padding: 0, textAlign: 'center' },
+                                '& .MuiInputLabel-root': { fontSize: 11 },
+                                '& input[type=number]': { MozAppearance: 'textfield' },
+                                '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
+                              }}
+                              label="W%"
                               type="number"
                               value={componentSettings[key]?.width || ""}
                               onChange={(e) => handleInputChange(key, "width", Number(e.target.value))}
                               size="small"
                             />
                             <TextField
-                              sx={{ width: '80px' }}
-                              label="Height (%)"
+                              sx={{
+                                width: '64px',
+                                '& .MuiInputBase-input, & .MuiOutlinedInput-input': { fontSize: 11, padding: 0, textAlign: 'center' },
+                                '& .MuiInputLabel-root': { fontSize: 11 },
+                                '& input[type=number]': { MozAppearance: 'textfield' },
+                                '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
+                              }}
+                              label="H%"
                               type="number"
                               value={componentSettings[key]?.height || ""}
                               onChange={(e) => handleInputChange(key, "height", Number(e.target.value))}
                               size="small"
                             />
                             <TextField
-                              sx={{ width: '80px' }}
-                              label="Top (%)"
+                              sx={{
+                                width: '64px',
+                                '& .MuiInputBase-input, & .MuiOutlinedInput-input': { fontSize: 11, padding: 0, textAlign: 'center' },
+                                '& .MuiInputLabel-root': { fontSize: 11 },
+                                '& input[type=number]': { MozAppearance: 'textfield' },
+                                '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
+                              }}
+                              label="Top%"
                               type="number"
                               value={componentSettings[key]?.top || ""}
                               onChange={(e) => handleInputChange(key, "top", Number(e.target.value))}
                               size="small"
                             />
                             <TextField
-                              sx={{ width: '80px' }}
-                              label="Left (%)"
+                              sx={{
+                                width: '64px',
+                                '& .MuiInputBase-input, & .MuiOutlinedInput-input': { fontSize: 11, padding: 0, textAlign: 'center' },
+                                '& .MuiInputLabel-root': { fontSize: 11 },
+                                '& input[type=number]': { MozAppearance: 'textfield' },
+                                '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
+                              }}
+                              label="Left%"
                               type="number"
                               value={componentSettings[key]?.left || ""}
                               onChange={(e) => handleInputChange(key, "left", Number(e.target.value))}
                               size="small"
                             />
                             <TextField
-                              sx={{ width: '80px' }}
-                              label="Font Size (%)"
+                              sx={{
+                                width: '64px',
+                                '& .MuiInputBase-input, & .MuiOutlinedInput-input': { fontSize: 11, padding: 0, textAlign: 'center' },
+                                '& .MuiInputLabel-root': { fontSize: 11 },
+                                '& input[type=number]': { MozAppearance: 'textfield' },
+                                '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
+                              }}
+                              label="Font%"
                               type="number"
                               value={componentSettings[key]?.fontSize || ""}
                               onChange={(e) => handleInputChange(key, "fontSize", Number(e.target.value))}
                               size="small"
                             />
                             <TextField
-                              sx={{ width: '80px' }}
+                              sx={{ width: '72px', '& .MuiInputBase-input, & .MuiOutlinedInput-input': { fontSize: 11, padding: 0, textAlign: 'center' }, '& .MuiInputLabel-root': { fontSize: 11 } }}
                               label="Color"
                               type="text"
                               value={componentSettings[key]?.color || ""}
@@ -341,24 +409,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </Grid>
                     </Grid>
 
-                    <>
-
-                    </>
-
-
-                    {/* <ListItemText
-                    primary={
-                      <Stack spacing={2} direction="row">
-                        {item.icon}
-                        <Typography variant="body2">{item.label}</Typography>
-                      </Stack>
-                    }
-                  /> */}
                   </ListItem>))}
 
               </List>
             </Card>
-            <div style={{display: 'flex', justifyContent: 'flex-end'}}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <Button
                 variant="contained"
                 color="primary"

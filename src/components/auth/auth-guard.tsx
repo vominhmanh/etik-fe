@@ -1,11 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Alert from '@mui/material/Alert';
-import { jwtDecode } from 'jwt-decode';
 
 import { paths } from '@/paths';
+import { buildReturnUrl } from '@/lib/auth/urls';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
 
@@ -15,45 +15,32 @@ export interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | null {
   const router = useRouter();
-  const { error, isLoading, getUser } = useUser();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { error, isLoading, user, checkSession } = useUser();
   const [isChecking, setIsChecking] = React.useState<boolean>(true);
+  const didTryHydrateRef = React.useRef<boolean>(false);
 
   const checkPermissions = async (): Promise<void> => {
-    const user = getUser()
-    const accessToken = localStorage.getItem('accessToken');
-
     if (isLoading) {
       return;
     }
 
-    if (error) {
-      setIsChecking(false);
-      return;
-    }
+    // If there is an auth error, still proceed to check redirect logic below
 
-    if (!user || !accessToken) {
-      logger.debug('[AuthGuard]: User or  Access token is not logged in, redirecting to sign in');
-      router.replace(paths.auth.signIn);
-      return;
-    }
-
-    try {
-      const decodedToken = jwtDecode(accessToken);
-      const currentTime = Date.now() / 1000;
-
-      // TODO: Call refresh token endpoint if the token is about to expire
-      // If the token is expired, logout the user
-      if (!decodedToken.exp || decodedToken.exp < currentTime) {
-        router.replace(paths.auth.signIn);
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('user');
+    if (!user) {
+      if (!didTryHydrateRef.current) {
+        didTryHydrateRef.current = true;
+        await checkSession?.();
+        return; // wait for state update, effect will re-run
       }
-    } catch (err) {
-      logger.error(err);
-      router.replace(paths.auth.signIn);
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
+      logger.debug('[AuthGuard]: User is not logged in, redirecting to sign in');
+      const encoded = buildReturnUrl(pathname || '/', searchParams?.toString() ? `?${searchParams?.toString()}` : '');
+      router.replace(`${paths.auth.signIn}?returnUrl=${encoded}`);
+      return; // stop further processing
     }
+
+    // Token validation handled by server via httpOnly cookies
 
     setIsChecking(false);
   };
@@ -65,7 +52,7 @@ export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | nul
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Expected
   }, [ error, isLoading]);
 
-  if (isChecking) {
+  if (isChecking || isLoading) {
     return null;
   }
 

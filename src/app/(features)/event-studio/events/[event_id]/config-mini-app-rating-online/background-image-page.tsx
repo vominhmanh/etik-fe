@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Box, Button, Card, CardMedia, Typography } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import { X } from '@phosphor-icons/react/dist/ssr';
+import Image from 'next/image';
+import { useEffect, useState } from 'react';
 
 interface CustomersTableProps {
   eventId: number;

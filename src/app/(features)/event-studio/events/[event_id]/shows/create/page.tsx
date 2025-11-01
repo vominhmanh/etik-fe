@@ -1,10 +1,7 @@
 'use client';
 
-import * as React from 'react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { InputAdornment, TextField } from '@mui/material';
+import { FormHelperText, TextField } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -20,8 +17,10 @@ import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import axios, { AxiosResponse } from 'axios';
-import ReactQuill from 'react-quill'; // Import ReactQuill
+import { AxiosResponse } from 'axios';
+import { useRouter } from 'next/navigation';
+import * as React from 'react';
+import { useState } from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
 
@@ -35,6 +34,7 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
   const showId = params.show_id;
   const [formData, setFormData] = useState({
     name: '',
+    type: 'public',
     endDateTime: '',
     startDateTime: '',
   });
@@ -63,6 +63,10 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
         notificationCtx.warning('Tên suất diễn không được để trống.');
         return
       }
+      if (!formData.type) {
+        notificationCtx.warning('Bạn phải chọn phân loại suất diễn.');
+        return
+      }
       if (!formData.startDateTime || !formData.endDateTime) {
         notificationCtx.warning('Thời gian suất diễn không được để trống.');
         return
@@ -76,11 +80,12 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
         `/event-studio/events/${eventId}/shows`,
         {
           name: formData.name,
+          type: formData.type,
           startDateTime: formData.startDateTime,
           endDateTime: formData.endDateTime,
         }
       );
-      notificationCtx.success('Ticket category created:', response.data);
+      notificationCtx.success('Thêm suất diễn thành công');
       router.push(`/event-studio/events/${eventId}/schedules`);
     } catch (error) {
       notificationCtx.error('Lỗi', error);
@@ -114,10 +119,25 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
-                  <Grid md={12} xs={12}>
+                  <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>Tên suất diễn</InputLabel>
                       <OutlinedInput label="Tên suất diễn" name="name" value={formData.name} onChange={handleChange} />
+                    </FormControl>
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Phân loại</InputLabel>
+                      <Select
+                        label="Phân loại"
+                        name="type"
+                        value={formData.type}
+                        onChange={(event: any) => handleChange(event)}
+                      >
+                        <MenuItem value="private">Nội bộ</MenuItem>
+                        <MenuItem value="public">Công khai</MenuItem>
+                      </Select>
+                      <FormHelperText>Chế độ công khai: Cho phép Người mua nhìn thấy.</FormHelperText>
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
@@ -147,7 +167,7 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
                 </Grid>
               </CardContent>
             </Card>
-            
+
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
               <Button variant="contained" onClick={handleSubmit}>
                 Tạo

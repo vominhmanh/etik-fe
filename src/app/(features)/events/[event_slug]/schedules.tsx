@@ -1,29 +1,43 @@
-import React, { useState } from 'react';
-import { Checkbox, Card, CardHeader, Divider, List, ListItem, Box, ListItemAvatar, ListItemText, IconButton, Typography, Stack, CardContent } from '@mui/material';
+import { Box, Card, CardHeader, Checkbox, Divider, List, ListItem, ListItemAvatar, ListItemText, Stack } from '@mui/material';
 import dayjs from 'dayjs';
+import React, { useState } from 'react';
 import { Show } from './page';
 
 export interface LatestProductsProps {
   shows?: Show[];
   onSelectionChange: (selectedShows: Show[]) => void;  // New prop for selection handling
+  lang?: 'vi' | 'en';
 }
 
-export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps): React.JSX.Element {
+export function Schedules({ shows = [], onSelectionChange, lang = 'vi' }: LatestProductsProps): React.JSX.Element {
   const [selectedShows, setSelectedShows] = useState<Show[]>([]);
+  const tt = React.useCallback((vi: string, en: string) => (lang === 'vi' ? vi : en), [lang]);
+  const formatTimeRange = React.useCallback((start: string, end: string) => {
+    if (lang === 'vi') {
+      return `${dayjs(start).format('HH:mm')} - ${dayjs(end).format('HH:mm | DD/MM/YYYY')}`;
+    }
+    return `${dayjs(start).format('h:mm A')} - ${dayjs(end).format('h:mm A | MMM D, YYYY')}`;
+  }, [lang]);
 
   const handleItemClick = (show: Show) => {
     const updatedSelectedShows = selectedShows.includes(show)
       ? selectedShows.filter((s) => s.id !== show.id)
       : [...selectedShows, show];
 
-    setSelectedShows(updatedSelectedShows);
-    onSelectionChange(updatedSelectedShows);
+    // Combine all conditions to check if the ticket is valid
+    const isValidSelection = show.status === 'on_sale' && !show.disabled;
+
+    // Only proceed if all conditions are met
+    if (isValidSelection) {
+      setSelectedShows(updatedSelectedShows);
+      onSelectionChange(updatedSelectedShows);
+    }
   };
 
 
   return (
     <Card>
-      <CardHeader title="Chọn lịch" />
+      <CardHeader title={tt('Chọn lịch', 'Choose schedule')} />
       <Divider />
       <List>
         {shows.map((show) => (
@@ -38,21 +52,32 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
                 checked={selectedShows.includes(show)}
                 onClick={(e) => e.stopPropagation()} // Prevent checkbox click from bubbling up
                 onChange={() => handleItemClick(show)}
+                disabled={
+                  show.status !== "on_sale" ||
+                  show.disabled
+                }
               />
             </Box>
             <ListItemAvatar>
-              {show.avatar ?
-                <Box component="img" src={show.avatar} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
-                :
-                <Box component="img" src={'/assets/product-5.png'} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
-              }            
-              </ListItemAvatar>
+              <Box component="img" src={show.avatar ?? '/assets/product-5.png'} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
+            </ListItemAvatar>
             <ListItemText
               primary={show.name}
-              secondary={show.startDateTime && show.endDateTime
-                ? `${dayjs(show.startDateTime).format('HH:mm')} - ${dayjs(show.endDateTime).format('HH:mm ngày DD/MM/YYYY')}`
-                : "Chưa xác định"}
-              secondaryTypographyProps={{ variant: 'body2' }}
+              primaryTypographyProps={{ variant: 'subtitle2' }}
+              secondary={
+                (show.startDateTime && show.endDateTime
+                  ? formatTimeRange(show.startDateTime, show.endDateTime) : "")
+                + (show.disabled
+                  ? ` | ${tt('Đang khóa bởi hệ thống', 'Locked by system')}`
+                  : show.status !== "on_sale"
+                    ? show.status === "not_opened_for_sale"
+                      ? ` | ${tt('Chưa mở bán', 'Not opened for sale')}`
+                      : show.status === "temporarily_locked"
+                        ? ` | ${tt('Đang tạm khóa', 'Temporarily locked')}`
+                        : ""
+                    : "")
+              }
+              secondaryTypographyProps={{ variant: 'caption' }}
             />
           </ListItem>
         ))}

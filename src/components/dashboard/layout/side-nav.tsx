@@ -15,10 +15,12 @@ import { SpinnerBall } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
 import {
   ArrowLeft,
+  CurrencyCircleDollar,
   DiceSix,
   ImageSquare,
   Mailbox,
   Plus,
+  Sliders,
   SquaresFour,
   StackPlus,
   StarHalf,
@@ -40,14 +42,15 @@ import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import { AxiosResponse } from 'axios';
-
+import logoImage from "@/images/etik-logo-transparent-dark.png";
+import Image from "next/image";
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
 import NotificationContext from '@/contexts/notification-context';
-import { Logo } from '@/components/core/logo';
+import { useTranslation } from '@/contexts/locale-context';
 
-import { navItems } from './config';
+import { getNavItems } from './config';
 
 export type EventResponse = {
   id: number;
@@ -65,10 +68,12 @@ export type EventResponse = {
 };
 
 export function SideNav(): React.JSX.Element {
+  const { tt } = useTranslation();
   const pathname = usePathname();
   const [dynamicId, setDynamicId] = React.useState<string | null>(null);
   const notificationCtx = React.useContext(NotificationContext);
   const [event, setEvent] = React.useState<EventResponse | null>(null);
+  const navItems = React.useMemo(() => getNavItems(tt), [tt]);
   React.useEffect(() => {
     const storedEventId = localStorage.getItem('event_id');
     setDynamicId(storedEventId);
@@ -83,7 +88,7 @@ export function SideNav(): React.JSX.Element {
           );
           setEvent(response.data);
         } catch (error) {
-          notificationCtx.error('Lỗi:', error);
+          notificationCtx.error(tt('Lỗi:', 'Error:'), error);
         }
       };
       fetchEventDetails();
@@ -91,13 +96,7 @@ export function SideNav(): React.JSX.Element {
   }, [dynamicId]);
 
   const handleRedirectToCheckInFace = (eventId: number) => {
-    const accessToken = localStorage.getItem('accessToken'); // Retrieve accessToken from localStorage
-    if (!accessToken) {
-      console.error('Access token not found in localStorage.');
-      return;
-    }
-
-    const url = `https://ekyc.etik.io.vn/check-in-face?event_id=${eventId}&accessToken=${accessToken}`;
+    const url = `https://ekyc.etik.vn/check-in-face?event_id=${eventId}`;
     window.location.href = url; // Redirect to the URL
   };
 
@@ -131,7 +130,7 @@ export function SideNav(): React.JSX.Element {
     >
       <Stack sx={{ position: 'sticky', top: 0 }}>
         <Stack spacing={2} sx={{ p: 3 }}>
-          <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
+          <Box sx={{ display: 'inline-flex' }}>
             <IconButton
               sx={{ color: 'var(--mui-palette-neutral-400)' }}
               component={RouterLink}
@@ -139,7 +138,14 @@ export function SideNav(): React.JSX.Element {
             >
               <CaretLeftIcon />
             </IconButton>
-            <Logo color="light" height={32} width={122} />
+            <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
+              <Image
+                src={logoImage}
+                alt="Left Logo"
+                height={40}
+                className="mr-2" // Khoảng cách giữa hai logo
+              />
+            </Box>
           </Box>
           <Box
             sx={{
@@ -194,82 +200,96 @@ export function SideNav(): React.JSX.Element {
             <NavItem
               pathname={pathname}
               key="overview"
-              title="Tổng quan"
+              title={tt("Tổng quan", "Overview")}
               href={`/event-studio/events/${dynamicId}`}
               icon={ChartPieIcon}
             />
-            <NavItemCollapse pathname={pathname} key="configuration" title="Thiết kế sự kiện" icon={PlugsConnectedIcon}>
+            <NavItemCollapse pathname={pathname} key="configuration" title={tt("Thiết kế sự kiện", "Event Design")} icon={PlugsConnectedIcon}>
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="configuration-event-info"
-                title="Chỉnh sửa sự kiện"
+                title={tt("Thông tin & Hiển thị", "Information & Display")}
                 href={`/event-studio/events/${dynamicId}/event-detail`}
                 icon={InfoIcon}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
+                key="advanced-settings"
+                title={tt("Cài đặt nâng cao", "Advanced Settings")}
+                href={`/event-studio/events/${dynamicId}/advanced-settings`}
+                icon={Sliders}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="revenue-and-fee"
+                title={tt("Doanh thu & Phí dịch vụ", "Revenue & Service Fee")}
+                href={`/event-studio/events/${dynamicId}/revenue-and-fee`}
+                icon={CurrencyCircleDollar}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
                 key="invitation-letter-design"
-                title="Thiết kế ảnh thư mời"
+                title={tt("Thiết kế thư mời", "Invitation Letter Design")}
                 href={`/event-studio/events/${dynamicId}/invitation-letter-design`}
                 icon={ImageSquare}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="configuration-date-time"
-                title="Suất diễn"
+                title={tt("Suất diễn", "Shows")}
                 href={`/event-studio/events/${dynamicId}/schedules`}
                 icon={CalendarDotsIcon}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="configuration-shows-ticket-categories"
-                title="Loại vé theo suất diễn"
+                title={tt("Hạng mục vé", "Ticket Categories")}
                 href={`/event-studio/events/${dynamicId}/shows`}
                 icon={TicketIcon}
               />
             </NavItemCollapse>
-            <NavItemCollapse pathname={pathname} key="transactions" title="Bán vé & Khách hàng" icon={TicketIcon}>
+            <NavItemCollapse pathname={pathname} key="transactions" title={tt("Bán vé & Khách hàng", "Ticket Sales & Customers")} icon={TicketIcon}>
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="transactions-create"
-                title="Tạo đơn hàng"
+                title={tt("Tạo đơn hàng", "Create Order")}
                 href={`/event-studio/events/${dynamicId}/transactions/create`}
                 icon={PlusIcon}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="transactions-create-bulk"
-                title="Tạo đơn hàng theo lô"
+                title={tt("Tạo đơn hàng theo lô", "Create Bulk Orders")}
                 href={`/event-studio/events/${dynamicId}/transactions/create-bulk`}
                 icon={StackPlus}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="transactions-list"
-                title="Danh sách đơn hàng"
+                title={tt("Danh sách đơn hàng", "Order List")}
                 href={`/event-studio/events/${dynamicId}/transactions`}
                 icon={ListDashesIcon}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="tickets-list"
-                title="Danh sách khách hàng & vé"
+                title={tt("Danh sách khách hàng & vé", "Customer & Ticket List")}
                 href={`/event-studio/events/${dynamicId}/tickets`}
                 icon={UserList}
               />
             </NavItemCollapse>
-            <NavItemCollapse pathname={pathname} key="check-in" title="Soát vé" icon={DoorIcon}>
+            <NavItemCollapse pathname={pathname} key="check-in" title={tt("Soát vé", "Check-in")} icon={DoorIcon}>
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="check-in-qr"
-                title="Soát vé bằng mã QR"
+                title={tt("Soát vé bằng mã QR", "Check-in with QR Code")}
                 href={`/event-studio/events/${dynamicId}/check-in/qr`}
                 icon={BarcodeIcon}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="check-in-face"
-                title="Soát vé bằng khuôn mặt"
+                title={tt("Soát vé bằng khuôn mặt", "Face Check-in")}
                 onClick={() => handleRedirectToCheckInFace(event?.id || 0)}
                 icon={ScanSmileyIcon}
               />
@@ -277,27 +297,34 @@ export function SideNav(): React.JSX.Element {
             <NavItem
               pathname={pathname}
               key="roles"
-              title="Phân quyền"
+              title={tt("Phân quyền", "Roles & Permissions")}
               href={`/event-studio/events/${dynamicId}/roles`}
               icon={UsersIcon}
             />
-            <NavItemCollapse pathname={pathname} key="role" title="Email" icon={Mailbox}>
+            <NavItemCollapse pathname={pathname} key="email" title="Email" icon={Mailbox}>
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="email-template-1"
-                title="Email marketing"
+                title={tt("Email marketing", "Email Marketing")}
                 href={`/event-studio/events/${dynamicId}/templates/email-marketing`}
                 icon={ListDashesIcon}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="email-template-2"
-                title="Template vé bị huỷ"
+                title={tt("Template vé bị huỷ", "Cancelled Ticket Template")}
                 href={`/event-studio/events/${dynamicId}/templates`}
                 icon={PlusIcon}
               />
             </NavItemCollapse>
-            <NavItemCollapse pathname={pathname} key="role" title="Mini App" icon={SquaresFour}>
+            <NavItemCollapse pathname={pathname} key="mini-app" title="Mini App" icon={SquaresFour}>
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="welcome-banner"
+                title={tt("Banner chào mừng", "Welcome Banner")}
+                href={`/event-studio/events/${dynamicId}/config-mini-app-welcome-banner`}
+                icon={ImageSquare}
+              />
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="email-template-1"
@@ -314,11 +341,12 @@ export function SideNav(): React.JSX.Element {
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
-                key="email-template-2"
+                key="email-template-3"
                 title="Lucky number"
-                href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-number`}
+                href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-draw`}
                 icon={SpinnerBall}
               />
+              
             </NavItemCollapse>
           </Stack>
         </Box>
@@ -341,11 +369,11 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
       <Box
         {...(href
           ? {
-              component: external ? 'a' : RouterLink,
-              href,
-              target: external ? '_blank' : undefined,
-              rel: external ? 'noreferrer' : undefined,
-            }
+            component: external ? 'a' : RouterLink,
+            href,
+            target: external ? '_blank' : undefined,
+            rel: external ? 'noreferrer' : undefined,
+          }
           : { role: 'button' })}
         sx={{
           alignItems: 'center',
@@ -425,11 +453,11 @@ function NavItemCollapse({
         <Box
           {...(href
             ? {
-                component: external ? 'a' : RouterLink,
-                href,
-                target: external ? '_blank' : undefined,
-                rel: external ? 'noreferrer' : undefined,
-              }
+              component: external ? 'a' : RouterLink,
+              href,
+              target: external ? '_blank' : undefined,
+              rel: external ? 'noreferrer' : undefined,
+            }
             : { role: 'button', onClick: handleToggle, cursor: 'pointer' })}
           sx={{
             alignItems: 'center',
@@ -516,11 +544,11 @@ function NavItemCollapseChildItem({
       <Box
         {...(href && !onClick
           ? {
-              component: external ? 'a' : RouterLink,
-              href,
-              target: external ? '_blank' : undefined,
-              rel: external ? 'noreferrer' : undefined,
-            }
+            component: external ? 'a' : RouterLink,
+            href,
+            target: external ? '_blank' : undefined,
+            rel: external ? 'noreferrer' : undefined,
+          }
           : { role: 'button', onClick: handleClick })}
         sx={{
           alignItems: 'center',

@@ -70,24 +70,24 @@ export default function SendRequestEventAgencyAndEventApproval({ open, onClose, 
   });
   const [isLoading, setIsLoading] = useState(false);
   const notificationCtx = useContext(NotificationContext);
-  const [user, setUser] = useState<User | null>(null);
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const [onEditingEventAgency, setOnEditingEventAgency] = useState<boolean>(false);
-  const { getUser } = useUser();
+  const { user } = useUser();
 
   useEffect(() => {
     const fetchUser = async () => {
-      const fetchedUser = getUser();
-      setUser(fetchedUser);
+      const authUser = user;
+      setAuthUser(authUser);
       setFormData((prev) => ({
         ...prev,
-        contactFullName: fetchedUser?.fullName || '',
-        contactPhoneNumber: fetchedUser?.phoneNumber || '',
-        contactEmail: fetchedUser?.email || '',
+        contactFullName: authUser?.fullName || '',
+        contactPhoneNumber: authUser?.phoneNumber || '',
+        contactEmail: authUser?.email || '',
       }))
     };
 
     fetchUser();
-  }, [getUser]);
+  }, [user]);
 
   useEffect(() => {
     async function fetchAgencyInfo() {
@@ -186,7 +186,7 @@ export default function SendRequestEventAgencyAndEventApproval({ open, onClose, 
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogTitle>Yêu cầu Phê duyệt sự kiện</DialogTitle>
+      <DialogTitle>Yêu cầu nâng cấp thành Sự kiện Được xác thực</DialogTitle>
       <DialogContent>
         <Stack spacing={3}>
           <Typography variant='body2' textAlign={'justify'}>Nhà tổ chức sự kiện cần cung cấp đầy đủ và chính xác các thông tin dưới đây để có thể tạo sự kiện có bán vé theo nghị định 52/2013/NĐ-CP. Khi nhận được yêu cầu, ETIK sẽ liên hệ để xác thực thông tin. Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH <b>0333.247.242</b> hoặc email <b>tienphongsmart@gmail.com</b></Typography>
@@ -332,10 +332,10 @@ export default function SendRequestEventAgencyAndEventApproval({ open, onClose, 
                 <Box sx={{ display: "flex", flexWrap: "wrap", mt: 2, gap: 1 }}>
                   {formData.registrationImages.map((imageUrl, index) => (
                     <Box key={index} sx={{ position: "relative", width: 80, height: 80 }}>
-                      <img
+                      <Box component="img"
                         src={imageUrl}
                         alt={`uploaded-${index}`}
-                        style={{ width: "100%", height: "100%", borderRadius: 4, objectFit: "cover", cursor: "pointer" }}
+                        sx={{ width: "100%", height: "100%", borderRadius: 4, objectFit: "cover", cursor: "pointer" }}
                         onClick={() => window.open(imageUrl, "_blank")}
                       />
                       <Button

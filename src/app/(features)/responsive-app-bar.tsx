@@ -1,26 +1,39 @@
 "use client"
-import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import IconButton from '@mui/material/IconButton';
-import Typography from '@mui/material/Typography';
-import Menu from '@mui/material/Menu';
-import { List as MenuIcon } from '@phosphor-icons/react/dist/ssr/List';
-import Container from '@mui/material/Container';
-import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
-import Tooltip from '@mui/material/Tooltip';
+import Container from '@mui/material/Container';
+import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import { Acorn as AdbIcon } from '@phosphor-icons/react/dist/ssr/Acorn';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
 import RouterLink from 'next/link';
+import * as React from 'react';
 
-const pages = ['Sự kiện mới', 'Event Studio', 'Blog'];
+const pages = ['Sự kiện mới', 'Event Studio'];
+
+// Small down-arrow icon for language select
+const LanguageSelectIcon = (props: any) => (
+  <span {...props}>▾</span>
+);
 
 export function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
+  const [lang, setLang] = React.useState<'vi' | 'en'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = window.localStorage.getItem('lang');
+      if (saved === 'vi' || saved === 'en') return saved;
+    }
+    return 'vi';
+  });
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('lang', lang);
+    }
+  }, [lang]);
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
@@ -41,89 +54,115 @@ export function ResponsiveAppBar() {
     <AppBar position="sticky">
       <Container maxWidth="xl">
         <Toolbar disableGutters variant="dense" sx={{ minHeight: 30, height: 30 }}>
-          <Typography
+          {/* <Typography
             variant="h6"
-            noWrap
-            component="a"
-            href="/"
-            sx={{
-              mr: 2,
-              display: { xs: 'none', md: 'flex' },
-              fontFamily: 'monospace',
-              fontWeight: 700,
-              color: 'inherit',
-              textDecoration: 'none',
-            }}
-          >
-            ETIK
-          </Typography>
-          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
-            <Menu
-              id="menu-appbar"
-              anchorEl={anchorElNav}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'left',
-              }}
-              keepMounted
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'left',
-              }}
-              open={Boolean(anchorElNav)}
-              onClose={handleCloseNavMenu}
-              sx={{ display: { xs: 'block', md: 'none' } }}
-            >
-              <MenuItem component={RouterLink} href='/marketplace' >
-                <Typography sx={{ textAlign: 'center' }}>Sự kiện mới</Typography>
-              </MenuItem>
-              <MenuItem component={RouterLink} href='/event-studio'>
-                <Typography sx={{ textAlign: 'center' }}>Event Studio</Typography>
-              </MenuItem>
-            </Menu>
-          </Box>
-          <Typography
-            variant="h5"
             noWrap
             component={RouterLink}
             href="/"
+            scroll={false}
             sx={{
-              mr: 2,
-              display: { xs: 'flex', md: 'none' },
-              flexGrow: 1,
-              fontFamily: 'monospace',
+              // mr: 2,
+              display: { xs: 'flex', md: 'flex' },
+              // fontFamily: 'monospace',
               fontWeight: 700,
+              fontSize: '16px',
               color: 'inherit',
               textDecoration: 'none',
             }}
           >
             ETIK
           </Typography>
-          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'flex', my: 0 } }}>
-            <Button
+           */}
+          <Box sx={{ flexGrow: 1, display: 'flex', my: 0, justifyContent: 'flex-start' }}>
+            {/* <Button
               component={RouterLink}
               href='/marketplace'
+              scroll={false}
               onClick={handleCloseNavMenu}
               sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
             >
               Sự kiện hot
-            </Button>
+            </Button> */}
             <Button
               component={RouterLink}
               href='/event-studio/events'
+              scroll={false}
               onClick={handleCloseNavMenu}
-              sx={{ my: 0, color: 'white', display: 'block', py: 0 }}
+              sx={{ my: 0, color: 'white', display: 'block', py: 0, fontSize: { xs: '11px', md: '13px' }, p:0 }}
             >
-              Tạo sự kiện của tôi
+              🎉 Bán vé, Quản lý sự kiện chuyên nghiệp với ETIK
             </Button>
-            <Button
-              component={RouterLink}
-              sx={{ display: { xs: 'none', md: 'block' }, my: 0, color: 'white', py: 0 }}
-              href='/blogs'
-              onClick={handleCloseNavMenu}
+          </Box>
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <Select
+              value={lang}
+              onChange={(e: SelectChangeEvent) => {
+                const value = e.target.value as 'vi' | 'en';
+                setLang(value);
+              }}
+              variant="outlined"
+              size="small"
+              IconComponent={LanguageSelectIcon}
+              sx={{
+                ml: 1,
+                minWidth: 44,
+                height: 24,
+                color: 'white',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255,255,255,0.2)'
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255,255,255,0.7)'
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#fff'
+                },
+                '& .MuiSelect-select': {
+                  py: 0,
+                  px: 1,
+                  minHeight: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                },
+                '& .MuiSelect-icon': {
+                  color: 'rgba(255,255,255,0.8)',
+                  right: 2,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: 14,
+                },
+              }}
+              MenuProps={{
+                MenuListProps: { dense: true },
+                PaperProps: {
+                  sx: {
+                    mt: 0.5,
+                    '& .MuiMenuItem-root': {
+                      minHeight: 26,
+                      py: 0.25,
+                      px: 1,
+                      fontSize: 12,
+                    },
+                  },
+                },
+              }}
+              renderValue={(value) => (
+                <span role="img" aria-label={(value as string) === 'vi' ? 'Vietnamese' : 'English'}>
+                  {(value as string) === 'vi' ? '🇻🇳' : '🇬🇧'}
+                </span>
+              )}
+              inputProps={{ 'aria-label': 'Select language' }}
             >
-              Blogs
-            </Button>
+              <MenuItem value="en" sx={{ minHeight: 26, py: 0.25, px: 1 }}>
+                <span role="img" aria-label="English" style={{ marginRight: 6, fontSize: 14 }}>🇬🇧</span>
+                <Typography variant="caption" sx={{ fontSize: 11 }}>EN</Typography>
+              </MenuItem>
+              <MenuItem value="vi" sx={{ minHeight: 26, py: 0.25, px: 1 }}>
+                <span role="img" aria-label="Vietnamese" style={{ marginRight: 6, fontSize: 14 }}>🇻🇳</span>
+                <Typography variant="caption" sx={{ fontSize: 11 }}>VI</Typography>
+              </MenuItem>
+            </Select>
           </Box>
 
         </Toolbar>

@@ -1,8 +1,11 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import RouterLink from 'next/link';
 import { usePathname } from 'next/navigation';
+import logoImage from '@/images/etik-logo-transparent-dark.png';
+import { Stack } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
@@ -15,11 +18,9 @@ import { CaretUpDown as CaretUpDownIcon } from '@phosphor-icons/react/dist/ssr/C
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
-import { Logo } from '@/components/core/logo';
+import { useTranslation } from '@/contexts/locale-context';
 
-import { navItems } from './config';
-import { navIcons } from './nav-icons';
-import { Stack } from '@mui/material';
+import { getNavItems } from './config';
 
 export interface MobileNavProps {
   onClose?: () => void;
@@ -29,6 +30,11 @@ export interface MobileNavProps {
 
 export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element {
   const pathname = usePathname();
+  const { tt } = useTranslation();
+
+  const navItems = React.useMemo(() => getNavItems(tt), [tt]);
+  const { key: firstKey, ...firstItem } = navItems[0];
+  const { key: secondKey, ...secondItem } = navItems[1];
 
   return (
     <Drawer
@@ -59,15 +65,20 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
       open={open}
     >
       <Stack spacing={2} sx={{ p: 3 }}>
-        <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
-          <Logo color="light" height={32} width={122} />
-        </Box>
+        <RouterLink href={paths.home} style={{ display: 'inline-flex' }}>
+          <Image
+            src={logoImage}
+            alt="Left Logo"
+            height={40}
+            className="mr-2" // Khoảng cách giữa hai logo
+          />
+        </RouterLink>
       </Stack>
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
       <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
         <Stack component="ul" spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }}>
-          <NavItem pathname={pathname} {...navItems[0]} />
-          <NavItem pathname={pathname} {...navItems[1]} />
+          <NavItem key={firstKey} pathname={pathname} {...firstItem} />
+          <NavItem key={secondKey} pathname={pathname} {...secondItem} />
         </Stack>
       </Box>
     </Drawer>
@@ -87,11 +98,11 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
       <Box
         {...(href
           ? {
-            component: external ? 'a' : RouterLink,
-            href,
-            target: external ? '_blank' : undefined,
-            rel: external ? 'noreferrer' : undefined,
-          }
+              component: external ? 'a' : RouterLink,
+              href,
+              target: external ? '_blank' : undefined,
+              rel: external ? 'noreferrer' : undefined,
+            }
           : { role: 'button' })}
         sx={{
           alignItems: 'center',

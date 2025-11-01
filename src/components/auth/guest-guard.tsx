@@ -1,10 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Alert from '@mui/material/Alert';
 
 import { paths } from '@/paths';
+import { getDecodedReturnUrl } from '@/lib/auth/urls';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
 
@@ -14,12 +15,12 @@ export interface GuestGuardProps {
 
 export function GuestGuard({ children }: GuestGuardProps): React.JSX.Element | null {
   const router = useRouter();
-  const { error, isLoading, getUser } = useUser();
+  const searchParams = useSearchParams();
+  const { error, isLoading, user, checkSession } = useUser();
   const [isChecking, setIsChecking] = React.useState<boolean>(true);
+  const didTryHydrateRef = React.useRef<boolean>(false);
 
   const checkPermissions = async (): Promise<void> => {
-    const user = getUser()
-    const accessToken = localStorage.getItem('accessToken');
 
     if (isLoading) {
       return;
@@ -30,9 +31,18 @@ export function GuestGuard({ children }: GuestGuardProps): React.JSX.Element | n
       return;
     }
 
-    if (user && accessToken) {
-      logger.debug('[GuestGuard]: User is logged in, redirecting to dashboard');
-      router.replace(paths.dashboard.overview);
+    if (!user) {
+      if (!didTryHydrateRef.current) {
+        didTryHydrateRef.current = true;
+        await checkSession?.();
+        return; // wait for state update; effect will re-run
+      }
+    }
+
+    if (user) {
+      const target: string = getDecodedReturnUrl(searchParams?.get('returnUrl'), paths.dashboard.overview);
+      logger.debug('[GuestGuard]: User is logged in, redirecting', { target });
+      router.replace(target);
       return;
     }
 
@@ -56,3 +66,4 @@ export function GuestGuard({ children }: GuestGuardProps): React.JSX.Element | n
 
   return <React.Fragment>{children}</React.Fragment>;
 }
+

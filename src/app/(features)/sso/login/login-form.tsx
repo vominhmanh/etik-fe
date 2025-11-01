@@ -1,7 +1,4 @@
 'use client';
-import * as React from 'react';
-import RouterLink from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Button from '@mui/material/Button';
 import FormControl from '@mui/material/FormControl';
@@ -13,19 +10,22 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { EyeSlash as EyeSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash';
+import RouterLink from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import * as React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
 
-import { AuthRes } from '@/types/auth';
-import { paths } from '@/paths';
 import { useUser } from '@/hooks/use-user';
+import { paths } from '@/paths';
+import { AuthRes } from '@/types/auth';
 
 import Popup from '@/components/core/alert-popup';
+import NotificationContext from '@/contexts/notification-context';
 import AuthService from '@/services/Auth.service';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { AxiosResponse } from 'axios';
 import { Backdrop, Card, CardContent, CardHeader, CircularProgress } from '@mui/material';
-import NotificationContext from '@/contexts/notification-context';
+import { AxiosResponse } from 'axios';
 
 const schema = zod.object({
   email: zod.string().min(1, { message: 'Email là bắt buộc' }).email(),
@@ -46,7 +46,7 @@ export function SignInForm(): React.JSX.Element {
     message: string;
   }>({ type: undefined, message: '' });
 
-  const { checkSession, setUser } = useUser();
+  const { checkSession, user } = useUser();
   const [showPassword, setShowPassword] = React.useState<boolean>(false);
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const [ssoUser, setSsoUser] = React.useState<{ fullName: string; email: string; authCode: string; expiresIn: number } | null>(null);
@@ -55,27 +55,23 @@ export function SignInForm(): React.JSX.Element {
 
   React.useEffect(() => {
     const handleSSOLogin = async () => {
-      const accessToken = localStorage.getItem('accessToken');
+      try {
+        setIsLoading(true)
+        const response = await AuthService.meSso();
 
-      if (accessToken) {
-        try {
-          setIsLoading(true)
-          const response = await AuthService.verifyAccessTokenSso(accessToken);
-
-          if (response?.authCode && response?.fullName && response?.email) {
-            setSsoUser({
-              fullName: response.fullName,
-              email: response.email,
-              authCode: response.authCode,
-              expiresIn: response.expiresIn,
-            });
-            return;
-          }
-        } catch (error) {
-          notificationCtx.warning('Vui lòng đăng nhập lại.');
-        } finally {
-          setIsLoading(false)
+        if (response?.authCode && response?.fullName && response?.email) {
+          setSsoUser({
+            fullName: response.fullName,
+            email: response.email,
+            authCode: response.authCode,
+            expiresIn: response.expiresIn,
+          });
+          return;
         }
+      } catch (error) {
+        // ignore; user not logged in
+      } finally {
+        setIsLoading(false)
       }
     };
 
@@ -106,11 +102,9 @@ export function SignInForm(): React.JSX.Element {
           },
         });
 
-        localStorage.setItem('accessToken', response.data.access_token);
         console.log(response.data)
         const authCode = response.data.auth_code;
         const expiresIn = response.data.auth_code_expires_in;
-        setUser(response.data.user);
 
         router.push(`${returnUrl}&authCode=${authCode}&expiresIn=${expiresIn}`);
       } catch (error: any) {

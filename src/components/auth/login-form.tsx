@@ -18,33 +18,39 @@ import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
 
 import { AuthRes } from '@/types/auth';
+import { getDecodedReturnUrl } from '@/lib/auth/urls';
 import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { useUser } from '@/hooks/use-user';
 
 import Popup from '../core/alert-popup';
-
-const schema = zod.object({
-  email: zod.string().min(1, { message: 'Email là bắt buộc' }).email(),
-  password: zod.string().min(1, { message: 'Mật khẩu là bắt buộc' }),
-});
+import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 
 type Values = zod.infer<typeof schema>;
 
 const defaultValues = { email: '', password: '' } satisfies Values;
 
 export function SignInForm(): React.JSX.Element {
+  const { tt } = useTranslation();
   const router = useRouter();
   const [popupContent, setPopupContent] = React.useState<{
     type?: 'error' | 'success' | 'info' | 'warning';
     message: string;
   }>({ type: undefined, message: '' });
 
-  const { checkSession, setUser, getUser } = useUser();
+  const { checkSession, user } = useUser();
   const [showPassword, setShowPassword] = React.useState<boolean>();
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl') || '/event-studio/events';
+  const returnUrl = React.useMemo(() => getDecodedReturnUrl(searchParams.get('returnUrl'), '/event-studio/events'), [searchParams]);
+  const errorParam = useSearchParams().get('error');
+  const notificationCtx = React.useContext(NotificationContext);
+  
+  const schema = React.useMemo(() => zod.object({
+    email: zod.string().min(1, { message: tt('Email là bắt buộc', 'Email is required') }).email({ message: tt('Email không hợp lệ', 'Invalid email') }),
+    password: zod.string().min(1, { message: tt('Mật khẩu là bắt buộc', 'Password is required') }),
+  }), [tt]);
   
   const {
     control,
@@ -60,24 +66,36 @@ export function SignInForm(): React.JSX.Element {
       try {
         const res: AuthRes = await authClient.signInWithPassword({
           username: values.email,
-          password: values.password,
+          password: values.password
         });
-        localStorage.setItem('accessToken', res.access_token);
 
-        setUser(res.user);
-        const user = getUser()
-        router.push(`${returnUrl}`)
+        await checkSession();
+        router.push(returnUrl);
       } catch (error: any) {
         setPopupContent({
           type: 'error',
-          message: error.message || 'Có lỗi xảy ra, vui lòng thử lại sau',
+          message: error.message || tt('Có lỗi xảy ra, vui lòng thử lại sau', 'An error occurred, please try again later'),
         });
         setIsPending(false);
       }
     },
-    [router, setError]
+    [router, setError, returnUrl]
   );
 
+
+  React.useEffect(() => {
+    if (errorParam) {
+      // notificationCtx.error(...) hoặc Popup của bạn
+      const msg =
+        errorParam === 'missing_userinfo' ? tt('Không lấy được thông tin Google.', 'Unable to retrieve Google information.')
+        : errorParam === 'email_not_verified' ? tt('Email Google chưa xác thực hoặc không khả dụng.', 'Google email not verified or unavailable.')
+        : errorParam === 'db_error' ? tt('Có lỗi hệ thống, vui lòng thử lại.', 'System error, please try again.')
+        : tt('Đăng nhập Google thất bại, vui lòng thử lại.', 'Google login failed, please try again.');
+      // ví dụ:
+      notificationCtx.error(msg);
+    }
+  }, [errorParam]);
+  
   return (
     <Stack spacing={4}>
       {!!popupContent.message && (
@@ -90,11 +108,11 @@ export function SignInForm(): React.JSX.Element {
       )}
 
       <Stack spacing={1}>
-        <Typography variant="h4">Đăng nhập</Typography>
+        <Typography variant="h4">{tt('Đăng nhập', 'Sign In')}</Typography>
         <Typography color="text.secondary" variant="body2">
-          Bạn chưa có tài khoản?{' '}
+          {tt('Bạn chưa có tài khoản?', "Don't have an account?")}{' '}
           <Link component={RouterLink} href={paths.auth.signUp} underline="hover" variant="subtitle2">
-            Đăng ký
+            {tt('Đăng ký', 'Sign Up')}
           </Link>
         </Typography>
       </Stack>
@@ -105,8 +123,8 @@ export function SignInForm(): React.JSX.Element {
             name="email"
             render={({ field }) => (
               <FormControl error={Boolean(errors.email)}>
-                <InputLabel>Địa chỉ email</InputLabel>
-                <OutlinedInput {...field} label="Địa chỉ email" type="email" />
+                <InputLabel>{tt('Địa chỉ email', 'Email address')}</InputLabel>
+                <OutlinedInput {...field} label={tt('Địa chỉ email', 'Email address')} type="email" />
                 {errors.email ? <FormHelperText>{errors.email.message}</FormHelperText> : null}
               </FormControl>
             )}
@@ -116,7 +134,7 @@ export function SignInForm(): React.JSX.Element {
             name="password"
             render={({ field }) => (
               <FormControl error={Boolean(errors.password)}>
-                <InputLabel>Mật khẩu</InputLabel>
+                <InputLabel>{tt('Mật khẩu', 'Password')}</InputLabel>
                 <OutlinedInput
                   {...field}
                   endAdornment={
@@ -138,7 +156,7 @@ export function SignInForm(): React.JSX.Element {
                       />
                     )
                   }
-                  label="Mật khẩu"
+                  label={tt('Mật khẩu', 'Password')}
                   type={showPassword ? 'text' : 'password'}
                 />
                 {errors.password ? <FormHelperText>{errors.password.message}</FormHelperText> : null}
@@ -147,15 +165,50 @@ export function SignInForm(): React.JSX.Element {
           />
           <div>
             <Link component={RouterLink} href={paths.auth.resetPassword} variant="subtitle2">
-              Quên mật khẩu?
+              {tt('Quên mật khẩu?', 'Forgot password?')}
             </Link>
           </div>
           {errors.root ? <Alert color="error">{errors.root.message}</Alert> : null}
           <Button disabled={isPending} type="submit" variant="contained">
-            Đăng nhập
+            {tt('Đăng nhập', 'Sign In')}
           </Button>
         </Stack>
       </form>
+      <Stack spacing={2} sx={{ mt: 2 }}>
+        <Button
+          variant="outlined"
+          fullWidth
+          startIcon={
+            <svg width="20" height="20" viewBox="0 0 20 20" style={{ display: 'block' }}>
+              <g>
+                <path
+                  d="M19.6 10.23c0-.68-.06-1.36-.18-2H10v3.79h5.48a4.68 4.68 0 0 1-2.03 3.07v2.55h3.28c1.92-1.77 3.03-4.38 3.03-7.41z"
+                  fill="#4285F4"
+                />
+                <path
+                  d="M10 20c2.7 0 4.97-.9 6.63-2.44l-3.28-2.55c-.91.61-2.07.97-3.35.97-2.57 0-4.75-1.74-5.53-4.07H1.06v2.6A9.99 9.99 0 0 0 10 20z"
+                  fill="#34A853"
+                />
+                <path
+                  d="M4.47 11.91A5.99 5.99 0 0 1 4.01 10c0-.66.11-1.31.26-1.91V5.49H1.06A9.99 9.99 0 0 0 0 10c0 1.64.39 3.19 1.06 4.51l3.41-2.6z"
+                  fill="#FBBC05"
+                />
+                <path
+                  d="M10 4.01c1.47 0 2.78.51 3.81 1.5l2.85-2.85C14.97 1.13 12.7.01 10 .01A9.99 9.99 0 0 0 1.06 5.49l3.41 2.6C5.25 5.75 7.43 4.01 10 4.01z"
+                  fill="#EA4335"
+                />
+              </g>
+            </svg>
+          }
+          onClick={() => {
+            // Redirect to Google OAuth endpoint
+            window.location.href = process.env.NEXT_PUBLIC_BASE_URL + '/auth/login/google?returnUrl=' + encodeURIComponent(returnUrl);
+          }}
+          sx={{ textTransform: 'none', fontWeight: 500 }}
+        >
+          {tt('Đăng nhập bằng Google', 'Sign in with Google')}
+        </Button>
+      </Stack>
     </Stack>
   );
 }

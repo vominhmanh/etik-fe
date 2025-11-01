@@ -3,6 +3,7 @@ import { merge, set } from 'lodash';
 import queryString from 'query-string';
 
 const instance = axios.create({
+  withCredentials: true,
   paramsSerializer: (params: { [s: string]: unknown } | ArrayLike<unknown>) => {
     const filteredParams = Object.fromEntries(Object.entries(params).filter(([_k, v]) => v));
     return queryString.stringify(filteredParams, { arrayFormat: 'bracket' });
@@ -15,6 +16,10 @@ export default class BaseHttpService {
   private accessToken: string | null = '';
 
   private router: any;
+
+  private isRefreshing: boolean = false;
+
+  private refreshRequestQueue: Array<(ok: boolean) => void> = [];
 
   constructor(router?: any) {
     this.router = router;
@@ -72,59 +77,108 @@ export default class BaseHttpService {
       });
     }
     const { statusCode, message } = error?.response?.data ?? {};
-    if (statusCode !== 401) {
-      throw new Error(
-        error.response?.data?.detail?.[0]?.msg ||
-        error.response?.data?.detail ||
-        message ||
-        error.message ||
-        'Unknown Error',
-      );
-    } else {
-      return this.handle401();
+    const httpStatus = error?.response?.status;
+    const resolvedMessage =
+      error?.response?.data?.detail?.[0]?.msg ||
+      error?.response?.data?.detail ||
+      message ||
+      error?.message ||
+      'Unknown Error';
+
+    // Non-401: Bubble up an error
+    if (httpStatus !== 401 && statusCode !== 401) {
+      throw new Error(resolvedMessage);
     }
+
+    // Avoid infinite loop on refresh/login endpoints
+    const originalRequest = error?.config ?? {};
+    const requestUrl = originalRequest?.url || '';
+    // For login endpoint, bubble up server-provided message (do not attempt refresh)
+    if (/\/auth\/login$/.test(requestUrl)) {
+      return Promise.reject(new Error(resolvedMessage));
+    }
+    // Avoid infinite loop: if this is a retried request, bubble up the actual error
+    if (originalRequest?.__isRetryRequest) {
+      return Promise.reject(new Error(resolvedMessage));
+    }
+    // If refresh itself failed, instruct user to log in again
+    if (/\/auth\/refresh$/.test(requestUrl)) {
+      return Promise.reject(new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.'));
+    }
+
+    // Queue requests while we refresh
+    if (this.isRefreshing) {
+      return new Promise((resolve, reject) => {
+        this.refreshRequestQueue.push((ok: boolean) => {
+          if (ok) {
+            try {
+              originalRequest.__isRetryRequest = true;
+              resolve(instance.request(originalRequest));
+            } catch (e) {
+              reject(e);
+            }
+          } else {
+            reject(error);
+          }
+        });
+      });
+    }
+
+    this.isRefreshing = true;
+    return this.refreshSession()
+      .then((ok) => {
+        this.isRefreshing = false;
+        this.refreshRequestQueue.forEach((cb) => cb(ok));
+        this.refreshRequestQueue = [];
+        if (ok) {
+          originalRequest.__isRetryRequest = true;
+          return instance.request(originalRequest);
+        }
+        return Promise.reject(new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại..'));
+      })
+      .catch(() => {
+        this.isRefreshing = false;
+        this.refreshRequestQueue.forEach((cb) => cb(false));
+        this.refreshRequestQueue = [];
+        return Promise.reject(new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.'));
+      });
   }
 
   handle401(): void {
-    // Unauthorized -> Push to sign in page
-    if (this.router) {
-      this.router.push('/login');
-    }
+    // No navigation here; guards decide. Intentionally a no-op.
   }
 
-  getCommonOptions(): {
-    headers?: {
-      Authorization: string;
-    };
-  } {
-    if (typeof window !== 'undefined') {
-      const token = this.loadToken();
-      return {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-    }
-    return {};
+  getCommonOptions(): Record<string, unknown> {
+    // Using httpOnly cookies; no Authorization header
+    return { withCredentials: true };
   }
 
   get newAccessToken(): string | null {
-    return this.accessToken ? this.accessToken : this.loadToken();
+    return this.accessToken ?? null;
   }
 
   saveToken(newAccessToken: string): any {
     this.accessToken = newAccessToken;
-    return localStorage.setItem('accessToken', newAccessToken);
+    return undefined;
   }
 
   loadToken(): string | null {
-    const token = localStorage.getItem('accessToken');
-    this.accessToken = token;
-    return token;
+    this.accessToken = null;
+    return null;
   }
 
   static removeToken(): void {
-    localStorage.removeItem('accessToken');
+    // Tokens handled by cookies now
+  }
+
+  private async refreshSession(): Promise<boolean> {
+    try {
+      const url = `${this.BASE_URL}/auth/refresh`;
+      await instance.post(url, {}, { withCredentials: true });
+      return true;
+    } catch (_e) {
+      return false;
+    }
   }
 }
 

@@ -1,46 +1,32 @@
 "use client"
-import * as React from 'react';
 import Grid from '@mui/material/Unstable_Grid2';
 import dayjs from 'dayjs';
+import * as React from 'react';
 
-import { Budget } from '@/components/dashboard/overview/budget';
-import { CheckIn } from '@/components/dashboard/overview/check-in';
-import { LatestOrders } from '@/components/dashboard/overview/latest-orders';
-import { LatestProducts } from '@/components/dashboard/overview/latest-products';
-import { Refund } from '@/components/dashboard/overview/refund';
-import { Sales } from '@/components/dashboard/overview/sales';
-import { TasksProgress } from '@/components/dashboard/overview/tasks-progress';
-import { TotalCustomers } from '@/components/dashboard/overview/total-customers';
-import { TotalProfit } from '@/components/dashboard/overview/total-profit';
-import { Traffic } from '@/components/dashboard/overview/traffic';
+import SendRequestEventAgencyAndEventApproval from '@/components/events/event/send-request-event-agency-and-event-approval';
+import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Avatar, Box, CardMedia, Container, MenuItem, Modal, Select, Stack, TextField } from '@mui/material';
+import { Avatar, Box, Container, Modal, Stack } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import CircularProgress from '@mui/material/CircularProgress';
+import { orange } from '@mui/material/colors';
 import Divider from '@mui/material/Divider';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
-import { ArrowCounterClockwise, ArrowSquareIn, CheckFat, HourglassLow, ReceiptX, Storefront } from '@phosphor-icons/react/dist/ssr';
+import { ArrowCounterClockwise, ArrowSquareIn, CheckCircle, CheckFat, Eye, HourglassLow, ReceiptX, Storefront } from '@phosphor-icons/react/dist/ssr';
+import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
+import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
-import { AxiosResponse } from 'axios';
-import NotificationContext from '@/contexts/notification-context';
+import type { AxiosResponse } from 'axios';
 import RouterLink from 'next/link';
-import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
-import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
-import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
+import { useState } from 'react';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
-import { useState } from 'react';
-import SendRequestEventAgencyAndEventApproval from '@/components/events/event/send-request-event-agency-and-event-approval';
 
 export interface EventOverviewResponse {
   eventId: number;
@@ -90,6 +76,7 @@ export type TicketCategory = {
 export type Show = {
   id: number;
   name: string;
+  avatar: string;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
   ticketCategories: TicketCategory[];
@@ -112,6 +99,9 @@ type EventResponse = {
   slug: string;
   secureApiKey: string;
   locationInstruction: string | null;
+  timeInstruction: string | null;
+  adminReviewStatus: string;
+  displayOption: string;
   displayOnMarketplace: boolean;
   shows: Show[];
 };
@@ -230,7 +220,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       // Handle success response
       if (response.status === 200) {
-        notificationCtx.success("Yêu cầu phê duyệt sự kiện đã được gửi thành công!");
+        notificationCtx.success("Yêu cầu nâng cấp thành Sự kiện Được xác thực đã được gửi thành công!");
         setEventAgencyRegistrationAndEventApprovalRequest(eventAgencyRegistrationAndEventApprovalRequest ? ({
           ...eventAgencyRegistrationAndEventApprovalRequest,
           eventApprovalRequest: 'waiting_for_acceptance'
@@ -258,7 +248,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       <Backdrop
         open={isLoading}
         sx={{
-          color: '#fff',
+          color: 'common.white',
           zIndex: (theme) => theme.zIndex.drawer + 1,
           marginLeft: '0px !important',
         }}
@@ -266,155 +256,354 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <CircularProgress color="inherit" />
       </Backdrop>
       <Grid container spacing={3} sx={{ marginBottom: '20px' }}>
+
         <Grid lg={8} md={6} xs={12}>
-          <Box
-            sx={{
-              position: 'relative',
-              width: '100%',
-              aspectRatio: 16 / 6, // 16:9 aspect ratio (modify as needed)
-              overflow: 'hidden',
-              border: 'grey 1px',
-              borderRadius: '20px',
-              backgroundColor: 'gray',
-            }}
-          >
-            <img
-              src={event?.bannerUrl}
-              alt="Car"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
+          <Stack spacing={2}>
+            <Box
+              sx={{
+                position: 'relative',
                 width: '100%',
-                height: 'auto',
-                objectFit: 'cover', // or 'contain' depending on your preference
+                aspectRatio: 16 / 6, // 16:9 aspect ratio (modify as needed)
+                overflow: 'hidden',
+                border: 'grey 1px',
+                borderRadius: '20px',
+                backgroundColor: 'gray',
               }}
-            />
-          </Box>
+            >
+              <Box
+                component="img"
+                src={event?.bannerUrl || ''}
+                alt="Sự kiện"
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: 'auto',
+                  objectFit: 'cover', // or 'contain' depending on your preference
+                }}
+              />
+            </Box>
+
+            <Card
+              sx={{
+                height: '100%',
+                overflowX: 'auto',
+                display: { xs: 'none', sm: 'none', md: 'block' },
+                '&::-webkit-scrollbar': {
+                  height: '4px', // scrollbar thickness
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: 'transparent',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: '#bbb',
+                  borderRadius: '5px',
+                },
+                '&::-webkit-scrollbar-thumb:hover': {
+                  backgroundColor: '#888',
+                },
+                scrollbarWidth: 'thin', // Firefox
+                scrollbarColor: '#bbb transparent', // Firefox
+              }}
+            >
+              <Stack spacing={1} direction={'row'}>
+                <Typography variant='caption' sx={{ pl: 2, minWidth: '130px', display: 'flex', alignItems: 'center' }}>
+                  Tính năng phổ biến:
+                </Typography>
+                {(eventId === 43 || eventId === 44) &&
+                  <>
+                    <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/${event?.slug}`} size="small">
+                      Tra cứu vị trí ngồi
+                    </Button>
+                    <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/thiet-lap-tran-dau`} size="small">
+                      Thiết lập trận đấu
+                    </Button>
+                  </>
+                }
+                <Button sx={{ minWidth: '190px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/event-detail`} size="small">
+                  Chỉnh sửa thông tin sự kiện
+                </Button>
+                <Button sx={{ minWidth: '120px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/transactions/create`} size="small">
+                  Tạo giao dịch
+                </Button>
+                <Button sx={{ minWidth: '100px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/check-in/qr`} size="small">
+                  Check-in
+                </Button>
+                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
+                  Thiết lập show diễn
+                </Button>
+                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/shows`} size="small">
+                  Thiết lập loại vé
+                </Button>
+                {(eventId === 43 || eventId === 44) &&
+                  <>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/shows`} size="small">
+                      Thay đổi tên bàn
+                    </Button>
+                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
+                      Khóa/Mở khóa tra cứu
+                    </Button>
+                  </>
+                }
+                {eventId === 43 &&
+                  <>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard`} size="small">
+                      Leaderboard Duo
+                    </Button>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
+                      Sơ đồ trận Lobby
+                    </Button>
+                  </>
+
+                }
+                {eventId == 44 &&
+                  <>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-a`} size="small">
+                      Leaderboard Solo A
+                    </Button>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-b`} size="small">
+                      Leaderboard Solo B
+                    </Button>
+                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-arena`} size="small">
+                      Leaderboard Solo Arena
+                    </Button>
+                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-arena-final`} size="small">
+                      Leaderboard Solo Final
+                    </Button>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
+                      Sơ đồ trận Lobby
+                    </Button>
+                  </>
+                }
+              </Stack>
+            </Card>
+          </Stack>
         </Grid>
         <Grid lg={4} md={6} xs={12}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent
-              sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-            >
-              <Stack direction="column" spacing={2}>
-                <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
-                  <div>
-                    {event?.avatarUrl ?
-                      <img src={event?.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+          <Stack spacing={2}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent
+                sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+              >
+                <Stack direction="column" spacing={2}>
+                  <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                    <div>
+                      {event?.avatarUrl ?
+                        <Box component="img" src={event?.avatarUrl} sx={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                        :
+                        <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
+                          {(event?.name[0] ?? 'a').toUpperCase()}
+                        </Avatar>}
+                    </div>
+                    <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
+                      {event?.name}
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" spacing={1}>
+                    <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      Đơn vị tổ chức: {event?.organizer}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <ClockIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {event?.startDateTime && event?.endDateTime
+                        ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
+                        : 'Chưa xác định'} {event?.timeInstruction ? `(${event.timeInstruction})` : ''}
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" spacing={1}>
+                    <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {event?.place ? event?.place : 'Chưa xác định'} {event?.locationInstruction ? `(${event.locationInstruction})` : ''}
+                    </Typography>
+                  </Stack>
+
+                  <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
+                    <Storefront fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {event?.displayOnMarketplace ? "Có thể truy cập từ Marketplace" : 'Chỉ có thể truy cập bằng link'}
+                      <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> Thay đổi</a>
+                    </Typography>
+                  </Stack>
+
+
+                  <Stack direction="row" spacing={1} >
+                    <Eye fontSize="var(--icon-fontSize-sm)" />
+                    {event?.displayOption !== 'display_with_everyone' ?
+                      <Typography display="inline" variant="body2" sx={{ color: 'warning.main' }}>
+                        Sự kiện không hiển thị công khai
+                        <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> Thay đổi</a>
+                      </Typography>
                       :
-                      <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
-                        {(event?.name[0] ?? 'a').toUpperCase()}
-                      </Avatar>}
-                  </div>
-                  <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
-                    {event?.name}
-                  </Typography>
+                      <Typography display="inline" variant="body2" color="text.secondary">
+                        Đang hiển thị công khai
+                        <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> Thay đổi</a>
+                      </Typography>
+                    }
+                  </Stack>
                 </Stack>
-
-                <Stack direction="row" spacing={1}>
-                  <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
-                  <Typography color="text.secondary" display="inline" variant="body2">
-                    Đơn vị tổ chức: {event?.organizer}
-                  </Typography>
-                </Stack>
-                <Stack direction="row" spacing={1}>
-                  <ClockIcon fontSize="var(--icon-fontSize-sm)" />
-                  <Typography color="text.secondary" display="inline" variant="body2">
-                    {event?.startDateTime && event?.endDateTime
-                      ? `${dayjs(event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
-                      : 'Chưa xác định'}
-                  </Typography>
-                </Stack>
-
-                <Stack direction="row" spacing={1}>
-                  <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
-                  <Typography color="text.secondary" display="inline" variant="body2">
-                    {event?.place ? event?.place : 'Chưa xác định'}
-                  </Typography>
-                </Stack>
-                <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
-                  <Storefront fontSize="var(--icon-fontSize-sm)" />
-                  <Typography color="text.secondary" display="inline" variant="body2">
-                    {event?.displayOnMarketplace ? "Đang hiển thị trên Marketplace" : 'Không hiển thị trên Marketplace'}
-                  </Typography>
-                </Stack>
-              </Stack>
-              <div style={{ marginTop: '20px' }}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  target="_blank"
-                  component={RouterLink}
-                  href={`/events/${event?.slug}`}
-                  size="small"
-                  endIcon={<ArrowSquareIn />}
-                >
-                  Đến trang Khách hàng tự đăng ký vé
-                </Button>
-              </div>
-              <div style={{ marginTop: '20px' }}>
-                {eventAgencyRegistrationAndEventApprovalRequest &&
-                  (
-                    <>
-                      {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'accepted' && (
-                        <Button
-                          fullWidth
-                          variant="outlined"
-                          size="small"
-                          color='success'
-                        >
-                          <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                            <span>Sự kiện đã được phê duyệt</span>
-                            <small>bán vé có thanh toán online, gửi email marketing,...</small>
-                          </Stack>
-                        </Button>
-                      )}
-                      {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'waiting_for_acceptance' && (
-                        <Button
-                          fullWidth
-                          variant="outlined"
-                          size="small"
-                          disabled
-                        >
-                          <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                            <span>Sự kiện đang chờ duyệt</span>
-                          </Stack>
-                        </Button>
-                      )}
-                      {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'rejected' && (
-                        <Button
-                          fullWidth
-                          variant="outlined"
-                          color='error'
-                          size="small"
-                          onClick={handleRequestEventApprovalClick}
-                        >
-                          <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                            <small color='error'>Yêu cầu phê duyệt bị từ chối</small>
-                            <span>Nhấn để yêu cầu lại</span>
-                          </Stack>
-                        </Button>
-                      )}
-                      {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'no_request_from_user' && (
-                        <Button
-                          fullWidth
-                          variant="contained"
-                          size="small"
-                          onClick={handleRequestEventApprovalClick}
-                        >
-                          <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                            <span>Gửi yêu cầu Phê duyệt sự kiện</span>
-                            <small>Để bán vé có thanh toán online, gửi email marketing,...</small>
-                          </Stack>
-                        </Button>
-                      )}
-                    </>
-                  )
+                <Box sx={{ mt: 2.5 }}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    target="_blank"
+                    component={RouterLink}
+                    href={`/events/${event?.slug}`}
+                    size="small"
+                    endIcon={<ArrowSquareIn />}
+                  >
+                    Đến trang Khách hàng tự đăng ký vé
+                  </Button>
+                </Box>
+                <Box sx={{ mt: 2.5 }}>
+                  {eventAgencyRegistrationAndEventApprovalRequest &&
+                    (
+                      <>
+                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'accepted' && (
+                          <Button
+                            fullWidth
+                            variant="outlined"
+                            size="small"
+                            color='success'
+                          >
+                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                              <Box
+                                component="span"
+                                sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, lineHeight: 1 }}
+                              >
+                                <CheckCircle size={16} weight="fill" />
+                                Sự kiện Được xác thực
+                              </Box>
+                              <small>bán vé có thanh toán online, gửi email marketing,...</small>
+                            </Stack>
+                          </Button>
+                        )}
+                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'waiting_for_acceptance' && (
+                          <Button
+                            fullWidth
+                            variant="outlined"
+                            size="small"
+                            disabled
+                          >
+                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                              <span>Sự kiện đang chờ duyệt</span>
+                            </Stack>
+                          </Button>
+                        )}
+                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'rejected' && (
+                          <Button
+                            fullWidth
+                            variant="outlined"
+                            color='error'
+                            size="small"
+                            onClick={handleRequestEventApprovalClick}
+                          >
+                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                              <small color='error'>Yêu cầu nâng cấp bị từ chối</small>
+                              <span>Nhấn để yêu cầu lại</span>
+                            </Stack>
+                          </Button>
+                        )}
+                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'no_request_from_user' && (
+                          <Button
+                            fullWidth
+                            variant="contained"
+                            size="small"
+                            onClick={handleRequestEventApprovalClick}
+                          >
+                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                              <span>nâng cấp thành Sự kiện Được xác thực</span>
+                              <small>Để bật thanh toán online, gửi email marketing,...</small>
+                            </Stack>
+                          </Button>
+                        )}
+                      </>
+                    )
+                  }
+                </Box>
+              </CardContent>
+            </Card>
+            <Card sx={{ height: '100%', overflowX: 'auto', display: { xs: 'block', sm: 'block', md: 'none' } }}>
+              <Stack spacing={1} direction={'row'}>
+                <Typography variant='caption' sx={{ pl: 2, minWidth: '130px', display: 'flex', alignItems: 'center' }}>
+                  Tính năng phổ biến:
+                </Typography>
+                {(eventId === 43 || eventId === 44) &&
+                  <>
+                    <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/${event?.slug}`} size="small">
+                      Tra cứu vị trí ngồi
+                    </Button>
+                    <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/thiet-lap-tran-dau`} size="small">
+                      Thiết lập trận đấu
+                    </Button>
+                  </>
                 }
-              </div>
-            </CardContent>
-          </Card>
+                <Button sx={{ minWidth: '210px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/event-detail`} size="small">
+                  Chỉnh sửa thông tin sự kiện
+                </Button>
+                <Button sx={{ minWidth: '120px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/transactions/create`} size="small">
+                  Tạo giao dịch
+                </Button>
+                <Button sx={{ minWidth: '100px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/check-in/qr`} size="small">
+                  Check-in
+                </Button>
+                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
+                  Thiết lập show diễn
+                </Button>
+                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/shows`} size="small">
+                  Thiết lập loại vé
+                </Button>
+                {(eventId === 43 || eventId === 44) &&
+                  <>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/shows`} size="small">
+                      Thay đổi tên bàn
+                    </Button>
+                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
+                      Khóa/Mở khóa tra cứu
+                    </Button>
+                  </>
+                }
+                {eventId === 43 &&
+                  <>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard`} size="small">
+                      Leaderboard Duo
+                    </Button>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
+                      Sơ đồ trận Lobby
+                    </Button>
+                  </>
+
+                }
+                {eventId == 44 &&
+                  <>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-a`} size="small">
+                      Leaderboard Solo A
+                    </Button>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-b`} size="small">
+                      Leaderboard Solo B
+                    </Button>
+                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-arena`} size="small">
+                      Leaderboard Solo Arena
+                    </Button>
+                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-arena-final`} size="small">
+                      Leaderboard Solo Final
+                    </Button>
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
+                      Sơ đồ trận Lobby
+                    </Button>
+                  </>
+                }
+              </Stack>
+            </Card>
+
+          </Stack>
+
+
         </Grid>
       </Grid>
       <Grid container spacing={3}>
@@ -895,10 +1084,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <CardContent>
               <Stack spacing={1} textAlign={'justify'}>
                 <Typography variant="body2">
-                  <b>Để sự kiện được phê duyệt, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:</b>
-                </Typography>
-                <Typography variant="body2">
-                  - Tài khoản dùng để tạo sự kiện đã được xác thực <b style={{ color: 'text.success' }}>tài khoản Event Agency</b>. Xem tình trạng xác thực tại mục <b>Tài khoản của tôi</b>
+                  <b>Để sự kiện được nâng cấp thành Sự kiện Được xác thực, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:</b>
                 </Typography>
                 <Typography variant="body2">
                   - Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.
@@ -906,7 +1092,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Typography variant="body2">
                   - Thời gian và địa điểm rõ ràng, chính xác. Hạn chế thay đổi thông tin về thời gian, địa điểm và phải thông báo cho ETIK trước khi thay đổi.
                 </Typography>
-
                 <Typography variant="body2">
                   - Chính sách Giá vé, chính sách hoàn trả, hủy vé rõ ràng, minh bạch.
                 </Typography>

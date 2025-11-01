@@ -1,9 +1,8 @@
-import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
 import Card from '@mui/material/Card';
 import InputAdornment from '@mui/material/InputAdornment';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
+import * as React from 'react';
 
 export function CompaniesFilters(): React.JSX.Element {
   return (
@@ -11,7 +10,7 @@ export function CompaniesFilters(): React.JSX.Element {
       <OutlinedInput
         defaultValue=""
         fullWidth
-        placeholder="Tìm loại vé"
+        placeholder="Tìm"
         startAdornment={
           <InputAdornment position="start">
             <MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />

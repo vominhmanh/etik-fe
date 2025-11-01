@@ -1,6 +1,10 @@
 'use client';
 
-import * as React from 'react';
+import { UserPopover } from '@/components/dashboard/layout/user-popover';
+import { LanguageSwitcher } from '@/components/language-switcher';
+import { usePopover } from '@/hooks/use-popover';
+import { useUser } from '@/hooks/use-user';
+import { paths } from '@/paths';
 import Avatar from '@mui/material/Avatar';
 import Badge from '@mui/material/Badge';
 import Box from '@mui/material/Box';
@@ -9,32 +13,32 @@ import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import { Bell as BellIcon } from '@phosphor-icons/react/dist/ssr/Bell';
-import { List as ListIcon } from '@phosphor-icons/react/dist/ssr/List';
-import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import RouterLink from 'next/link';
-import { User } from '@/types/auth';
-import { paths } from '@/paths';
-import NotificationContext from '@/contexts/notification-context';
-import { usePopover } from '@/hooks/use-popover';
-import { useUser } from '@/hooks/use-user';
-import { UserPopover } from '@/components/dashboard/layout/user-popover';
-import { width } from '@mui/system';
+import { usePathname, useSearchParams } from 'next/navigation';
+import * as React from 'react';
+import { buildReturnUrl } from '@/lib/auth/urls';
+import { Container } from '@mui/material';
 
 export function MainNav(): React.JSX.Element {
   const [openNav, setOpenNav] = React.useState<boolean>(false);
-  const [user, setUser] = React.useState<User | null>(null);
   const userPopover = usePopover<HTMLDivElement>();
-  const { getUser } = useUser();
+  const { user } = useUser();
+
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const encodedReturnUrl = React.useMemo(() => {
+    const search = searchParams?.toString() ? `?${searchParams.toString()}` : '';
+    return buildReturnUrl(pathname || '/', search);
+  }, [pathname, searchParams]);
 
   React.useEffect(() => {
     const fetchUser = async () => {
-      const fetchedUser = getUser();
-      setUser(fetchedUser);
+      const fetchedUser = user;
     };
 
     fetchUser();
-  }, [getUser]);
+  }, [user]);
 
   return (
     <React.Fragment>
@@ -48,18 +52,20 @@ export function MainNav(): React.JSX.Element {
           zIndex: 'var(--mui-zIndex-appBar)',
         }}
       >
+        <Container maxWidth="xl">
         <Stack
           direction="row"
           spacing={2}
-          sx={{ alignItems: 'center', justifyContent: 'space-between', minHeight: '64px', px: 2 }}
+          sx={{ alignItems: 'center', justifyContent: 'space-between', minHeight: '64px' }}
         >
           <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
             <div style={{width: '45px'}}>
-              <img src='/assets/etik-logo.png' style={{width: '100%'}}></img>
+              <Box component="img" src='/assets/etik-logo.png' sx={{width: '100%'}}/>
             </div>
           </Stack>
           {user ? (
             <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+              <LanguageSwitcher />
               <Tooltip title="Contacts">
                 <IconButton>
                   <UsersIcon />
@@ -77,11 +83,15 @@ export function MainNav(): React.JSX.Element {
               </Avatar>
             </Stack>
           ) : (
-            <Button variant="contained"  component={RouterLink} href={paths.auth.signIn}>
-              Đăng nhập
-            </Button>
+            <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+              <LanguageSwitcher />
+              <Button variant="contained"  component={RouterLink} href={`${paths.auth.signIn}?returnUrl=${encodedReturnUrl}`}>
+                Đăng nhập
+              </Button>
+            </Stack>
           )}
         </Stack>
+        </Container>
       </Box>
       <UserPopover anchorEl={userPopover.anchorRef.current} onClose={userPopover.handleClose} open={userPopover.open} />
     </React.Fragment>

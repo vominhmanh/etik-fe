@@ -1,27 +1,26 @@
 'use client';
 
-import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
-import axios, { AxiosResponse } from 'axios';
+import { AxiosResponse } from 'axios';
+import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
+import { FormControl, Grid, IconButton, InputLabel, MenuItem, Select } from '@mui/material';
+import Backdrop from '@mui/material/Backdrop';
 import Card from '@mui/material/Card';
+import CircularProgress from '@mui/material/CircularProgress';
 import InputAdornment from '@mui/material/InputAdornment';
 import OutlinedInput from '@mui/material/OutlinedInput';
+import { ArrowCounterClockwise, Empty, MicrosoftExcelLogo, X } from '@phosphor-icons/react/dist/ssr';
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
-import { TicketsTable } from './tickets-table';
-import Backdrop from '@mui/material/Backdrop';
-import CircularProgress from '@mui/material/CircularProgress';
 import { debounce } from 'lodash';
-import { FormControl, InputLabel, Select, MenuItem, Grid, IconButton } from '@mui/material';
-import { ArrowCounterClockwise, Empty, X } from '@phosphor-icons/react/dist/ssr';
 import RouterLink from 'next/link';
+import { TicketsTable } from './tickets-table';
 
 
 interface FilterTicketCategory {
@@ -72,7 +71,7 @@ export interface Ticket {
   transactionId: number;
   createdAt: string; // ISO date string
   ticketCategoryId: number;
-  holder: string;
+  holderName: string;
   checkInAt?: string | null; // ISO date string or null
   transactionTicketCategory: TransactionTicketCategory;
 }
@@ -133,6 +132,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     })
   }
 
+  function normalizeText(text: string): string {
+    return (text || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase();
+  }
+
   // Fetch tickets for the event 
   const fetchTickets = async () => {
     try {
@@ -148,6 +156,41 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   }
 
+  const handleExportExcel = async () => {
+    try {
+      setIsLoading(true);
+      const response: AxiosResponse<Blob> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${params.event_id}/tickets/export`,
+        { responseType: 'blob' }
+      );
+
+      const defaultFilename = `tickets-${params.event_id}.xlsx`;
+      const contentDisposition = (response.headers as any)?.['content-disposition'] as string | undefined;
+      let filename = defaultFilename;
+      if (contentDisposition) {
+        const match = /filename\*?=(?:UTF-8''|")?([^;\n"]+)/i.exec(contentDisposition);
+        if (match && match[1]) {
+          filename = decodeURIComponent(match[1].replace(/\"/g, '')); 
+        }
+      }
+
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      notificationCtx.success('Đã xuất file Excel');
+    } catch (error) {
+      notificationCtx.error('Xuất file thất bại:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   React.useEffect(() => {
     fetchTickets();
   }, [params.event_id]);
@@ -157,7 +200,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       try {
         setIsLoading(true);
         const response: AxiosResponse<FilterShow[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${params.event_id}/transactions/get-shows-and-ticket-categories`
+          `/event-studio/events/${params.event_id}/tickets/get-shows-and-ticket-categories`
         );
         setFilterShows(response.data);
       } catch (error) {
@@ -226,15 +269,23 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   }
 
   const filteredTickets = React.useMemo(() => {
+    const q = normalizeText(querySearch);
     return tickets.filter((ticket) => {
       // Search filter
       if (querySearch && !(
         (ticket.id.toString().includes(querySearch.toLocaleLowerCase())) ||
-        (ticket.holder.toLowerCase().includes(querySearch.toLowerCase())) ||
+        (normalizeText(ticket.holderName).includes(q)) ||
         (ticket.transactionTicketCategory.transaction.id.toString().includes(querySearch.toLocaleLowerCase())) ||
-        (ticket.transactionTicketCategory.transaction.email.toLowerCase().includes(querySearch.toLowerCase())) ||
-        (ticket.transactionTicketCategory.transaction.name.toLowerCase().includes(querySearch.toLowerCase())) ||
-        (ticket.transactionTicketCategory.transaction.phoneNumber.toLowerCase().includes(querySearch.toLowerCase()))
+        (normalizeText(ticket.transactionTicketCategory.transaction.email).includes(q)) ||
+        (normalizeText(ticket.transactionTicketCategory.transaction.name).includes(q)) ||
+        (ticket.transactionTicketCategory.transaction.phoneNumber.toLowerCase().includes(querySearch.toLowerCase())) ||
+        (
+          ticket.transactionTicketCategory.transaction.phoneNumber
+            .replace(/\s+/g, '')
+            .replace(/^\+84/, '0')
+            .toLocaleLowerCase()
+            .includes(querySearch.replace(/\s+/g, '').replace(/^\+84/, '0').toLocaleLowerCase())
+        )
       )) {
         return false;
       }
@@ -311,8 +362,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={fetchTickets}>
               Tải lại
             </Button>
-            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
+            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />} onClick={handleExportExcel}>
               Xuất file excel
+            </Button>
+            <Button color="inherit" startIcon={<MicrosoftExcelLogo fontSize="var(--icon-fontSize-md)" />}>
+              Đồng bộ Google Sheets
             </Button>
           </Stack>
         </Stack>

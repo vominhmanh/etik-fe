@@ -18,7 +18,8 @@ import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
-import { BuildingOffice } from '@phosphor-icons/react/dist/ssr';
+import { BuildingOffice, CodesandboxLogo, Invoice, SealCheck, Wallet } from '@phosphor-icons/react/dist/ssr';
+import { useTranslation } from '@/contexts/locale-context';
 
 export interface UserPopoverProps {
   anchorEl: Element | null;
@@ -27,17 +28,18 @@ export interface UserPopoverProps {
 }
 
 export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): React.JSX.Element {
-  const { checkSession, getUser } = useUser();
-  const [user, setUser] = React.useState<User | null>(null);
+  const { tt } = useTranslation();
+  const { checkSession, user, setUser } = useUser();
+  const [authUser, setAuthUser] = React.useState<User | null>(null);
 
   React.useEffect(() => {
     const fetchUser = async () => {
-      const fetchedUser = getUser();
-      setUser(fetchedUser);
+      const fetchedUser = user;
+      setAuthUser(fetchedUser);
     };
 
     fetchUser();
-  }, [getUser]);
+  }, [user]);
 
   const router = useRouter();
 
@@ -50,8 +52,9 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
         return;
       }
 
-      // UserProvider, for this case, will not refresh the router and we need to do it manually
-      router.push(paths.auth.signIn); // After refresh, AuthGuard will handle the redirect
+      // Clear user from context immediately to avoid guard loops, then navigate
+      setUser(null);
+      router.push(paths.auth.signIn);
       // After refresh, AuthGuard will handle the redirect
     } catch (err) {
       logger.error('Sign out error', err);
@@ -67,43 +70,56 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
       slotProps={{ paper: { sx: { width: '240px' } } }}
     >
       <Box sx={{ p: '16px 20px ' }}>
-        <Typography variant="subtitle1">{user?.fullName}</Typography>
+        <Typography variant="subtitle1">{authUser?.fullName}</Typography>
         <Typography color="text.secondary" variant="body2">
-          {user?.email}
+          {authUser?.email}
         </Typography>
       </Box>
       <Divider />
       <MenuList disablePadding sx={{ p: '8px', '& .MuiMenuItem-root': { borderRadius: 1 } }}>
-        <MenuItem component={RouterLink} href={'/account/settings'} onClick={onClose}>
-          <ListItemIcon>
-            <GearSixIcon fontSize="var(--icon-fontSize-md)" />
-          </ListItemIcon>
-          Quyền riêng tư
-        </MenuItem>
+        
         <MenuItem component={RouterLink} href={'/account'} onClick={onClose}>
           <ListItemIcon>
             <UserIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Cài đặt tài khoản
+          {tt('Cài đặt tài khoản', 'Account Settings')}
+        </MenuItem>
+        <MenuItem component={RouterLink} href={'/account'} onClick={onClose}>
+          <ListItemIcon>
+            <Wallet fontSize="var(--icon-fontSize-md)" />
+          </ListItemIcon>
+          <span>{tt('Ví trả trước: ', 'Prepaid Wallet: ')}</span><b style={{marginLeft: '8px'}}>0</b><span style={{marginLeft: '8px'}}>{tt('VNĐ', 'VND')}</span>
         </MenuItem>
         
         <MenuItem component={RouterLink} href={'/account/my-tickets'} onClick={onClose}>
           <ListItemIcon>
             <TicketIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Vé của tôi
+          {tt('Vé của tôi', 'My Tickets')}
+        </MenuItem>
+        <MenuItem component={RouterLink} href={'/account/my-tickets'} onClick={onClose}>
+          <ListItemIcon>
+            <Invoice fontSize="var(--icon-fontSize-md)" />
+          </ListItemIcon>
+          {tt('Đơn hàng của tôi', 'My Orders')}
         </MenuItem>
         <MenuItem component={RouterLink} href={'/account-event-agency'} onClick={onClose}>
           <ListItemIcon>
-            <BuildingOffice fontSize="var(--icon-fontSize-md)" />
+            <SealCheck fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Tài khoản Event Agency
+          {tt('Tài khoản Event Agency', 'Event Agency Account')}
+        </MenuItem>
+        <MenuItem component={RouterLink} href={'/event-studio/events'} onClick={onClose}>
+          <ListItemIcon>
+            <CodesandboxLogo fontSize="var(--icon-fontSize-md)" />
+          </ListItemIcon>
+          {tt('Trang quản trị sự kiện', 'Event Management')}
         </MenuItem>
         <MenuItem onClick={handleSignOut}>
           <ListItemIcon>
             <SignOutIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Đăng xuất
+          {tt('Đăng xuất', 'Sign Out')}
         </MenuItem>
       </MenuList>
     </Popover>

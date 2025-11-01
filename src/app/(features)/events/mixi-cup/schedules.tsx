@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Checkbox, Card, CardHeader, Divider, List, ListItem, Box, ListItemAvatar, ListItemText, IconButton, Typography, Stack, CardContent } from '@mui/material';
+import { Box, Card, CardHeader, Checkbox, Divider, List, ListItem, ListItemAvatar, ListItemText } from '@mui/material';
 import dayjs from 'dayjs';
+import React, { useState } from 'react';
 import { Show } from './page';
 
 export interface LatestProductsProps {
@@ -41,11 +41,7 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
               />
             </Box>
             <ListItemAvatar>
-              {show.avatar ?
-                <Box component="img" src={show.avatar} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
-                :
-                <Box component="img" src={'/assets/product-5.png'} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
-              }
+              <Box component="img" src={show.avatar ?? '/assets/product-5.png'} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
             </ListItemAvatar>
             <ListItemText
               primary={show.name}

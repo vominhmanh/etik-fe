@@ -1,7 +1,5 @@
 'use client';
 
-import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -14,20 +12,20 @@ import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
-import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
+import * as React from 'react';
 
-import dayjs from 'dayjs';
+import { Chip, ChipProps } from '@mui/material';
+import IconButton from '@mui/material/IconButton';
+import { WarningCircle } from '@phosphor-icons/react/dist/ssr';
 import { ArrowSquareUpRight as ArrowSquareUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowSquareUpRight';
-import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
 import { Bank as BankIcon } from '@phosphor-icons/react/dist/ssr/Bank';
 import { Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr/Lightning';
-import IconButton from '@mui/material/IconButton';
-import { useSelection } from '@/hooks/use-selection';
-import { Chip } from '@mui/material';
-import { Ticket } from './page'
+import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
+import dayjs from 'dayjs';
 import RouterLink from 'next/link';
-import { WarningCircle } from '@phosphor-icons/react/dist/ssr';
+import { Ticket } from './page';
 
 
 // Function to map payment methods to corresponding labels and icons
@@ -228,7 +226,7 @@ export function TicketsTable({
                           <Typography>SĐT: {row.transactionTicketCategory.transaction.phoneNumber}</Typography>
                         </Stack>
                       }>
-                        <Avatar {...stringAvatar(row.holder)} />
+                        <Avatar {...stringAvatar(row.holderName)} />
                       </Tooltip>
                       <Tooltip title={
                         <Stack spacing={1}>
@@ -238,7 +236,7 @@ export function TicketsTable({
                           <Typography>SĐT: {row.transactionTicketCategory.transaction.phoneNumber}</Typography>
                         </Stack>
                       }>
-                        <Typography variant="subtitle2">{row.holder}</Typography>
+                        <Typography variant="subtitle2">{row.holderName}</Typography>
                       </Tooltip>
 
                     </Stack>
@@ -264,7 +262,7 @@ export function TicketsTable({
                   </TableCell>
                   <TableCell>
                     <Chip
-                      color={getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus).color}
+                      color={getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus).color as ChipProps['color']}
                       label={
                         getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus).label
                       }
@@ -273,7 +271,7 @@ export function TicketsTable({
                   </TableCell>
                   <TableCell>
                     <Chip
-                      color={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent').color}
+                      color={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent').color as ChipProps['color']}
                       label={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent').label}
                       size="small"
                     />

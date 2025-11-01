@@ -1,12 +1,9 @@
 'use client';
 
-import * as React from 'react';
-import { useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Chip, IconButton, MenuItem, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, Tooltip } from '@mui/material';
+import { Avatar, Box, CardActions, Chip, IconButton, InputAdornment, Menu, MenuItem, Modal, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Container, Checkbox } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
@@ -15,9 +12,13 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, Check, Clock, DeviceMobile, HouseLine, ImageSquare, Info, LetterCircleH, Lightning as LightningIcon, MapPin, Money as MoneyIcon, SignIn, SignOut, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, CaretDoubleRight, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, SignIn, SignOut, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import RouterLink from 'next/link';
+import * as React from 'react';
+import { useEffect, useState } from 'react';
 
+import Backdrop from '@mui/material/Backdrop';
+import CircularProgress from '@mui/material/CircularProgress';
 import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
 import { EnvelopeSimple as EnvelopeSimpleIcon } from '@phosphor-icons/react/dist/ssr/EnvelopeSimple';
 import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
@@ -25,13 +26,12 @@ import { SealPercent as SealPercentIcon } from '@phosphor-icons/react/dist/ssr/S
 import { StackPlus as StackPlusIcon } from '@phosphor-icons/react/dist/ssr/StackPlus';
 import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
-import axios, { AxiosResponse } from 'axios';
+import { Pencil } from '@phosphor-icons/react/dist/ssr';
+import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import Backdrop from '@mui/material/Backdrop';
-import CircularProgress from '@mui/material/CircularProgress';
 
 import NotificationContext from '@/contexts/notification-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -141,12 +141,16 @@ interface Event {
   avatarUrl: string;
   slug: string;
   locationInstruction: string | null;
+  timeInstruction: string | null;
 };
 
 
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
-  holder: string;        // Name of the ticket holder
+  holderName: string;        // Name of the ticket holder
+  holderPhone: string;        // Name of the ticket holder
+  holderEmail: string;        // Name of the ticket holder
+  holderTitle: string;        // Name of the ticket holder
   createdAt: string;   // The date the ticket was created
   checkInAt: string | null; // The date/time the ticket was checked in, nullable
 }
@@ -176,6 +180,7 @@ export interface TransactionTicketCategory {
   netPricePerOne: number;           // Net price per ticket
   tickets: Ticket[];                 // Array of related tickets
   ticketCategory: TicketCategory; // Related show and ticket category information
+  quantity: number;               // Quantity of tickets in the transaction
 }
 
 export interface Creator {
@@ -230,6 +235,7 @@ export interface Transaction {
   email: string;                    // Email of the customer
   name: string;                     // Name of the customer
   gender: string;                   // Gender of the customer
+  title: string;                   // Gender of the customer
   phoneNumber: string;              // Customer's phone number
   address: string | null;           // Customer's address, nullable
   dob: string | null;               // Date of birth, nullable
@@ -255,7 +261,8 @@ export interface Transaction {
   historySendings: HistorySending[];
   historyActions: HistoryAction[];
   cancelRequestStatus: string | null;
-  event: Event
+  event: Event;
+  qrOption: string;
 }
 
 
@@ -269,15 +276,25 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [formData, setFormData] = useState({
     name: transaction?.name || '',
+    title: transaction?.title || '',
     phoneNumber: transaction?.phoneNumber || '',
     address: transaction?.address || '',
+    dob: transaction?.dob || null,
     status: ''
   });
+  // grab ?checkInCode=… from the browser URL
+  const searchParams = useSearchParams()
+  const checkInCode = searchParams.get('checkInCode') || undefined
   const [selectedStatus, setSelectedStatus] = useState<string>(formData.status || '');
+  const [editCategoryModalOpen, setEditCategoryModalOpen] = useState<boolean>(false);
+  const [editingCategory, setEditingCategory] = useState<TransactionTicketCategory | null>(null);
+  const [editingHolderInfos, setEditingHolderInfos] = useState<{ title: string; name: string; email: string; phone: string; }[]>([]);
+  const [ticketMenuAnchorEl, setTicketMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [activeMenuTicket, setActiveMenuTicket] = useState<{ categoryIndex: number; ticketIndex: number } | null>(null);
 
   const router = useRouter(); // Use useRouter from next/navigation
 
-  const handleFormChange = (event: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+  const handleFormChange = (event: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
     setFormData((prevData) => ({
       ...prevData,
@@ -292,6 +309,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
         {
           name: formData.name,
           phoneNumber: formData.phoneNumber,
+          dob: formData.dob,
+          title: formData.title,
           address: formData.address,
         }
       );
@@ -302,6 +321,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
           ...prev, name: formData.name,
           phoneNumber: formData.phoneNumber,
           address: formData.address,
+          dob: formData.dob,
+          title: formData.title,
         } : prev);
 
       }
@@ -316,12 +337,17 @@ export default function Page({ params }: { params: { event_id: number; transacti
       try {
         setIsLoading(true);
         const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${event_id}/transactions/${transaction_id}`
+          `/event-studio/events/${event_id}/transactions/${transaction_id}`,
+          {
+            params: checkInCode ? { checkInCode } : undefined,
+          }
         );
         setTransaction(response.data);
         setFormData({
+          title: response.data?.title || 'Bạn',
           name: response.data?.name || '',
           phoneNumber: response.data?.phoneNumber || '',
+          dob: response.data?.dob || null,
           address: response.data?.address || '',
           status: '',
         });
@@ -357,6 +383,46 @@ export default function Page({ params }: { params: { event_id: number; transacti
     }
   };
 
+
+  const exportTicket = async () => {
+    try {
+      setIsLoading(true); // Optional: Show loading state
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/export-ticket`
+      );
+
+      // Optionally handle response
+      if (response.status === 200) {
+        notificationCtx.success(response.data.message);
+        setTransaction((prev) => prev ? { ...prev, exportedTicketAt: '.' } : prev);
+      }
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false); // Optional: Hide loading state
+    }
+  };
+
+
+  const sendTransaction = async (channel: string | null) => {
+    try {
+      setIsLoading(true); // Optional: Show loading state
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/send-transaction`, channel ? { channel: channel } : {}
+      );
+
+      // Optionally handle response
+      if (response.status === 200) {
+        notificationCtx.success(response.data.message);
+        setTransaction((prev) => prev ? { ...prev, exportedTicketAt: '.' } : prev);
+      }
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false); // Optional: Hide loading state
+    }
+  };
+
   const sendTicket = async (channel: string | null) => {
     try {
       setIsLoading(true); // Optional: Show loading state
@@ -370,7 +436,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         setTransaction((prev) => prev ? { ...prev, exportedTicketAt: '.' } : prev);
       }
     } catch (error) {
-      notificationCtx.error('Có lỗi xảy ra khi gửi email vé:', error);
+      notificationCtx.error(error);
     } finally {
       setIsLoading(false); // Optional: Hide loading state
     }
@@ -388,9 +454,145 @@ export default function Page({ params }: { params: { event_id: number; transacti
         notificationCtx.success('Hướng dẫn thanh toán đã được gửi thành công!');
       }
     } catch (error) {
-      notificationCtx.error('Có lỗi xảy ra khi gửi hướng dẫn thanh toán:', error);
+      notificationCtx.error(error);
     } finally {
       setIsLoading(false); // Optional: Hide loading state
+    }
+  };
+
+  const checkInAllTickets = async () => {
+    try {
+      setIsLoading(true);
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/check-in-all`
+      );
+
+      if (response.status === 200) {
+        notificationCtx.success(response.data?.message || 'Check-in tất cả vé thành công!');
+        setTransaction((prev) => {
+          if (!prev) return prev;
+          const updatedCategories = prev.transactionTicketCategories.map((cat) => ({
+            ...cat,
+            tickets: cat.tickets.map((t) => ({
+              ...t,
+              checkInAt: t.checkInAt || new Date().toISOString(),
+            })),
+          }));
+          return { ...prev, transactionTicketCategories: updatedCategories };
+        });
+      }
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const openEditCategoryModal = (category: TransactionTicketCategory) => {
+    setEditingCategory(category);
+    const infos = category.tickets.map((t) => ({
+      title: t.holderTitle || 'Bạn',
+      name: t.holderName || '',
+      email: t.holderEmail || '',
+      phone: t.holderPhone || '',
+    }));
+    setEditingHolderInfos(infos);
+    setEditCategoryModalOpen(true);
+  };
+
+  const handleOpenTicketMenu = (
+    anchorEl: HTMLElement,
+    categoryIndex: number,
+    ticketIndex: number
+  ) => {
+    setTicketMenuAnchorEl(anchorEl);
+    setActiveMenuTicket({ categoryIndex, ticketIndex });
+  };
+
+  const handleCloseTicketMenu = () => {
+    setTicketMenuAnchorEl(null);
+    setActiveMenuTicket(null);
+  };
+
+  const handleCheckInSpecificTicket = async () => {
+    if (!activeMenuTicket || !transaction) return;
+    const { categoryIndex, ticketIndex } = activeMenuTicket;
+    const category = transaction.transactionTicketCategories[categoryIndex];
+    const ticket = category?.tickets[ticketIndex];
+    if (!ticket) return;
+    try {
+      setIsLoading(true);
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/check-in/${ticket.id}`
+      );
+
+      if (response.status === 200) {
+        notificationCtx.success(response.data?.message || 'Check-in thành công!');
+        setTransaction((prev) => {
+          if (!prev) return prev;
+          const updatedCategories = prev.transactionTicketCategories.map((cat, cIdx) => {
+            if (cIdx !== categoryIndex) return cat;
+            return {
+              ...cat,
+              tickets: cat.tickets.map((t, tIdx) =>
+                tIdx === ticketIndex ? { ...t, checkInAt: new Date().toISOString() } : t
+              ),
+            };
+          });
+          return { ...prev, transactionTicketCategories: updatedCategories };
+        });
+        handleCloseTicketMenu();
+      }
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveTicketHolders = async () => {
+    if (!editingCategory) return;
+    const hasInvalid = editingHolderInfos.some((h) => !h.title || !h.name );
+    if (hasInvalid) {
+      notificationCtx.warning('Vui lòng điền đủ Danh xưng, Họ tên và SĐT cho mỗi vé.');
+      return;
+    }
+    try {
+      setIsLoading(true);
+      const payload = {
+        tickets: editingCategory.tickets.map((ticket, index) => ({
+          id: ticket.id,
+          holderTitle: editingHolderInfos[index]?.title,
+          holderName: editingHolderInfos[index]?.name,
+          holderPhone: editingHolderInfos[index]?.phone,
+        })),
+      };
+      await baseHttpServiceInstance.patch(
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/update-ticket-holders`,
+        payload
+      );
+      setTransaction((prev) => {
+        if (!prev) return prev;
+        const updatedCategories = prev.transactionTicketCategories.map((cat) => {
+          if (cat.ticketCategory.id !== (editingCategory?.ticketCategory.id || 0)) return cat;
+          return {
+            ...cat,
+            tickets: cat.tickets.map((t, i) => ({
+              ...t,
+              holderTitle: editingHolderInfos[i]?.title || t.holderTitle,
+              holderName: editingHolderInfos[i]?.name || t.holderName,
+              holderPhone: editingHolderInfos[i]?.phone || t.holderPhone,
+            })),
+          };
+        });
+        return { ...prev, transactionTicketCategories: updatedCategories };
+      });
+      notificationCtx.success('Cập nhật thông tin vé thành công!');
+      setEditCategoryModalOpen(false);
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -405,7 +607,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         setTransaction((prev) => prev ? { ...prev, paymentStatus: 'paid' } : prev);
       }
     } catch (error) {
-      notificationCtx.error('Có lỗi xảy ra khi cập nhật trạng thái đơn hàng:', error);
+      notificationCtx.error(error);
     }
   };
 
@@ -488,7 +690,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
                     <div>
                       {transaction.event.avatarUrl ?
-                        <img src={transaction.event.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                        <Box component="img" src={transaction.event.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
                         :
                         <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
                           {(transaction.event.name[0] ?? 'a').toUpperCase()}
@@ -509,15 +711,15 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     <Clock fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {transaction.event.startDateTime && transaction.event.endDateTime
-                        ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
-                        : 'Chưa xác định'}
+                        ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
+                        : 'Chưa xác định'} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
                     </Typography>
                   </Stack>
 
                   <Stack direction="row" spacing={1}>
                     <MapPin fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {transaction.event.place ? transaction.event.place : 'Chưa xác định'}
+                      {transaction.event.place ? transaction.event.place : 'Chưa xác định'} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
                     </Typography>
                   </Stack>
                 </Stack>
@@ -571,227 +773,172 @@ export default function Page({ params }: { params: { event_id: number; transacti
             <Card>
               <CardHeader title="Hành động" />
               <Divider />
-              {transaction.cancelRequestStatus === 'pending' &&
-                <>
-                  <CardContent>
-                    <Typography variant='body2' color={'error'} sx={{ fontWeight: 'bold' }}>
-                      Khách hàng yêu cầu hủy đơn hàng:
-                    </Typography>
+              <CardContent>
+                <Stack spacing={3}>
+                  {transaction.cancelRequestStatus === 'pending' &&
+                    <>
+                      <Typography variant='body2' color={'error'} sx={{ fontWeight: 'bold' }}>
+                        Khách hàng yêu cầu hủy đơn hàng:
+                      </Typography>
+                      <Stack spacing={2} direction={'row'}>
+                        <Button
+                          onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'reject')}
+                          size="small"
+                        >
+                          Từ chối hủy
+                        </Button>
+                        <Button
+                          onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'accept')}
+                          size="small"
+                          color='error'
+                          startIcon={<Check />}
+                        >
+                          Chấp nhận hủy
+                        </Button>
+                      </Stack>
+                      <Divider />
+                    </>
+
+                  }
+                  {transaction.status === 'wait_for_response' &&
                     <Stack spacing={2} direction={'row'}>
-                      <Button
-                        onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'reject')}
-                        size="small"
-                      >
-                        Từ chối hủy
+                      <Button onClick={() => handleSetTransactionStatus('normal')} size="small" startIcon={<Check />}>
+                        Phê duyệt đơn hàng
                       </Button>
-                      <Button
-                        onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'accept')}
-                        size="small"
-                        color='error'
-                        startIcon={<Check />}
-                      >
-                        Chấp nhận hủy
+                      <Button onClick={() => handleSetTransactionStatus('staff_locked')} size="small" startIcon={<X />}>
+                        Từ chối đơn hàng
                       </Button>
                     </Stack>
-                  </CardContent>
-                  <Divider />
-                </>
+                  }
+                  {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt == null && (
+                    <>
+                      <Stack spacing={1} direction={'row'} flexWrap={'wrap'}>
+                        <Button onClick={() => exportTicket()} size="small" startIcon={<TicketIcon />}>
+                          Xuất vé
+                        </Button>
+                      </Stack>
+                    </>
+                  )}
+                  {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
+                    <>
+                      <Stack spacing={0} direction={'row'} flexWrap={'wrap'}>
+                        {transaction.qrOption === 'shared' && (
+                          <>
+                            <Button onClick={() => sendTransaction('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                              Gửi Email đơn hàng
+                            </Button>
+                            <Button onClick={() => sendTransaction('zalo')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                              Gửi Zalo đơn hàng
+                            </Button>
+                          </>
+                        )}
+                        {transaction.qrOption === 'separate' && (
+                          <>
+                            <Button onClick={() => sendTransaction('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                              Gửi Email cho người đại diện (ng.mua)
+                            </Button>
+                            <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                              Gửi Email cho từng người sở hữu
+                            </Button>
+                            <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                              Gửi Zalo cho từng người sở hữu
+                            </Button>
+                          </>
+                        )}
 
-              }
-              <CardContent>
-                {transaction.status === 'wait_for_response' &&
-                  <Stack spacing={2} direction={'row'}>
-                    <Button onClick={() => handleSetTransactionStatus('normal')} size="small" startIcon={<Check />}>
-                      Phê duyệt đơn hàng
-                    </Button>
-                    <Button onClick={() => handleSetTransactionStatus('staff_locked')} size="small" startIcon={<X />}>
-                      Từ chối đơn hàng
-                    </Button>
-                  </Stack>
-                }
-                {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt == null && (
-                  <>
-                    <Stack spacing={1} direction={'row'} flexWrap={'wrap'}>
-                      <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                        Xuất vé + gửi email
-                      </Button>
-                      <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<DeviceMobile />}>
-                        Xuất vé + gửi Zalo
+                        <Button
+                          onClick={() => window.open(`/event-studio/events/${event_id}/transactions/${transaction_id}/invitation-letter`, '_blank')}
+                          size="small"
+                          startIcon={<ImageSquare />} // Icon for document-like invitation letter
+                        >
+                          Xem ảnh thư mời
+                        </Button>
+                      </Stack>
+                    </>
+                  )}
+                  {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
+                    <Stack spacing={2} direction={'row'}>
+                      <Button size="small" startIcon={<SignIn />} onClick={checkInAllTickets}>
+                        Check-in
                       </Button>
                     </Stack>
-                    <Stack spacing={1} direction={'row'}>
-                      <Button onClick={() => sendTicket(null)} size="small" startIcon={<TicketIcon />}>
-                        Xuất vé không gửi
-                      </Button>
-                    </Stack>
-                  </>
-                )}
-                {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
-                  <Stack spacing={0} direction={'row'} flexWrap={'wrap'}>
-                    <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                      Gửi vé qua Email
-                    </Button>
-                    <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<DeviceMobile />}>
-                      Gửi vé qua Zalo
-                    </Button>
-                    <Button
-                      onClick={() => window.open(`/event-studio/events/${event_id}/transactions/${transaction_id}/invitation-letter`, '_blank')}
-                      size="small"
-                      startIcon={<ImageSquare />} // Icon for document-like invitation letter
-                    >
-                      Xem ảnh thư mời
-                    </Button>
-                  </Stack>
-                )}
-                {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
-                  <Stack spacing={2} direction={'row'}>
-                    <Button size="small" startIcon={<SignIn />}>
-                      Check-in
-                    </Button>
-                    <Button size="small" startIcon={<SignOut />}>
-                      Check-out
-                    </Button>
-                  </Stack>
-                )}
+                  )}
 
-                <Stack spacing={2} direction={'row'}>
-                  {transaction.status === 'normal' &&
-                    transaction.paymentMethod === 'napas247' &&
-                    transaction.paymentStatus === 'waiting_for_payment' && (
-                      <>
-                        <Button onClick={resendInstructionNapas247Email}
+                  <Stack spacing={2} direction={'row'}>
+                    {transaction.status === 'normal' &&
+                      transaction.paymentMethod === 'napas247' &&
+                      transaction.paymentStatus === 'waiting_for_payment' && (
+                        <>
+                          <Button onClick={resendInstructionNapas247Email}
+                            size="small"
+                            startIcon={<EnvelopeSimpleIcon />}
+                          >
+                            Gửi Hướng dẫn thanh toán qua Email
+                          </Button>
+                          <Button onClick={resendInstructionNapas247Email}
+                            size="small"
+                            startIcon={<EnvelopeSimpleIcon />}
+                          >
+                            Gửi Hướng dẫn thanh toán qua Zalo
+                          </Button>
+                        </>
+                      )}
+                    {transaction.status === 'normal' &&
+                      transaction.paymentMethod !== 'napas247' &&
+                      transaction.paymentStatus === 'waiting_for_payment' && (
+                        <Button
+                          onClick={() => setTransactionPaidStatus(params.event_id, params.transaction_id)}
                           size="small"
                           startIcon={<EnvelopeSimpleIcon />}
                         >
-                          Gửi Hướng dẫn thanh toán qua Email
+                          Chuyển trạng thái "Đã thanh toán"
                         </Button>
-                        <Button onClick={resendInstructionNapas247Email}
+                      )}
+
+                    {(transaction.status === 'staff_locked' || transaction.status === 'customer_cancelled') &&
+                      transaction.paymentStatus === 'paid' && (
+                        <Button
+                          onClick={() => setTransactionRefundStatus(params.event_id, params.transaction_id)}
                           size="small"
                           startIcon={<EnvelopeSimpleIcon />}
                         >
-                          Gửi Hướng dẫn thanh toán qua Zalo
+                          Hoàn tiền đơn hàng
                         </Button>
-                      </>
-                    )}
-                  {transaction.status === 'normal' &&
-                    transaction.paymentMethod !== 'napas247' &&
-                    transaction.paymentStatus === 'waiting_for_payment' && (
+                      )}
+                  </Stack>
+                  <Grid container spacing={3}>
+                    <Grid md={10} xs={9}>
+                      <FormControl size='small' fullWidth>
+                        <InputLabel>Hủy đơn hàng</InputLabel>
+                        <Select
+                          label="Hủy đơn hàng"
+                          name="status"
+                          value={selectedStatus}
+                          onChange={(event) => setSelectedStatus(event.target.value)}
+                        >
+                          {transaction.status === 'wait_for_response' && (
+                            <MenuItem value="normal">Phê duyệt đơn hàng</MenuItem>
+                          )}
+                          <MenuItem value="customer_cancelled">Huỷ bởi Khách hàng</MenuItem>
+                          <MenuItem value="staff_locked">Khoá bởi Nhân viên</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid md={2} xs={3} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                       <Button
-                        onClick={() => setTransactionPaidStatus(params.event_id, params.transaction_id)}
-                        size="small"
-                        startIcon={<EnvelopeSimpleIcon />}
+                        type="submit"
+                        variant="contained"
+                        onClick={() => handleSetTransactionStatus(selectedStatus)}
+                        disabled={!selectedStatus} // Disable if no status is selected
                       >
-                        Chuyển trạng thái "Đã thanh toán"
+                        Lưu
                       </Button>
-                    )}
-
-                  {(transaction.status === 'staff_locked' || transaction.status === 'customer_cancelled') &&
-                    transaction.paymentStatus === 'paid' && (
-                      <Button
-                        onClick={() => setTransactionRefundStatus(params.event_id, params.transaction_id)}
-                        size="small"
-                        startIcon={<EnvelopeSimpleIcon />}
-                      >
-                        Hoàn tiền đơn hàng
-                      </Button>
-                    )}
-                </Stack>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader
-                title="Số lượng vé"
-                action={
-                  <OutlinedInput disabled sx={{ maxWidth: 180 }} type="number" value={transaction.ticketQuantity} />
-                }
-              />
-              <Divider />
-              <CardContent>
-                <Stack spacing={0}>
-                  {/* Loop through each transactionShowTicketCategory */}
-                  {transaction.transactionTicketCategories.map((transactionTicketCategory, categoryIndex) => (
-                    <div key={categoryIndex}>
-                      {/* Show Name */}
-                      <Grid sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Show:</Typography>
-                        </Stack>
-                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name}</Typography>
-                      </Grid>
-
-                      {/* Ticket Category Name */}
-                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="body1">Loại vé:</Typography>
-                        </Stack>
-                        <Typography variant="body1">{transactionTicketCategory.ticketCategory.name}</Typography>
-                      </Grid>
-
-                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <HashIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1">Số lượng:</Typography>
-                        </Stack>
-                        <Typography variant="body1">{transactionTicketCategory.tickets.length}</Typography>
-                      </Grid>
-                      {/* Loop through tickets for this category */}
-                      {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
-                        <Grid key={ticketIndex} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Người tham dự {ticketIndex + 1}:</Typography>
-                          </Stack>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">{ticket.holder}</Typography>
-                            <Tooltip title={
-                              <Stack spacing={1}>
-                                <Typography>Trạng thái check-in: {ticket.checkInAt ? `Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
-                                {/* <Typography>ID giao dịch: {row.transactionId}</Typography> */}
-                              </Stack>
-                            }>
-                              <Typography variant="subtitle2"><Info /></Typography>
-                            </Tooltip>
-                          </Stack>
-                        </Grid>
-                      ))}
-                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <TagIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1">Đơn giá:</Typography>
-                        </Stack>
-                        <Typography variant="body1">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography>
-                      </Grid>
-
-                      <Divider sx={{ marginY: 2 }} />
-                    </div>
-                  ))}
-                  {/* Additional details for this category */}
-
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <StackPlusIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">Phụ phí:</Typography>
-                    </Stack>
-                    <Typography variant="body1">{formatPrice(transaction.extraFee || 0)}</Typography>
-                  </Grid>
-
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">Giảm giá:</Typography>
-                    </Stack>
-                    <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
-                  </Grid>
-
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <CoinsIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">Thành tiền:</Typography>
-                    </Stack>
-                    <Typography variant="body1">{formatPrice(transaction.totalAmount || 0)}</Typography>
+                    </Grid>
                   </Grid>
                 </Stack>
               </CardContent>
             </Card>
+
             {transaction.paymentMethod === 'napas247' && (
               <Card>
                 <CardHeader title="Chi tiết thanh toán Napas 247" />
@@ -897,12 +1044,38 @@ export default function Page({ params }: { params: { event_id: number; transacti
                 <Grid container spacing={3}>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel>Tên người mua</InputLabel>
+                      <InputLabel htmlFor="customer-name">Danh xưng* &emsp; Họ và tên</InputLabel>
                       <OutlinedInput
-                        value={formData.name}
-                        onChange={(event: any) => handleFormChange(event)}
+                        id="customer-name"
                         name="name"
-                        label="Tên người mua"
+                        value={formData.name}
+                        onChange={(event) => handleFormChange(event)}
+                        label="Danh xưng* &emsp; Họ và tên"
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <Select
+                              variant="standard"
+                              disableUnderline
+                              value={formData.title || "Bạn"}
+                              onChange={(event) =>
+                                setFormData({ ...formData, title: event.target.value })
+                              }
+                              sx={{ minWidth: 70 }} // cho vừa gọn
+                            >
+                              <MenuItem value="Anh">Anh</MenuItem>
+                              <MenuItem value="Chị">Chị</MenuItem>
+                              <MenuItem value="Bạn">Bạn</MenuItem>
+                              <MenuItem value="Em">Em</MenuItem>
+                              <MenuItem value="Ông">Ông</MenuItem>
+                              <MenuItem value="Bà">Bà</MenuItem>
+                              <MenuItem value="Cô">Cô</MenuItem>
+                              <MenuItem value="Mr.">Mr.</MenuItem>
+                              <MenuItem value="Ms.">Ms.</MenuItem>
+                              <MenuItem value="Miss">Miss</MenuItem>
+                              <MenuItem value="Thầy">Thầy</MenuItem>
+                            </Select>
+                          </InputAdornment>
+                        }
                       />
                     </FormControl>
                   </Grid>
@@ -924,6 +1097,20 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
+                    <FormControl fullWidth required>
+                      <InputLabel shrink>Ngày tháng năm sinh</InputLabel>
+                      <OutlinedInput
+                        label="Ngày tháng năm sinh"
+                        name="dob"
+                        type='date'
+                        value={formData.dob}
+                        onChange={(event: any) => handleFormChange(event)}
+                        inputProps={{ max: new Date().toISOString().slice(0, 10) }}
+
+                      />
+                    </FormControl>
+                  </Grid>
+                  <Grid md={12} xs={12}>
                     <FormControl fullWidth>
                       <InputLabel>Địa chỉ</InputLabel>
                       <OutlinedInput
@@ -935,50 +1122,137 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     </FormControl>
                   </Grid>
                 </Grid>
-                <Grid sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <Button type="submit" variant="contained" onClick={updateTransaction}>
-                    Lưu
-                  </Button>
-                </Grid>
               </CardContent>
+              <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  onClick={updateTransaction}
+                >
+                  Lưu
+                </Button>
+              </CardActions>
             </Card>
+            {transaction.ticketQuantity > 1 && (
+              <Card>
+                <CardHeader title="Tùy chọn bổ sung" />
+                <Divider />
+                <CardContent>
+                  <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                    <Stack>
+                      <Typography variant="body2">Sử dụng mã QR riêng cho từng vé</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        Bạn cần nhập thông tin cho từng vé.
+                      </Typography>
+                    </Stack>
+                    <Checkbox
+                      checked={transaction.qrOption === 'separate'}
+                      disabled
+                    />
+                  </Stack>
+                </CardContent>
+              </Card>
+            )}
             <Card>
-              <CardHeader title="Thay đổi trạng thái đơn hàng" />
+              <CardHeader
+                title={`Danh sách vé: ${transaction.ticketQuantity} vé`}
+                
+              />
               <Divider />
               <CardContent>
-                <Grid container spacing={3}>
-                  <Grid md={12} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Chọn trạng thái mới</InputLabel>
-                      <Select
-                        label="Chọn trạng thái mới"
-                        name="status"
-                        value={selectedStatus}
-                        onChange={(event) => setSelectedStatus(event.target.value)}
+                <Stack spacing={2}>
+                  {/* Loop through each transactionShowTicketCategory */}
+                  {transaction.transactionTicketCategories.map((transactionTicketCategory, categoryIndex) => (
+                    <div key={categoryIndex}>
+                      <Stack direction={{ xs: 'column', md: 'row' }} sx={{ mb: 2, display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name} - {transactionTicketCategory.ticketCategory.name}</Typography>
+                          {transaction.qrOption === 'separate' && <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => openEditCategoryModal(transactionTicketCategory)}><Pencil /></IconButton>}
+                        </Stack>
+                        <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                          <Typography variant="body2">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography>
+                          <Typography variant="body2">x {transactionTicketCategory.tickets.length}</Typography>
+                          <Typography variant="body2">= {formatPrice((transactionTicketCategory.netPricePerOne || 0) * transactionTicketCategory.tickets.length)}</Typography>
+                        </Stack>
+                      </Stack>
+                      {transactionTicketCategory.tickets.length > 0 && (
+                        <Stack spacing={2}>
+                          {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
+                            <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
+                              {transaction.qrOption === 'separate' && (
+                                <>
+                                  <div>
+                                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
+                                      {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : 'Chưa có thông tin'}
+                                    </Typography>
+                                  </div>
+                                  <div>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                      {ticket.holderEmail || 'Chưa có email'} - {ticket.holderPhone || 'Chưa có SĐT'}
+                                    </Typography>
+                                  </div>
+                                </>
+                              )}
+                              <div>
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.checkInAt ? `Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
+                                <IconButton size="small" sx={{ ml: 2 }} onClick={(e) => handleOpenTicketMenu(e.currentTarget, categoryIndex, ticketIndex)}>
+                                  <DotsThreeOutline />
+                                </IconButton>
+                              </div>
+                            </Box>
+                          ))}
+                        </Stack>
+                      )}
+                      <Menu
+                        anchorEl={ticketMenuAnchorEl}
+                        open={Boolean(ticketMenuAnchorEl)}
+                        onClose={handleCloseTicketMenu}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                       >
-                        {transaction.status === 'wait_for_response' && (
-                          <MenuItem value="normal">Phê duyệt đơn hàng</MenuItem>
-                        )}
-                        <MenuItem value="customer_cancelled">Huỷ bởi Khách hàng</MenuItem>
-                        <MenuItem value="staff_locked">Khoá bởi Nhân viên</MenuItem>
-                      </Select>
-                    </FormControl>
+                        {/* <MenuItem onClick={handleCloseTicketMenu} sx={{ fontSize: '14px', color: 'primary' }}>
+                          <EnvelopeSimpleIcon style={{ marginRight: 8 }} /> Gửi vé qua Email
+                        </MenuItem>
+                        <MenuItem onClick={handleCloseTicketMenu} sx={{ fontSize: '14px', color: 'primary' }}>
+                          <DeviceMobile style={{ marginRight: 8 }} /> Gửi vé qua Zalo
+                        </MenuItem> */}
+                        <MenuItem disabled={!!isLoading || !!(activeMenuTicket && !!transaction.transactionTicketCategories[activeMenuTicket.categoryIndex]?.tickets[activeMenuTicket.ticketIndex]?.checkInAt)} onClick={handleCheckInSpecificTicket} sx={{ fontSize: '14px', color: 'primary' }}>
+                          <Check style={{ marginRight: 8 }} /> Check-in
+                        </MenuItem>
+                      </Menu>
+                    </div>
+                  ))}
+                  {/* Additional details for this category */}
+                  <Divider sx={{ marginY: 2 }} />
+                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <StackPlusIcon fontSize="var(--icon-fontSize-md)" />
+                      <Typography variant="body1">Phụ phí:</Typography>
+                    </Stack>
+                    <Typography variant="body1">{formatPrice(transaction.extraFee || 0)}</Typography>
                   </Grid>
-                  <Grid md={12} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      onClick={() => handleSetTransactionStatus(selectedStatus)}
-                      disabled={!selectedStatus} // Disable if no status is selected
-                    >
-                      Lưu
-                    </Button>
+
+                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
+                      <Typography variant="body1">Giảm giá:</Typography>
+                    </Stack>
+                    <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
                   </Grid>
-                </Grid>
+
+                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <CoinsIcon fontSize="var(--icon-fontSize-md)" />
+                      <Typography variant="body1">Thành tiền:</Typography>
+                    </Stack>
+                    <Typography variant="body1">{formatPrice(transaction.totalAmount || 0)}</Typography>
+                  </Grid>
+                </Stack>
               </CardContent>
             </Card>
             <Card>
-              <CardHeader title="Lịch sử gửi" subheader='Lịch sử gửi email và gửi tin nhắn Zalo đến khách hàng' />
+              <CardHeader title="Lịch sử gửi" subheader='Lịch sử gửi email và gửi Zalo đến khách hàng' />
               <Divider />
               <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 300 }}>
                 <Table>
@@ -1049,7 +1323,100 @@ export default function Page({ params }: { params: { event_id: number; transacti
                 </Table>
               </CardContent>
             </Card>
-
+            {transaction.qrOption === 'separate' && (
+              <Modal open={editCategoryModalOpen} onClose={() => setEditCategoryModalOpen(false)} aria-labelledby="edit-ticket-category-modal-title" aria-describedby="edit-ticket-category-modal-description">
+                <Container maxWidth="xl">
+                  <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { md: '700px', xs: '95%' }, maxHeight: '90vh', bgcolor: 'background.paper', boxShadow: 24 }}>
+                    <CardHeader title={`${editingCategory?.ticketCategory.show.name} - ${editingCategory?.ticketCategory.name}`} action={<IconButton onClick={() => setEditCategoryModalOpen(false)}><X /></IconButton>} />
+                    <CardContent sx={{ pt: 0, maxHeight: '70vh', overflowY: 'auto' }}>
+                      <Stack spacing={2}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Thông tin người tham dự</Typography>
+                        <Grid container spacing={2}>
+                          {editingHolderInfos.map((holder, index) => (
+                            <React.Fragment key={`holder-${index}`}>
+                              <Grid md={6} xs={12}>
+                                <FormControl fullWidth size="small" required>
+                                  <InputLabel>Danh xưng* &emsp; Họ và tên vé {index + 1}</InputLabel>
+                                  <OutlinedInput
+                                    label={`Danh xưng* &emsp; Họ và tên vé ${index + 1}`}
+                                    value={holder.name}
+                                    onChange={(e) => {
+                                      setEditingHolderInfos((prev) => {
+                                        const next = [...prev];
+                                        next[index] = { ...next[index], name: e.target.value };
+                                        return next;
+                                      });
+                                    }}
+                                    startAdornment={<InputAdornment position="start">
+                                      <Select
+                                        variant="standard"
+                                        disableUnderline
+                                        value={holder.title || 'Bạn'}
+                                        onChange={(e) => {
+                                          setEditingHolderInfos((prev) => {
+                                            const next = [...prev];
+                                            next[index] = { ...next[index], title: e.target.value as string };
+                                            return next;
+                                          });
+                                        }}
+                                        sx={{ minWidth: 65 }}
+                                      >
+                                        <MenuItem value="Anh">Anh</MenuItem>
+                                        <MenuItem value="Chị">Chị</MenuItem>
+                                        <MenuItem value="Bạn">Bạn</MenuItem>
+                                        <MenuItem value="Em">Em</MenuItem>
+                                        <MenuItem value="Ông">Ông</MenuItem>
+                                        <MenuItem value="Bà">Bà</MenuItem>
+                                        <MenuItem value="Cô">Cô</MenuItem>
+                                        <MenuItem value="Mr.">Mr.</MenuItem>
+                                        <MenuItem value="Ms.">Ms.</MenuItem>
+                                        <MenuItem value="Miss">Miss</MenuItem>
+                                        <MenuItem value="Thầy">Thầy</MenuItem>
+                                      </Select>
+                                    </InputAdornment>}
+                                  />
+                                </FormControl>
+                              </Grid>
+                              <Grid md={3} xs={12}>
+                                <FormControl fullWidth size="small">
+                                  <InputLabel>Email vé {index + 1}</InputLabel>
+                                  <OutlinedInput
+                                    label={`Email vé ${index + 1}`}
+                                    type="email"
+                                    value={holder.email}
+                                    disabled
+                                  />
+                                </FormControl>
+                              </Grid>
+                              <Grid md={3} xs={12}>
+                                <FormControl fullWidth size="small">
+                                  <InputLabel>SĐT vé {index + 1}</InputLabel>
+                                  <OutlinedInput
+                                    label={`SĐT vé ${index + 1}`}
+                                    type="tel"
+                                    value={holder.phone}
+                                    onChange={(e) => {
+                                      setEditingHolderInfos((prev) => {
+                                        const next = [...prev];
+                                        next[index] = { ...next[index], phone: e.target.value };
+                                        return next;
+                                      });
+                                    }}
+                                  />
+                                </FormControl>
+                              </Grid>
+                            </React.Fragment>
+                          ))}
+                        </Grid>
+                      </Stack>
+                    </CardContent>
+                    <CardActions sx={{ justifyContent: 'flex-end' }}>
+                      <Button size="small" variant="contained" onClick={handleSaveTicketHolders}>Lưu</Button>
+                    </CardActions>
+                  </Card>
+                </Container>
+              </Modal>
+            )}
 
           </Stack>
         </Grid>

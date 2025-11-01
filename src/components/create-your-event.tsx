@@ -35,23 +35,22 @@ export default function CreateYourEvent() {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState<boolean>(false);
   const [otpAndPasswordModalOpen, setOtpAndPasswordModalOpen] = useState<boolean>(false);
-  const { checkSession, setUser, getUser } = useUser();
+  const { checkSession, user } = useUser();
   const [loggedUser, setLoggedUser] = React.useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
 
 
   React.useEffect(() => {
     const fetchUser = async () => {
-      const fetchedUser = getUser();
-      setLoggedUser(fetchedUser);
-      if (fetchedUser) {
-        setFormData((prevData) => ({ ...prevData, organizerEmail: fetchedUser.email, organizerPhoneNumber: fetchedUser.phoneNumber }));
+      setLoggedUser(user);
+      if (user) {
+        setFormData((prevData) => ({ ...prevData, organizerEmail: user.email, organizerPhoneNumber: user.phoneNumber }));
       }
     };
 
     fetchUser();
 
-  }, [getUser]);
+  }, [user]);
 
   // Handle input change
   const handleInputChange = (
@@ -113,12 +112,7 @@ export default function CreateYourEvent() {
   };
 
   const handleCreateEvent = async () => {
-    const token = localStorage.getItem('accessToken'); // Lấy token xác thực từ localStorage
-
-    if (!token) {
-      setError('Không tìm thấy token xác thực');
-      return;
-    }
+    // Using httpOnly cookie auth; no token check client-side
 
     // Kiểm tra dữ liệu form
     if (!formData.eventName || formData.eventName.trim() === '') {
@@ -181,8 +175,6 @@ export default function CreateYourEvent() {
         username: formData.organizerEmail,
         password: passwordInput,
       });
-      localStorage.setItem('accessToken', res.access_token);
-      setUser(res.user);
       handleCreateEvent()
       // router.refresh();
     } catch (error: any) {
@@ -215,7 +207,6 @@ export default function CreateYourEvent() {
     setIsLoading(true);
     try {
       const res: AuthRes = await authClient.verifyOtp(formData.organizerEmail, otpInput || ""); // Call verify API
-      setUser(res.user);
       handleCreateEvent()
     } catch (error: any) {
       setError(error.message || "Xảy ra lỗi khi xác thực OTP");
@@ -343,9 +334,9 @@ export default function CreateYourEvent() {
           <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { sm: '500px', xs: '90%' }, bgcolor: 'background.paper', boxShadow: 24 }}>
             <CardContent>
               <Stack spacing={4}>
-                <Typography variant="h5">Nhập mật khẩu của bạn để tiếp tục</Typography>
+                <Typography variant="h5">Đăng nhập để tạo sự kiện</Typography>
                 <Stack spacing={2}>
-                  <Typography variant='body2'>Bạn đã đăng ký tài khoản ETIK trước đây. Vui lòng nhập mật khẩu cho email <b>{formData.organizerEmail}</b> để tiếp tục.</Typography>
+                  <Typography variant='body2'>Bạn đã đăng ký tài khoản ETIK trước đây. Vui lòng đăng nhập với email <b>{formData.organizerEmail}</b> để tiếp tục.</Typography>
 
                   <FormControl fullWidth>
                     <InputLabel>Nhập mật khẩu</InputLabel>
@@ -361,6 +352,36 @@ export default function CreateYourEvent() {
                     Tạo sự kiện
                   </Button>
 
+                  
+                  <Button
+                    variant="outlined"
+                    onClick={async () => {
+                      try {
+                        setIsLoading(true);
+                        await authClient.signInWithOAuthPopup({ provider: 'google' });
+                        await checkSession();
+                        await handleCreateEvent();
+                        setPasswordModalOpen(false);
+                      } catch (e: any) {
+                        setError(e?.message || 'Đăng nhập Google thất bại, vui lòng thử lại.');
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }}
+                    sx={{ textTransform: 'none' }}
+                    startIcon={
+                      <svg width="20" height="20" viewBox="0 0 20 20" style={{ display: 'block' }}>
+                        <g>
+                          <path d="M19.6 10.23c0-.68-.06-1.36-.18-2H10v3.79h5.48a4.68 4.68 0 0 1-2.03 3.07v2.55h3.28c1.92-1.77 3.03-4.38 3.03-7.41z" fill="#4285F4" />
+                          <path d="M10 20c2.7 0 4.97-.9 6.63-2.44l-3.28-2.55c-.91.61-2.07.97-3.35.97-2.57 0-4.75-1.74-5.53-4.07H1.06v2.6A9.99 9.99 0 0 0 10 20z" fill="#34A853" />
+                          <path d="M4.47 11.91A5.99 5.99 0 0 1 4.01 10c0-.66.11-1.31.26-1.91V5.49H1.06A9.99 9.99 0 0 0 0 10c0 1.64.39 3.19 1.06 4.51l3.41-2.6z" fill="#FBBC05" />
+                          <path d="M10 4.01c1.47 0 2.78.51 3.81 1.5l2.85-2.85C14.97 1.13 12.7.01 10 .01A9.99 9.99 0 0 0 1.06 5.49l3.41 2.6C5.25 5.75 7.43 4.01 10 4.01z" fill="#EA4335" />
+                        </g>
+                      </svg>
+                    }
+                  >
+                    Hoặc sử dụng Google để đăng nhập và tạo
+                  </Button>
                 </Stack>
               </Stack>
             </CardContent>

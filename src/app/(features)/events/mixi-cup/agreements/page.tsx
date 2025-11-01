@@ -1,12 +1,9 @@
 'use client';
 
-import * as React from 'react';
-import { useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { CardMedia, Checkbox, Chip, Container, FormControlLabel, FormGroup, MenuItem, Modal, Select, Stack, Tooltip } from '@mui/material';
+import { Box, Checkbox, Container, FormControlLabel, FormGroup, Modal, Stack } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
@@ -15,26 +12,19 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { ArrowRight, Bank as BankIcon, CheckCircle, Info, Lightning as LightningIcon, Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { ArrowRight, Bank as BankIcon, CheckCircle, Lightning as LightningIcon, Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import * as React from 'react';
+import type { ChangeEvent } from 'react';
+import { useEffect, useState } from 'react';
 
-import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
-import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
-import { EnvelopeSimple as EnvelopeSimpleIcon } from '@phosphor-icons/react/dist/ssr/EnvelopeSimple';
-import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
-import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
-import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
-import { SealPercent as SealPercentIcon } from '@phosphor-icons/react/dist/ssr/SealPercent';
-import { StackPlus as StackPlusIcon } from '@phosphor-icons/react/dist/ssr/StackPlus';
-import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
-import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
-import axios, { AxiosResponse } from 'axios';
-import dayjs from 'dayjs';
-import CircularProgress from '@mui/material/CircularProgress';
-import { useSearchParams } from 'next/navigation';
 import NotificationContext from '@/contexts/notification-context';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import ReCAPTCHA from 'react-google-recaptcha';
+import CircularProgress from '@mui/material/CircularProgress';
 import { blue } from '@mui/material/colors';
+import { Hash as HashIcon } from '@phosphor-icons/react/dist/ssr/Hash';
+import { AxiosResponse } from 'axios';
+import { useSearchParams } from 'next/navigation';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -69,7 +59,9 @@ const getCreatedSource = (paymentMethod: string) => {
 };
 
 // Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (paymentStatus: string) => {
+const getPaymentStatusDetails = (
+  paymentStatus: string
+): { label: string; color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
       return { label: 'Chờ thanh toán', color: 'warning' };
@@ -100,7 +92,7 @@ const getRowStatusDetails = (status: string): { label: string, color: "success" 
 
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
-  holder: string;        // Name of the ticket holder
+  holderName: string;        // Name of the ticket holder
   createdAt: string;   // The date the ticket was created
   checkInAt: string | null; // The date/time the ticket was checked in, nullable
 }
@@ -225,11 +217,11 @@ export default function Page(): React.JSX.Element {
   };
 
   const goToEkycRegister = () => {
-    const redirectUrl = `https://ekyc.etik.io.vn/ekyc-register?event_slug=mixi-cup&transaction_id=${transactionId}&response_token=${token}`;
+    const redirectUrl = `https://ekyc.etik.vn/ekyc-register?event_slug=mixi-cup&transaction_id=${transactionId}&response_token=${token}`;
     window.location.href = redirectUrl;
   }
 
-  const handleChange = (event) => {
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     setChecked({
       ...checked,
       [event.target.name]: event.target.checked,
@@ -343,7 +335,7 @@ export default function Page(): React.JSX.Element {
                                     <Typography variant="body1">Người tham dự {ticketIndex + 1}:</Typography>
                                   </Stack>
                                   <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <Typography variant="body1">{ticket.holder}</Typography>
+                                    <Typography variant="body1">{ticket.holderName}</Typography>
                                   </Stack>
                                 </Grid>
                               ))}
@@ -489,7 +481,7 @@ export default function Page(): React.JSX.Element {
             <CardContent>
               <Stack spacing={3} direction={{ sm: 'row', xs: 'column' }} >
                 <div>
-                  <img src="/assets/inline-gate-curved.jpg" style={{ borderRadius: '20px', maxWidth: '200px', width: '100%' }} alt="" />
+                  <Box component="img" src="/assets/inline-gate-curved.jpg" sx={{ borderRadius: '20px', maxWidth: '200px', width: '100%' }} alt="" />
                 </div>
                 <Stack spacing={3}>
                   <Stack spacing={1} direction={'row'}>

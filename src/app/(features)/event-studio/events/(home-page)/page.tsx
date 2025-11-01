@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { CardMedia } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
@@ -12,6 +12,7 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
+import { Storefront } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
@@ -20,8 +21,8 @@ import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
 import RouterLink from 'next/link';
-import NotificationContext from '@/contexts/notification-context';
-import { Storefront } from '@phosphor-icons/react/dist/ssr';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from '@/contexts/locale-context';
 
 // Define response type for the events
 type EventResponse = {
@@ -35,15 +36,19 @@ type EventResponse = {
   endDateTime: string | null;
   place: string | null;
   bannerUrl: string | null;
+  locationInstruction: string | null;
+  timeInstruction: string | null;
   slug: string;
   secureApiKey: string;
   displayOnMarketplace: boolean;
 };
 
 export default function Page(): React.JSX.Element {
+  const { tt } = useTranslation();
+
   React.useEffect(() => {
-    document.title = `Quản lý sự kiện | ETIK - Vé điện tử & Quản lý sự kiện`;
-  }, []);
+    document.title = tt(`Quản lý sự kiện | ETIK - Vé điện tử & Quản lý sự kiện`, `Event Management | ETIK - E-tickets & Event Management`);
+  }, [tt]);
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const notificationCtx = React.useContext(NotificationContext);
@@ -56,7 +61,7 @@ export default function Page(): React.JSX.Element {
         const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/event-studio/events');
         setEvents(response.data);
       } catch (error) {
-        notificationCtx.error('Lỗi:', error);
+        notificationCtx.error(tt('Lỗi:', 'Error:'), error);
       } finally {
         setIsLoading(false);
       }
@@ -79,7 +84,7 @@ export default function Page(): React.JSX.Element {
       </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Sự kiện của tôi</Typography>
+          <Typography variant="h4">{tt('Sự kiện của tôi', 'My Events')}</Typography>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             {/* <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
               Import
@@ -96,7 +101,7 @@ export default function Page(): React.JSX.Element {
             component={RouterLink}
             href="/event-studio/events/create"
           >
-            Thêm
+            {tt('Thêm', 'Add')}
           </Button>
         </div>
       </Stack>
@@ -114,27 +119,27 @@ export default function Page(): React.JSX.Element {
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      Đơn vị tổ chức: {event.organizer}
+                      {tt('Đơn vị tổ chức:', 'Organizer:')} {event.organizer}
                     </Typography>
                   </Stack>
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <ClockIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event.startDateTime && event.endDateTime
-                        ? `${dayjs(event.startDateTime || 0).format('HH:mm:ss DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm:ss DD/MM/YYYY')}`
-                        : 'Chưa xác định'}
+                        ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
+                        : tt('Chưa xác định', 'To be determined')} {event.timeInstruction ? `(${event.timeInstruction})` : ''}
                     </Typography>
                   </Stack>
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {event.place ? event.place : 'Chưa xác định'}
+                      {event.place ? event.place : tt('Chưa xác định', 'To be determined')} {event.locationInstruction ? `(${event.locationInstruction})` : ''}
                     </Typography>
                   </Stack>
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <Storefront fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {event.displayOnMarketplace ? "Đang hiển thị trên Marketplace" : 'Không hiển thị trên Marketplace'}
+                      {event.displayOnMarketplace ? tt("Đang hiển thị trên Marketplace", "Currently displayed on Marketplace") : tt('Không hiển thị trên Marketplace', 'Not displayed on Marketplace')}
                     </Typography>
                   </Stack>
                 </Stack>
@@ -143,7 +148,7 @@ export default function Page(): React.JSX.Element {
               <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 1 }}>
                 <Button component={RouterLink}
                   href={`/event-studio/events/${event.id}`} size="small" startIcon={<EyeIcon />}>
-                  Xem chi tiết
+                  {tt('Xem chi tiết', 'View Details')}
                 </Button>
               </Stack>
             </Card>

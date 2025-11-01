@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
-import { Checkbox, Card, CardHeader, Divider, List, ListItem, Box, ListItemAvatar, ListItemText, IconButton, Typography, Stack, CardContent, Radio } from '@mui/material';
+'use client';
+
+import { Box, Card, CardHeader, Divider, List, ListItem, ListItemAvatar, ListItemText, Radio } from '@mui/material';
 import dayjs from 'dayjs';
+import React, { useState } from 'react';
 import { Show } from './page';
+import { useTranslation } from '@/contexts/locale-context';
 
 export interface LatestProductsProps {
   shows?: Show[];
@@ -9,6 +12,7 @@ export interface LatestProductsProps {
 }
 
 export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps): React.JSX.Element {
+  const { tt } = useTranslation();
   const [selectedShow, setSelectedShow] = useState<Show | null>();
 
   const handleItemClick = (show: Show) => {
@@ -19,7 +23,7 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
 
   return (
     <Card>
-      <CardHeader title="Chọn lịch" />
+      <CardHeader title={tt('Chọn game đấu', 'Select Match')} />
       <Divider />
       <List>
         {shows.map((show) => (
@@ -37,14 +41,14 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
               />
             </Box>
             <ListItemAvatar>
-              <Box component="img" src={'/assets/product-5.png'} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
+              <Box component="img" src={show.avatar ?? '/assets/product-5.png'} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
             </ListItemAvatar>
             <ListItemText
               primary={show.name}
               secondary=
                     {show.startDateTime && show.endDateTime
                       ? `${dayjs(show.startDateTime).format('HH:mm')} - ${dayjs(show.endDateTime).format('HH:mm ngày DD/MM/YYYY')}`
-                      : "Chưa xác định"}
+                      : tt("Chưa xác định", "To be determined")}
               secondaryTypographyProps={{ variant: 'body2' }}
               
             />

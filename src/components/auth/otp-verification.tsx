@@ -14,15 +14,21 @@ import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
 
 import { authClient } from '@/lib/auth/client';
+import { useTranslation } from '@/contexts/locale-context';
 
-const schema = zod.object({ email: zod.string().min(1, { message: 'Email is required' }).email() });
-
-type Values = zod.infer<typeof schema>;
+type Values = {
+  email: string;
+};
 
 const defaultValues = { email: '' } satisfies Values;
 
 export function OTPVerification(): React.JSX.Element {
+  const { tt } = useTranslation();
   const [isPending, setIsPending] = React.useState<boolean>(false);
+
+  const schema = React.useMemo(() => zod.object({ 
+    email: zod.string().min(1, { message: tt('Email là bắt buộc', 'Email is required') }).email({ message: tt('Email không hợp lệ', 'Invalid email') }) 
+  }), [tt]);
 
   const {
     control,
@@ -52,24 +58,24 @@ export function OTPVerification(): React.JSX.Element {
 
   return (
     <Stack spacing={4}>
-      <Typography variant="h5">Xác thực địa chỉ email</Typography>
+      <Typography variant="h5">{tt('Xác thực địa chỉ email', 'Verify Email Address')}</Typography>
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack spacing={2}>
-          <Typography variant='body2'>Kiểm tra email của bạn và điền mã OTP để hoàn tất đăng ký.</Typography>
+          <Typography variant='body2'>{tt('Kiểm tra email của bạn và điền mã OTP để hoàn tất đăng ký.', 'Check your email and enter the OTP code to complete registration.')}</Typography>
           <Controller
             control={control}
             name="email"
             render={({ field }) => (
               <FormControl error={Boolean(errors.email)}>
-                <InputLabel>Mã OTP</InputLabel>
-                <OutlinedInput {...field} label="Email address" type="email" />
+                <InputLabel>{tt('Mã OTP', 'OTP Code')}</InputLabel>
+                <OutlinedInput {...field} label={tt('Mã OTP', 'OTP Code')} type="email" />
                 {errors.email ? <FormHelperText>{errors.email.message}</FormHelperText> : null}
               </FormControl>
             )}
           />
           {errors.root ? <Alert color="error">{errors.root.message}</Alert> : null}
           <Button disabled={isPending} type="submit" variant="contained">
-            Xác thực
+            {tt('Xác thực', 'Verify')}
           </Button>
         </Stack>
       </form>

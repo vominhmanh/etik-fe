@@ -1,32 +1,25 @@
 'use client';
 
-import * as React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Avatar, Box, CardMedia, IconButton, InputAdornment, MenuItem, Select, Stack, TextField } from '@mui/material';
+import { Stack } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
+import Grid from '@mui/material/Grid';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
-import { ArrowSquareIn, Clipboard } from '@phosphor-icons/react/dist/ssr';
-import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
-import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
-import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { AxiosResponse } from 'axios';
-import ReactQuill, { Quill } from 'react-quill';
-import NotificationContext from '@/contexts/notification-context';
+import * as React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import dayjs from 'dayjs';
-import RouterLink from 'next/link';
 
 // Define the event response type
 type EventResponse = {
@@ -149,9 +142,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             ${description}
           </div>
           <footer>
-            <p>Email được phát hành bởi <a href="https://etik.io.vn">ETIK</a></p>
-            <small>Bạn nhận được email này vì đã điền biểu mẫu đăng ký. Ngừng nhận thư tại đây: <a href="https://api.etik.io.vn/unsubscribe-mail">Unsubscribe</a></small>
-            <small>You received this email because you filled out the registration form. Unsubscribe here: <a href="https://api.etik.io.vn/unsubscribe-mail">Unsubscribe</a></small>
+            <p>Email được phát hành bởi <a href="https://etik.vn">ETIK</a></p>
+            <small>Bạn nhận được email này vì đã điền biểu mẫu đăng ký. Ngừng nhận thư tại đây: <a href="https://api.etik.vn/unsubscribe-mail">Unsubscribe</a></small>
+            <small>You received this email because you filled out the registration form. Unsubscribe here: <a href="https://api.etik.vn/unsubscribe-mail">Unsubscribe</a></small>
           </footer>
         </div>
       </div>
@@ -215,7 +208,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
 
-  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (formValues && event_id) {
       try {
@@ -269,6 +262,60 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       }
     };
   }, []);
+
+  // Paste image handler (Ctrl+V)
+  const handlePaste = useCallback(async (e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items || items.length === 0) return;
+
+    const imageItems = Array.from(items).filter((item) => item.type && item.type.startsWith('image/'));
+    if (imageItems.length === 0) return;
+
+    e.preventDefault();
+
+    const quill = reactQuillRef.current?.getEditor();
+    if (!quill) return;
+
+    const selection = quill.getSelection(true);
+    let insertIndex = selection ? selection.index : quill.getLength();
+
+    try {
+      setIsLoading(true);
+      for (const item of imageItems) {
+        const file = item.getAsFile();
+        if (!file) continue;
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await baseHttpServiceInstance.post(
+          `/event-studio/events/${event_id}/upload_image`,
+          formData,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          }
+        );
+
+        const imageUrl = response.data.imageUrl;
+        quill.insertEmbed(insertIndex, 'image', imageUrl);
+        insertIndex += 1;
+      }
+    } catch (error) {
+      notificationCtx.error('Lỗi:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [event_id]);
+
+  useEffect(() => {
+    const quill = reactQuillRef.current?.getEditor();
+    if (!quill) return;
+    const root = quill.root as HTMLElement;
+    const listener = (evt: Event) => handlePaste(evt as ClipboardEvent);
+    root.addEventListener('paste', listener);
+    return () => {
+      root.removeEventListener('paste', listener);
+    };
+  }, [handlePaste]);
 
   // Custom Toolbar Options
   const modules = {

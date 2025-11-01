@@ -1,8 +1,7 @@
-import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import GlobalStyles from '@mui/material/GlobalStyles';
+import * as React from 'react';
 
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { MainNav } from '@/components/events/layout/main-nav';

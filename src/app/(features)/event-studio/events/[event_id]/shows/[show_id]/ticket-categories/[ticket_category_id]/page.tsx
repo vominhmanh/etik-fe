@@ -1,10 +1,7 @@
 'use client';
 
-import * as React from 'react';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Box, Checkbox, Container, FormControlLabel, FormHelperText, InputAdornment, Modal } from '@mui/material';
+import { Box, Checkbox, FormControlLabel, FormHelperText, InputAdornment } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -20,7 +17,10 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import axios, { AxiosResponse } from 'axios';
+import { AxiosResponse } from 'axios';
+import { useRouter } from 'next/navigation';
+import * as React from 'react';
+import { useEffect, useState } from 'react';
 import ReactQuill from 'react-quill'; // Import ReactQuill
 
 import NotificationContext from '@/contexts/notification-context';
@@ -245,13 +245,13 @@ export default function Page({
                           <MenuItem value="private">Nội bộ</MenuItem>
                           <MenuItem value="public">Công khai</MenuItem>
                         </Select>
-                        <FormHelperText>Vé công khai: Cho phép Người mua tự truy cập và mua vé này</FormHelperText>
+                        <FormHelperText>Chế độ công khai: Cho phép Người mua nhìn thấy và mua vé này</FormHelperText>
                       </FormControl>
                     </Grid>
                     {formData.type === 'public' && (
                       <Grid md={4} xs={12}>
                         <FormControl fullWidth required>
-                          <InputLabel>Cách phê duyệt yêu cầu mua vé của khách hàng</InputLabel>
+                          <InputLabel>Cách phê duyệt đơn hàng</InputLabel>
                           <Select label="Cách phê duyệt yêu cầu mua vé của khách hàng" name="approvalMethod" value={formData.approvalMethod} onChange={(event: any) => handleChange(event)}>
                             <MenuItem value="auto">Tự động phê duyệt</MenuItem>
                             <MenuItem value="manual">Phê duyệt thủ công</MenuItem>
@@ -300,7 +300,7 @@ export default function Page({
                     <OutlinedInput
                       sx={{ maxWidth: { xs: 70, sm: 180 } }}
                       type="text" // Change type to text to allow flexible input handling
-                      value={formData.price.toLocaleString('vi-VN')}
+                      value={formData.quantity.toLocaleString('vi-VN')}
                       onChange={(e) => {
                         let rawValue = e.target.value.replace(/\./g, ''); // Remove formatting
                         if (!/^\d*$/.test(rawValue)) return; // Allow only numeric input
@@ -317,7 +317,7 @@ export default function Page({
                     <OutlinedInput
                       sx={{ maxWidth: { xs: 70, sm: 180 } }}
                       type="text" // Change type to text to allow flexible input handling
-                      value={formData.quantity.toLocaleString('vi-VN')}
+                      value={formData.price.toLocaleString('vi-VN')}
                       onChange={(e) => {
                         let rawValue = e.target.value.replace(/\./g, ''); // Remove formatting
                         if (!/^\d*$/.test(rawValue)) return; // Allow only numeric input
@@ -380,45 +380,6 @@ export default function Page({
           </Grid>
         </Grid>
       </Stack>
-      <Modal
-        open={openNotifModal}
-        onClose={handleCloseNotifModal}
-        aria-labelledby="ticket-category-description-modal-title"
-        aria-describedby="ticket-category-description-modal-description"
-      >
-        <Container maxWidth="xl">
-          <Card
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: { sm: "500px", xs: "90%" },
-              bgcolor: "background.paper",
-              boxShadow: 24,
-            }}
-          >
-            <CardHeader title="Thông báo" />
-            <Divider />
-            <CardContent>
-              <Stack spacing={3}>
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  Loại vé này <b>đang tạm khóa</b> do sự kiện này chưa thể tạo loại vé với <b>giá tiền {'>'} 0đ</b>.
-                </Typography>
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  Quý khách vui lòng gửi email với tiêu đề <b>"Yêu cầu tạo loại vé có giá tiền {'>'} 0đ"</b> đến địa chỉ <b>tienphongsmart@gmail.com</b>. Chúng tôi sẽ hỗ trợ trong thời gian 24h kể từ khi nhận được yêu cầu. Xin cảm ơn!
-                </Typography>
-                <div style={{ marginTop: '20px', justifyContent: 'center' }}>
-                  <Button fullWidth variant='contained' size="small" onClick={handleCloseNotifModal} >
-                    Đã hiểu
-                  </Button>
-                </div>
-              </Stack>
-
-            </CardContent>
-          </Card>
-        </Container>
-      </Modal>
     </>
   );
 }

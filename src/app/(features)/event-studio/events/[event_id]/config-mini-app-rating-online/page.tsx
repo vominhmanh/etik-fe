@@ -1,9 +1,7 @@
 'use client';
 
-import * as React from 'react';
-import { useCallback, useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { List, ListItem, ListItemText, Stack } from '@mui/material';
+import { Button, List, ListItem, ListItemText, Stack } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
@@ -16,25 +14,25 @@ import {
   ListNumbers,
   ListStar,
   Panorama,
+  Play,
   Question,
   StarHalf,
   UserCircle,
 } from '@phosphor-icons/react/dist/ssr';
 import { AxiosResponse } from 'axios';
+import * as React from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import ReactQuill from 'react-quill';
 
 import NotificationContext from '@/contexts/notification-context';
 
 import 'react-quill/dist/quill.snow.css';
 
-import { useRouter } from 'next/navigation'; // ✅ Import router
-
 import BackgroundImagePage from './background-image-page';
 import { CandidatesPage } from './candidates-page';
 import PrivacySettings from './privacy-page';
 import { RatingCriteriaPage } from './rating-criteria-page';
 import { VotingQuestionPage } from './voting-question-page';
-
 // Define the event response type
 export type EventResponse = {
   id: number;
@@ -61,7 +59,7 @@ interface CheckConfigResponse {
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
-    document.title = 'Chỉnh sửa chi tiết sự kiện| ETIK - Vé điện tử & Quản lý sự kiện';
+    document.title = 'Rating Online | ETIK - Vé điện tử & Quản lý sự kiện';
   }, []);
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
@@ -123,6 +121,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       component: <Typography>Bảng xếp hạng</Typography>,
     },
   ];
+  
   async function checkConfig() {
     if (!event_id) return;
 
@@ -278,46 +277,72 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       >
         <CircularProgress color="inherit" />
       </Backdrop>
-      <>
-        <div>
-          <Typography variant="h4">Cấu hình Mini App "Rating Online"</Typography>
-        </div>
-        <Grid container spacing={3}>
-          <Grid lg={4} md={6} xs={12}>
-            <Stack spacing={3}>
-              <Card>
-                <CardHeader title="Tính năng" />
-                <List>
-                  {MENU_ITEMS.map((item) => (
-                    <ListItem
-                      key={item.id}
-                      divider
-                      onClick={() => setSelectedPage(item.id)}
-                      sx={{
-                        cursor: 'pointer',
-                        backgroundColor: selectedPage === item.id ? 'rgba(33, 150, 243, 0.2)' : 'inherit',
-                        '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.1)' },
-                      }}
-                    >
-                      <ListItemText
-                        primary={
-                          <Stack spacing={2} direction="row">
-                            {item.icon}
-                            <Typography variant="body2">{item.label}</Typography>
-                          </Stack>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </Card>
-            </Stack>
+      {!configExists ? (
+        <>
+          <div>
+            <Typography variant="h4"> Mini App "Rating Online"</Typography>
+          </div>
+          <Stack spacing={3}>
+            <Typography variant="body2">
+              Ứng dụng Mini App "Rating Online" hỗ trợ nhà tổ chức sự kiện tạo cuộc bỏ phiếu, chấm điểm,
+              đánh giá các thí sinh, tiết mục,...
+            </Typography>
+          </Stack>
+          <div>
+            <Button
+              variant="contained"
+              href={`#registration`}
+              size="small"
+              startIcon={<Play />}
+              onClick={handleCreateConfig}
+              disabled={isLoading}
+            >
+              Khởi tạo ứng dụng
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div>
+            <Typography variant="h4">Cấu hình Mini App "Rating Online"</Typography>
+          </div>
+          <Grid container spacing={3}>
+            <Grid lg={4} md={6} xs={12}>
+              <Stack spacing={3}>
+                <Card>
+                  <CardHeader title="Tính năng" />
+                  <List>
+                    {MENU_ITEMS.map((item) => (
+                      <ListItem
+                        key={item.id}
+                        divider
+                        onClick={() => setSelectedPage(item.id)}
+                        sx={{
+                          cursor: 'pointer',
+                          backgroundColor: selectedPage === item.id ? 'rgba(33, 150, 243, 0.2)' : 'inherit',
+                          '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.1)' },
+                        }}
+                      >
+                        <ListItemText
+                          primary={
+                            <Stack spacing={2} direction="row">
+                              {item.icon}
+                              <Typography variant="body2">{item.label}</Typography>
+                            </Stack>
+                          }
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Card>
+              </Stack>
+            </Grid>
+            <Grid lg={8} md={6} xs={12}>
+              <Stack spacing={3}>{MENU_ITEMS.find((item) => item.id === selectedPage)?.component}</Stack>
+            </Grid>
           </Grid>
-          <Grid lg={8} md={6} xs={12}>
-            <Stack spacing={3}>{MENU_ITEMS.find((item) => item.id === selectedPage)?.component}</Stack>
-          </Grid>
-        </Grid>
-      </>
+        </>
+      )}
     </Stack>
   );
 }

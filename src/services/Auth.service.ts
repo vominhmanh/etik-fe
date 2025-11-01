@@ -9,12 +9,20 @@ class AuthService extends BaseHttpService {
     return this.post(`/auth/register`, data);
   }
 
+  // Example of using withCredentials: true in an Axios request.
+  // This ensures that cookies (such as session cookies) are sent and received with the request.
   async login(data: LoginReq): Promise<AxiosResponse<AuthRes>> {
-    return this.post(`/auth/login`, data, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
+    return this.post(
+      `/auth/login`,
+      data,
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        // withCredentials: true tells Axios to send cookies with the request
+        withCredentials: true
+      }
+    );
   }
 
   async ssoLogin(data: LoginReq): Promise<AxiosResponse<SsoAuthRes>> {
@@ -42,9 +50,7 @@ class AuthService extends BaseHttpService {
       `/auth/logout`,
       {},
       {
-        params: {
-          refreshToken: localStorage.getItem('refreshToken'),
-        },
+        // Cookies handle tokens server-side
       }
     );
   }
@@ -57,28 +63,22 @@ class AuthService extends BaseHttpService {
     return this.post(`/auth/resend-otp`, { email });
   }
 
-  async verifyAccessToken(accessToken: string) {
+  async me() {
     try {
-      const response = await this.get('/auth/me', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const response = await this.get('/auth/me');
       return response.data;
     } catch (error) {
       return null;
     }
-
   }
 
-  async verifyAccessTokenSso(accessToken: string) {
+  async meSso() {
     try {
-      const response = await this.get('/sso/me', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const response = await this.get('/sso/me');
       return response.data;
     } catch (error) {
       return null;
     }
-
   }
 }
 

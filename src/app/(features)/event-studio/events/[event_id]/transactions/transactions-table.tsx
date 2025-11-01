@@ -1,7 +1,5 @@
 'use client';
 
-import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -14,18 +12,19 @@ import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
-import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
 import RouterLink from 'next/link';
+import * as React from 'react';
 
-import dayjs from 'dayjs';
+import { Chip } from '@mui/material';
+import IconButton from '@mui/material/IconButton';
+import { WarningCircle } from '@phosphor-icons/react/dist/ssr';
 import { ArrowSquareUpRight as ArrowSquareUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowSquareUpRight';
-import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
 import { Bank as BankIcon } from '@phosphor-icons/react/dist/ssr/Bank';
 import { Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr/Lightning';
-import IconButton from '@mui/material/IconButton';
-import { Button, CardActionArea, Chip, Menu, MenuItem } from '@mui/material';
-import { WarningCircle } from '@phosphor-icons/react/dist/ssr';
+import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
+import dayjs from 'dayjs';
 
 // Function to map payment methods to corresponding labels and icons
 const getPaymentMethodDetails = (paymentMethod: string) => {

@@ -2,8 +2,7 @@
 
 import AuthService from '@/services/Auth.service';
 
-import { AuthRes, LoginReq, SignUpReq } from '@/types/auth';
-import type { User } from '@/types/user';
+import { AuthRes, LoginReq, SignUpReq, User } from '@/types/auth';
 import { AxiosResponse } from 'axios';
 
 function generateToken(): string {
@@ -12,13 +11,6 @@ function generateToken(): string {
   return Array.from(arr, (v) => v.toString(16).padStart(2, '0')).join('');
 }
 
-const user = {
-  id: 'USR-000',
-  avatar: '/assets/avatar.png',
-  firstName: 'Sofia',
-  lastName: 'Rivers',
-  email: 'sofia@devias.io',
-} satisfies User;
 
 export interface SignInWithOAuthParams {
   provider: 'google' | 'discord';
@@ -43,6 +35,80 @@ class AuthClient {
     return { error: 'Social authentication not implemented' };
   }
 
+  async signInWithOAuthPopup({ provider }: SignInWithOAuthParams): Promise<User> {
+    return new Promise<User>((resolve, reject) => {
+      const width = 500;
+      const height = 600;
+      const left = Math.max(0, Math.floor(window.screenX + (window.outerWidth - width) / 2));
+      const top = Math.max(0, Math.floor(window.screenY + (window.outerHeight - height) / 2));
+      const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=yes`;
+      const url = `${process.env.NEXT_PUBLIC_BASE_URL}/auth/login/${provider}/popup`;
+
+      const popup = window.open(url, 'oauth_popup', features);
+      if (!popup) {
+        reject(new Error('Không thể mở popup đăng nhập. Vui lòng tắt chặn popup và thử lại.'));
+        return;
+      }
+
+      const startTs = Date.now();
+      const timeoutMs = 2 * 60 * 1000; // 2 minutes
+      const pollIntervalMs = 1000;
+
+      const cleanup = (): void => {
+        window.clearInterval(intervalId);
+        window.removeEventListener('message', onMessage as any);
+      };
+
+      const checkUser = async (): Promise<boolean> => {
+        try {
+          const { data } = await this.getUser();
+          if (data && (data as User).email) {
+            return true;
+          }
+        } catch (_e) {
+          // ignore and continue polling
+        }
+        return false;
+      };
+
+      const onMessage = async (event: MessageEvent): Promise<void> => {
+        try {
+          const data = (event && (event as any).data) || {};
+          if (data && data.type === 'etik:google-login' && data.success) {
+            // Single attempt: /me (will auto-refresh on 401 once via HTTP service)
+            const { data: user, error } = await this.getUser();
+            cleanup();
+            try { popup.close(); } catch {}
+            if (user && (user as User).email) {
+              resolve(user as User);
+            } else {
+              reject(new Error(error || 'Đăng nhập thành công nhưng chưa lấy được phiên. Vui lòng thử lại.'));
+            }
+          }
+        } catch (_e) {
+          // ignore
+        }
+      };
+
+      window.addEventListener('message', onMessage as any);
+
+      const intervalId = window.setInterval(async () => {
+        if (Date.now() - startTs > timeoutMs) {
+          cleanup();
+          try { popup.close(); } catch {}
+          reject(new Error('Hết thời gian đăng nhập Google. Vui lòng thử lại.'));
+          return;
+        }
+
+        if (popup.closed) {
+          cleanup();
+          reject(new Error('Cửa sổ đăng nhập đã đóng trước khi hoàn tất.'));
+          return;
+        }
+      }, pollIntervalMs);
+    });
+  }
+
   async signInWithPassword(data: LoginReq): Promise<AuthRes> {
     const res = await AuthService.login(data);
     return res.data;
@@ -53,20 +119,22 @@ class AuthClient {
   }
 
   async getUser(): Promise<{ data?: User | null; error?: string }> {
-    // Make API request
-
-    // We do not handle the API, so just check if we have a token in localStorage.
-    const token = localStorage.getItem('accessToken');
-
-    if (!token) {
-      return { data: null };
+    try {
+      const me = await AuthService.me();
+      if (!me) {
+        return { data: null };
+      }
+      const meUser = (me?.user ?? me) as User;
+      // Persist user for guards that read from localStorage
+      localStorage.setItem('user', JSON.stringify(meUser));
+      return { data: meUser };
+    } catch (error: any) {
+      return { error: error?.message || 'Failed to fetch user' };
     }
-
-    return { data: user };
   }
 
   async signOut(): Promise<{ error?: string }> {
-    localStorage.removeItem('accessToken');
+    await AuthService.logout();
     localStorage.removeItem('user');
     return {};
   }
@@ -75,8 +143,7 @@ class AuthClient {
   async verifyOtp(email: string, otp: string): Promise<AuthRes> {
     try {
       const res: AxiosResponse<AuthRes> = await AuthService.verify({ email, otp });
-      localStorage.setItem('accessToken', res.data.access_token);
-      // Optionally handle any specific logic after verification
+      // Cookie set by server; no token stored client-side
       return res.data;
     } catch (error) {
       throw error;

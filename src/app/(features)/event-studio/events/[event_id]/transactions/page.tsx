@@ -1,32 +1,27 @@
 'use client';
 
-import * as React from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
-import axios, { AxiosError, AxiosResponse } from 'axios';
+import { AxiosResponse } from 'axios';
 import RouterLink from 'next/link';
+import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
+import { Box, Divider, FormControl, Grid, IconButton, InputLabel, Menu, MenuItem, Select, Table, TableBody, TableCell, TableRow, useTheme } from '@mui/material';
+import Backdrop from '@mui/material/Backdrop';
 import Card from '@mui/material/Card';
+import CircularProgress from '@mui/material/CircularProgress';
 import InputAdornment from '@mui/material/InputAdornment';
 import OutlinedInput from '@mui/material/OutlinedInput';
-import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
-import { Transaction, TransactionsTable } from './transactions-table';
-import Backdrop from '@mui/material/Backdrop';
-import CircularProgress from '@mui/material/CircularProgress';
-import { debounce } from 'lodash';
+import { CaretDown, Empty } from '@phosphor-icons/react';
 import { ArrowCounterClockwise, ArrowSquareIn, X } from '@phosphor-icons/react/dist/ssr';
-import { Grid, FormControl, InputLabel, Select, MenuItem, IconButton, Box, Menu, Divider, CardContent, Table, TableBody, TableCell, TableHead, TableRow, useTheme } from '@mui/material';
-import { ArrowBendLeftDown, CaretDown, Empty } from '@phosphor-icons/react';
-import { useSelection } from '@/hooks/use-selection';
-import dayjs from 'dayjs';
-import { HistoryAction } from './[transaction_id]/page';
-import Link from 'next/link';
+import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
+import { debounce } from 'lodash';
+import { Transaction, TransactionsTable } from './transactions-table';
 
 interface BulkErrorDetail {
   id: number;
@@ -133,6 +128,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     })
   }
 
+  function normalizeText(text: string): string {
+    return (text || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase();
+  }
+
   async function fetchTransactions() {
     try {
       setIsLoading(true);
@@ -147,19 +151,63 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   }
 
+  const handleExportExcel = async () => {
+    try {
+      setIsLoading(true);
+      const response: AxiosResponse<Blob> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${params.event_id}/transactions/export`,
+        { responseType: 'blob' }
+      );
+
+      const defaultFilename = `transactions-${params.event_id}.xlsx`;
+      const contentDisposition = (response.headers as any)?.['content-disposition'] as string | undefined;
+      let filename = defaultFilename;
+      if (contentDisposition) {
+        const match = /filename\*?=(?:UTF-8''|")?([^;\n"]+)/i.exec(contentDisposition);
+        if (match && match[1]) {
+          filename = decodeURIComponent(match[1].replace(/\"/g, ''));
+        }
+      }
+
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      notificationCtx.success('Đã xuất file Excel');
+    } catch (error) {
+      notificationCtx.error('Xuất file thất bại:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   // Fetch transactions for the event
   React.useEffect(() => {
     fetchTransactions();
   }, [params.event_id]);
 
   const filteredTransactions = React.useMemo(() => {
+    const q = normalizeText(querySearch);
     return transactions.filter((transaction) => {
       if (querySearch && !(
         (transaction.id.toString().includes(querySearch.toLocaleLowerCase())) ||
-        (transaction.email.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) ||
-        (transaction.name.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) ||
+        (normalizeText(transaction.email).includes(q)) ||
+        (normalizeText(transaction.name).includes(q)) ||
+        (normalizeText(transaction.name).includes(q)) ||
         (transaction.phoneNumber.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) ||
-        (transaction.createdAt.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase()))
+        (
+          transaction.phoneNumber
+            .replace(/\s+/g, '')
+            .replace(/^\+84/, '0')
+            .toLocaleLowerCase()
+            .includes(querySearch.replace(/\s+/g, '').replace(/^\+84/, '0').toLocaleLowerCase())
+        ) ||
+        (normalizeText(transaction.createdAt).includes(q))
       )) {
         return false;
       }
@@ -215,7 +263,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     setter(null);
   };
 
-  const handleSendTicketBulk = async (channel: string | null = null) => {
+
+  const handleExportTicketBulk = async () => {
     let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
     if (!userConfirmed) {
       return
@@ -230,7 +279,49 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     try {
       setIsLoading(true); // Optional: Show loading state
       const response: AxiosResponse = await baseHttpServiceInstance.post(
-        `/event-studio/events/${params.event_id}/transactions/send-ticket-bulk`, channel ? { transactionIds: Array.from(selected), channel: channel } : { transactionIds: Array.from(selected) },
+        `/event-studio/events/${params.event_id}/transactions/export-ticket-bulk`, { transactionIds: Array.from(selected) },
+        {}, true
+      )
+
+      // Optionally handle response
+      if (response.status === 200) {
+        notificationCtx.success(response.data.message);
+        fetchTransactions()
+      }
+    } catch (error: any) {
+      if (error.response?.data.detail.message) {
+        // Access the message and errors array
+        const message = error.response?.data.detail.message; // "Không thể thực hiện bởi các lỗi sau"
+        const errors = error.response?.data.detail.errorDetails || []; // Array of error details
+        // You can also use this data in your UI
+        setBulkErrorMessage(message);
+        setBulkErrorDetails(errors);
+      } else if (error.response?.data.detail) {
+        notificationCtx.error(error.response?.data.detail);
+      } else {
+        notificationCtx.error(error);
+      }
+    } finally {
+      setIsLoading(false); // Optional: Hide loading state
+    }
+  };
+
+  const handleSendTransactionAndTicketBulk = async (channel: string | null = null) => {
+    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    if (!userConfirmed) {
+      return
+    }
+    setTicketAnchorEl(null)
+    if (selected.size === 0) {
+      notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
+      return
+    }
+    setBulkErrorMessage('');
+    setBulkErrorDetails([]);
+    try {
+      setIsLoading(true); // Optional: Show loading state
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${params.event_id}/transactions/send-transaction-and-ticket-bulk`, channel ? { transactionIds: Array.from(selected), channel: channel } : { transactionIds: Array.from(selected) },
         {}, true
       )
 
@@ -490,7 +581,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={fetchTransactions}>
               Tải lại
             </Button>
-            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
+            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />} onClick={handleExportExcel}>
               Xuất file excel
             </Button>
           </Stack>
@@ -705,9 +796,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 'aria-labelledby': 'ticket-button',
               }}
             >
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTicketBulk('email') }}>Xuất vé + gửi Email</MenuItem>
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTicketBulk('zalo') }}>Xuất vé + gửi Zalo</MenuItem>
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTicketBulk() }}>Xuất vé không gửi</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleExportTicketBulk() }}>Xuất vé</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTransactionAndTicketBulk('email') }}>Gửi Email</MenuItem>
             </Menu>
 
             {/* Menu for Thanh toán */}
@@ -747,12 +837,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       </Card>
       {bulkErrorMessage &&
         <Card>
-          <Box sx={{ overflowX: 'auto', pl: '50px', bgcolor: theme.palette.warning[200], }} >
+          <Box sx={{ overflowX: 'auto', pl: '50px', bgcolor: theme.palette.warning.light, }} >
             <Typography variant='body2' >
               <b>{bulkErrorMessage}</b>
             </Typography>
           </Box>
-          <Box sx={{ overflow: 'auto', pl: '35px', maxHeight: '200px', bgcolor: theme.palette.warning[200] }} >
+          <Box sx={{ overflow: 'auto', pl: '35px', maxHeight: '200px', bgcolor: theme.palette.warning.light }} >
             <Table size="small" sx={{ minWidth: '500px' }}>
               <TableBody>
                 {bulkErrorDetails.map((error) => (

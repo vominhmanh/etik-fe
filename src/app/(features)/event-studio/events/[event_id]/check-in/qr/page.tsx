@@ -1,21 +1,20 @@
 "use client"
 
-import * as React from 'react';
 import NotificationContext from '@/contexts/notification-context';
-import axios, { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { useMediaDevices } from "react-media-devices";
-import { useZxing } from "react-zxing";
-import { Accordion, AccordionDetails, AccordionSummary, Card, CardActions, CardContent, CardHeader, Chip, Container, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, OutlinedInput, Select, styled, SwipeableDrawer, Tooltip } from '@mui/material';
-import { Drawer, Stack, Grid, Typography, Checkbox, Button, Divider } from '@mui/material';
-import dayjs from 'dayjs';
-import { Info as InfoIcon } from '@phosphor-icons/react/dist/ssr/Info';
+import { Accordion, AccordionDetails, AccordionSummary, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Chip, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, OutlinedInput, Stack, styled, SwipeableDrawer, Typography } from '@mui/material';
+import type { ChipProps } from '@mui/material/Chip';
 import { grey } from '@mui/material/colors';
+import { ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
-import { ArrowDown, ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
+import { AxiosResponse } from 'axios';
+import dayjs from 'dayjs';
+import RouterLink from 'next/link';
+import * as React from 'react';
+import { useZxing } from "react-zxing";
+import { useTranslation } from '@/contexts/locale-context';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
-import RouterLink from 'next/link';
 
 const iOS =
   typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -24,7 +23,7 @@ const iOS =
 // Ticket.ts
 export interface Ticket {
   id: number;
-  holder: string;
+  holderName: string;
   checkInAt: Date | null;
 }
 
@@ -53,6 +52,8 @@ export interface Transaction {
   id: number;
   email: string;
   name: string;
+  title: string;
+  dob: string;
   phoneNumber: string;
   address: string;
   transactionTicketCategories: TransactionTicketCategory[];
@@ -70,6 +71,7 @@ export interface Transaction {
 export type Show = {
   id: number;
   name: string;
+  avatar: string;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
   ticketCategories: TicketCategory[];
@@ -102,66 +104,56 @@ type MyDynamicObject = {
   [key: string]: boolean; // key is a string, and value is also a string
 };
 
-// Function to map payment methods to corresponding labels and icons
-const getPaymentMethodDetails = (paymentMethod: string) => {
-  switch (paymentMethod) {
-    case 'cash':
-      return { label: 'Tiền mặt', icon: <Money /> };
-    case 'transfer':
-      return { label: 'Chuyển khoản', icon: <Bank /> };
-    case 'napas247':
-      return { label: 'Napas 247', icon: <Lightning /> };
-    default:
-      return { label: 'Unknown', icon: null };
-  }
-};
 
-
-// Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (paymentStatus: string) => {
-  switch (paymentStatus) {
-    case 'waiting_for_payment':
-      return { label: 'Chờ thanh toán', color: 'warning' };
-    case 'paid':
-      return { label: 'Đã thanh toán', color: 'success' };
-    case 'refund':
-      return { label: 'Đã hoàn tiền', color: 'secondary' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
-
-// Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
-  switch (status) {
-    case 'normal':
-      return { label: 'Bình thường', color: 'success' };
-    case 'wait_for_response':
-      return { label: 'Đang chờ', color: 'warning' };
-    case 'customer_cancelled':
-      return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
-    case 'staff_locked':
-      return { label: 'Khoá bởi NV', color: 'error' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
-
-const getSentEmailTicketStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
-  switch (status) {
-    case 'sent':
-      return { label: 'Đã xuất', color: 'success' };
-    case 'not_sent':
-      return { label: 'Chưa xuất', color: 'default' }; // error for danger
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
+// These helper functions will be moved inside the component to use tt
 
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+  const { tt } = useTranslation();
+
+  // Function to map payment statuses to corresponding labels and colors
+  const getPaymentStatusDetails = React.useCallback((paymentStatus: string): { label: string, color: ChipProps['color'] } => {
+    switch (paymentStatus) {
+      case 'waiting_for_payment':
+        return { label: tt('Chờ thanh toán', 'Waiting for payment'), color: 'warning' };
+      case 'paid':
+        return { label: tt('Đã thanh toán', 'Paid'), color: 'success' };
+      case 'refund':
+        return { label: tt('Đã hoàn tiền', 'Refunded'), color: 'secondary' };
+      default:
+        return { label: 'Unknown', color: 'default' };
+    }
+  }, [tt]);
+
+  // Function to map row statuses to corresponding labels and colors
+  const getRowStatusDetails = React.useCallback((status: string): { label: string, color: ChipProps['color'] } => {
+    switch (status) {
+      case 'normal':
+        return { label: tt('Bình thường', 'Normal'), color: 'success' };
+      case 'wait_for_response':
+        return { label: tt('Đang chờ', 'Waiting'), color: 'warning' };
+      case 'customer_cancelled':
+        return { label: tt('Huỷ bởi KH', 'Cancelled by Customer'), color: 'error' };
+      case 'staff_locked':
+        return { label: tt('Khoá bởi NV', 'Locked by Staff'), color: 'error' };
+      default:
+        return { label: 'Unknown', color: 'default' };
+    }
+  }, [tt]);
+
+  const getSentEmailTicketStatusDetails = React.useCallback((status: string): { label: string, color: ChipProps['color'] } => {
+    switch (status) {
+      case 'sent':
+        return { label: tt('Đã xuất', 'Sent'), color: 'success' };
+      case 'not_sent':
+        return { label: tt('Chưa xuất', 'Not sent'), color: 'default' };
+      default:
+        return { label: 'Unknown', color: 'default' };
+    }
+  }, [tt]);
+
   React.useEffect(() => {
-    document.title = "Soát vé bằng mã QR | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Soát vé bằng mã QR | ETIK - Vé điện tử & Quản lý sự kiện", "Check-in with QR Code | ETIK - E-tickets & Event Management");
+  }, [tt]);
 
   const [qrManualInput, setQrManualInput] = React.useState<string>('');
   const [eCode, setECode] = React.useState<string>('');
@@ -177,12 +169,16 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [accordionState, setAccordionState] = React.useState<MyDynamicObject>({});
   const [ticketDisabledState, setTicketDisabledState] = React.useState<MyDynamicObject>({});
   const [ticketCheckboxState, setTicketCheckboxState] = React.useState<MyDynamicObject>({});
+  const hasTicketsSelected = Object.entries(ticketCheckboxState).some(
+    ([ticketKey, checked]) =>
+      checked && !ticketDisabledState[ticketKey]
+  );
   const { ref, torch: { on, off, isOn, isAvailable } } = useZxing({
     onDecodeResult(result) {
       if (!isCheckinControllerOpen) {
         setIsCheckinControllerOpen(true);
         setECode(result.getText());
-        getTransactionByECode(result.getText());
+        getTransactionByECode(result.getText(), true);
       }
     },
     timeBetweenDecodingAttempts: 50,
@@ -227,7 +223,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           setEvent(response.data);
           // setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
-          notificationCtx.error('Lỗi:', error);
+          notificationCtx.error(tt('Lỗi:', 'Error:'), error);
         } finally {
           setIsLoading(false);
         }
@@ -238,7 +234,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   }, [params.event_id]);
 
 
-  const getTransactionByECode = async (eCode: string) => {
+  const getTransactionByECode = async (eCode: string, firstTimeScan: boolean = false) => {
     try {
       setIsLoading(true);
       const transactionResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance
@@ -280,6 +276,30 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
       setTicketDisabledState(ticDisabledState)
       setTicketCheckboxState(ticCheckboxState)
+      // NEW: if *all* tickets are disabled, warn the user
+      const allDisabled = Object.values(ticDisabledState).every(v => v === true);
+      if (allDisabled && selectedSchedule && firstTimeScan) {
+        // 1. Pull the names of the selected categories for this schedule
+        const invalidCats = selectedSchedule.ticketCategories
+          .filter(tc =>
+            selectedCategories.includes(tc.id)
+          )
+          .map(tc => tc.name);
+
+        // 2. Join them with commas
+        const joined = invalidCats?.join(', ') || '';
+
+        // 3. Truncate to 25 chars with “…” if necessary
+        const display =
+          joined.length > 30
+            ? joined.slice(0, 27).trimEnd() + '...'
+            : joined;
+
+        // 4. Show the warning
+        notificationCtx.warning(
+          tt(`Không có vé hợp lệ cho danh mục đã chọn: ${selectedSchedule?.name} — ${display}`, `No valid tickets for selected categories: ${selectedSchedule?.name} — ${display}`)
+        );
+      }
 
       setIsSuccessful(true);
     } catch (error) {
@@ -325,7 +345,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       });
 
       if (requests.length === 0) {
-        notificationCtx.warning(`Vui lòng chọn ít nhất 1 vé để check-in.`);
+        notificationCtx.warning(tt(`Vui lòng chọn ít nhất 1 vé để check-in.`, `Please select at least 1 ticket to check-in.`));
         return
       }
       setIsLoading(true);
@@ -335,7 +355,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         .then(() => {
           getTransactionByECode(eCode); // Refresh data after check-in
           setIsSuccessful(true);
-          notificationCtx.success(`Check-in thành công.`);
+          notificationCtx.success(tt(`Check-in thành công.`, `Check-in successful.`));
         })
         .catch(error => {
           notificationCtx.error(error);
@@ -347,13 +367,22 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     }
   };
 
-  const handleManualCheckIn = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const runManualCheckIn = () => {
     if (qrManualInput) {
       setIsCheckinControllerOpen(true);
       setECode(qrManualInput);
-      getTransactionByECode(qrManualInput);
+      getTransactionByECode(qrManualInput, true);
     }
+  }
+
+  const handleManualCheckInSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    runManualCheckIn();
+  }
+
+  const handleManualCheckInClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    runManualCheckIn();
   }
 
   const Puller = styled('div')(({ theme }) => ({
@@ -368,21 +397,12 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       backgroundColor: grey[900],
     }),
   }));
-  const renderTooltip = (checkInAt: string | null) => (
-    <Tooltip title={
-      <Stack spacing={1}>
-        <Typography variant='body2'>Đã check-in lúc {dayjs(checkInAt).format('HH:mm:ss DD/MM/YYYY')}</Typography>
-      </Stack>
-    }>
-      <InfoIcon />
-    </Tooltip>
-  );
 
   return (
     <>
       <Stack spacing={3}>
         <div>
-          <Typography variant="h4">Check-in sự kiện</Typography>
+          <Typography variant="h4">{tt('Check-in sự kiện', 'Event Check-in')} {event?.name}</Typography>
         </div>
         <Grid container spacing={3}>
           <Grid item lg={5} md={5} xs={12} spacing={3}>
@@ -397,27 +417,27 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           <Grid item lg={7} md={7} xs={12} spacing={3} sx={{ display: selectedSchedule && selectedCategories.length > 0 ? 'block' : 'none' }}>
             <Stack spacing={3}>
               <Card>
-                <CardHeader subheader="Vui lòng hướng mã QR về phía camera." title="Quét mã QR" />
+                <CardHeader subheader={tt("Vui lòng hướng mã QR về phía camera.", "Please point the QR code towards the camera.")} title={tt("Quét mã QR", "Scan QR Code")} />
                 <Divider />
                 <CardContent>
                   <video ref={ref} width={'100%'} />
                 </CardContent>
                 <CardActions>
-                  <Button disabled={!isAvailable} onClick={() => (isOn ? off() : on())} startIcon={<Lightning />}>Flash</Button>
+                  <Button disabled={!isAvailable} onClick={() => (isOn ? off() : on())} startIcon={<Lightning />}>{tt('Flash', 'Flash')}</Button>
                 </CardActions>
               </Card>
 
               <Card>
-                <CardHeader subheader="Vui lòng nhập mã để check-in thủ công nếu không quét được mã QR." title="Check-in thủ công" />
+                <CardHeader subheader={tt("Vui lòng nhập mã để check-in thủ công nếu không quét được mã QR.", "Please enter the code to manually check-in if QR code scanning is not possible.")} title={tt("Check-in thủ công", "Manual Check-in")} />
                 <Divider />
                 <CardContent>
-                  <form onSubmit={handleManualCheckIn}>
+                  <form onSubmit={handleManualCheckInSubmit}>
                     <Grid container rowSpacing={2} spacing={2}>
                       <Grid item md={8} xs={12}>
                         <FormControl fullWidth required>
-                          <InputLabel>Mã check-in</InputLabel>
+                          <InputLabel>{tt('Mã check-in', 'Check-in Code')}</InputLabel>
                           <OutlinedInput
-                            label="Tên loại vé"
+                            label={tt('Mã check-in', 'Check-in Code')}
                             name="name"
                             value={qrManualInput}
                             onChange={(e) => setQrManualInput(e.target.value)}
@@ -425,12 +445,27 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                         </FormControl>
                       </Grid>
                       <Grid item md={4} xs={12}>
-                        <Button variant='contained' sx={{ width: '100%', height: '100%' }} onClick={handleManualCheckIn} startIcon={<EyeIcon />}>
-                          Kiểm tra
+                        <Button variant='contained' sx={{ width: '100%', height: '100%' }} onClick={handleManualCheckInClick} startIcon={<EyeIcon />}>
+                          {tt('Kiểm tra', 'Check')}
                         </Button>
                       </Grid>
                     </Grid>
                   </form>
+                </CardContent>
+                <Divider />
+                <CardContent>
+                  <Typography variant="body1">
+                    {tt('Khách hàng không có mã QR?', 'Customer doesn\'t have QR code?')}
+                    {' '}
+                    <a
+                      href={`/event-studio/events/${params.event_id}/tickets`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#1976d2', textDecoration: 'none' }}
+                    >
+                      {tt('Tìm kiếm trong danh sách vé', 'Search in tickets list')}
+                    </a>
+                  </Typography>
                 </CardContent>
               </Card>
             </Stack>
@@ -440,35 +475,44 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       <SwipeableDrawer disableBackdropTransition={!iOS} disableDiscovery={iOS} open={isCheckinControllerOpen} onOpen={() => setIsCheckinControllerOpen(true)} onClose={handleCloseDrawer} anchor="bottom">
         <Puller />
         <Container maxWidth="sm">
-          <Stack spacing={2} sx={{ mt: 3 }}>
-            <Typography variant="h6">Mã QR: {eCode}</Typography>
+          <Stack spacing={2} sx={{ mt: 3, mb: 2 }}>
+            <Typography variant="h6">{tt('Mã QR:', 'QR Code:')} {eCode}</Typography>
             <Divider />
             {isLoading ? (
-              <Typography color="warning">Đang kiểm tra...</Typography>
+              <Typography color="warning">{tt('Đang kiểm tra...', 'Checking...')}</Typography>
             ) : isSuccessful === false ? (
-              <Typography color="error">KHÔNG TÌM THẤY </Typography>
+              <Typography color="error">{tt('KHÔNG TÌM THẤY', 'NOT FOUND')} </Typography>
             ) : (
               <>
                 <Stack spacing={1}>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Họ tên:</Typography>
-                    <Typography variant="body1">{trxn?.name}</Typography>
+                    <Typography variant="body1" fontWeight="bold">{tt('Người mua:', 'Buyer:')}</Typography>
+                    <IconButton size='small' target='_blank' component={RouterLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}?checkInCode=${eCode}`}><ArrowSquareIn /></IconButton>
+                  </Grid>
+
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1">{tt('Họ tên:', 'Full Name:')}</Typography>
+                    <Typography variant="body1">{trxn?.title} {trxn?.name}</Typography>
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Email:</Typography>
-                    <Typography variant="body1">{trxn?.email} <IconButton size='small' target='_blank' component={RouterLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}`}><ArrowSquareIn /></IconButton></Typography>
+                    <Typography variant="body1">{tt('Ngày sinh:', 'Date of Birth:')}</Typography>
+                    <Typography variant="body1">{trxn?.dob ? dayjs(trxn?.dob || 0).format('DD/MM/YYYY') : `__/__/____`}</Typography>
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Số điện thoại:</Typography>
+                    <Typography variant="body1">{tt('Email:', 'Email:')}</Typography>
+                    <Typography variant="body1">{trxn?.email}</Typography>
+                  </Grid>
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1">{tt('Số điện thoại:', 'Phone Number:')}</Typography>
                     <Typography variant="body1">{trxn?.phoneNumber}</Typography>
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Địa chỉ:</Typography>
+                    <Typography variant="body1">{tt('Địa chỉ:', 'Address:')}</Typography>
                     <Typography variant="body1">{trxn?.address && trxn?.address.length > 30 ? trxn?.address.substring(0, 30) + '...' : trxn?.address}</Typography>
                   </Grid>
                   <Divider />
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Số lượng vé:</Typography>
+                    <Typography variant="body1" fontWeight="bold">{tt('Danh sách vé đang có:', 'Current Tickets:')}</Typography>
                     <Typography variant="body1">{trxn?.ticketQuantity}</Typography>
                   </Grid>
 
@@ -485,7 +529,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                         >
                           <AccordionSummary sx={{ backgroundColor: 'light' }} expandIcon={<CaretDown />}>
                             <Grid container justifyContent="space-between">
-                              <Typography variant="body1">Show:</Typography>
+                              <Typography variant="body1">{tt('Show:', 'Show:')}</Typography>
                               <Typography variant="body1">
                                 {category.ticketCategory.show.name} - {category.ticketCategory.name}
                               </Typography>
@@ -508,9 +552,13 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                     />
                                   }
                                   label={
-                                    <Stack direction="row" alignItems="center">
-                                      <Typography variant="body2">{ticket.holder}</Typography>
-                                      {ticketDisabledState[ticketKey] && ticket.checkInAt != null && renderTooltip(ticket.checkInAt.toString())}
+                                    <Stack direction="column" alignItems="left">
+                                      <Typography variant="body2">{ticket.holderName}</Typography>
+                                      {ticket.checkInAt &&
+                                        <Typography variant="caption">
+                                          {tt('Đã check-in lúc', 'Checked in at')} {dayjs(ticket.checkInAt).format("HH:mm:ss DD/MM/YYYY")}
+                                        </Typography>
+                                      }
                                     </Stack>
                                   }
                                   sx={{ display: 'flex', alignItems: 'center', marginLeft: 2 }}
@@ -523,30 +571,25 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     })}
                   </div>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái giao dịch:</Typography>
-                    <Chip
-                      size='small'
-                      color={getRowStatusDetails(trxn?.status || '').color}
-                      label={getRowStatusDetails(trxn?.status || '').label}
-                    />
+                    <Typography variant="body1" fontWeight="bold">Trạng thái</Typography>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Chip
+                        size='small'
+                        color={getRowStatusDetails(trxn?.status || '').color}
+                        label={getRowStatusDetails(trxn?.status || '').label}
+                      />
+                      <Chip
+                        size='small'
+                        color={getPaymentStatusDetails(trxn?.paymentStatus || '').color}
+                        label={getPaymentStatusDetails(trxn?.paymentStatus || '').label}
+                      />
+                      <Chip
+                        size='small'
+                        color={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').color}
+                        label={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').label}
+                      />
+                    </Stack>
                   </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái thanh toán:</Typography>
-                    <Chip
-                      size='small'
-                      color={getPaymentStatusDetails(trxn?.paymentStatus || '').color}
-                      label={getPaymentStatusDetails(trxn?.paymentStatus || '').label}
-                    />
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái xuất vé:</Typography>
-                    <Chip
-                      size='small'
-                      color={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').color}
-                      label={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').label}
-                    />
-                  </Grid>
-
                   <Divider />
 
 
@@ -566,7 +609,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                             }
                             label={
                               <Typography>
-                                {ticket.holder} {ticket.checkInAt && renderTooltip(ticket.checkInAt)}
+                                {ticket.holderName} {ticket.checkInAt && renderTooltip(ticket.checkInAt)}
                               </Typography>
                             }
                           />
@@ -577,13 +620,17 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
                   <Button
                     variant="contained"
-                    disabled={!(trxn?.status == 'normal' && trxn?.paymentStatus == 'paid')}
+                    disabled={
+                      // existing disable condition OR no tickets selected
+                      !(trxn?.status === 'normal' && trxn?.paymentStatus === 'paid')
+                      || !hasTicketsSelected
+                    }
                     onClick={() => {
                       setConfirmCheckin(true);
                       sendCheckinRequest(eCode);
                     }}
                   >
-                    {'Check-in'}
+                    {tt('Check-in', 'Check-in')}
                   </Button>
                 </Stack>
               </>
