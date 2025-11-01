@@ -1,3 +1,5 @@
+'use client';
+
 import * as React from 'react';
 import { LocalizedLink } from '@/components/localized-link';
 
@@ -7,12 +9,15 @@ import Typography from '@mui/material/Typography';
 
 import { paths } from '@/paths';
 import { DynamicLogo } from '@/components/core/logo';
+import { useTranslation } from '@/contexts/locale-context';
 
 export interface LayoutProps {
   children: React.ReactNode;
 }
 
 export function Layout({ children }: LayoutProps): React.JSX.Element {
+  const { tt } = useTranslation();
+
   return (
     <Box
       sx={{
@@ -45,13 +50,13 @@ export function Layout({ children }: LayoutProps): React.JSX.Element {
         <Stack spacing={3}>
           <Stack spacing={1}>
             <Typography color="inherit" sx={{ fontSize: '24px', lineHeight: '32px', textAlign: 'center' }} variant="h1">
-              Chào mừng bạn đến với {' '}
+              {tt("Chào mừng bạn đến với", "Welcome to")} {' '}
               <Box component="span" sx={{ color: '#15b79e' }}>
                 ETIK
               </Box>
             </Typography>
             <Typography align="center" variant="subtitle1">
-              Nền tảng Vé điện tử và Quản lý sự kiện chuyên nghiệp, hiện đại.
+              {tt("Nền tảng Vé điện tử và Quản lý sự kiện chuyên nghiệp, hiện đại.", "Professional, modern electronic ticketing and event management platform.")}
             </Typography>
           </Stack>
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>

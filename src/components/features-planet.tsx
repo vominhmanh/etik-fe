@@ -1,3 +1,4 @@
+"use client";
 import Image from "next/image";
 import PlanetImg from "@/images/planet.png";
 import PlanetOverlayImg from "@/images/planet-overlay.svg";
@@ -5,8 +6,10 @@ import PlanetTagImg01 from "@/images/planet-tag-01.png";
 import PlanetTagImg02 from "@/images/planet-tag-02.png";
 import PlanetTagImg03 from "@/images/planet-tag-03.png";
 import PlanetTagImg04 from "@/images/planet-tag-04.png";
+import { useTranslation } from '@/contexts/locale-context';
 
 export default function FeaturesPlanet() {
+  const { tt } = useTranslation();
   return (
     <section className="relative before:absolute before:inset-0 before:-z-20 before:bg-gray-900">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -14,7 +17,7 @@ export default function FeaturesPlanet() {
           {/* Section header */}
           <div className="mx-auto max-w-3xl pb-16 text-center md:pb-20">
             <h2 className="text-3xl font-bold text-gray-200 md:text-4xl">
-              Hiện đại, Chuyên nghiệp, Dễ dàng, Tiết kiệm.
+              {tt("Hiện đại, Chuyên nghiệp, Dễ dàng, Tiết kiệm.", "Modern, Professional, Easy, Economical.")}
             </h2>
           </div>
           {/* Planet */}
@@ -82,10 +85,10 @@ export default function FeaturesPlanet() {
                 >
                   <path d="M2 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4Zm2-4a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4V4a4 4 0 0 0-4-4H4Zm1 10a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H5Z" />
                 </svg>
-                <span>Tạo vé chứa mã QR điện tử</span>
+                <span>{tt("Tạo vé chứa mã QR điện tử", "Create tickets with electronic QR codes")}</span>
               </h3>
               <p className="text-[15px] text-gray-400">
-                Doanh nghiệp có thể xuất vé điện tử, được gửi tự động đến email Khách hàng. Mỗi vé chứa một mã QR kiểm soát duy nhất
+                {tt("Doanh nghiệp có thể xuất vé điện tử, được gửi tự động đến email Khách hàng. Mỗi vé chứa một mã QR kiểm soát duy nhất", "Businesses can issue electronic tickets, automatically sent to customers' emails. Each ticket contains a unique QR code for verification")}
               </p>
             </article>
             <article>
@@ -98,10 +101,10 @@ export default function FeaturesPlanet() {
                 >
                   <path d="M14.29 2.614a1 1 0 0 0-1.58-1.228L6.407 9.492l-3.199-3.2a1 1 0 1 0-1.414 1.415l4 4a1 1 0 0 0 1.496-.093l7-9ZM1 14a1 1 0 1 0 0 2h14a1 1 0 1 0 0-2H1Z" />
                 </svg>
-                <span>Quản lý Bán vé chuyên nghiệp</span>
+                <span>{tt("Quản lý Bán vé chuyên nghiệp", "Professional Ticket Sales Management")}</span>
               </h3>
               <p className="text-[15px] text-gray-400">
-                Hỗ trợ quản lý các vé đã bán ra, gửi lại email, hoàn vé, huỷ vé, xuất báo cáo, theo dõi doanh thu...
+                {tt("Hỗ trợ quản lý các vé đã bán ra, gửi lại email, hoàn vé, huỷ vé, xuất báo cáo, theo dõi doanh thu...", "Support managing sold tickets, resending emails, refunding tickets, canceling tickets, exporting reports, tracking revenue...")}
               </p>
             </article>
             <article>
@@ -118,10 +121,10 @@ export default function FeaturesPlanet() {
                   />
                   <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm0-2a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm1.715-6.752a1 1 0 0 1 .57-1.916 8.014 8.014 0 0 1 5.383 5.383 1 1 0 1 1-1.916.57 6.014 6.014 0 0 0-4.037-4.037Zm4.037 7.467a1 1 0 1 1 1.916.57 8.014 8.014 0 0 1-5.383 5.383 1 1 0 1 1-.57-1.916 6.014 6.014 0 0 0 4.037-4.037Zm-7.467 4.037a1 1 0 1 1-.57 1.916 8.014 8.014 0 0 1-5.383-5.383 1 1 0 1 1 1.916-.57 6.014 6.014 0 0 0 4.037 4.037Z" />
                 </svg>
-                <span>Chức năng soát vé </span>
+                <span>{tt("Chức năng soát vé", "Ticket Checking Feature")}</span>
               </h3>
               <p className="text-[15px] text-gray-400">
-                Có app riêng dành cho BTC soát vé. BTC dùng phần mềm soát vé tại lối vào của sự kiện để kiểm soát khách mời ra vào.
+                {tt("Có app riêng dành cho BTC soát vé. BTC dùng phần mềm soát vé tại lối vào của sự kiện để kiểm soát khách mời ra vào.", "Dedicated app for organizers to check tickets. Use the ticket scanning software at the event entrance to control guest access.")}
               </p>
             </article>
             <article>
@@ -134,10 +137,10 @@ export default function FeaturesPlanet() {
                 >
                   <path d="M8 0a1 1 0 0 1 1 1v14a1 1 0 1 1-2 0V1a1 1 0 0 1 1-1Zm6 3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h1a1 1 0 1 1 0 2h-1a3 3 0 0 1-3-3V4a3 3 0 0 1 3-3h1a1 1 0 1 1 0 2h-1ZM1 1a1 1 0 0 0 0 2h1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H1a1 1 0 1 0 0 2h1a3 3 0 0 0 3-3V4a3 3 0 0 0-3-3H1Z" />
                 </svg>
-                <span>Form dành cho Khách hàng tự đăng ký</span>
+                <span>{tt("Form dành cho Khách hàng tự đăng ký", "Self-Registration Form for Customers")}</span>
               </h3>
               <p className="text-[15px] text-gray-400">
-                Khách hàng có trang web để tự mua vé, giúp khách hàng chủ động hơn, từ đó nâng cao sự chuyên nghiệp của Doanh nghiệp
+                {tt("Khách hàng có trang web để tự mua vé, giúp khách hàng chủ động hơn, từ đó nâng cao sự chuyên nghiệp của Doanh nghiệp", "Customers have a website to purchase tickets themselves, giving them more autonomy and enhancing the professionalism of the business")}
               </p>
             </article>
             <article>
@@ -150,10 +153,10 @@ export default function FeaturesPlanet() {
                 >
                   <path d="M10.284.33a1 1 0 1 0-.574 1.917 6.049 6.049 0 0 1 2.417 1.395A1 1 0 0 0 13.5 2.188 8.034 8.034 0 0 0 10.284.33ZM6.288 2.248A1 1 0 0 0 5.718.33 8.036 8.036 0 0 0 2.5 2.187a1 1 0 0 0 1.372 1.455 6.036 6.036 0 0 1 2.415-1.395ZM1.42 5.401a1 1 0 0 1 .742 1.204 6.025 6.025 0 0 0 0 2.79 1 1 0 0 1-1.946.462 8.026 8.026 0 0 1 0-3.714A1 1 0 0 1 1.421 5.4Zm2.452 6.957A1 1 0 0 0 2.5 13.812a8.036 8.036 0 0 0 3.216 1.857 1 1 0 0 0 .574-1.916 6.044 6.044 0 0 1-2.417-1.395Zm9.668.04a1 1 0 0 1-.041 1.414 8.033 8.033 0 0 1-3.217 1.857 1 1 0 1 1-.571-1.917 6.035 6.035 0 0 0 2.415-1.395 1 1 0 0 1 1.414.042Zm2.242-6.255a1 1 0 1 0-1.946.462 6.03 6.03 0 0 1 0 2.79 1 1 0 1 0 1.946.462 8.022 8.022 0 0 0 0-3.714Z" />
                 </svg>
-                <span>Thanh toán vé tự động Napas 247</span>
+                <span>{tt("Thanh toán vé tự động Napas 247", "Automatic Payment via Napas 247")}</span>
               </h3>
               <p className="text-[15px] text-gray-400">
-                Đối với các loại vé cần thanh toán, chúng tôi hỗ trợ Khách hàng thanh toán qua Napas 247, Chuyển khoản. Vé sẽ được phát hành sau khi Khách hàng đã thanh toán.
+                {tt("Đối với các loại vé cần thanh toán, chúng tôi hỗ trợ Khách hàng thanh toán qua Napas 247, Chuyển khoản. Vé sẽ được phát hành sau khi Khách hàng đã thanh toán.", "For tickets requiring payment, we support customers paying via Napas 247, Bank Transfer. Tickets will be issued after payment is completed.")}
               </p>
             </article>
             <article>
@@ -166,10 +169,10 @@ export default function FeaturesPlanet() {
                 >
                   <path d="M9 1a1 1 0 1 0-2 0v6a1 1 0 0 0 2 0V1ZM4.572 3.08a1 1 0 0 0-1.144-1.64A7.987 7.987 0 0 0 0 8a8 8 0 0 0 16 0c0-2.72-1.36-5.117-3.428-6.56a1 1 0 1 0-1.144 1.64A5.987 5.987 0 0 1 14 8 6 6 0 1 1 2 8a5.987 5.987 0 0 1 2.572-4.92Z" />
                 </svg>
-                <span>Soát vé bằng khuôn mặt</span>
+                <span>{tt("Soát vé bằng khuôn mặt", "Face Recognition Check-in")}</span>
               </h3>
               <p className="text-[15px] text-gray-400">
-                Nâng cấp trải nghiệm! Không cần mã QR, không cần điện thoại. Chỉ cần đứng trước camera, hệ thống nhận diện khuôn mặt thông minh sẽ xác nhận vé của bạn trong tích tắc.
+                {tt("Nâng cấp trải nghiệm! Không cần mã QR, không cần điện thoại. Chỉ cần đứng trước camera, hệ thống nhận diện khuôn mặt thông minh sẽ xác nhận vé của bạn trong tích tắc.", "Upgrade your experience! No QR code, no phone needed. Just stand in front of the camera, and our smart facial recognition system will verify your ticket instantly.")}
               </p>
             </article>
             <article>
@@ -186,10 +189,10 @@ export default function FeaturesPlanet() {
                   />
                   <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm0-2a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm1.715-6.752a1 1 0 0 1 .57-1.916 8.014 8.014 0 0 1 5.383 5.383 1 1 0 1 1-1.916.57 6.014 6.014 0 0 0-4.037-4.037Zm4.037 7.467a1 1 0 1 1 1.916.57 8.014 8.014 0 0 1-5.383 5.383 1 1 0 1 1-.57-1.916 6.014 6.014 0 0 0 4.037-4.037Zm-7.467 4.037a1 1 0 1 1-.57 1.916 8.014 8.014 0 0 1-5.383-5.383 1 1 0 1 1 1.916-.57 6.014 6.014 0 0 0 4.037 4.037Z" />
                 </svg>
-                <span>Gửi Email Marketing</span>
+                <span>{tt("Gửi Email Marketing", "Send Marketing Emails")}</span>
               </h3>
               <p className="text-[15px] text-gray-400">
-                Dễ dàng tạo, gửi và quản lý gửi email hàng loạt tới khách hàng, tiếp cận nhanh chóng và tăng tỷ lệ chuyển đổi.              </p>
+                {tt("Dễ dàng tạo, gửi và quản lý gửi email hàng loạt tới khách hàng, tiếp cận nhanh chóng và tăng tỷ lệ chuyển đổi.", "Easily create, send, and manage bulk emails to customers, quickly reach out and increase conversion rates.")}</p>
             </article>
 
             <article>
@@ -202,10 +205,10 @@ export default function FeaturesPlanet() {
                 >
                   <path d="M14.29 2.614a1 1 0 0 0-1.58-1.228L6.407 9.492l-3.199-3.2a1 1 0 1 0-1.414 1.415l4 4a1 1 0 0 0 1.496-.093l7-9ZM1 14a1 1 0 1 0 0 2h14a1 1 0 1 0 0-2H1Z" />
                 </svg>
-                <span>Nhân viên Chăm sóc khách hàng 1-1</span>
+                <span>{tt("Nhân viên Chăm sóc khách hàng 1-1", "1-on-1 Customer Support Staff")}</span>
               </h3>
               <p className="text-[15px] text-gray-400">
-                Đội ngũ chuyên nghiệp luôn sẵn sàng hỗ trợ bạn 24/7 với dịch vụ tư vấn và giải đáp tận tâm, cá nhân hóa theo từng khách hàng.              </p>
+                {tt("Đội ngũ chuyên nghiệp luôn sẵn sàng hỗ trợ bạn 24/7 với dịch vụ tư vấn và giải đáp tận tâm, cá nhân hóa theo từng khách hàng.", "Professional team always ready to support you 24/7 with dedicated consultation and personalized service for each customer.")}</p>
             </article>
             <article>
               <h3 className="mb-2 flex items-center space-x-2 font-medium text-gray-200">
@@ -217,10 +220,10 @@ export default function FeaturesPlanet() {
                 >
                   <path d="M2 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4Zm2-4a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4V4a4 4 0 0 0-4-4H4Zm1 10a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H5Z" />
                 </svg>
-                <span>Tính năng mới theo yêu cầu</span>
+                <span>{tt("Tính năng mới theo yêu cầu", "Custom Features on Request")}</span>
               </h3>
               <p className="text-[15px] text-gray-400">
-                Tuỳ chỉnh và phát triển các tính năng phù hợp nhất với nhu cầu của bạn, giúp tối ưu hoá quy trình và nâng cao hiệu quả kinh doanh              </p>
+                {tt("Tuỳ chỉnh và phát triển các tính năng phù hợp nhất với nhu cầu của bạn, giúp tối ưu hoá quy trình và nâng cao hiệu quả kinh doanh", "Customize and develop features that best suit your needs, helping optimize processes and improve business efficiency")}</p>
             </article>
           </div>
         </div>

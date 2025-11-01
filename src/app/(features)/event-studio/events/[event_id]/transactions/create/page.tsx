@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -77,9 +78,10 @@ const paymentMethodLabelMap: Record<string, string> = {
 };
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  const { tt } = useTranslation();
   React.useEffect(() => {
-    document.title = "Tạo đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Tạo đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện", "Create Order | ETIK - E-tickets & Event Management");
+  }, [tt]);
   const [qrOption, setQrOption] = React.useState<string>("shared");
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
@@ -330,7 +332,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Tạo đơn hàng mới</Typography>
+          <Typography variant="h4">{tt("Tạo đơn hàng mới", "Create New Order")}</Typography>
         </Stack>
       </Stack>
       <Grid container spacing={3}>

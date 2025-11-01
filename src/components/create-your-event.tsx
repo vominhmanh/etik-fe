@@ -14,6 +14,7 @@ import { AuthRes } from "@/types/auth";
 import { authClient } from "@/lib/auth/client";
 import { eventNames } from "process";
 import { User } from '@/types/auth';
+import { useTranslation } from '@/contexts/locale-context';
 
 type EventCreatedResponse = {
   eventId: number;
@@ -21,6 +22,7 @@ type EventCreatedResponse = {
 };
 
 export default function CreateYourEvent() {
+  const { tt } = useTranslation();
   const notificationCtx = React.useContext(NotificationContext);
   const router = useRouter(); // Use useRouter from next/navigation
   const [formData, setFormData] = useState({
@@ -65,24 +67,24 @@ export default function CreateYourEvent() {
     e.preventDefault();
     // Kiểm tra dữ liệu form
     if (!formData.eventName || formData.eventName.trim() === '') {
-      setError('Tên sự kiện là bắt buộc');
+      setError(tt('Tên sự kiện là bắt buộc', 'Event name is required'));
       return;
     }
 
     if (!formData.organizer || formData.organizer.trim() === '') {
-      setError('Tên đơn vị tổ chức là bắt buộc');
+      setError(tt('Tên đơn vị tổ chức là bắt buộc', 'Organizer name is required'));
       return;
     }
 
     if (!formData.organizerEmail || !validateEmail(formData.organizerEmail)) {
-      setError('Email đơn vị tổ chức không hợp lệ');
+      setError(tt('Email đơn vị tổ chức không hợp lệ', 'Invalid organizer email'));
       return;
     }
 
     if (
       !formData.organizerPhoneNumber
     ) {
-      setError('Số điện thoại không hợp lệ');
+      setError(tt('Số điện thoại không hợp lệ', 'Invalid phone number'));
       return;
     }
 
@@ -105,7 +107,7 @@ export default function CreateYourEvent() {
         // if user enters password, then call api signup, if signup success, then call api create event
       }
     } catch (error: any) {
-      setError(error?.response?.data?.message || 'Đã xảy ra lỗi khi tạo sự kiện');
+      setError(error?.response?.data?.message || tt('Đã xảy ra lỗi khi tạo sự kiện', 'An error occurred while creating the event'));
     } finally {
       setIsLoading(false);
     }
@@ -116,24 +118,24 @@ export default function CreateYourEvent() {
 
     // Kiểm tra dữ liệu form
     if (!formData.eventName || formData.eventName.trim() === '') {
-      setError('Tên sự kiện là bắt buộc');
+      setError(tt('Tên sự kiện là bắt buộc', 'Event name is required'));
       return;
     }
 
     if (!formData.organizer || formData.organizer.trim() === '') {
-      setError('Tên đơn vị tổ chức là bắt buộc');
+      setError(tt('Tên đơn vị tổ chức là bắt buộc', 'Organizer name is required'));
       return;
     }
 
     if (!formData.organizerEmail || !validateEmail(formData.organizerEmail)) {
-      setError('Email đơn vị tổ chức không hợp lệ');
+      setError(tt('Email đơn vị tổ chức không hợp lệ', 'Invalid organizer email'));
       return;
     }
 
     if (
       !formData.organizerPhoneNumber
     ) {
-      setError('Số điện thoại không hợp lệ');
+      setError(tt('Số điện thoại không hợp lệ', 'Invalid phone number'));
       return;
     }
 
@@ -152,10 +154,10 @@ export default function CreateYourEvent() {
       if (response.data) {
         router.push('/event-studio/events/'); // Điều hướng đến trang khác nếu thành công
       } else {
-        setError(response.statusText || 'Có lỗi không xác định xảy ra');
+        setError(response.statusText || tt('Có lỗi không xác định xảy ra', 'An unknown error occurred'));
       }
     } catch (error: any) {
-      setError(error?.response?.data?.message || 'Đã xảy ra lỗi khi tạo sự kiện');
+      setError(error?.response?.data?.message || tt('Đã xảy ra lỗi khi tạo sự kiện', 'An error occurred while creating the event'));
     } finally {
       setIsLoading(false);
     }
@@ -178,7 +180,7 @@ export default function CreateYourEvent() {
       handleCreateEvent()
       // router.refresh();
     } catch (error: any) {
-      setError(error.message || "Xảy ra lỗi khi tạo sự kiện");
+      setError(error.message || tt("Xảy ra lỗi khi tạo sự kiện", "An error occurred while creating the event"));
     } finally {
       setIsLoading(false);
     }
@@ -197,7 +199,7 @@ export default function CreateYourEvent() {
       setIsVerifyOtpStep(true) 
       // router.refresh();
     } catch (error: any) {
-      setError(error.message || "Xảy ra lỗi khi đăng ký");
+      setError(error.message || tt("Xảy ra lỗi khi đăng ký", "An error occurred during registration"));
     } finally {
       setIsLoading(false);
     }
@@ -209,7 +211,7 @@ export default function CreateYourEvent() {
       const res: AuthRes = await authClient.verifyOtp(formData.organizerEmail, otpInput || ""); // Call verify API
       handleCreateEvent()
     } catch (error: any) {
-      setError(error.message || "Xảy ra lỗi khi xác thực OTP");
+      setError(error.message || tt("Xảy ra lỗi khi xác thực OTP", "An error occurred while verifying OTP"));
     } finally {
       setIsLoading(false);
     }
@@ -254,7 +256,7 @@ export default function CreateYourEvent() {
           </div>
           <div className="px-4 py-12 md:px-12 md:py-20">
             <h2 className="mb-6 border-y text-3xl font-bold text-gray-200 [border-image:linear-gradient(to_right,transparent,theme(colors.slate.700/.7),transparent)1] md:mb-12 md:text-4xl">
-              Bắt đầu tạo sự kiện của bạn với ETIK
+              {tt("Bắt đầu tạo sự kiện của bạn với ETIK", "Start creating your event with ETIK")}
             </h2>
 
             <div
@@ -270,7 +272,7 @@ export default function CreateYourEvent() {
                   value={formData.eventName}
                   onChange={handleInputChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2"
-                  placeholder="Nhập tên sự kiện"
+                  placeholder={tt("Nhập tên sự kiện", "Enter event name")}
                   required
                 />
               </div>
@@ -282,7 +284,7 @@ export default function CreateYourEvent() {
                   value={formData.organizer}
                   onChange={handleInputChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2"
-                  placeholder="Nhập đơn vị tổ chức"
+                  placeholder={tt("Nhập đơn vị tổ chức", "Enter organizer name")}
                   required
                 />
               </div>
@@ -294,7 +296,7 @@ export default function CreateYourEvent() {
                   value={formData.organizerEmail}
                   onChange={handleInputChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2"
-                  placeholder="Nhập email của bạn"
+                  placeholder={tt("Nhập email của bạn", "Enter your email")}
                   required
                 />
               </div>
@@ -306,7 +308,7 @@ export default function CreateYourEvent() {
                   value={formData.organizerPhoneNumber}
                   onChange={handleInputChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2"
-                  placeholder="Nhập số điện thoại"
+                  placeholder={tt("Nhập số điện thoại", "Enter phone number")}
                   required
                 />
               </div>
@@ -319,7 +321,7 @@ export default function CreateYourEvent() {
                 onClick={handleStartCreateEventStep1}
               >
                 <span className="relative inline-flex items-center">
-                  Tạo sự kiện ngay
+                  {tt("Tạo sự kiện ngay", "Create Event Now")}
                   <span className="ml-1 tracking-normal text-blue-300 transition-transform group-hover:translate-x-0.5">
                     -&gt;
                   </span>
@@ -334,22 +336,22 @@ export default function CreateYourEvent() {
           <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { sm: '500px', xs: '90%' }, bgcolor: 'background.paper', boxShadow: 24 }}>
             <CardContent>
               <Stack spacing={4}>
-                <Typography variant="h5">Đăng nhập để tạo sự kiện</Typography>
+                <Typography variant="h5">{tt("Đăng nhập để tạo sự kiện", "Login to Create Event")}</Typography>
                 <Stack spacing={2}>
-                  <Typography variant='body2'>Bạn đã đăng ký tài khoản ETIK trước đây. Vui lòng đăng nhập với email <b>{formData.organizerEmail}</b> để tiếp tục.</Typography>
+                  <Typography variant='body2'>{tt("Bạn đã đăng ký tài khoản ETIK trước đây. Vui lòng đăng nhập với email", "You have registered an ETIK account before. Please login with email")} <b>{formData.organizerEmail}</b> {tt("để tiếp tục.", "to continue.")}</Typography>
 
                   <FormControl fullWidth>
-                    <InputLabel>Nhập mật khẩu</InputLabel>
+                    <InputLabel>{tt("Nhập mật khẩu", "Enter Password")}</InputLabel>
                     <OutlinedInput
                       value={passwordInput}
                       onChange={(e) => setPasswordInput(e.target.value)}
-                      label="Nhập mật khẩu"
+                      label={tt("Nhập mật khẩu", "Enter Password")}
                       type="password"
                     />
                   </FormControl>
 
                   <Button variant="contained" onClick={handleSignIn} disabled={isLoading}>
-                    Tạo sự kiện
+                    {tt("Tạo sự kiện", "Create Event")}
                   </Button>
 
                   
@@ -363,7 +365,7 @@ export default function CreateYourEvent() {
                         await handleCreateEvent();
                         setPasswordModalOpen(false);
                       } catch (e: any) {
-                        setError(e?.message || 'Đăng nhập Google thất bại, vui lòng thử lại.');
+                        setError(e?.message || tt('Đăng nhập Google thất bại, vui lòng thử lại.', 'Google login failed, please try again.'));
                       } finally {
                         setIsLoading(false);
                       }
@@ -380,7 +382,7 @@ export default function CreateYourEvent() {
                       </svg>
                     }
                   >
-                    Hoặc sử dụng Google để đăng nhập và tạo
+                    {tt("Hoặc sử dụng Google để đăng nhập và tạo", "Or use Google to login and create")}
                   </Button>
                 </Stack>
               </Stack>
@@ -393,28 +395,28 @@ export default function CreateYourEvent() {
           <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { sm: '500px', xs: '90%' }, bgcolor: 'background.paper', boxShadow: 24 }}>
             <CardContent>
               <Stack spacing={4}>
-                <Typography variant="h5">Bước xác thực</Typography>
+                <Typography variant="h5">{tt("Bước xác thực", "Verification Step")}</Typography>
                 <Stack spacing={2}>
 
                   <FormControl fullWidth>
-                    <InputLabel>Tạo mật khẩu của bạn</InputLabel>
+                    <InputLabel>{tt("Tạo mật khẩu của bạn", "Create Your Password")}</InputLabel>
                     <OutlinedInput
                       value={passwordInput}
                       onChange={(e) => setPasswordInput(e.target.value)}
                       type="password"
-                      label="Tạo mật khẩu của bạn"
+                      label={tt("Tạo mật khẩu của bạn", "Create Your Password")}
                     />
                   </FormControl>
 
                   {isVerifyOtpStep &&
                     <>
-                      <Typography variant='body2'>Kiểm tra email của bạn và điền mã OTP để hoàn tất.</Typography>
+                      <Typography variant='body2'>{tt("Kiểm tra email của bạn và điền mã OTP để hoàn tất.", "Check your email and enter the OTP code to complete.")}</Typography>
                       <FormControl>
-                        <InputLabel>Nhập mã OTP</InputLabel>
+                        <InputLabel>{tt("Nhập mã OTP", "Enter OTP Code")}</InputLabel>
                         <OutlinedInput
                           value={otpInput}
                           onChange={(e) => setOtpInput(e.target.value)}
-                          label="Nhập mã OTP"
+                          label={tt("Nhập mã OTP", "Enter OTP Code")}
                         />
                       </FormControl>
                     </>
@@ -423,12 +425,12 @@ export default function CreateYourEvent() {
 
                   {!isVerifyOtpStep ?
                     <Button variant="contained" onClick={() => { handleSignUp() }} disabled={isLoading}>
-                      Tiếp theo
+                      {tt("Tiếp theo", "Next")}
                     </Button>
                     :
                     // call api register, then call api create event 
                     <Button variant="contained" onClick={handleVerifyOtp} disabled={isLoading}>
-                      Tạo sự kiện
+                      {tt("Tạo sự kiện", "Create Event")}
                     </Button>
                   }
                 </Stack>
@@ -450,7 +452,7 @@ export default function CreateYourEvent() {
           >
             <CardContent>
               <Typography variant="h6" color="error">
-                Lỗi
+                {tt("Lỗi", "Error")}
               </Typography>
               <Typography variant="body1">{error}</Typography>
               <Button
@@ -459,7 +461,7 @@ export default function CreateYourEvent() {
                 color="primary"
                 onClick={() => setError(null)}
               >
-                Đóng
+                {tt("Đóng", "Close")}
               </Button>
             </CardContent>
           </Card>

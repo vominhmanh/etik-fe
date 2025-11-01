@@ -30,43 +30,51 @@ export default class BaseHttpService {
     const fullUrl = endpoint.includes('http') ? endpoint : `${this.BASE_URL}${endpoint}`;
     return getRawResponse
       ? instance.get(fullUrl, options)
-      : instance.get(fullUrl, options)
-        .catch((error: any) => this.handleHttpError(error))
-
+      : instance.get(fullUrl, options).catch((error: any) => this.handleHttpError(error));
   }
 
-  async post(endpoint: string, data = {}, options: AxiosRequestConfig = {}, getRawResponse: boolean = false): Promise<any> {
+  async post(
+    endpoint: string,
+    data = {},
+    options: AxiosRequestConfig = {},
+    getRawResponse: boolean = false
+  ): Promise<any> {
     merge(options, this.getCommonOptions());
     const fullUrl = endpoint.includes('http') ? endpoint : `${this.BASE_URL}${endpoint}`;
     return getRawResponse
       ? instance.post(fullUrl, data, options)
-      : instance.post(fullUrl, data, options)
-        .catch((error: any) => this.handleHttpError(error))
-
+      : instance.post(fullUrl, data, options).catch((error: any) => this.handleHttpError(error));
   }
 
-  async put(endpoint: string, data = {}, options: AxiosRequestConfig = {}, getRawResponse: boolean = false): Promise<any> {
+  async put(
+    endpoint: string,
+    data = {},
+    options: AxiosRequestConfig = {},
+    getRawResponse: boolean = false
+  ): Promise<any> {
     merge(options, this.getCommonOptions());
     return getRawResponse
       ? instance.put(`${this.BASE_URL}${endpoint}`, data, options)
-      : instance.put(`${this.BASE_URL}${endpoint}`, data, options)
-        .catch((error: any) => this.handleHttpError(error))
+      : instance.put(`${this.BASE_URL}${endpoint}`, data, options).catch((error: any) => this.handleHttpError(error));
   }
 
   async delete(endpoint: string, options: AxiosRequestConfig = {}, getRawResponse: boolean = false): Promise<any> {
     merge(options, this.getCommonOptions());
-    return getRawResponse 
-    ? instance.delete(`${this.BASE_URL}${endpoint}`, options)
-    : instance.delete(`${this.BASE_URL}${endpoint}`, options)
-      .catch((error: any) => this.handleHttpError(error))
+    return getRawResponse
+      ? instance.delete(`${this.BASE_URL}${endpoint}`, options)
+      : instance.delete(`${this.BASE_URL}${endpoint}`, options).catch((error: any) => this.handleHttpError(error));
   }
 
-  async patch(endpoint: string, data = {}, options: AxiosRequestConfig = {}, getRawResponse: boolean = false): Promise<any> {
+  async patch(
+    endpoint: string,
+    data = {},
+    options: AxiosRequestConfig = {},
+    getRawResponse: boolean = false
+  ): Promise<any> {
     merge(options, this.getCommonOptions());
-    return getRawResponse 
-    ? instance.patch(`${this.BASE_URL}${endpoint}`, data, options)
-    : instance.patch(`${this.BASE_URL}${endpoint}`, data, options)
-      .catch((error: any) => this.handleHttpError(error))
+    return getRawResponse
+      ? instance.patch(`${this.BASE_URL}${endpoint}`, data, options)
+      : instance.patch(`${this.BASE_URL}${endpoint}`, data, options).catch((error: any) => this.handleHttpError(error));
   }
 
   handleHttpError(error: any): any {
@@ -150,7 +158,23 @@ export default class BaseHttpService {
 
   getCommonOptions(): Record<string, unknown> {
     // Using httpOnly cookies; no Authorization header
-    return { withCredentials: true };
+    const options: Record<string, any> = {
+      withCredentials: true,
+      headers: {},
+    };
+
+    // Read locale from cookie and send it to backend
+    if (typeof document !== 'undefined') {
+      const cookies = document.cookie.split(';');
+      const localeCookie = cookies.find((c) => c.trim().startsWith('NEXT_LOCALE='));
+      if (localeCookie) {
+        const locale = localeCookie.split('=')[1];
+        // TODO: Send locale to backend via Accept-Language header (standard HTTP header)
+        // options.headers['Accept-Language'] = locale;
+      }
+    }
+
+    return options;
   }
 
   get newAccessToken(): string | null {

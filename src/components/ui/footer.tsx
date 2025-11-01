@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import LogoFooter from "./logo-footer";
+import { useTranslation } from '@/contexts/locale-context';
 
 export default function Footer({ border = false }: { border?: boolean }) {
+  const { tt } = useTranslation();
   return (
     <footer>
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -24,7 +28,7 @@ export default function Footer({ border = false }: { border?: boolean }) {
 
           {/* 2nd block */}
           <div className="space-y-2 sm:col-span-6 md:col-span-3 lg:col-span-2">
-            <h3 className="text-sm font-medium">Sản phẩm:</h3>
+            <h3 className="text-sm font-medium">{tt("Sản phẩm:", "Products:")}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
@@ -39,7 +43,7 @@ export default function Footer({ border = false }: { border?: boolean }) {
                   className="text-gray-600 transition hover:text-gray-900"
                   href="#0"
                 >
-                  Chìa khóa thông minh
+                  {tt("Chìa khóa thông minh", "Smart Key")}
                 </Link>
               </li>
               <li>
@@ -63,14 +67,14 @@ export default function Footer({ border = false }: { border?: boolean }) {
 
           {/* 3rd block */}
           <div className="space-y-2 sm:col-span-6 md:col-span-3 lg:col-span-2">
-            <h3 className="text-sm font-medium">Công ty:</h3>
+            <h3 className="text-sm font-medium">{tt("Công ty:", "Company:")}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
                   className="text-gray-600 transition hover:text-gray-900"
                   href="#0"
                 >
-                  Về chúng tôi
+                  {tt("Về chúng tôi", "About Us")}
                 </Link>
               </li>
               <li>
@@ -86,7 +90,7 @@ export default function Footer({ border = false }: { border?: boolean }) {
                   className="text-gray-600 transition hover:text-gray-900"
                   href="#0"
                 >
-                  Tuyển dụng
+                  {tt("Tuyển dụng", "Careers")}
                 </Link>
               </li>
             </ul>
@@ -94,14 +98,14 @@ export default function Footer({ border = false }: { border?: boolean }) {
 
           {/* 4th block */}
           <div className="space-y-2 sm:col-span-6 md:col-span-3 lg:col-span-2">
-            <h3 className="text-sm font-medium">Tài nguyên:</h3>
+            <h3 className="text-sm font-medium">{tt("Tài nguyên:", "Resources:")}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
                   className="text-gray-600 transition hover:text-gray-900"
                   href="#0"
                 >
-                  Điều khoản dịch vụ
+                  {tt("Điều khoản dịch vụ", "Terms of Service")}
                 </Link>
               </li>
               <li>
@@ -109,7 +113,7 @@ export default function Footer({ border = false }: { border?: boolean }) {
                   className="text-gray-600 transition hover:text-gray-900"
                   href="#0"
                 >
-                  Nguyên tắc bảo mật
+                  {tt("Nguyên tắc bảo mật", "Privacy Policy")}
                 </Link>
               </li>
             </ul>
@@ -117,7 +121,7 @@ export default function Footer({ border = false }: { border?: boolean }) {
 
           {/* 5th block */}
           <div className="space-y-2 sm:col-span-6 md:col-span-3 lg:col-span-2">
-            <h3 className="text-sm font-medium">Mạng xã hội:</h3>
+            <h3 className="text-sm font-medium">{tt("Mạng xã hội:", "Social Media:")}</h3>
             <ul className="flex gap-1">
               <li>
                 <Link

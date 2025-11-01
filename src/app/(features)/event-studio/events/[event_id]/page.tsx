@@ -24,6 +24,7 @@ import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/House
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import type { AxiosResponse } from 'axios';
 import { LocalizedLink } from '@/components/localized-link';
+import { useTranslation } from '@/contexts/locale-context';
 
 import { useState } from 'react';
 import { Schedules } from './schedules';
@@ -113,7 +114,7 @@ export interface CheckEventAgencyRegistrationAndEventApprovalRequestResponse {
 }
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
-
+  const { tt } = useTranslation();
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const { event_id: eventId } = params;
   const [description, setDescription] = React.useState<string>('');
@@ -221,7 +222,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       // Handle success response
       if (response.status === 200) {
-        notificationCtx.success("Yêu cầu nâng cấp thành Sự kiện Được xác thực đã được gửi thành công!");
+        notificationCtx.success(tt("Yêu cầu nâng cấp thành Sự kiện Được xác thực đã được gửi thành công!", "The request to upgrade to a Verified Event has been sent successfully!"));
         setEventAgencyRegistrationAndEventApprovalRequest(eventAgencyRegistrationAndEventApprovalRequest ? ({
           ...eventAgencyRegistrationAndEventApprovalRequest,
           eventApprovalRequest: 'waiting_for_acceptance'
@@ -310,50 +311,50 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             >
               <Stack spacing={1} direction={'row'}>
                 <Typography variant='caption' sx={{ pl: 2, minWidth: '130px', display: 'flex', alignItems: 'center' }}>
-                  Tính năng phổ biến:
+                  {tt("Tính năng phổ biến:", "Popular features:")}
                 </Typography>
                 {(eventId === 43 || eventId === 44) &&
                   <>
                     <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/${event?.slug}`} size="small">
-                      Tra cứu vị trí ngồi
+                      {tt("Tra cứu vị trí ngồi", "Check Seating")}
                     </Button>
                     <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/thiet-lap-tran-dau`} size="small">
-                      Thiết lập trận đấu
+                      {tt("Thiết lập trận đấu", "Setup Matches")}
                     </Button>
                   </>
                 }
                 <Button sx={{ minWidth: '190px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/event-detail`} size="small">
-                  Chỉnh sửa thông tin sự kiện
+                  {tt("Chỉnh sửa thông tin sự kiện", "Edit Event Information")}
                 </Button>
                 <Button sx={{ minWidth: '120px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/transactions/create`} size="small">
-                  Tạo giao dịch
+                  {tt("Tạo giao dịch", "Create Transaction")}
                 </Button>
                 <Button sx={{ minWidth: '100px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/check-in/qr`} size="small">
                   Check-in
                 </Button>
                 <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
-                  Thiết lập show diễn
+                  {tt("Thiết lập show diễn", "Setup Shows")}
                 </Button>
                 <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/shows`} size="small">
-                  Thiết lập loại vé
+                  {tt("Thiết lập loại vé", "Setup Ticket Categories")}
                 </Button>
                 {(eventId === 43 || eventId === 44) &&
                   <>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/shows`} size="small">
-                      Thay đổi tên bàn
+                      {tt("Thay đổi tên bàn", "Change Table Names")}
                     </Button>
                     <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
-                      Khóa/Mở khóa tra cứu
+                      {tt("Khóa/Mở khóa tra cứu", "Lock/Unlock Lookup")}
                     </Button>
                   </>
                 }
                 {eventId === 43 &&
                   <>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard`} size="small">
-                      Leaderboard Duo
+                      {tt("Leaderboard Duo", "Leaderboard Duo")}
                     </Button>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
-                      Sơ đồ trận Lobby
+                      {tt("Sơ đồ trận Lobby", "Lobby Bracket")}
                     </Button>
                   </>
 
@@ -361,19 +362,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 {eventId == 44 &&
                   <>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-a`} size="small">
-                      Leaderboard Solo A
+                      {tt("Leaderboard Solo A", "Leaderboard Solo A")}
                     </Button>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-b`} size="small">
-                      Leaderboard Solo B
+                      {tt("Leaderboard Solo B", "Leaderboard Solo B")}
                     </Button>
                     <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-arena`} size="small">
-                      Leaderboard Solo Arena
+                      {tt("Leaderboard Solo Arena", "Leaderboard Solo Arena")}
                     </Button>
                     <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-arena-final`} size="small">
-                      Leaderboard Solo Final
+                      {tt("Leaderboard Solo Final", "Leaderboard Solo Final")}
                     </Button>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
-                      Sơ đồ trận Lobby
+                      {tt("Sơ đồ trận Lobby", "Lobby Bracket")}
                     </Button>
                   </>
                 }
@@ -405,7 +406,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <Stack direction="row" spacing={1}>
                     <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      Đơn vị tổ chức: {event?.organizer}
+                      {tt("Đơn vị tổ chức:", "Organizer:")} {event?.organizer}
                     </Typography>
                   </Stack>
                   <Stack direction="row" spacing={1}>
@@ -413,22 +414,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event?.startDateTime && event?.endDateTime
                         ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : 'Chưa xác định'} {event?.timeInstruction ? `(${event.timeInstruction})` : ''}
+                        : tt('Chưa xác định', 'Not specified')} {event?.timeInstruction ? `(${event.timeInstruction})` : ''}
                     </Typography>
                   </Stack>
 
                   <Stack direction="row" spacing={1}>
                     <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {event?.place ? event?.place : 'Chưa xác định'} {event?.locationInstruction ? `(${event.locationInstruction})` : ''}
+                      {event?.place ? event?.place : tt('Chưa xác định', 'Not specified')} {event?.locationInstruction ? `(${event.locationInstruction})` : ''}
                     </Typography>
                   </Stack>
 
                   <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                     <Storefront fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {event?.displayOnMarketplace ? "Có thể truy cập từ Marketplace" : 'Chỉ có thể truy cập bằng link'}
-                      <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> Thay đổi</a>
+                      {event?.displayOnMarketplace ? tt("Có thể truy cập từ Marketplace", "Accessible from Marketplace") : tt('Chỉ có thể truy cập bằng link', 'Only accessible via link')}
+                      <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> {tt("Thay đổi", "Change")}</a>
                     </Typography>
                   </Stack>
 
@@ -437,13 +438,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Eye fontSize="var(--icon-fontSize-sm)" />
                     {event?.displayOption !== 'display_with_everyone' ?
                       <Typography display="inline" variant="body2" sx={{ color: 'warning.main' }}>
-                        Sự kiện không hiển thị công khai
-                        <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> Thay đổi</a>
+                        {tt("Sự kiện không hiển thị công khai", "Event not publicly visible")}
+                        <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> {tt("Thay đổi", "Change")}</a>
                       </Typography>
                       :
                       <Typography display="inline" variant="body2" color="text.secondary">
-                        Đang hiển thị công khai
-                        <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> Thay đổi</a>
+                        {tt("Đang hiển thị công khai", "Publicly visible")}
+                        <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> {tt("Thay đổi", "Change")}</a>
                       </Typography>
                     }
                   </Stack>
@@ -458,7 +459,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     size="small"
                     endIcon={<ArrowSquareIn />}
                   >
-                    Đến trang Khách hàng tự đăng ký vé
+                    {tt("Đến trang khách hàng tự đăng ký vé", "Go to Customer Registration Page")}
                   </Button>
                 </Box>
                 <Box sx={{ mt: 2.5 }}>
@@ -478,9 +479,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                 sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, lineHeight: 1 }}
                               >
                                 <CheckCircle size={16} weight="fill" />
-                                Sự kiện Được xác thực
+                                {tt("Sự kiện Được xác thực", "Verified Event")}
                               </Box>
-                              <small>bán vé có thanh toán online, gửi email marketing,...</small>
+                              <small>{tt("bán vé có thanh toán online, gửi email marketing,...", "sell tickets with online payment, send marketing emails,...")}</small>
                             </Stack>
                           </Button>
                         )}
@@ -492,7 +493,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             disabled
                           >
                             <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                              <span>Sự kiện đang chờ duyệt</span>
+                              <span>{tt("Sự kiện đang chờ duyệt", "Event Pending Approval")}</span>
                             </Stack>
                           </Button>
                         )}
@@ -505,8 +506,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             onClick={handleRequestEventApprovalClick}
                           >
                             <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                              <small color='error'>Yêu cầu nâng cấp bị từ chối</small>
-                              <span>Nhấn để yêu cầu lại</span>
+                              <small color='error'>{tt("Yêu cầu nâng cấp bị từ chối", "Upgrade Request Rejected")}</small>
+                              <span>{tt("Nhấn để yêu cầu lại", "Click to Request Again")}</span>
                             </Stack>
                           </Button>
                         )}
@@ -518,8 +519,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             onClick={handleRequestEventApprovalClick}
                           >
                             <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                              <span>nâng cấp thành Sự kiện Được xác thực</span>
-                              <small>Để bật thanh toán online, gửi email marketing,...</small>
+                              <span>{tt("nâng cấp thành Sự kiện Được xác thực", "Upgrade to Verified Event")}</span>
+                              <small>{tt("Để bật thanh toán online, gửi email marketing,...", "To enable online payment, send marketing emails,...")}</small>
                             </Stack>
                           </Button>
                         )}
@@ -532,50 +533,50 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <Card sx={{ height: '100%', overflowX: 'auto', display: { xs: 'block', sm: 'block', md: 'none' } }}>
               <Stack spacing={1} direction={'row'}>
                 <Typography variant='caption' sx={{ pl: 2, minWidth: '130px', display: 'flex', alignItems: 'center' }}>
-                  Tính năng phổ biến:
+                  {tt("Tính năng phổ biến:", "Popular features:")}
                 </Typography>
                 {(eventId === 43 || eventId === 44) &&
                   <>
                     <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/${event?.slug}`} size="small">
-                      Tra cứu vị trí ngồi
+                      {tt("Tra cứu vị trí ngồi", "Check Seating")}
                     </Button>
                     <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/thiet-lap-tran-dau`} size="small">
-                      Thiết lập trận đấu
+                      {tt("Thiết lập trận đấu", "Setup Matches")}
                     </Button>
                   </>
                 }
                 <Button sx={{ minWidth: '210px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/event-detail`} size="small">
-                  Chỉnh sửa thông tin sự kiện
+                  {tt("Chỉnh sửa thông tin sự kiện", "Edit Event Information")}
                 </Button>
                 <Button sx={{ minWidth: '120px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/transactions/create`} size="small">
-                  Tạo giao dịch
+                  {tt("Tạo giao dịch", "Create Transaction")}
                 </Button>
                 <Button sx={{ minWidth: '100px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/check-in/qr`} size="small">
                   Check-in
                 </Button>
                 <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
-                  Thiết lập show diễn
+                  {tt("Thiết lập show diễn", "Setup Shows")}
                 </Button>
                 <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/shows`} size="small">
-                  Thiết lập loại vé
+                  {tt("Thiết lập loại vé", "Setup Ticket Categories")}
                 </Button>
                 {(eventId === 43 || eventId === 44) &&
                   <>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/shows`} size="small">
-                      Thay đổi tên bàn
+                      {tt("Thay đổi tên bàn", "Change Table Names")}
                     </Button>
                     <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
-                      Khóa/Mở khóa tra cứu
+                      {tt("Khóa/Mở khóa tra cứu", "Lock/Unlock Lookup")}
                     </Button>
                   </>
                 }
                 {eventId === 43 &&
                   <>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard`} size="small">
-                      Leaderboard Duo
+                      {tt("Leaderboard Duo", "Leaderboard Duo")}
                     </Button>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
-                      Sơ đồ trận Lobby
+                      {tt("Sơ đồ trận Lobby", "Lobby Bracket")}
                     </Button>
                   </>
 
@@ -583,19 +584,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 {eventId == 44 &&
                   <>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-a`} size="small">
-                      Leaderboard Solo A
+                      {tt("Leaderboard Solo A", "Leaderboard Solo A")}
                     </Button>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-b`} size="small">
-                      Leaderboard Solo B
+                      {tt("Leaderboard Solo B", "Leaderboard Solo B")}
                     </Button>
                     <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-arena`} size="small">
-                      Leaderboard Solo Arena
+                      {tt("Leaderboard Solo Arena", "Leaderboard Solo Arena")}
                     </Button>
                     <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-arena-final`} size="small">
-                      Leaderboard Solo Final
+                      {tt("Leaderboard Solo Final", "Leaderboard Solo Final")}
                     </Button>
                     <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
-                      Sơ đồ trận Lobby
+                      {tt("Sơ đồ trận Lobby", "Lobby Bracket")}
                     </Button>
                   </>
                 }
@@ -615,7 +616,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
                   <Stack spacing={1}>
                     <Typography color="text.secondary" variant="overline">
-                      Tổng doanh thu
+                      {tt("Tổng doanh thu", "Total Revenue")}
                     </Typography>
                     <Typography variant="h4">
                       {eventOverview?.countTotalRevenue.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
@@ -633,7 +634,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </Typography>
                     </Stack>
                     <Typography color="text.secondary" variant="caption">
-                      Đơn hàng
+                      {tt("Đơn hàng", "Orders")}
                     </Typography>
                   </Stack>
                   <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
@@ -643,7 +644,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </Typography>
                     </Stack>
                     <Typography color="text.secondary" variant="caption">
-                      Vé
+                      {tt("Vé", "Tickets")}
                     </Typography>
                   </Stack>
                 </Stack>
@@ -659,7 +660,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
                   <Stack spacing={1}>
                     <Typography color="text.secondary" variant="overline">
-                      Đã hoàn tất
+                      {tt("Đã hoàn tất", "Completed")}
                     </Typography>
                     <Typography variant="h4">
                       {eventOverview?.countCompletedRevenue.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
@@ -678,7 +679,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         </Typography>
                       </Stack>
                       <Typography color="text.secondary" variant="caption">
-                        Đơn hàng đã xuất
+                        {tt("Đơn hàng đã xuất", "Orders Issued")}
                       </Typography>
                     </Stack>
                     <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
@@ -688,14 +689,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         </Typography>
                       </Stack>
                       <Typography color="text.secondary" variant="caption" >
-                        Vé
+                        {tt("Vé", "Tickets")}
                       </Typography>
                     </Stack>
                   </Stack>
 
                   <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
                     <Typography color="primary" variant="caption" component={Button} onClick={() => setOpenCashWithdrawalModal(true)}>
-                      Rút tiền ?
+                      {tt("Rút tiền ?", "Withdraw ?")}
                     </Typography>
                   </Stack>
                 </div>
@@ -710,7 +711,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
                   <Stack spacing={1}>
                     <Typography color="text.secondary" variant="overline">
-                      Đang chờ
+                      {tt("Đang chờ", "Pending")}
                     </Typography>
                     <Typography variant="h4">
                       {eventOverview?.countPendingRevenue.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
@@ -728,7 +729,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </Typography>
                     </Stack>
                     <Typography color="text.secondary" variant="caption">
-                      Đơn hàng chưa xuất
+                      {tt("Đơn hàng chưa xuất", "Orders Not Issued")}
                     </Typography>
                   </Stack>
                   <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
@@ -738,7 +739,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </Typography>
                     </Stack>
                     <Typography color="text.secondary" variant="caption">
-                      Vé
+                      {tt("Vé", "Tickets")}
                     </Typography>
                   </Stack>
                 </Stack>
@@ -753,7 +754,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
                   <Stack spacing={1}>
                     <Typography color="text.secondary" variant="overline">
-                      Đơn hủy
+                      {tt("Đơn hủy", "Cancelled Orders")}
                     </Typography>
                     <Typography variant="h4">
                       {eventOverview?.countCancelledTransactions}
@@ -771,7 +772,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </Typography>
                     </Stack>
                     <Typography color="text.secondary" variant="caption">
-                      Khóa bởi nhân viên
+                      {tt("Khóa bởi nhân viên", "Locked by Staff")}
                     </Typography>
                   </Stack>
                   <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
@@ -781,7 +782,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </Typography>
                     </Stack>
                     <Typography color="text.secondary" variant="caption">
-                      Hủy bởi khách hàng
+                      {tt("Hủy bởi khách hàng", "Cancelled by Customer")}
                     </Typography>
                   </Stack>
                 </Stack>
@@ -796,7 +797,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
                   <Stack spacing={1}>
                     <Typography color="text.secondary" variant="overline">
-                      hủy chưa t.toán
+                      {tt("hủy chưa t.toán", "Cancelled Before Payment")}
                     </Typography>
                     <Typography variant="h4">{eventOverview?.countCancelledBeforePaymentTransactions}</Typography>
                   </Stack>
@@ -834,7 +835,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
                   <Stack spacing={1}>
                     <Typography color="text.secondary" variant="overline">
-                      hủy sau thanh toán
+                      {tt("hủy sau thanh toán", "Cancelled After Payment")}
                     </Typography>
                     <Typography variant="h4">
                       {eventOverview?.countCancelledAfterPaymentTransactions}
@@ -877,7 +878,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
                   <Stack spacing={1}>
                     <Typography color="text.secondary" variant="overline">
-                      đã hoàn tiền
+                      {tt("đã hoàn tiền", "Refunded")}
                     </Typography>
                     <Typography variant="h4">
                       {eventOverview?.countRefundedTransactions}
@@ -896,7 +897,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </Typography>
                     </Stack>
                     <Typography color="text.secondary" variant="caption">
-                      Vé
+                      {tt("Vé", "Tickets")}
                     </Typography>
                   </Stack>
                   <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
@@ -1023,7 +1024,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Grid> */}
       </Grid>
       <Stack spacing={3} sx={{ mt: 5 }}>
-        <Typography variant="h4">Suất diễn & loại vé</Typography>
+        <Typography variant="h4">{tt("Suất diễn & loại vé", "Shows & Ticket Categories")}</Typography>
         <Grid container spacing={3}>
           <Grid lg={5} md={5} xs={12} spacing={3}>
             <Stack spacing={3}>
@@ -1055,7 +1056,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           >
             <CardContent>
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                Để rút tiền, quý khách vui lòng gửi email với tiêu đề <b>"Yêu cầu rút tiền sự kiện {event?.name}"</b> từ địa chỉ email <b>{event?.organizerEmail}</b> của quý khách đến địa chỉ email <b>tienphongsmart@gmail.com</b>. Chúng tôi sẽ hỗ trợ trong thời gian 24h kể từ khi nhận được yêu cầu. Xin cảm ơn!
+                {tt(
+                  `Để rút tiền, quý khách vui lòng gửi email với tiêu đề "Yêu cầu rút tiền sự kiện ${event?.name}" từ địa chỉ email ${event?.organizerEmail} của quý khách đến địa chỉ email tienphongsmart@gmail.com. Chúng tôi sẽ hỗ trợ trong thời gian 24h kể từ khi nhận được yêu cầu. Xin cảm ơn!`,
+                  `To withdraw funds, please send an email with the subject "Withdrawal request for event ${event?.name}" from your email address ${event?.organizerEmail} to tienphongsmart@gmail.com. We will assist you within 24 hours of receiving the request. Thank you!`
+                )}
               </Typography>
             </CardContent>
           </Card>
@@ -1080,35 +1084,35 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               boxShadow: 24,
             }}
           >
-            <CardHeader title='Quy định chung' />
+            <CardHeader title={tt('Quy định chung', 'General Regulations')} />
             <Divider />
             <CardContent>
               <Stack spacing={1} textAlign={'justify'}>
                 <Typography variant="body2">
-                  <b>Để sự kiện được nâng cấp thành Sự kiện Được xác thực, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:</b>
+                  <b>{tt("Để sự kiện được nâng cấp thành Sự kiện Được xác thực, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:", "To upgrade your event to a Verified Event, the event organizer must comply with the following regulations before submitting the request:")}</b>
                 </Typography>
                 <Typography variant="body2">
-                  - Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.
+                  {tt("- Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.", "- The event must have complete information including name, description, organizer, banner image, and avatar.")}
                 </Typography>
                 <Typography variant="body2">
-                  - Thời gian và địa điểm rõ ràng, chính xác. Hạn chế thay đổi thông tin về thời gian, địa điểm và phải thông báo cho ETIK trước khi thay đổi.
+                  {tt("- Thời gian và địa điểm rõ ràng, chính xác. Hạn chế thay đổi thông tin về thời gian, địa điểm và phải thông báo cho ETIK trước khi thay đổi.", "- Clear and accurate time and location. Minimize changes to time and location information and must notify ETIK before making changes.")}
                 </Typography>
                 <Typography variant="body2">
-                  - Chính sách Giá vé, chính sách hoàn trả, hủy vé rõ ràng, minh bạch.
+                  {tt("- Chính sách Giá vé, chính sách hoàn trả, hủy vé rõ ràng, minh bạch.", "- Clear and transparent ticket pricing, refund policy, and cancellation policy.")}
                 </Typography>
                 <Typography variant="body2">
-                  - Sự kiện tuân thủ quy định của pháp luật Việt Nam, phù hợp chuẩn mực đạo đức, thuần phong mỹ tục.
+                  {tt("- Sự kiện tuân thủ quy định của pháp luật Việt Nam, phù hợp chuẩn mực đạo đức, thuần phong mỹ tục.", "- The event must comply with Vietnamese law and be consistent with ethical standards and good customs.")}
                 </Typography>
                 <Typography variant="body2">
-                  - Cung cấp cho ETIK các thông tin, giấy tờ để xác minh khi được yêu cầu.
+                  {tt("- Cung cấp cho ETIK các thông tin, giấy tờ để xác minh khi được yêu cầu.", "- Provide ETIK with information and documents for verification when requested.")}
                 </Typography>
                 <Typography variant="body2">
-                  Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH <b>0333.247.242</b> hoặc email <b>tienphongsmart@gmail.com</b>
+                  {tt("Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH 0333.247.242 hoặc email tienphongsmart@gmail.com", "If you need support, please contact Customer Service Hotline 0333.247.242 or email tienphongsmart@gmail.com")}
                 </Typography>
               </Stack>
               <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
                 <Button variant="contained" color="primary" onClick={handleSendRequestEventApproval} disabled={isLoading}>
-                  Gửi yêu cầu
+                  {tt("Gửi yêu cầu", "Submit Request")}
                 </Button>
               </Grid>
             </CardContent>

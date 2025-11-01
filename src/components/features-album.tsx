@@ -12,6 +12,7 @@ import Feature5 from "@/images/tinh_nang_5.png";
 import CustomerMixiCup from "@/images/customer-mixicup.jpg";
 import CustomerRefundMeeting from "@/images/customer-refund-meeting.png";
 import CustomerGeforce from "@/images/customer-geforce-fans-party.jpg";
+import { useTranslation } from '@/contexts/locale-context';
 
 import { Swiper, SwiperSlide } from 'swiper/react';
 
@@ -22,13 +23,14 @@ import 'swiper/css/pagination';
 import 'swiper/css/scrollbar';
 
 export default function FeaturesAlbum() {
+  const { tt } = useTranslation();
   return (
     <section>
       <div className="mx-auto max-w-2xl px-4 sm:px-6">
         <div className="py-12 md:py-20">
           <div className="space-y-3 text-center">
             <h2 className="mb-6 border-y text-3xl font-bold text-gray-700 [border-image:linear-gradient(to_right,transparent,theme(colors.slate.700/.7),transparent)1] md:mb-12 md:text-4xl">
-              Tính năng của ETIK
+              {tt("Tính năng của ETIK", "ETIK Features")}
             </h2>
             <Swiper
               modules={[Navigation, Pagination, A11y]}

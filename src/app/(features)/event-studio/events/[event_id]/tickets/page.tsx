@@ -20,6 +20,7 @@ import { ArrowCounterClockwise, Empty, MicrosoftExcelLogo, X } from '@phosphor-i
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { debounce } from 'lodash';
 import { LocalizedLink } from '@/components/localized-link';
+import { useTranslation } from '@/contexts/locale-context';
 
 import { TicketsTable } from './tickets-table';
 
@@ -88,9 +89,10 @@ interface Filter {
 }
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  const { tt } = useTranslation();
   React.useEffect(() => {
-    document.title = "Danh sách khách hàng & vé | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Danh sách khách hàng & vé | ETIK - Vé điện tử & Quản lý sự kiện", "Customer & Ticket List | ETIK - E-tickets & Event Management");
+  }, [tt]);
   const [tickets, setTickets] = React.useState<Ticket[]>([]);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
@@ -358,16 +360,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       </Backdrop>{' '}
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Danh sách khách hàng & vé</Typography>
+          <Typography variant="h4">{tt("Danh sách khách hàng & vé", "Customer & Ticket List")}</Typography>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={fetchTickets}>
-              Tải lại
+              {tt("Tải lại", "Reload")}
             </Button>
             <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />} onClick={handleExportExcel}>
-              Xuất file excel
+              {tt("Xuất file excel", "Export Excel")}
             </Button>
             <Button color="inherit" startIcon={<MicrosoftExcelLogo fontSize="var(--icon-fontSize-md)" />}>
-              Đồng bộ Google Sheets
+              {tt("Đồng bộ Google Sheets", "Sync Google Sheets")}
             </Button>
           </Stack>
         </Stack>
@@ -378,7 +380,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             href="transactions/create"
             variant="contained"
           >
-            Thêm
+            {tt("Thêm", "Add")}
           </Button>
         </div>
       </Stack>
@@ -388,7 +390,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <OutlinedInput
               fullWidth
               defaultValue={querySearch}
-              placeholder="Tìm kiếm khách hàng và vé..."
+              placeholder={tt("Tìm kiếm khách hàng và vé...", "Search customers and tickets...")}
               onChange={handleSearchTickets}
               startAdornment={
                 <InputAdornment position="start">

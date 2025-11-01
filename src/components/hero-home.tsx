@@ -7,12 +7,13 @@ import Avatar03 from "@/images/avatar-03.jpg";
 import Avatar04 from "@/images/avatar-04.jpg";
 import Avatar05 from "@/images/avatar-05.jpg";
 import Avatar06 from "@/images/avatar-06.jpg";
-
+import { useTranslation } from '@/contexts/locale-context';
 
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 
 export default function HeroHome() {
+  const { tt } = useTranslation();
   const [showPopup, setShowPopup] = useState(false);
 
   const handleCreateEvent = async (e: FormEvent<HTMLFormElement>) => {
@@ -111,14 +112,14 @@ export default function HeroHome() {
               data-aos="zoom-y-out"
               data-aos-delay={150}
             >
-              Tạo sự kiện và Bán vé ?
+              {tt("Tạo sự kiện và Bán vé ?", "Create Events and Sell Tickets?")}
             </h1>
             <h1
               className="mb-6 border-y text-5xl font-bold [border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1] md:text-6xl"
               data-aos="zoom-y-out"
               data-aos-delay={850}
             >
-              Thật dễ dàng với ETIK
+              {tt("Thật dễ dàng với ETIK", "So Easy with ETIK")}
             </h1>
             <div className="mx-auto max-w-3xl">
               <p
@@ -126,7 +127,7 @@ export default function HeroHome() {
                 data-aos="zoom-y-out"
                 data-aos-delay={1000}
               >
-                ETIK giúp bạn tạo sự kiện và bán vé nhanh chóng, tiện lợi và tiết kiệm. Không những thế, loạt tính năng hỗ trợ sự kiện đi kèm giúp sự kiện của bạn trở nên hiện đại và chuyên nghiệp hơn bao giờ hết. Khám phá ngay ! 
+                {tt("ETIK giúp bạn tạo sự kiện và bán vé nhanh chóng, tiện lợi và tiết kiệm. Không những thế, loạt tính năng hỗ trợ sự kiện đi kèm giúp sự kiện của bạn trở nên hiện đại và chuyên nghiệp hơn bao giờ hết. Khám phá ngay !", "ETIK helps you create events and sell tickets quickly, conveniently, and economically. Moreover, a series of accompanying event support features make your event more modern and professional than ever. Explore now!")}
               </p>
               
               <div className="relative before:absolute before:inset-0 before:border-y before:[border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1]">
@@ -140,7 +141,7 @@ export default function HeroHome() {
                     href="#create-your-event"
                   >
                     <span className="relative inline-flex items-center">
-                      <span style={{marginRight: '10px'}}>Bạn là Nhà tổ chức sự kiện?</span>{" "}<b> Tạo sự kiện ngay</b>
+                      <span style={{marginRight: '10px'}}>{tt("Bạn là Nhà tổ chức sự kiện?", "Are you an Event Organizer?")}</span>{" "}<b>{tt("Tạo sự kiện ngay", "Create Event Now")}</b>
                       {/* <span className="ml-1 tracking-normal text-blue-300 transition-transform group-hover:translate-x-0.5">
                         -&gt;
                       </span> */}
@@ -151,7 +152,7 @@ export default function HeroHome() {
                     href="/marketplace"
                   >
                     <span className="relative inline-flex items-center">
-                    <span style={{marginRight: '10px'}}>Bạn là khách hàng?</span><b> Đặt vé ngay</b>
+                    <span style={{marginRight: '10px'}}>{tt("Bạn là khách hàng?", "Are you a customer?")}</span><b>{tt("Đặt vé ngay", "Book Tickets Now")}</b>
                     </span>
                     
                   </Link>

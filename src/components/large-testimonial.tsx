@@ -1,7 +1,11 @@
+"use client";
+
 import Image from "next/image";
 import TestimonialImg from "@/images/a.jpg";
+import { useTranslation } from '@/contexts/locale-context';
 
 export default function LargeTestimonial() {
+  const { tt } = useTranslation();
   return (
     <section>
       <div className="mx-auto max-w-2xl px-4 sm:px-6">
@@ -30,13 +34,13 @@ export default function LargeTestimonial() {
               />
             </div>
             <p className="text-2xl font-bold text-gray-900">
-              "Nhờ ETIK, chúng tôi có thể kiểm soát số lượng vé bán ra, tránh gian lận và đảm bảo trải nghiệm tốt nhất cho khách hàng. Đặc biệt, đội ngũ hỗ trợ ETIK luôn sẵn sàng giải quyết mọi vấn đề của tôi nhanh chóng."
+              {tt('"Nhờ ETIK, chúng tôi có thể kiểm soát số lượng vé bán ra, tránh gian lận và đảm bảo trải nghiệm tốt nhất cho khách hàng. Đặc biệt, đội ngũ hỗ trợ ETIK luôn sẵn sàng giải quyết mọi vấn đề của tôi nhanh chóng."', '"Thanks to ETIK, we can control the number of tickets sold, prevent fraud, and ensure the best experience for customers. Especially, the ETIK support team is always ready to solve my problems quickly."')}
             </p>
             <div className="text-sm font-medium text-gray-500">
-              <span className="text-gray-700">Bùi Quang Minh</span>{" "}
+              <span className="text-gray-700">{tt("Bùi Quang Minh", "Bui Quang Minh")}</span>{" "}
               <span className="text-gray-400">/</span>{" "}
               <a className="text-blue-500" href="#0">
-                Creative Project Manager tại 500Bros Media
+                {tt("Creative Project Manager tại 500Bros Media", "Creative Project Manager at 500Bros Media")}
               </a>
             </div>
           </div>

@@ -1,8 +1,22 @@
 'use client';
 
-import NotificationContext from '@/contexts/notification-context';
+import * as React from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Avatar, Box, CardMedia, Container, FormHelperText, IconButton, InputAdornment, MenuItem, Modal, Select, Stack, TextField } from '@mui/material';
+import {
+  Avatar,
+  Box,
+  CardMedia,
+  Container,
+  FormHelperText,
+  IconButton,
+  InputAdornment,
+  MenuItem,
+  Modal,
+  Select,
+  Stack,
+  TextField,
+} from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -23,12 +37,14 @@ import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { Pencil as PencilIcon } from '@phosphor-icons/react/dist/ssr/Pencil';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
+import ReactQuill from 'react-quill';
+
+import { useTranslation } from '@/contexts/locale-context';
+import NotificationContext from '@/contexts/notification-context';
 import { LocalizedLink } from '@/components/localized-link';
 
-import * as React from 'react';
-import { useCallback, useEffect, useState } from 'react';
-import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+
 import SendRequestEventAgencyAndEventApproval from '../../../../../../components/events/event/send-request-event-agency-and-event-approval';
 
 // Define the event response type
@@ -61,7 +77,7 @@ export interface CheckEventAgencyRegistrationAndEventApprovalRequestResponse {
 }
 
 export interface SMTPConfig {
-  smtpProvider: "use_etik_smtp" | "use_custom_smtp";
+  smtpProvider: 'use_etik_smtp' | 'use_custom_smtp';
   smtpHost?: string;
   smtpPort?: number;
   smtpUsername?: string;
@@ -71,9 +87,13 @@ export interface SMTPConfig {
   smtpSenderEmail?: string;
 }
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  const { tt } = useTranslation();
   React.useEffect(() => {
-    document.title = "Thông tin & Hiển thị  | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt(
+      'Thông tin & Hiển thị | ETIK - Vé điện tử & Quản lý sự kiện',
+      'Information & Display | ETIK - E-tickets & Event Management'
+    );
+  }, [tt]);
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
   const { event_id } = params;
@@ -87,21 +107,21 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const [previewAvatarUrl, setPreviewAvatarUrl] = useState<string>(event?.avatarUrl || '');
   const [isAvatarSelected, setIsAvatarSelected] = useState(false);
-  const [eventAgencyRegistrationAndEventApprovalRequest, setEventAgencyRegistrationAndEventApprovalRequest] = useState<CheckEventAgencyRegistrationAndEventApprovalRequestResponse | null>(null);
+  const [eventAgencyRegistrationAndEventApprovalRequest, setEventAgencyRegistrationAndEventApprovalRequest] =
+    useState<CheckEventAgencyRegistrationAndEventApprovalRequestResponse | null>(null);
   const [openEventAgencyRegistrationModal, setOpenEventAgencyRegistrationModal] = useState(false);
   const [openConfirmSubmitEventApprovalModal, setOpenConfirmSubmitEventApprovalModal] = useState(false);
 
   const [smtpFormValues, setSmtpFormValues] = useState<SMTPConfig>({
     smtpProvider: 'use_etik_smtp',
-    smtpHost: "",
+    smtpHost: '',
     smtpPort: undefined,
-    smtpUsername: "",
-    smtpPassword: "",
+    smtpUsername: '',
+    smtpPassword: '',
     smtpUseTls: true,
     smtpUseSsl: false,
-    smtpSenderEmail: "",
+    smtpSenderEmail: '',
   });
-
 
   useEffect(() => {
     async function fetchData() {
@@ -143,7 +163,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     if (!eventAgencyRegistrationAndEventApprovalRequest?.eventAgencyRegistration) {
       setOpenEventAgencyRegistrationModal(true); // Show modal if eventAgencyRegistration is false
     } else {
-      setOpenConfirmSubmitEventApprovalModal(true)
+      setOpenConfirmSubmitEventApprovalModal(true);
     }
   };
 
@@ -157,13 +177,21 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       // Handle success response
       if (response.status === 200) {
-        notificationCtx.success("Yêu cầu nâng cấp thành Sự kiện Được xác thực đã được gửi thành công!");
-        setEventAgencyRegistrationAndEventApprovalRequest(eventAgencyRegistrationAndEventApprovalRequest ? ({
-          ...eventAgencyRegistrationAndEventApprovalRequest,
-          eventApprovalRequest: 'waiting_for_acceptance'
-        }) : eventAgencyRegistrationAndEventApprovalRequest)
-        setOpenConfirmSubmitEventApprovalModal(false)
-
+        notificationCtx.success(
+          tt(
+            'Yêu cầu nâng cấp thành Sự kiện Được xác thực đã được gửi thành công!',
+            'The request to upgrade to a Verified Event has been sent successfully!'
+          )
+        );
+        setEventAgencyRegistrationAndEventApprovalRequest(
+          eventAgencyRegistrationAndEventApprovalRequest
+            ? {
+                ...eventAgencyRegistrationAndEventApprovalRequest,
+                eventApprovalRequest: 'waiting_for_acceptance',
+              }
+            : eventAgencyRegistrationAndEventApprovalRequest
+        );
+        setOpenConfirmSubmitEventApprovalModal(false);
       }
     } catch (error: any) {
       notificationCtx.error(error);
@@ -173,12 +201,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const handleOnCloseEventAgencyRegistrationModal = () => {
-    setOpenEventAgencyRegistrationModal(false)
-    setEventAgencyRegistrationAndEventApprovalRequest(eventAgencyRegistrationAndEventApprovalRequest ? ({
-      ...eventAgencyRegistrationAndEventApprovalRequest,
-      eventApprovalRequest: 'waiting_for_acceptance'
-    }) : eventAgencyRegistrationAndEventApprovalRequest)
-  }
+    setOpenEventAgencyRegistrationModal(false);
+    setEventAgencyRegistrationAndEventApprovalRequest(
+      eventAgencyRegistrationAndEventApprovalRequest
+        ? {
+            ...eventAgencyRegistrationAndEventApprovalRequest,
+            eventApprovalRequest: 'waiting_for_acceptance',
+          }
+        : eventAgencyRegistrationAndEventApprovalRequest
+    );
+  };
 
   const handleSmtpInputChange = (event: React.ChangeEvent<{ name?: string; value: unknown }>) => {
     setSmtpFormValues((prevValues) => ({
@@ -191,7 +223,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     try {
       setIsLoading(true);
       await saveSMTPSettings(event_id, smtpFormValues);
-      notificationCtx.success("Cấu hình SMTP đã được lưu thành công!");
+      notificationCtx.success('Cấu hình SMTP đã được lưu thành công!');
     } catch (error) {
       notificationCtx.error(error);
     } finally {
@@ -219,26 +251,32 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     try {
       // Call API to upload the avatar
       setIsLoading(true);
-      await baseHttpServiceInstance.post(`/event-studio/events/${event?.id}/upload-avatar`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
+      await baseHttpServiceInstance.post(
+        `/event-studio/events/${event?.id}/upload-avatar`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         },
-      }, true);
+        true
+      );
 
       // On successful upload, reload the page or update the avatar state
       window.location.reload(); // Optionally, you could call a function to update the state instead of reloading
     } catch (error: any) {
       const message =
         // 1) If it’s a JS Error instance
-        error instanceof Error ? error.message
-          // 2) If it’s an AxiosError with a response body
-          : error.response?.data?.message
+        error instanceof Error
+          ? error.message
+          : // 2) If it’s an AxiosError with a response body
+            error.response?.data?.message
             ? error.response.data.message
-            // 3) If it’s a plain string
-            : typeof error === 'string'
+            : // 3) If it’s a plain string
+              typeof error === 'string'
               ? error
-              // 4) Fallback to JSON‐dump of the object
-              : JSON.stringify(error);
+              : // 4) Fallback to JSON‐dump of the object
+                JSON.stringify(error);
       notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
     } finally {
       setIsLoading(false);
@@ -272,26 +310,32 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     try {
       // Call API to upload the image
       setIsLoading(true);
-      await baseHttpServiceInstance.post(`/event-studio/events/${event?.id}/upload_banner`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
+      await baseHttpServiceInstance.post(
+        `/event-studio/events/${event?.id}/upload_banner`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         },
-      }, true);
+        true
+      );
 
       // On successful upload, reload the page or handle success
       window.location.reload(); // You can also call a function to update the state instead of reloading
     } catch (error: any) {
       const message =
         // 1) If it’s a JS Error instance
-        error instanceof Error ? error.message
-          // 2) If it’s an AxiosError with a response body
-          : error.response?.data?.message
+        error instanceof Error
+          ? error.message
+          : // 2) If it’s an AxiosError with a response body
+            error.response?.data?.message
             ? error.response.data.message
-            // 3) If it’s a plain string
-            : typeof error === 'string'
+            : // 3) If it’s a plain string
+              typeof error === 'string'
               ? error
-              // 4) Fallback to JSON‐dump of the object
-              : JSON.stringify(error);
+              : // 4) Fallback to JSON‐dump of the object
+                JSON.stringify(error);
       notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
     } finally {
       setIsLoading(false);
@@ -352,11 +396,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const handleCopyToClipboard = (data: string) => {
-    navigator.clipboard.writeText(data).then(() => {
-      notificationCtx.success("Đã sao chép vào bộ nhớ tạm"); // Show success message
-    }).catch(() => {
-      notificationCtx.warning("Không thể sao chép, vui lòng thử lại"); // Handle errors
-    });
+    navigator.clipboard
+      .writeText(data)
+      .then(() => {
+        notificationCtx.success('Đã sao chép vào bộ nhớ tạm'); // Show success message
+      })
+      .catch(() => {
+        notificationCtx.warning('Không thể sao chép, vui lòng thử lại'); // Handle errors
+      });
   };
 
   // Image Upload Handler
@@ -399,48 +446,51 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   }, []);
 
   // Paste image handler (Ctrl+V)
-  const handlePaste = useCallback(async (e: ClipboardEvent) => {
-    const items = e.clipboardData?.items;
-    if (!items || items.length === 0) return;
+  const handlePaste = useCallback(
+    async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items || items.length === 0) return;
 
-    const imageItems = Array.from(items).filter((item) => item.type && item.type.startsWith('image/'));
-    if (imageItems.length === 0) return;
+      const imageItems = Array.from(items).filter((item) => item.type && item.type.startsWith('image/'));
+      if (imageItems.length === 0) return;
 
-    // Prevent default paste when we detect images
-    e.preventDefault();
+      // Prevent default paste when we detect images
+      e.preventDefault();
 
-    const quill = reactQuillRef.current?.getEditor();
-    if (!quill) return;
+      const quill = reactQuillRef.current?.getEditor();
+      if (!quill) return;
 
-    const selection = quill.getSelection(true);
-    let insertIndex = selection ? selection.index : quill.getLength();
+      const selection = quill.getSelection(true);
+      let insertIndex = selection ? selection.index : quill.getLength();
 
-    try {
-      setIsLoading(true);
-      for (const item of imageItems) {
-        const file = item.getAsFile();
-        if (!file) continue;
-        const formData = new FormData();
-        formData.append('file', file);
+      try {
+        setIsLoading(true);
+        for (const item of imageItems) {
+          const file = item.getAsFile();
+          if (!file) continue;
+          const formData = new FormData();
+          formData.append('file', file);
 
-        const response = await baseHttpServiceInstance.post(
-          `/event-studio/events/${event_id}/upload_image`,
-          formData,
-          {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          }
-        );
+          const response = await baseHttpServiceInstance.post(
+            `/event-studio/events/${event_id}/upload_image`,
+            formData,
+            {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            }
+          );
 
-        const imageUrl = response.data.imageUrl;
-        quill.insertEmbed(insertIndex, 'image', imageUrl);
-        insertIndex += 1;
+          const imageUrl = response.data.imageUrl;
+          quill.insertEmbed(insertIndex, 'image', imageUrl);
+          insertIndex += 1;
+        }
+      } catch (error) {
+        notificationCtx.error('Lỗi:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      notificationCtx.error('Lỗi:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [event_id]);
+    },
+    [event_id]
+  );
 
   // Attach paste listener to Quill root
   useEffect(() => {
@@ -474,7 +524,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     },
   };
 
-
   async function getSMTPSettings(eventId: number): Promise<SMTPConfig | null> {
     try {
       const response: AxiosResponse<SMTPConfig> = await baseHttpServiceInstance.get(
@@ -493,7 +542,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       throw error;
     }
   }
-
 
   if (!event || !formValues) {
     return <Typography>Loading...</Typography>;
@@ -576,7 +624,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         },
                       }}
                     >
-                      Lưu
+                      {tt('Lưu', 'Save')}
                     </Button>
                     <Button
                       variant="outlined"
@@ -589,12 +637,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         },
                       }}
                     >
-                      Hủy
+                      {tt('Hủy', 'Cancel')}
                     </Button>
                   </Stack>
                 )}
               </Box>
-
             </Stack>
           </Grid>
           <Grid lg={4} md={6} xs={12}>
@@ -614,7 +661,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               height: '80px',
                               width: '80px',
                               borderRadius: '50%',
-                              objectFit: 'cover'
+                              objectFit: 'cover',
                             }}
                           />
                         ) : (
@@ -663,7 +710,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                 },
                               }}
                             >
-                              Lưu
+                              {tt('Lưu', 'Save')}
                             </Button>
                             <Button
                               variant="outlined"
@@ -676,7 +723,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                 },
                               }}
                             >
-                              Hủy
+                              {tt('Hủy', 'Cancel')}
                             </Button>
                           </Stack>
                         )}
@@ -689,7 +736,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Stack direction="row" spacing={1}>
                       <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
-                        Đơn vị tổ chức: {event?.organizer}
+                        {tt('Đơn vị tổ chức:', 'Organizer:')} {event?.organizer}
                       </Typography>
                     </Stack>
                     <Stack direction="row" spacing={1}>
@@ -697,41 +744,51 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       <Typography color="text.secondary" display="inline" variant="body2">
                         {event?.startDateTime && event?.endDateTime
                           ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                          : 'Chưa xác định'} {event.timeInstruction ? `(${event.timeInstruction})` : ''}
+                          : tt('Chưa xác định', 'Not specified')}{' '}
+                        {event.timeInstruction ? `(${event.timeInstruction})` : ''}
                       </Typography>
                     </Stack>
 
                     <Stack direction="row" spacing={1}>
                       <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.place ? event?.place : 'Chưa xác định'} {event.locationInstruction ? `(${event.locationInstruction})` : ''}
+                        {event?.place ? event?.place : tt('Chưa xác định', 'Not specified')}{' '}
+                        {event.locationInstruction ? `(${event.locationInstruction})` : ''}
                       </Typography>
                     </Stack>
                     <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
                       <Storefront fontSize="var(--icon-fontSize-sm)" />
                       <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.displayOnMarketplace ? "Có thể truy cập từ Marketplace" : 'Chỉ có thể truy cập bằng link'}
-                        <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}> Thay đổi</Box>
-
+                        {event?.displayOnMarketplace
+                          ? tt('Có thể truy cập từ Marketplace', 'Accessible from Marketplace')
+                          : tt('Chỉ có thể truy cập bằng link', 'Only accessible via link')}
+                        <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}>
+                          {' '}
+                          {tt('Thay đổi', 'Change')}
+                        </Box>
                       </Typography>
                     </Stack>
 
-
-                    <Stack direction="row" spacing={1} >
+                    <Stack direction="row" spacing={1}>
                       <Eye fontSize="var(--icon-fontSize-sm)" />
-                      {event?.displayOption !== 'display_with_everyone' ?
+                      {event?.displayOption !== 'display_with_everyone' ? (
                         <Typography display="inline" variant="body2" sx={{ color: 'warning.main' }}>
-                          Sự kiện không hiển thị công khai
-                          <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}> Thay đổi</Box>
+                          {tt('Sự kiện không hiển thị công khai', 'Event not publicly visible')}
+                          <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}>
+                            {' '}
+                            {tt('Thay đổi', 'Change')}
+                          </Box>
                         </Typography>
-                        :
+                      ) : (
                         <Typography display="inline" variant="body2" color="text.secondary">
-                          Đang hiển thị công khai
-                          <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}> Thay đổi</Box>
+                          {tt('Đang hiển thị công khai', 'Publicly visible')}
+                          <Box component="a" href="#otherSettings" sx={{ textDecoration: 'none' }}>
+                            {' '}
+                            {tt('Thay đổi', 'Change')}
+                          </Box>
                         </Typography>
-                      }
+                      )}
                     </Stack>
-
                   </Stack>
                   <Box sx={{ mt: 2.5 }}>
                     <Button
@@ -743,113 +800,106 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       size="small"
                       endIcon={<ArrowSquareIn />}
                     >
-                      Đến trang Khách hàng tự đăng ký vé
+                      {tt('Đến trang khách hàng tự đăng ký vé', 'Go to Customer Registration Page')}
                     </Button>
                   </Box>
                   <Box sx={{ mt: 2.5 }}>
-                    {eventAgencyRegistrationAndEventApprovalRequest &&
-                      (
-                        <>
-                          {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'accepted' && (
-                            <Button
-                              fullWidth
-                              variant="outlined"
-                              size="small"
-                              color='success'
-                            >
-                              <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                                <Box
-                                  component="span"
-                                  sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, lineHeight: 1 }}
-                                >
-                                  <CheckCircle size={16} weight="fill" />
-                                  Sự kiện Được xác thực
-                                </Box>
-                                <small>bán vé có thanh toán online, gửi email marketing,...</small>
-                              </Stack>
-                            </Button>
-                          )}
-                          {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'waiting_for_acceptance' && (
-                            <Button
-                              fullWidth
-                              variant="outlined"
-                              size="small"
-                              disabled
-                            >
-                              <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                                <span>Sự kiện đang chờ duyệt</span>
-                              </Stack>
-                            </Button>
-                          )}
-                          {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'rejected' && (
-                            <Button
-                              fullWidth
-                              variant="outlined"
-                              color='error'
-                              size="small"
-                              onClick={handleRequestEventApprovalClick}
-                            >
-                              <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                                <small color='error'>Yêu cầu nâng cấp bị từ chối</small>
-                                <span>Nhấn để yêu cầu lại</span>
-                              </Stack>
-                            </Button>
-                          )}
-                          {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'no_request_from_user' && (
-                            <Button
-                              fullWidth
-                              variant="contained"
-                              size="small"
-                              onClick={handleRequestEventApprovalClick}
-                            >
-                              <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                                <span>nâng cấp thành Sự kiện Được xác thực</span>
-                                <small>Để bật thanh toán online, gửi email marketing,...</small>
-                              </Stack>
-                            </Button>
-                          )}
-                        </>
-                      )
-                    }
+                    {eventAgencyRegistrationAndEventApprovalRequest && (
+                      <>
+                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'accepted' && (
+                          <Button fullWidth variant="outlined" size="small" color="success">
+                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                              <Box
+                                component="span"
+                                sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, lineHeight: 1 }}
+                              >
+                                <CheckCircle size={16} weight="fill" />
+                                {tt('Sự kiện Được xác thực', 'Verified Event')}
+                              </Box>
+                              <small>
+                                {tt(
+                                  'bán vé có thanh toán online, gửi email marketing,...',
+                                  'sell tickets with online payment, send marketing emails,...'
+                                )}
+                              </small>
+                            </Stack>
+                          </Button>
+                        )}
+                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest ==
+                          'waiting_for_acceptance' && (
+                          <Button fullWidth variant="outlined" size="small" disabled>
+                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                              <span>{tt('Sự kiện đang chờ duyệt', 'Event Pending Approval')}</span>
+                            </Stack>
+                          </Button>
+                        )}
+                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'rejected' && (
+                          <Button
+                            fullWidth
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            onClick={handleRequestEventApprovalClick}
+                          >
+                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                              <small color="error">
+                                {tt('Yêu cầu nâng cấp bị từ chối', 'Upgrade Request Rejected')}
+                              </small>
+                              <span>{tt('Nhấn để yêu cầu lại', 'Click to Request Again')}</span>
+                            </Stack>
+                          </Button>
+                        )}
+                        {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest ==
+                          'no_request_from_user' && (
+                          <Button fullWidth variant="contained" size="small" onClick={handleRequestEventApprovalClick}>
+                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                              <span>{tt('nâng cấp thành Sự kiện Được xác thực', 'Upgrade to Verified Event')}</span>
+                              <small>
+                                {tt(
+                                  'Để bật thanh toán online, gửi email marketing,...',
+                                  'To enable online payment, send marketing emails,...'
+                                )}
+                              </small>
+                            </Stack>
+                          </Button>
+                        )}
+                      </>
+                    )}
                   </Box>
                 </CardContent>
               </Card>
-
-
-
             </Stack>
           </Grid>
         </Grid>
         <div>
-          <Typography variant="h4">Thông tin & Hiển thị</Typography>
+          <Typography variant="h4">{tt('Thông tin & Hiển thị', 'Information & Display')}</Typography>
         </div>
         <Grid container spacing={3}>
           <Grid lg={4} md={6} xs={12}>
             <Stack spacing={3}>
-
               <Card>
-                <CardHeader title="Thông tin liên hệ" />
+                <CardHeader title={tt('Thông tin liên hệ', 'Contact Information')} />
                 <Divider />
                 <CardContent>
                   <Grid container spacing={3}>
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth required>
-                        <InputLabel>Email đơn vị tổ chức</InputLabel>
+                        <InputLabel>{tt('Email đơn vị tổ chức', 'Organizer Email')}</InputLabel>
                         <OutlinedInput
                           value={formValues.organizerEmail}
                           onChange={handleInputChange}
-                          label="Email đơn vị tổ chức"
+                          label={tt('Email đơn vị tổ chức', 'Organizer Email')}
                           name="organizerEmail"
                         />
                       </FormControl>
                     </Grid>
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth>
-                        <InputLabel>Số điện thoại đơn vị tổ chức</InputLabel>
+                        <InputLabel>{tt('Số điện thoại đơn vị tổ chức', 'Organizer Phone Number')}</InputLabel>
                         <OutlinedInput
                           value={formValues.organizerPhoneNumber}
                           onChange={handleInputChange}
-                          label="Số điện thoại đơn vị tổ chức"
+                          label={tt('Số điện thoại đơn vị tổ chức', 'Organizer Phone Number')}
                           name="organizerPhoneNumber"
                           type="tel"
                         />
@@ -863,28 +913,28 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           <Grid lg={8} md={6} xs={12}>
             <Stack spacing={3}>
               <Card>
-                <CardHeader title="Thông tin sự kiện" />
+                <CardHeader title={tt('Thông tin sự kiện', 'Event Information')} />
                 <Divider />
                 <CardContent>
                   <Grid container spacing={3}>
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth required>
-                        <InputLabel>Tên sự kiện</InputLabel>
+                        <InputLabel>{tt('Tên sự kiện', 'Event Name')}</InputLabel>
                         <OutlinedInput
                           value={formValues.name}
                           onChange={handleInputChange}
-                          label="Tên sự kiện"
+                          label={tt('Tên sự kiện', 'Event Name')}
                           name="name"
                         />
                       </FormControl>
                     </Grid>
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth required>
-                        <InputLabel>Đơn vị tổ chức</InputLabel>
+                        <InputLabel>{tt('Đơn vị tổ chức', 'Organizer')}</InputLabel>
                         <OutlinedInput
                           value={formValues.organizer}
                           onChange={handleInputChange}
-                          label="Đơn vị tổ chức"
+                          label={tt('Đơn vị tổ chức', 'Organizer')}
                           name="organizer"
                         />
                       </FormControl>
@@ -895,7 +945,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         value={description}
                         onChange={handleDescriptionChange}
                         modules={modules}
-                        placeholder="Mô tả"
+                        placeholder={tt('Mô tả', 'Description')}
                       />
                     </Grid>
                   </Grid>
@@ -903,17 +953,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               </Card>
 
               <Card>
-                <CardHeader title="Địa điểm & Thời gian" />
+                <CardHeader title={tt('Địa điểm & Thời gian', 'Location & Time')} />
                 <Divider />
                 <CardContent>
                   <Grid container spacing={3}>
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth required>
-                        <InputLabel>Địa điểm</InputLabel>
+                        <InputLabel>{tt('Địa điểm', 'Location')}</InputLabel>
                         <OutlinedInput
                           value={formValues.place || ''}
                           onChange={handleInputChange}
-                          label="Địa điểm"
+                          label={tt('Địa điểm', 'Location')}
                           name="place"
                         />
                       </FormControl>
@@ -921,22 +971,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
                     <Grid md={6} xs={12}>
                       <FormControl fullWidth>
-                        <InputLabel>URL Địa điểm</InputLabel>
+                        <InputLabel>{tt('URL Địa điểm', 'Location URL')}</InputLabel>
                         <OutlinedInput
                           value={formValues.locationUrl || ''}
                           onChange={handleInputChange}
-                          label="URL Địa điểm"
+                          label={tt('URL Địa điểm', 'Location URL')}
                           name="locationUrl"
                         />
                       </FormControl>
                     </Grid>
                     <Grid md={6} xs={12}>
                       <FormControl fullWidth>
-                        <InputLabel>Hướng dẫn thêm về địa điểm</InputLabel>
+                        <InputLabel>{tt('Hướng dẫn thêm về địa điểm', 'Additional Location Instructions')}</InputLabel>
                         <OutlinedInput
                           value={formValues.locationInstruction || ''}
                           onChange={handleInputChange}
-                          label="Hướng dẫn thêm về địa điểm"
+                          label={tt('Hướng dẫn thêm về địa điểm', 'Additional Location Instructions')}
                           name="locationInstruction"
                         />
                       </FormControl>
@@ -945,7 +995,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Grid md={4} xs={12}>
                       <FormControl fullWidth required>
                         <TextField
-                          label="Thời gian bắt đầu"
+                          label={tt('Thời gian bắt đầu', 'Start Time')}
                           type="datetime-local"
                           value={formValues.startDateTime || ''}
                           onChange={handleInputChange}
@@ -958,7 +1008,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Grid md={4} xs={12}>
                       <FormControl fullWidth required>
                         <TextField
-                          label="Thời gian kết thúc"
+                          label={tt('Thời gian kết thúc', 'End Time')}
                           type="datetime-local"
                           onChange={handleInputChange}
                           name="endDateTime"
@@ -969,11 +1019,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </Grid>
                     <Grid md={4} xs={12}>
                       <FormControl fullWidth>
-                        <InputLabel>Hướng dẫn thêm về thời gian</InputLabel>
+                        <InputLabel>{tt('Hướng dẫn thêm về thời gian', 'Additional Time Instructions')}</InputLabel>
                         <OutlinedInput
                           value={formValues.timeInstruction || ''}
                           onChange={handleInputChange}
-                          label="Hướng dẫn thêm về thời gian"
+                          label={tt('Hướng dẫn thêm về thời gian', 'Additional Time Instructions')}
                           name="timeInstruction"
                         />
                       </FormControl>
@@ -982,31 +1032,40 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </CardContent>
               </Card>
 
-              <Card id='otherSettings'>
-                <CardHeader title="Thông tin khác" />
+              <Card id="otherSettings">
+                <CardHeader title={tt('Thông tin khác', 'Other Information')} />
                 <Divider />
                 <CardContent>
                   <Grid container spacing={3}>
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth required>
-                        <InputLabel>Trang khách hàng tự đăng ký</InputLabel>
+                        <InputLabel>{tt('Trang khách hàng tự đăng ký', 'Customer Registration Page')}</InputLabel>
                         <OutlinedInput
                           value={formValues.slug}
-                          label="Trang khách hàng tự đăng ký"
+                          label={tt('Trang khách hàng tự đăng ký', 'Customer Registration Page')}
                           name="slug"
                           onChange={handleInputChange}
                           startAdornment={<InputAdornment position="start">etik.vn/</InputAdornment>}
-                          endAdornment={<IconButton size="small" onClick={() => handleCopyToClipboard(`etik.vn/${event?.slug}`)}><Clipboard /></IconButton>}
+                          endAdornment={
+                            <IconButton size="small" onClick={() => handleCopyToClipboard(`etik.vn/${event?.slug}`)}>
+                              <Clipboard />
+                            </IconButton>
+                          }
                         />
                       </FormControl>
                     </Grid>
 
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth>
-                        <InputLabel>Liên kết ngoài (trang thông tin sự kiện)</InputLabel>
+                        <InputLabel>
+                          {tt('Liên kết ngoài (trang thông tin sự kiện)', 'External Link (Event Information Page)')}
+                        </InputLabel>
                         <OutlinedInput
                           value={formValues.externalLink}
-                          label="Liên kết ngoài (trang thông tin sự kiện)"
+                          label={tt(
+                            'Liên kết ngoài (trang thông tin sự kiện)',
+                            'External Link (Event Information Page)'
+                          )}
                           name="externalLink"
                           onChange={handleInputChange}
                         />
@@ -1020,46 +1079,59 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           value={event.secureApiKey}
                           label="Secure API key"
                           name="secureApiKey"
-                          endAdornment={<IconButton size="small" onClick={() => handleCopyToClipboard(event.secureApiKey)}><Clipboard /></IconButton>}
+                          endAdornment={
+                            <IconButton size="small" onClick={() => handleCopyToClipboard(event.secureApiKey)}>
+                              <Clipboard />
+                            </IconButton>
+                          }
                         />
                       </FormControl>
                     </Grid>
 
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth required>
-                        <InputLabel>Chế độ hiển thị sự kiện</InputLabel>
+                        <InputLabel>{tt('Chế độ hiển thị sự kiện', 'Event Display Mode')}</InputLabel>
                         <Select
                           disabled={!(event.adminReviewStatus === 'accepted')}
-                          label="Chế độ hiển thị sự kiện"
+                          label={tt('Chế độ hiển thị sự kiện', 'Event Display Mode')}
                           name="displayOption"
                           value={formValues.displayOption}
                           onChange={(e: any) => handleInputChange(e)}
                         >
-                          {/* <MenuItem value={'do_not_display'}>Không hiển thị</MenuItem> */}
-                          <MenuItem value={'display_with_members'}>Chỉ hiển thị với người quản lý sự kiện</MenuItem>
-                          <MenuItem value={'display_with_everyone'}>Hiển thị với mọi người</MenuItem>
+                          {/* <MenuItem value={'do_not_display'}>{tt("Không hiển thị", "Do Not Display")}</MenuItem> */}
+                          <MenuItem value={'display_with_members'}>
+                            {tt('Chỉ hiển thị với người quản lý sự kiện', 'Only visible to event managers')}
+                          </MenuItem>
+                          <MenuItem value={'display_with_everyone'}>
+                            {tt('Hiển thị với mọi người', 'Visible to everyone')}
+                          </MenuItem>
                         </Select>
                       </FormControl>
                     </Grid>
 
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth required>
-                        <InputLabel>Cho phép tìm kiếm trên Marketplace</InputLabel>
+                        <InputLabel>
+                          {tt('Cho phép tìm kiếm trên Marketplace', 'Allow Search on Marketplace')}
+                        </InputLabel>
                         <Select
                           disabled={!(event.adminReviewStatus === 'accepted')}
-                          label="Cho phép tìm kiếm trên Marketplace"
+                          label={tt('Cho phép tìm kiếm trên Marketplace', 'Allow Search on Marketplace')}
                           name="displayOnMarketplace"
                           value={formValues.displayOnMarketplace}
                           onChange={(e: any) => handleInputChange(e)}
                         >
-                          <MenuItem value={'true'}>Cho phép</MenuItem>
-                          <MenuItem value={'false'}>Không cho phép</MenuItem>
+                          <MenuItem value={'true'}>{tt('Cho phép', 'Allow')}</MenuItem>
+                          <MenuItem value={'false'}>{tt('Không cho phép', 'Do Not Allow')}</MenuItem>
                         </Select>
-                        {!(event.adminReviewStatus === 'accepted') &&
+                        {!(event.adminReviewStatus === 'accepted') && (
                           <FormHelperText>
-                            Vui lòng nâng cấp thành Sự kiện Được xác thực để thay đổi chế độ hiển thị sự kiện
+                            {tt(
+                              'Vui lòng nâng cấp thành Sự kiện Được xác thực để thay đổi chế độ hiển thị sự kiện',
+                              'Please upgrade to a Verified Event to change the event display mode'
+                            )}
                           </FormHelperText>
-                        }
+                        )}
                       </FormControl>
                     </Grid>
                   </Grid>
@@ -1068,15 +1140,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
               <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
                 <Button variant="contained" onClick={handleFormSubmit}>
-                  Lưu
+                  {tt('Lưu', 'Save')}
                 </Button>
               </Grid>
-
             </Stack>
           </Grid>
         </Grid>
       </Stack>
-      <SendRequestEventAgencyAndEventApproval open={openEventAgencyRegistrationModal} onClose={handleOnCloseEventAgencyRegistrationModal} eventId={event_id} />
+      <SendRequestEventAgencyAndEventApproval
+        open={openEventAgencyRegistrationModal}
+        onClose={handleOnCloseEventAgencyRegistrationModal}
+        eventId={event_id}
+      />
       <Modal
         open={openConfirmSubmitEventApprovalModal}
         onClose={() => setOpenConfirmSubmitEventApprovalModal(false)}
@@ -1086,45 +1161,73 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Container maxWidth="xl">
           <Card
             sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: { sm: "500px", xs: "90%" },
-              bgcolor: "background.paper",
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: { sm: '500px', xs: '90%' },
+              bgcolor: 'background.paper',
               boxShadow: 24,
             }}
           >
-            <CardHeader title='Quy định chung' />
+            <CardHeader title={tt('Quy định chung', 'General Regulations')} />
             <Divider />
             <CardContent>
               <Stack spacing={1} textAlign={'justify'}>
                 <Typography variant="body2">
-                  <b>Để sự kiện được nâng cấp thành Sự kiện Được xác thực, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:</b>
+                  <b>
+                    {tt(
+                      'Để sự kiện được nâng cấp thành Sự kiện Được xác thực, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:',
+                      'To upgrade your event to a Verified Event, the event organizer must comply with the following regulations before submitting the request:'
+                    )}
+                  </b>
                 </Typography>
                 <Typography variant="body2">
-                  - Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.
+                  {tt(
+                    '- Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.',
+                    '- The event must have complete information including name, description, organizer, banner image, and avatar.'
+                  )}
                 </Typography>
                 <Typography variant="body2">
-                  - Thời gian và địa điểm rõ ràng, chính xác. Hạn chế thay đổi thông tin về thời gian, địa điểm và phải thông báo cho ETIK trước khi thay đổi.
+                  {tt(
+                    '- Thời gian và địa điểm rõ ràng, chính xác. Hạn chế thay đổi thông tin về thời gian, địa điểm và phải thông báo cho ETIK trước khi thay đổi.',
+                    '- Clear and accurate time and location. Minimize changes to time and location information and must notify ETIK before making changes.'
+                  )}
                 </Typography>
 
                 <Typography variant="body2">
-                  - Chính sách Giá vé, chính sách hoàn trả, hủy vé rõ ràng, minh bạch.
+                  {tt(
+                    '- Chính sách Giá vé, chính sách hoàn trả, hủy vé rõ ràng, minh bạch.',
+                    '- Clear and transparent ticket pricing, refund policy, and cancellation policy.'
+                  )}
                 </Typography>
                 <Typography variant="body2">
-                  - Sự kiện tuân thủ quy định của pháp luật Việt Nam, phù hợp chuẩn mực đạo đức, thuần phong mỹ tục.
+                  {tt(
+                    '- Sự kiện tuân thủ quy định của pháp luật Việt Nam, phù hợp chuẩn mực đạo đức, thuần phong mỹ tục.',
+                    '- The event must comply with Vietnamese law and be consistent with ethical standards and good customs.'
+                  )}
                 </Typography>
                 <Typography variant="body2">
-                  - Cung cấp cho ETIK các thông tin, giấy tờ để xác minh khi được yêu cầu.
+                  {tt(
+                    '- Cung cấp cho ETIK các thông tin, giấy tờ để xác minh khi được yêu cầu.',
+                    '- Provide ETIK with information and documents for verification when requested.'
+                  )}
                 </Typography>
                 <Typography variant="body2">
-                  Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH <b>0333.247.242</b> hoặc email <b>tienphongsmart@gmail.com</b>
+                  {tt(
+                    'Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH 0333.247.242 hoặc email tienphongsmart@gmail.com',
+                    'If you need support, please contact Customer Service Hotline 0333.247.242 or email tienphongsmart@gmail.com'
+                  )}
                 </Typography>
               </Stack>
               <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-                <Button variant="contained" color="primary" onClick={handleSendRequestEventApproval} disabled={isLoading}>
-                  Gửi yêu cầu
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleSendRequestEventApproval}
+                  disabled={isLoading}
+                >
+                  {tt('Gửi yêu cầu', 'Submit Request')}
                 </Button>
               </Grid>
             </CardContent>

@@ -9,7 +9,7 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import * as React from 'react';
-import { useLocale } from '@/contexts/locale-context';
+import { useLocale, useTranslation } from '@/contexts/locale-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { LocalizedLink } from '@/components/localized-link';
 
@@ -24,6 +24,7 @@ export function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
   const { locale } = useLocale();
+  const { tt } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -102,7 +103,7 @@ export function ResponsiveAppBar() {
               onClick={handleCloseNavMenu}
               sx={{ my: 0, color: 'white', display: 'block', py: 0, fontSize: { xs: '11px', md: '13px' }, p:0 }}
             >
-              🎉 Bán vé, Quản lý sự kiện chuyên nghiệp với ETIK
+              {tt("🎉 Bán vé, Quản lý sự kiện chuyên nghiệp với ETIK", "🎉 Sell tickets, Manage events professionally with ETIK")}
             </Button>
           </Box>
 

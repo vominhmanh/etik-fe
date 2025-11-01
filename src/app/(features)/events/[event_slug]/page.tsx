@@ -814,6 +814,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                     <ReCAPTCHA
                       sitekey="6LdRnq4aAAAAAFT6htBYNthM-ksGymg70CsoYqHR"
                       ref={captchaRef}
+                      hl={lang}
                     />
                   </Grid>
                   <Grid item sm={3} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>

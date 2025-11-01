@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Logo from "./logo";
 import { Avatar, Box, Typography } from "@mui/material";
+import { useTranslation } from '@/contexts/locale-context';
 
 export default function Header() {
+  const { tt } = useTranslation();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -41,7 +43,7 @@ export default function Header() {
                   className="btn-sm bg-white text-gray-800 shadow hover:bg-gray-50"
                   style={{ display: 'flex', alignItems: 'center' }}
                 >
-                  <Typography variant="body2">Đang tải...</Typography>
+                  <Typography variant="body2">{tt("Đang tải...", "Loading...")}</Typography>
                 </Link>
               </li>
             ) : user ? (
@@ -52,7 +54,7 @@ export default function Header() {
                   style={{ display: 'flex', alignItems: 'center' }}
                 >
                   <Typography variant="body2" sx={{ marginRight: '8px' }}>
-                    Xin chào,
+                    {tt("Xin chào,", "Hello,")}
                   </Typography>
                   <Avatar sx={{ width: '25px', height: '25px', marginRight: '8px' }}>
                     {user.fullName?.charAt(0).toUpperCase() || "U"}
@@ -68,7 +70,7 @@ export default function Header() {
                       display: 'block',
                     }}
                   >
-                    {user.fullName || "Người dùng"}
+                    {user.fullName || tt("Người dùng", "User")}
                   </Typography>
                 </Link>
               </li>
@@ -79,7 +81,7 @@ export default function Header() {
                     href="/auth/login"
                     className="btn-sm bg-white text-gray-800 shadow hover:bg-gray-50"
                   >
-                    Đăng nhập
+                    {tt("Đăng nhập", "Login")}
                   </Link>
                 </li>
                 <li>
@@ -87,7 +89,7 @@ export default function Header() {
                     href="/auth/sign-up"
                     className="btn-sm bg-gray-800 text-gray-200 shadow hover:bg-gray-900"
                   >
-                    Đăng ký
+                    {tt("Đăng ký", "Sign Up")}
                   </Link>
                 </li>
               </>

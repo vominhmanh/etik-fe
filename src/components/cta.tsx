@@ -1,7 +1,11 @@
+"use client";
+
 import Image from "next/image";
 import Stripes from "@/images/stripes-dark.svg";
+import { useTranslation } from '@/contexts/locale-context';
 
 export default function Cta() {
+  const { tt } = useTranslation();
   return (
     <section>
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -31,7 +35,7 @@ export default function Cta() {
           </div>
           <div className="px-4 py-12 md:px-12 md:py-20">
             <h2 className="mb-6 border-y text-3xl font-bold text-gray-200 [border-image:linear-gradient(to_right,transparent,theme(colors.slate.700/.7),transparent)1] md:mb-12 md:text-4xl">
-              Bắt đầu tạo sự kiện của bạn với ETIK
+              {tt("Bắt đầu tạo sự kiện của bạn với ETIK", "Start creating your event with ETIK")}
             </h2>
             <div className="mx-auto max-w-xs sm:flex sm:max-w-none sm:justify-center">
               <a
@@ -39,7 +43,7 @@ export default function Cta() {
                 href="#create-your-event"
               >
                 <span className="relative inline-flex items-center">
-                  Bắt đầu ngay
+                  {tt("Bắt đầu ngay", "Get Started")}
                   <span className="ml-1 tracking-normal text-blue-300 transition-transform group-hover:translate-x-0.5">
                     -&gt;
                   </span>

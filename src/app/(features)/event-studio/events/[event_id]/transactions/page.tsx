@@ -8,6 +8,7 @@ import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Downloa
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { AxiosResponse } from 'axios';
 import { LocalizedLink } from '@/components/localized-link';
+import { useTranslation } from '@/contexts/locale-context';
 
 import * as React from 'react';
 
@@ -31,9 +32,10 @@ interface BulkErrorDetail {
 }
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  const { tt } = useTranslation();
   React.useEffect(() => {
-    document.title = "Danh sách đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Danh sách đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện", "Order List | ETIK - E-tickets & Event Management");
+  }, [tt]);
   const theme = useTheme();
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
   const [querySearch, setQuerySearch] = React.useState<string>('');
@@ -577,13 +579,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       </Backdrop>{' '}
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Danh sách đơn hàng</Typography>
+          <Typography variant="h4">{tt("Danh sách đơn hàng", "Order List")}</Typography>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={fetchTransactions}>
-              Tải lại
+              {tt("Tải lại", "Reload")}
             </Button>
             <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />} onClick={handleExportExcel}>
-              Xuất file excel
+              {tt("Xuất file excel", "Export Excel")}
             </Button>
           </Stack>
         </Stack>
@@ -594,7 +596,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             href="transactions/create"
             variant="contained"
           >
-            Thêm
+            {tt("Thêm", "Add")}
           </Button>
         </div>
       </Stack>
