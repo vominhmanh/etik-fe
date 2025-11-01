@@ -13,12 +13,15 @@ import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
 import logoImage from "@/images/etik-logo-transparent-dark.png";
 import Image from "next/image";
+import { useTranslation } from '@/contexts/locale-context';
 
-import { navItems } from './config';
+import { getNavItems } from './config';
 import Stack from "@mui/material/Stack";
 
 export function SideNav(): React.JSX.Element {
+  const { tt } = useTranslation();
   const pathname = usePathname();
+  const navItems = React.useMemo(() => getNavItems(tt), [tt]);
   const { key: firstKey, ...firstItem } = navItems[0];
   const { key: secondKey, ...secondItem } = navItems[1];
 

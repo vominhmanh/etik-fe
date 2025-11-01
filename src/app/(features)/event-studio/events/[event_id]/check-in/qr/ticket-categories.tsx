@@ -15,6 +15,7 @@ import { ArrowCounterClockwise as ArrowCounterClockwiseIcon } from '@phosphor-ic
 import { DotsThreeVertical as DotsThreeVerticalIcon } from '@phosphor-icons/react/dist/ssr/DotsThreeVertical';
 import React, { useEffect, useState } from 'react';
 import { Show } from './page';
+import { useTranslation } from '@/contexts/locale-context';
 
 
 interface TicketCategoriesProps {
@@ -38,6 +39,7 @@ const colorMap: ColorMap = {
 };
 
 export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesProps): React.JSX.Element {
+  const { tt } = useTranslation();
   const ticketCategories = show.ticketCategories;
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]); // Track selected categories
 
@@ -62,7 +64,7 @@ export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesP
   return (
     <Card>
       <CardHeader
-        title={`Chọn Bàn để check-in cho ${show.name}`}
+        title={tt(`Chọn Bàn để check-in cho ${show.name}`, `Select Table to check-in for ${show.name}`)}
         action={
           <IconButton>
             <ArrowCounterClockwiseIcon fontSize="var(--icon-fontSize-md)" />
@@ -104,7 +106,7 @@ export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesP
               onClick={() => handleSelect(ticketCategory.id)} // Select when the whole item is clicked
               primary={ticketCategory.name}
               primaryTypographyProps={{ variant: 'subtitle1' }}
-              secondary={`${formatPrice(ticketCategory.price)} | Đã bán ${ticketCategory.sold}/${ticketCategory.quantity} vé`}
+              secondary={`${formatPrice(ticketCategory.price)} | ${tt('Đã bán', 'Sold')} ${ticketCategory.sold}/${ticketCategory.quantity} ${tt('vé', 'tickets')}`}
               secondaryTypographyProps={{ variant: 'body2' }}
             />
             <IconButton edge="end" onClick={() => { return }}>

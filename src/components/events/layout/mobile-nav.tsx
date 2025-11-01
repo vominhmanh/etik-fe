@@ -1,8 +1,11 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import RouterLink from 'next/link';
 import { usePathname } from 'next/navigation';
+import logoImage from '@/images/etik-logo-transparent-dark.png';
+import { Stack } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
@@ -15,12 +18,9 @@ import { CaretUpDown as CaretUpDownIcon } from '@phosphor-icons/react/dist/ssr/C
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
+import { useTranslation } from '@/contexts/locale-context';
 
-import { navItems } from './config';
-import { navIcons } from './nav-icons';
-import { Stack } from '@mui/material';
-import logoImage from "@/images/etik-logo-transparent-dark.png";
-import Image from "next/image";
+import { getNavItems } from './config';
 
 export interface MobileNavProps {
   onClose?: () => void;
@@ -30,6 +30,9 @@ export interface MobileNavProps {
 
 export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element {
   const pathname = usePathname();
+  const { tt } = useTranslation();
+
+  const navItems = React.useMemo(() => getNavItems(tt), [tt]);
   const { key: firstKey, ...firstItem } = navItems[0];
   const { key: secondKey, ...secondItem } = navItems[1];
 
@@ -95,11 +98,11 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
       <Box
         {...(href
           ? {
-            component: external ? 'a' : RouterLink,
-            href,
-            target: external ? '_blank' : undefined,
-            rel: external ? 'noreferrer' : undefined,
-          }
+              component: external ? 'a' : RouterLink,
+              href,
+              target: external ? '_blank' : undefined,
+              rel: external ? 'noreferrer' : undefined,
+            }
           : { role: 'button' })}
         sx={{
           alignItems: 'center',

@@ -1,11 +1,13 @@
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 
-export const navItems = [
-  { key: 'overview', title: 'Tổng quan', href: paths.dashboard.overview, icon: 'chart-pie' },
-  { key: 'integrations', title: 'Thiết kế sự kiện', href: paths.dashboard.integrations, icon: 'plugs-connected' },
-  { key: 'customers', title: 'Khách mời & Vé', href: paths.dashboard.customers, icon: 'users' },
-  { key: 'settings', title: 'Cài đặt', href: paths.dashboard.settings, icon: 'gear-six' },
-  { key: 'account', title: 'Thành viên', href: paths.dashboard.account, icon: 'user' },
-  { key: 'error', title: 'Error', href: paths.errors.notFound, icon: 'x-square' },
-] satisfies NavItemConfig[];
+export function getNavItems(tt: (vi: string, en: string) => string): NavItemConfig[] {
+  return [
+    { key: 'overview', title: tt('Tổng quan', 'Overview'), href: paths.dashboard.overview },
+    { key: 'integrations', title: tt('Thiết kế sự kiện', 'Event Design'), href: paths.dashboard.integrations },
+    { key: 'customers', title: tt('Khách mời & Vé', 'Guests & Tickets'), href: paths.dashboard.customers },
+    { key: 'settings', title: tt('Cài đặt', 'Settings'), href: paths.dashboard.settings },
+    { key: 'account', title: tt('Thành viên', 'Members'), href: paths.dashboard.account },
+    { key: 'error', title: 'Error', href: paths.errors.notFound },
+  ] satisfies NavItemConfig[];
+}

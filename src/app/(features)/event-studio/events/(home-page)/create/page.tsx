@@ -18,6 +18,7 @@ import * as React from 'react';
 import { useState } from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 
 type EventCreatedResponse = {
   eventId: number;
@@ -25,9 +26,11 @@ type EventCreatedResponse = {
 };
 
 export default function Page(): React.JSX.Element {
+  const { tt } = useTranslation();
+
   React.useEffect(() => {
-    document.title = "Thêm sự kiện mới | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Thêm sự kiện mới | ETIK - Vé điện tử & Quản lý sự kiện", "Create New Event | ETIK - E-tickets & Event Management");
+  }, [tt]);
 
   const notificationCtx = React.useContext(NotificationContext);
   const [formData, setFormData] = useState({
@@ -59,13 +62,13 @@ export default function Page(): React.JSX.Element {
         formData
       );
       if (response.data) {
-        notificationCtx.success('Tạo sự kiện thành công.');
+        notificationCtx.success(tt('Tạo sự kiện thành công.', 'Event created successfully.'));
         router.push('/event-studio/events/'); // Navigate to a different page on success
       } else {
-        notificationCtx.error('Lỗi:', response.statusText);
+        notificationCtx.error(tt('Lỗi:', 'Error:'), response.statusText);
       }
     } catch (error) {
-      notificationCtx.error('Lỗi:', error);
+      notificationCtx.error(tt('Lỗi:', 'Error:'), error);
     } finally {
       setIsLoading(false);
     }
@@ -85,7 +88,7 @@ export default function Page(): React.JSX.Element {
       </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Tạo sự kiện</Typography>
+          <Typography variant="h4">{tt('Tạo sự kiện', 'Create Event')}</Typography>
         </Stack>
       </Stack>
       <Grid container spacing={3}>
@@ -96,15 +99,15 @@ export default function Page(): React.JSX.Element {
                 <Grid container spacing={3}>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel>Tên sự kiện</InputLabel>
-                      <OutlinedInput label="Tên sự kiện" name="name" value={formData.name} onChange={handleChange} />
+                      <InputLabel>{tt('Tên sự kiện', 'Event Name')}</InputLabel>
+                      <OutlinedInput label={tt('Tên sự kiện', 'Event Name')} name="name" value={formData.name} onChange={handleChange} />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel>Đơn vị tổ chức</InputLabel>
+                      <InputLabel>{tt('Đơn vị tổ chức', 'Organizer')}</InputLabel>
                       <OutlinedInput
-                        label="Đơn vị tổ chức"
+                        label={tt('Đơn vị tổ chức', 'Organizer')}
                         name="organizer"
                         value={formData.organizer}
                         onChange={handleChange}
@@ -113,9 +116,9 @@ export default function Page(): React.JSX.Element {
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth>
-                      <InputLabel>Địa chỉ email</InputLabel>
+                      <InputLabel>{tt('Địa chỉ email', 'Email Address')}</InputLabel>
                       <OutlinedInput
-                        label="Địa chỉ email"
+                        label={tt('Địa chỉ email', 'Email Address')}
                         name="organizerEmail"
                         value={formData.organizerEmail}
                         onChange={handleChange}
@@ -124,9 +127,9 @@ export default function Page(): React.JSX.Element {
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth>
-                      <InputLabel>Số điện thoại liên hệ</InputLabel>
+                      <InputLabel>{tt('Số điện thoại liên hệ', 'Contact Phone Number')}</InputLabel>
                       <OutlinedInput
-                        label="Số điện thoại liên hệ"
+                        label={tt('Số điện thoại liên hệ', 'Contact Phone Number')}
                         name="organizerPhoneNumber"
                         type="tel"
                         value={formData.organizerPhoneNumber}
@@ -139,7 +142,7 @@ export default function Page(): React.JSX.Element {
             </Card>
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
               <Button type="submit" variant="contained">
-                Tạo
+                {tt('Tạo', 'Create')}
               </Button>
             </Grid>
           </form>

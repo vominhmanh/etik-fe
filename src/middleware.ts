@@ -25,15 +25,17 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  console.log('pathname', pathname);
+  console.log('pathname starts with /en', pathname.startsWith('/en'));
   // Check if pathname starts with /en
   if (pathname.startsWith('/en')) {
     // Extract the path without /en prefix
     const pathWithoutLocale = pathname.replace(/^\/en/, '') || '/';
-    
+    console.log('pathWithoutLocale', pathWithoutLocale);
     // Create a new URL with the path stripped of /en
     const url = request.nextUrl.clone();
     url.pathname = pathWithoutLocale;
-    
+      console.log('url', url);
     // Rewrite to the path without /en, but keep /en in the browser URL
     const response = NextResponse.rewrite(url);
     

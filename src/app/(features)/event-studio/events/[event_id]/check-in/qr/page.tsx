@@ -12,6 +12,7 @@ import dayjs from 'dayjs';
 import RouterLink from 'next/link';
 import * as React from 'react';
 import { useZxing } from "react-zxing";
+import { useTranslation } from '@/contexts/locale-context';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 
@@ -104,51 +105,55 @@ type MyDynamicObject = {
 };
 
 
-// Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (paymentStatus: string): { label: string, color: ChipProps['color'] } => {
-  switch (paymentStatus) {
-    case 'waiting_for_payment':
-      return { label: 'Chờ thanh toán', color: 'warning' };
-    case 'paid':
-      return { label: 'Đã thanh toán', color: 'success' };
-    case 'refund':
-      return { label: 'Đã hoàn tiền', color: 'secondary' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
-
-// Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string): { label: string, color: ChipProps['color'] } => {
-  switch (status) {
-    case 'normal':
-      return { label: 'Bình thường', color: 'success' };
-    case 'wait_for_response':
-      return { label: 'Đang chờ', color: 'warning' };
-    case 'customer_cancelled':
-      return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
-    case 'staff_locked':
-      return { label: 'Khoá bởi NV', color: 'error' };
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
-
-const getSentEmailTicketStatusDetails = (status: string): { label: string, color: ChipProps['color'] } => {
-  switch (status) {
-    case 'sent':
-      return { label: 'Đã xuất', color: 'success' };
-    case 'not_sent':
-      return { label: 'Chưa xuất', color: 'default' }; // error for danger
-    default:
-      return { label: 'Unknown', color: 'default' };
-  }
-};
+// These helper functions will be moved inside the component to use tt
 
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+  const { tt } = useTranslation();
+
+  // Function to map payment statuses to corresponding labels and colors
+  const getPaymentStatusDetails = React.useCallback((paymentStatus: string): { label: string, color: ChipProps['color'] } => {
+    switch (paymentStatus) {
+      case 'waiting_for_payment':
+        return { label: tt('Chờ thanh toán', 'Waiting for payment'), color: 'warning' };
+      case 'paid':
+        return { label: tt('Đã thanh toán', 'Paid'), color: 'success' };
+      case 'refund':
+        return { label: tt('Đã hoàn tiền', 'Refunded'), color: 'secondary' };
+      default:
+        return { label: 'Unknown', color: 'default' };
+    }
+  }, [tt]);
+
+  // Function to map row statuses to corresponding labels and colors
+  const getRowStatusDetails = React.useCallback((status: string): { label: string, color: ChipProps['color'] } => {
+    switch (status) {
+      case 'normal':
+        return { label: tt('Bình thường', 'Normal'), color: 'success' };
+      case 'wait_for_response':
+        return { label: tt('Đang chờ', 'Waiting'), color: 'warning' };
+      case 'customer_cancelled':
+        return { label: tt('Huỷ bởi KH', 'Cancelled by Customer'), color: 'error' };
+      case 'staff_locked':
+        return { label: tt('Khoá bởi NV', 'Locked by Staff'), color: 'error' };
+      default:
+        return { label: 'Unknown', color: 'default' };
+    }
+  }, [tt]);
+
+  const getSentEmailTicketStatusDetails = React.useCallback((status: string): { label: string, color: ChipProps['color'] } => {
+    switch (status) {
+      case 'sent':
+        return { label: tt('Đã xuất', 'Sent'), color: 'success' };
+      case 'not_sent':
+        return { label: tt('Chưa xuất', 'Not sent'), color: 'default' };
+      default:
+        return { label: 'Unknown', color: 'default' };
+    }
+  }, [tt]);
+
   React.useEffect(() => {
-    document.title = "Soát vé bằng mã QR | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Soát vé bằng mã QR | ETIK - Vé điện tử & Quản lý sự kiện", "Check-in with QR Code | ETIK - E-tickets & Event Management");
+  }, [tt]);
 
   const [qrManualInput, setQrManualInput] = React.useState<string>('');
   const [eCode, setECode] = React.useState<string>('');
@@ -218,7 +223,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           setEvent(response.data);
           // setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
-          notificationCtx.error('Lỗi:', error);
+          notificationCtx.error(tt('Lỗi:', 'Error:'), error);
         } finally {
           setIsLoading(false);
         }
@@ -292,7 +297,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
         // 4. Show the warning
         notificationCtx.warning(
-          `Không có vé hợp lệ cho danh mục đã chọn: ${selectedSchedule?.name} — ${display}`
+          tt(`Không có vé hợp lệ cho danh mục đã chọn: ${selectedSchedule?.name} — ${display}`, `No valid tickets for selected categories: ${selectedSchedule?.name} — ${display}`)
         );
       }
 
@@ -340,7 +345,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       });
 
       if (requests.length === 0) {
-        notificationCtx.warning(`Vui lòng chọn ít nhất 1 vé để check-in.`);
+        notificationCtx.warning(tt(`Vui lòng chọn ít nhất 1 vé để check-in.`, `Please select at least 1 ticket to check-in.`));
         return
       }
       setIsLoading(true);
@@ -350,7 +355,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         .then(() => {
           getTransactionByECode(eCode); // Refresh data after check-in
           setIsSuccessful(true);
-          notificationCtx.success(`Check-in thành công.`);
+          notificationCtx.success(tt(`Check-in thành công.`, `Check-in successful.`));
         })
         .catch(error => {
           notificationCtx.error(error);
@@ -397,7 +402,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     <>
       <Stack spacing={3}>
         <div>
-          <Typography variant="h4">Check-in sự kiện {event?.name}</Typography>
+          <Typography variant="h4">{tt('Check-in sự kiện', 'Event Check-in')} {event?.name}</Typography>
         </div>
         <Grid container spacing={3}>
           <Grid item lg={5} md={5} xs={12} spacing={3}>
@@ -412,27 +417,27 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           <Grid item lg={7} md={7} xs={12} spacing={3} sx={{ display: selectedSchedule && selectedCategories.length > 0 ? 'block' : 'none' }}>
             <Stack spacing={3}>
               <Card>
-                <CardHeader subheader="Vui lòng hướng mã QR về phía camera." title="Quét mã QR" />
+                <CardHeader subheader={tt("Vui lòng hướng mã QR về phía camera.", "Please point the QR code towards the camera.")} title={tt("Quét mã QR", "Scan QR Code")} />
                 <Divider />
                 <CardContent>
                   <video ref={ref} width={'100%'} />
                 </CardContent>
                 <CardActions>
-                  <Button disabled={!isAvailable} onClick={() => (isOn ? off() : on())} startIcon={<Lightning />}>Flash</Button>
+                  <Button disabled={!isAvailable} onClick={() => (isOn ? off() : on())} startIcon={<Lightning />}>{tt('Flash', 'Flash')}</Button>
                 </CardActions>
               </Card>
 
               <Card>
-                <CardHeader subheader="Vui lòng nhập mã để check-in thủ công nếu không quét được mã QR." title="Check-in thủ công" />
+                <CardHeader subheader={tt("Vui lòng nhập mã để check-in thủ công nếu không quét được mã QR.", "Please enter the code to manually check-in if QR code scanning is not possible.")} title={tt("Check-in thủ công", "Manual Check-in")} />
                 <Divider />
                 <CardContent>
                   <form onSubmit={handleManualCheckInSubmit}>
                     <Grid container rowSpacing={2} spacing={2}>
                       <Grid item md={8} xs={12}>
                         <FormControl fullWidth required>
-                          <InputLabel>Mã check-in</InputLabel>
+                          <InputLabel>{tt('Mã check-in', 'Check-in Code')}</InputLabel>
                           <OutlinedInput
-                            label="Tên loại vé"
+                            label={tt('Mã check-in', 'Check-in Code')}
                             name="name"
                             value={qrManualInput}
                             onChange={(e) => setQrManualInput(e.target.value)}
@@ -441,7 +446,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       </Grid>
                       <Grid item md={4} xs={12}>
                         <Button variant='contained' sx={{ width: '100%', height: '100%' }} onClick={handleManualCheckInClick} startIcon={<EyeIcon />}>
-                          Kiểm tra
+                          {tt('Kiểm tra', 'Check')}
                         </Button>
                       </Grid>
                     </Grid>
@@ -450,7 +455,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 <Divider />
                 <CardContent>
                   <Typography variant="body1">
-                    Khách hàng không có mã QR?
+                    {tt('Khách hàng không có mã QR?', 'Customer doesn\'t have QR code?')}
                     {' '}
                     <a
                       href={`/event-studio/events/${params.event_id}/transactions`}
@@ -458,7 +463,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       rel="noopener noreferrer"
                       style={{ color: '#1976d2', textDecoration: 'none' }}
                     >
-                      Tìm kiếm trong danh sách giao dịch
+                      {tt('Tìm kiếm trong danh sách giao dịch', 'Search in transaction list')}
                     </a>
                   </Typography>
                 </CardContent>
@@ -471,43 +476,43 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         <Puller />
         <Container maxWidth="sm">
           <Stack spacing={2} sx={{ mt: 3, mb: 2 }}>
-            <Typography variant="h6">Mã QR: {eCode}</Typography>
+            <Typography variant="h6">{tt('Mã QR:', 'QR Code:')} {eCode}</Typography>
             <Divider />
             {isLoading ? (
-              <Typography color="warning">Đang kiểm tra...</Typography>
+              <Typography color="warning">{tt('Đang kiểm tra...', 'Checking...')}</Typography>
             ) : isSuccessful === false ? (
-              <Typography color="error">KHÔNG TÌM THẤY </Typography>
+              <Typography color="error">{tt('KHÔNG TÌM THẤY', 'NOT FOUND')} </Typography>
             ) : (
               <>
                 <Stack spacing={1}>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1" fontWeight="bold">Người mua:</Typography>
+                    <Typography variant="body1" fontWeight="bold">{tt('Người mua:', 'Buyer:')}</Typography>
                     <IconButton size='small' target='_blank' component={RouterLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}?checkInCode=${eCode}`}><ArrowSquareIn /></IconButton>
                   </Grid>
 
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Họ tên:</Typography>
+                    <Typography variant="body1">{tt('Họ tên:', 'Full Name:')}</Typography>
                     <Typography variant="body1">{trxn?.title} {trxn?.name}</Typography>
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Ngày sinh:</Typography>
+                    <Typography variant="body1">{tt('Ngày sinh:', 'Date of Birth:')}</Typography>
                     <Typography variant="body1">{trxn?.dob ? dayjs(trxn?.dob || 0).format('DD/MM/YYYY') : `__/__/____`}</Typography>
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Email:</Typography>
+                    <Typography variant="body1">{tt('Email:', 'Email:')}</Typography>
                     <Typography variant="body1">{trxn?.email}</Typography>
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Số điện thoại:</Typography>
+                    <Typography variant="body1">{tt('Số điện thoại:', 'Phone Number:')}</Typography>
                     <Typography variant="body1">{trxn?.phoneNumber}</Typography>
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Địa chỉ:</Typography>
+                    <Typography variant="body1">{tt('Địa chỉ:', 'Address:')}</Typography>
                     <Typography variant="body1">{trxn?.address && trxn?.address.length > 30 ? trxn?.address.substring(0, 30) + '...' : trxn?.address}</Typography>
                   </Grid>
                   <Divider />
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1" fontWeight="bold">Danh sách vé đang có:</Typography>
+                    <Typography variant="body1" fontWeight="bold">{tt('Danh sách vé đang có:', 'Current Tickets:')}</Typography>
                     <Typography variant="body1">{trxn?.ticketQuantity}</Typography>
                   </Grid>
 
@@ -524,7 +529,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                         >
                           <AccordionSummary sx={{ backgroundColor: 'light' }} expandIcon={<CaretDown />}>
                             <Grid container justifyContent="space-between">
-                              <Typography variant="body1">Show:</Typography>
+                              <Typography variant="body1">{tt('Show:', 'Show:')}</Typography>
                               <Typography variant="body1">
                                 {category.ticketCategory.show.name} - {category.ticketCategory.name}
                               </Typography>
@@ -551,7 +556,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                       <Typography variant="body2">{ticket.holderName}</Typography>
                                       {ticket.checkInAt &&
                                         <Typography variant="caption">
-                                          Đã check-in lúc {dayjs(ticket.checkInAt).format("HH:mm:ss DD/MM/YYYY")}
+                                          {tt('Đã check-in lúc', 'Checked in at')} {dayjs(ticket.checkInAt).format("HH:mm:ss DD/MM/YYYY")}
                                         </Typography>
                                       }
                                     </Stack>
@@ -625,7 +630,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       sendCheckinRequest(eCode);
                     }}
                   >
-                    Check-in
+                    {tt('Check-in', 'Check-in')}
                   </Button>
                 </Stack>
               </>
