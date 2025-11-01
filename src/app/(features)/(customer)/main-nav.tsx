@@ -18,6 +18,7 @@ import { usePopover } from '@/hooks/use-popover';
 import { useUser } from '@/hooks/use-user';
 import { paths } from '@/paths';
 import { buildReturnUrl } from '@/lib/auth/urls';
+import { Container } from '@mui/material';
 
 export function MainNav(): React.JSX.Element {
 
@@ -45,36 +46,42 @@ export function MainNav(): React.JSX.Element {
           zIndex: 'var(--mui-zIndex-appBar)',
         }}
       >
-        <Stack
-          direction="row"
-          spacing={2}
-          sx={{ alignItems: 'center', justifyContent: 'space-between', minHeight: '64px', px: 2 }}
-        >
-          <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}></Stack>
-          {user ? (
+        <Container maxWidth="xl">
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{ alignItems: 'center', justifyContent: 'space-between', minHeight: '64px' }}
+          >
             <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-              <Tooltip title="Contacts">
-                <IconButton>
-                  <UsersIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Notifications">
-                <Badge badgeContent={4} color="success" variant="dot">
-                  <IconButton>
-                    <BellIcon />
-                  </IconButton>
-                </Badge>
-              </Tooltip>
-              <Avatar onClick={userPopover.handleOpen} ref={userPopover.anchorRef} sx={{ cursor: 'pointer' }}>
-                {(user?.email[0] || "").toUpperCase()}
-              </Avatar>
+              <div style={{ width: '45px' }}>
+                <Box component="img" src='/assets/etik-logo.png' sx={{ width: '100%' }} />
+              </div>
             </Stack>
-          ) : (
-            <Button component={RouterLink} variant="contained" href={`${paths.auth.signIn}?returnUrl=${encodedReturnUrl}`}>
-              Đăng nhập
-            </Button>
-          )}
-        </Stack>
+            {user ? (
+              <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                <Tooltip title="Contacts">
+                  <IconButton>
+                    <UsersIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Notifications">
+                  <Badge badgeContent={4} color="success" variant="dot">
+                    <IconButton>
+                      <BellIcon />
+                    </IconButton>
+                  </Badge>
+                </Tooltip>
+                <Avatar onClick={userPopover.handleOpen} ref={userPopover.anchorRef} sx={{ cursor: 'pointer' }}>
+                  {(user?.email[0] || "").toUpperCase()}
+                </Avatar>
+              </Stack>
+            ) : (
+              <Button component={RouterLink} variant="contained" href={`${paths.auth.signIn}?returnUrl=${encodedReturnUrl}`}>
+                Đăng nhập
+              </Button>
+            )}
+          </Stack>
+        </Container>
       </Box>
       <UserPopover anchorEl={userPopover.anchorRef.current} onClose={userPopover.handleClose} open={userPopover.open} />
     </React.Fragment>

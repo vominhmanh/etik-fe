@@ -170,12 +170,12 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               icon={InfoIcon}
             />
             <NavItemCollapseChildItem
-                pathname={pathname}
-                key="advanced-settings"
-                title="Cài đặt nâng cao"
-                href={`/event-studio/events/${dynamicId}/advanced-settings`}
-                icon={Sliders}
-              />
+              pathname={pathname}
+              key="advanced-settings"
+              title="Cài đặt nâng cao"
+              href={`/event-studio/events/${dynamicId}/advanced-settings`}
+              icon={Sliders}
+            />
             <NavItemCollapseChildItem
               pathname={pathname}
               key="revenue-and-fee"
@@ -277,6 +277,13 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
           <NavItemCollapse pathname={pathname} key="mini-app" title="Mini App" icon={SquaresFour}>
             <NavItemCollapseChildItem
               pathname={pathname}
+              key="welcome-banner"
+              title="Banner chào mừng"
+              href={`/event-studio/events/${dynamicId}/config-mini-app-welcome-banner`}
+              icon={ImageSquare}
+            />
+            <NavItemCollapseChildItem
+              pathname={pathname}
               key="email-template-1"
               title="Rating Online"
               href={`/event-studio/events/${dynamicId}/config-mini-app-rating-online`}
@@ -296,6 +303,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-draw`}
               icon={SpinnerBall}
             />
+            
           </NavItemCollapse>
         </Stack>
       </Box>

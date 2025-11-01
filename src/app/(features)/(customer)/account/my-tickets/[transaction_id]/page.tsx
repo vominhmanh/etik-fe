@@ -190,10 +190,10 @@ export interface Transaction {
   paymentTransactionDatetime: string | null; // Date of the payment transaction, nullable
   note: string | null;              // Optional note for the transaction, nullable
   status: string;                   // Current status of the transaction
-  createdBy: number | null;         // ID of the user who created the transaction, nullable
+  // createdBy: number | null;         // ID of the user who created the transaction, nullable
   createdAt: string;                // The date the transaction was created
   createdSource: string;            // Source of the transaction creation
-  creator: Creator | null;          // Related creator of the transaction, nullable
+  // creator: Creator | null;          // Related creator of the transaction, nullable
   exportedTicketAt: string | null
   sentPaymentInstructionAt: string | null
   cancelRequestStatus: string | null
@@ -496,19 +496,19 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     </Typography>
                   </Grid>
                   {/* Created source */}
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  {/* <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">Người khởi tạo:</Typography>
                     </Stack>
                     <Typography variant="body1">{transaction.creator?.fullName || 'Không có thông tin'}</Typography>
-                  </Grid>
+                  </Grid> */}
                   {/* Created source */}
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  {/* <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">Nguồn khởi tạo:</Typography>
                     </Stack>
                     <Typography variant="body1">{createdSource.label || 'Chưa xác định'}</Typography>
-                  </Grid>
+                  </Grid> */}
                   {/* sentPaymentInstructionAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction="row" sx={{ display: 'flex', alignItems: 'center' }}>

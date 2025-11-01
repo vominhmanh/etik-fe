@@ -17,6 +17,7 @@ import RouterLink from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { buildReturnUrl } from '@/lib/auth/urls';
+import { Container } from '@mui/material';
 
 export function MainNav(): React.JSX.Element {
   const [openNav, setOpenNav] = React.useState<boolean>(false);
@@ -50,10 +51,11 @@ export function MainNav(): React.JSX.Element {
           zIndex: 'var(--mui-zIndex-appBar)',
         }}
       >
+        <Container maxWidth="xl">
         <Stack
           direction="row"
           spacing={2}
-          sx={{ alignItems: 'center', justifyContent: 'space-between', minHeight: '64px', px: 2 }}
+          sx={{ alignItems: 'center', justifyContent: 'space-between', minHeight: '64px' }}
         >
           <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
             <div style={{width: '45px'}}>
@@ -84,6 +86,7 @@ export function MainNav(): React.JSX.Element {
             </Button>
           )}
         </Stack>
+        </Container>
       </Box>
       <UserPopover anchorEl={userPopover.anchorRef.current} onClose={userPopover.handleClose} open={userPopover.open} />
     </React.Fragment>

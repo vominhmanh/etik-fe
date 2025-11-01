@@ -317,6 +317,13 @@ export function SideNav(): React.JSX.Element {
             <NavItemCollapse pathname={pathname} key="mini-app" title="Mini App" icon={SquaresFour}>
               <NavItemCollapseChildItem
                 pathname={pathname}
+                key="welcome-banner"
+                title="Banner chào mừng"
+                href={`/event-studio/events/${dynamicId}/config-mini-app-welcome-banner`}
+                icon={ImageSquare}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
                 key="email-template-1"
                 title="Rating Online"
                 href={`/event-studio/events/${dynamicId}/config-mini-app-rating-online`}
@@ -336,6 +343,7 @@ export function SideNav(): React.JSX.Element {
                 href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-draw`}
                 icon={SpinnerBall}
               />
+              
             </NavItemCollapse>
           </Stack>
         </Box>
@@ -358,11 +366,11 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
       <Box
         {...(href
           ? {
-              component: external ? 'a' : RouterLink,
-              href,
-              target: external ? '_blank' : undefined,
-              rel: external ? 'noreferrer' : undefined,
-            }
+            component: external ? 'a' : RouterLink,
+            href,
+            target: external ? '_blank' : undefined,
+            rel: external ? 'noreferrer' : undefined,
+          }
           : { role: 'button' })}
         sx={{
           alignItems: 'center',
@@ -442,11 +450,11 @@ function NavItemCollapse({
         <Box
           {...(href
             ? {
-                component: external ? 'a' : RouterLink,
-                href,
-                target: external ? '_blank' : undefined,
-                rel: external ? 'noreferrer' : undefined,
-              }
+              component: external ? 'a' : RouterLink,
+              href,
+              target: external ? '_blank' : undefined,
+              rel: external ? 'noreferrer' : undefined,
+            }
             : { role: 'button', onClick: handleToggle, cursor: 'pointer' })}
           sx={{
             alignItems: 'center',
@@ -533,11 +541,11 @@ function NavItemCollapseChildItem({
       <Box
         {...(href && !onClick
           ? {
-              component: external ? 'a' : RouterLink,
-              href,
-              target: external ? '_blank' : undefined,
-              rel: external ? 'noreferrer' : undefined,
-            }
+            component: external ? 'a' : RouterLink,
+            href,
+            target: external ? '_blank' : undefined,
+            rel: external ? 'noreferrer' : undefined,
+          }
           : { role: 'button', onClick: handleClick })}
         sx={{
           alignItems: 'center',
