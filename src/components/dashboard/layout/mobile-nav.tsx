@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import { usePathname } from 'next/navigation';
 import { Collapse, IconButton, Link } from '@mui/material';
 import Box from '@mui/material/Box';
@@ -120,17 +121,17 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
     >
       <Stack spacing={2} sx={{ p: 3 }}>
         <Box sx={{ display: 'inline-flex' }}>
-          <IconButton sx={{ color: "var(--mui-palette-neutral-400)" }} component={RouterLink} href="/event-studio/events/">
+          <IconButton sx={{ color: "var(--mui-palette-neutral-400)" }} component={LocalizedLink} href="/event-studio/events/">
             <CaretLeftIcon />
           </IconButton>
-          <RouterLink href={paths.home} style={{ display: 'inline-flex' }}>
+          <LocalizedLink href={paths.home} style={{ display: 'inline-flex' }}>
             <Image
               src={logoImage}
               alt="Left Logo"
               height={40}
               className="mr-2" // Khoảng cách giữa hai logo
             />
-          </RouterLink>
+          </LocalizedLink>
         </Box>
         <Box
           sx={{
@@ -332,7 +333,7 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
       <Box
         {...(href
           ? {
-            component: external ? 'a' : RouterLink,
+            component: external ? 'a' : LocalizedLink,
             href,
             target: external ? '_blank' : undefined,
             rel: external ? 'noreferrer' : undefined,
@@ -416,7 +417,7 @@ function NavItemCollapse({
         <Box
           {...(href
             ? {
-              component: external ? 'a' : RouterLink,
+              component: external ? 'a' : LocalizedLink,
               href,
               target: external ? '_blank' : undefined,
               rel: external ? 'noreferrer' : undefined,
@@ -507,7 +508,7 @@ function NavItemCollapseChildItem({
       <Box
         {...(href && !onClick
           ? {
-            component: external ? 'a' : RouterLink,
+            component: external ? 'a' : LocalizedLink,
             href,
             target: external ? '_blank' : undefined,
             rel: external ? 'noreferrer' : undefined,

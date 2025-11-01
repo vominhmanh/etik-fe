@@ -19,7 +19,8 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import { ArrowCounterClockwise, Empty, MicrosoftExcelLogo, X } from '@phosphor-icons/react/dist/ssr';
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { debounce } from 'lodash';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import { TicketsTable } from './tickets-table';
 
 
@@ -373,7 +374,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <div>
           <Button
             startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
-            component={RouterLink}
+            component={LocalizedLink}
             href="transactions/create"
             variant="contained"
           >

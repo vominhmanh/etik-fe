@@ -18,7 +18,8 @@ export interface LocaleProviderProps {
 
 export function LocaleProvider({ children }: LocaleProviderProps): React.JSX.Element {
   const pathname = usePathname(); // Reads browser URL (includes /en if present)
-  
+
+  console.log('LocaleProvider pathname', pathname);
   // Detect locale from the browser pathname
   const locale: Locale = pathname.startsWith('/en/') || pathname === '/en' ? 'en' : 'vi';
 
@@ -30,10 +31,7 @@ export function LocaleProvider({ children }: LocaleProviderProps): React.JSX.Ele
     [locale]
   );
 
-  const value = React.useMemo(
-    () => ({ locale, tt }),
-    [locale, tt]
-  );
+  const value = React.useMemo(() => ({ locale, tt }), [locale, tt]);
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }
@@ -51,4 +49,3 @@ export function useTranslation() {
   const { tt, locale } = useLocale();
   return { tt, locale };
 }
-

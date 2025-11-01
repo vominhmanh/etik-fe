@@ -18,7 +18,8 @@ import { SealPercent as SealPercentIcon } from '@phosphor-icons/react/dist/ssr/S
 import { StackPlus as StackPlusIcon } from '@phosphor-icons/react/dist/ssr/StackPlus';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
@@ -371,7 +372,7 @@ export default function Page(): React.JSX.Element {
                               <Typography variant="body1">{tt('Trang thanh toán:', 'Payment page:')}</Typography>
                               <Typography variant="body1">
                                 <Button
-                                  component={RouterLink}
+                                  component={LocalizedLink}
                                   href={transaction.paymentCheckoutUrl || ''}
                                   size="small"
                                   startIcon={<LightningIcon />}

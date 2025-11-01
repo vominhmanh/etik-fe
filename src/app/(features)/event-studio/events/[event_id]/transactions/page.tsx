@@ -7,7 +7,8 @@ import Typography from '@mui/material/Typography';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { AxiosResponse } from 'axios';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
@@ -589,7 +590,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <div>
           <Button
             startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
-            component={RouterLink}
+            component={LocalizedLink}
             href="transactions/create"
             variant="contained"
           >

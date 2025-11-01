@@ -20,7 +20,8 @@ import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from '@/contexts/locale-context';
 
@@ -98,7 +99,7 @@ export default function Page(): React.JSX.Element {
           <Button
             startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
             variant="contained"
-            component={RouterLink}
+            component={LocalizedLink}
             href="/event-studio/events/create"
           >
             {tt('Thêm', 'Add')}
@@ -146,7 +147,7 @@ export default function Page(): React.JSX.Element {
               </CardContent>
               <Divider />
               <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 1 }}>
-                <Button component={RouterLink}
+                <Button component={LocalizedLink}
                   href={`/event-studio/events/${event.id}`} size="small" startIcon={<EyeIcon />}>
                   {tt('Xem chi tiết', 'View Details')}
                 </Button>

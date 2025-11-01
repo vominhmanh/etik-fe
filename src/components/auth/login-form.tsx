@@ -1,6 +1,7 @@
 'use client'
 import * as React from 'react';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
@@ -111,7 +112,7 @@ export function SignInForm(): React.JSX.Element {
         <Typography variant="h4">{tt('Đăng nhập', 'Sign In')}</Typography>
         <Typography color="text.secondary" variant="body2">
           {tt('Bạn chưa có tài khoản?', "Don't have an account?")}{' '}
-          <Link component={RouterLink} href={paths.auth.signUp} underline="hover" variant="subtitle2">
+          <Link component={LocalizedLink} href={paths.auth.signUp} underline="hover" variant="subtitle2">
             {tt('Đăng ký', 'Sign Up')}
           </Link>
         </Typography>
@@ -164,7 +165,7 @@ export function SignInForm(): React.JSX.Element {
             )}
           />
           <div>
-            <Link component={RouterLink} href={paths.auth.resetPassword} variant="subtitle2">
+            <Link component={LocalizedLink} href={paths.auth.resetPassword} variant="subtitle2">
               {tt('Quên mật khẩu?', 'Forgot password?')}
             </Link>
           </div>

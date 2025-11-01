@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import { usePathname } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
@@ -55,7 +56,7 @@ export function SideNav(): React.JSX.Element {
     >
       <Stack sx={{position: 'sticky', top: 0}}>
         <Stack spacing={2} sx={{ p: 2 }}>
-        <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
+        <Box component={LocalizedLink} href={paths.home} sx={{ display: 'inline-flex' }}>
             <Image
                 src={logoImage}
                 alt="Left Logo"
@@ -106,7 +107,7 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
       <Box
         {...(href
           ? {
-              component: external ? 'a' : RouterLink,
+              component: external ? 'a' : LocalizedLink,
               href,
               target: external ? '_blank' : undefined,
               rel: external ? 'noreferrer' : undefined,

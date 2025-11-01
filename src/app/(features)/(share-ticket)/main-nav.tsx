@@ -14,7 +14,8 @@ import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import { Bell as BellIcon } from '@phosphor-icons/react/dist/ssr/Bell';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { buildReturnUrl } from '@/lib/auth/urls';
@@ -82,7 +83,7 @@ export function MainNav(): React.JSX.Element {
               </Avatar>
             </Stack>
           ) : (
-            <Button variant="contained"  component={RouterLink} href={`${paths.auth.signIn}?returnUrl=${encodedReturnUrl}`}>
+            <Button variant="contained"  component={LocalizedLink} href={`${paths.auth.signIn}?returnUrl=${encodedReturnUrl}`}>
               {tt('Đăng nhập', 'Sign In')}
             </Button>
           )}

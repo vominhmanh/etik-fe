@@ -13,7 +13,8 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Bank as BankIcon, CaretDoubleRight, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, SignIn, SignOut, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 
@@ -961,7 +962,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           <Typography variant="body1">Trang thanh toán:</Typography>
                           <Typography variant="body1">
                             <Button
-                              component={RouterLink}
+                              component={LocalizedLink}
                               href={transaction.paymentCheckoutUrl || ''}
                               size="small"
                               startIcon={<LightningIcon />}

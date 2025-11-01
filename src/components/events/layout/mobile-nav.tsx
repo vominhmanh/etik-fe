@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import Image from 'next/image';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import { usePathname } from 'next/navigation';
 import logoImage from '@/images/etik-logo-transparent-dark.png';
 import { Stack } from '@mui/material';
@@ -65,14 +66,14 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
       open={open}
     >
       <Stack spacing={2} sx={{ p: 3 }}>
-        <RouterLink href={paths.home} style={{ display: 'inline-flex' }}>
+        <LocalizedLink href={paths.home} style={{ display: 'inline-flex' }}>
           <Image
             src={logoImage}
             alt="Left Logo"
             height={40}
             className="mr-2" // Khoảng cách giữa hai logo
           />
-        </RouterLink>
+        </LocalizedLink>
       </Stack>
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
       <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
@@ -98,7 +99,7 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
       <Box
         {...(href
           ? {
-              component: external ? 'a' : RouterLink,
+              component: external ? 'a' : LocalizedLink,
               href,
               target: external ? '_blank' : undefined,
               rel: external ? 'noreferrer' : undefined,

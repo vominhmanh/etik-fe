@@ -13,7 +13,8 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Ticket as TicketIcon, Bank as BankIcon, FacebookLogo, ImageSquare, Info, Lightning as LightningIcon, Money as MoneyIcon, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 
@@ -462,7 +463,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                           <Typography variant="body1">{tt('Trang thanh toán:', 'Payment Page:')}</Typography>
                           <Typography variant="body1">
                             <Button
-                              component={RouterLink}
+                              component={LocalizedLink}
                               href={transaction.paymentCheckoutUrl || ''}
                               size="small"
                               startIcon={<LightningIcon />}

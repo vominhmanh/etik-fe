@@ -17,7 +17,8 @@ import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import axios, { AxiosResponse } from 'axios';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import * as XLSX from 'xlsx';
@@ -539,7 +540,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Button startIcon={<Plus />} size='small' onClick={addCustomer}>
                   Thêm hàng
                 </Button>
-                <Button startIcon={<Download />} size='small' component={RouterLink}
+                <Button startIcon={<Download />} size='small' component={LocalizedLink}
                   href='/assets/create-bulk-transactions-template.xlsx' download={true}>
                   Tải file excel mẫu
                 </Button>

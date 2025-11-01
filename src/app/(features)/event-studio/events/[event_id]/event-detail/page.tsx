@@ -23,7 +23,8 @@ import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { Pencil as PencilIcon } from '@phosphor-icons/react/dist/ssr/Pencil';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import ReactQuill from 'react-quill';
@@ -737,7 +738,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       fullWidth
                       variant="contained"
                       target="_blank"
-                      component={RouterLink}
+                      component={LocalizedLink}
                       href={`/events/${event?.slug}`}
                       size="small"
                       endIcon={<ArrowSquareIn />}

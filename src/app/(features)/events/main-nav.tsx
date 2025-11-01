@@ -1,7 +1,6 @@
 'use client';
 
 import { UserPopover } from '@/components/dashboard/layout/user-popover';
-import { LanguageSwitcher } from '@/components/language-switcher';
 import { usePopover } from '@/hooks/use-popover';
 import { useUser } from '@/hooks/use-user';
 import { paths } from '@/paths';
@@ -14,16 +13,19 @@ import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import { Bell as BellIcon } from '@phosphor-icons/react/dist/ssr/Bell';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
-import RouterLink from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import * as React from 'react';
 import { buildReturnUrl } from '@/lib/auth/urls';
-import { Container } from '@mui/material';
+import { Container, ButtonGroup } from '@mui/material';
+import { useLocale } from '@/contexts/locale-context';
+import { LocalizedLink } from '@/components/localized-link';
 
 export function MainNav(): React.JSX.Element {
   const [openNav, setOpenNav] = React.useState<boolean>(false);
   const userPopover = usePopover<HTMLDivElement>();
   const { user } = useUser();
+  const { locale } = useLocale();
+  const router = useRouter();
 
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -31,6 +33,26 @@ export function MainNav(): React.JSX.Element {
     const search = searchParams?.toString() ? `?${searchParams.toString()}` : '';
     return buildReturnUrl(pathname || '/', search);
   }, [pathname, searchParams]);
+
+  const switchLocale = (newLocale: 'vi' | 'en') => {
+    if (newLocale === locale) return;
+
+    let newPath = pathname;
+    
+    if (newLocale === 'en') {
+      // Switch to English: add /en prefix
+      if (!pathname.startsWith('/en')) {
+        newPath = `/en${pathname}`;
+      }
+    } else {
+      // Switch to Vietnamese: remove /en prefix
+      if (pathname.startsWith('/en')) {
+        newPath = pathname.substring(3) || '/';
+      }
+    }
+
+    router.push(newPath);
+  };
 
   React.useEffect(() => {
     const fetchUser = async () => {
@@ -65,7 +87,22 @@ export function MainNav(): React.JSX.Element {
           </Stack>
           {user ? (
             <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-              <LanguageSwitcher />
+              <ButtonGroup size="small" variant="outlined">
+                <Button 
+                  variant={locale === 'vi' ? 'contained' : 'outlined'}
+                  onClick={() => switchLocale('vi')}
+                  sx={{ minWidth: '50px' }}
+                >
+                  VI
+                </Button>
+                <Button 
+                  variant={locale === 'en' ? 'contained' : 'outlined'}
+                  onClick={() => switchLocale('en')}
+                  sx={{ minWidth: '50px' }}
+                >
+                  EN
+                </Button>
+              </ButtonGroup>
               <Tooltip title="Contacts">
                 <IconButton>
                   <UsersIcon />
@@ -84,8 +121,23 @@ export function MainNav(): React.JSX.Element {
             </Stack>
           ) : (
             <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-              <LanguageSwitcher />
-              <Button variant="contained"  component={RouterLink} href={`${paths.auth.signIn}?returnUrl=${encodedReturnUrl}`}>
+              <ButtonGroup size="small" variant="outlined">
+                <Button 
+                  variant={locale === 'vi' ? 'contained' : 'outlined'}
+                  onClick={() => switchLocale('vi')}
+                  sx={{ minWidth: '50px' }}
+                >
+                  VI
+                </Button>
+                <Button 
+                  variant={locale === 'en' ? 'contained' : 'outlined'}
+                  onClick={() => switchLocale('en')}
+                  sx={{ minWidth: '50px' }}
+                >
+                  EN
+                </Button>
+              </ButtonGroup>
+              <Button variant="contained"  component={LocalizedLink} href={`${paths.auth.signIn}?returnUrl=${encodedReturnUrl}`}>
                 Đăng nhập
               </Button>
             </Stack>

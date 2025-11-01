@@ -14,7 +14,8 @@ import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import * as React from 'react';
 
 import { Chip } from '@mui/material';
@@ -295,7 +296,7 @@ export function TransactionsTable({
                   </TableCell>
                   <TableCell>{dayjs(row.createdAt).format('HH:mm:ss DD/MM/YYYY')}</TableCell>
                   <TableCell>
-                    <IconButton color="primary" target='_blank' component={RouterLink}
+                    <IconButton color="primary" target='_blank' component={LocalizedLink}
                       href={`/event-studio/events/${eventId}/transactions/${row.id}`}>
                       <ArrowSquareUpRightIcon />
                     </IconButton>

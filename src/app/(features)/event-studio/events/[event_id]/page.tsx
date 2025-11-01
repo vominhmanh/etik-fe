@@ -23,7 +23,8 @@ import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import type { AxiosResponse } from 'axios';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import { useState } from 'react';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
@@ -313,45 +314,45 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Typography>
                 {(eventId === 43 || eventId === 44) &&
                   <>
-                    <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/${event?.slug}`} size="small">
+                    <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/${event?.slug}`} size="small">
                       Tra cứu vị trí ngồi
                     </Button>
-                    <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/thiet-lap-tran-dau`} size="small">
+                    <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/thiet-lap-tran-dau`} size="small">
                       Thiết lập trận đấu
                     </Button>
                   </>
                 }
-                <Button sx={{ minWidth: '190px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/event-detail`} size="small">
+                <Button sx={{ minWidth: '190px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/event-detail`} size="small">
                   Chỉnh sửa thông tin sự kiện
                 </Button>
-                <Button sx={{ minWidth: '120px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/transactions/create`} size="small">
+                <Button sx={{ minWidth: '120px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/transactions/create`} size="small">
                   Tạo giao dịch
                 </Button>
-                <Button sx={{ minWidth: '100px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/check-in/qr`} size="small">
+                <Button sx={{ minWidth: '100px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/check-in/qr`} size="small">
                   Check-in
                 </Button>
-                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
+                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
                   Thiết lập show diễn
                 </Button>
-                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/shows`} size="small">
+                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/shows`} size="small">
                   Thiết lập loại vé
                 </Button>
                 {(eventId === 43 || eventId === 44) &&
                   <>
-                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/shows`} size="small">
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/shows`} size="small">
                       Thay đổi tên bàn
                     </Button>
-                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
+                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
                       Khóa/Mở khóa tra cứu
                     </Button>
                   </>
                 }
                 {eventId === 43 &&
                   <>
-                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard`} size="small">
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard`} size="small">
                       Leaderboard Duo
                     </Button>
-                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
                       Sơ đồ trận Lobby
                     </Button>
                   </>
@@ -359,19 +360,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 }
                 {eventId == 44 &&
                   <>
-                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-a`} size="small">
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-a`} size="small">
                       Leaderboard Solo A
                     </Button>
-                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-b`} size="small">
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-b`} size="small">
                       Leaderboard Solo B
                     </Button>
-                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-arena`} size="small">
+                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-arena`} size="small">
                       Leaderboard Solo Arena
                     </Button>
-                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-arena-final`} size="small">
+                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-arena-final`} size="small">
                       Leaderboard Solo Final
                     </Button>
-                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
                       Sơ đồ trận Lobby
                     </Button>
                   </>
@@ -452,7 +453,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     fullWidth
                     variant="contained"
                     target="_blank"
-                    component={RouterLink}
+                    component={LocalizedLink}
                     href={`/events/${event?.slug}`}
                     size="small"
                     endIcon={<ArrowSquareIn />}
@@ -535,45 +536,45 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Typography>
                 {(eventId === 43 || eventId === 44) &&
                   <>
-                    <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/${event?.slug}`} size="small">
+                    <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/${event?.slug}`} size="small">
                       Tra cứu vị trí ngồi
                     </Button>
-                    <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/thiet-lap-tran-dau`} size="small">
+                    <Button sx={{ minWidth: '140px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/thiet-lap-tran-dau`} size="small">
                       Thiết lập trận đấu
                     </Button>
                   </>
                 }
-                <Button sx={{ minWidth: '210px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/event-detail`} size="small">
+                <Button sx={{ minWidth: '210px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/event-detail`} size="small">
                   Chỉnh sửa thông tin sự kiện
                 </Button>
-                <Button sx={{ minWidth: '120px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/transactions/create`} size="small">
+                <Button sx={{ minWidth: '120px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/transactions/create`} size="small">
                   Tạo giao dịch
                 </Button>
-                <Button sx={{ minWidth: '100px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/check-in/qr`} size="small">
+                <Button sx={{ minWidth: '100px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/check-in/qr`} size="small">
                   Check-in
                 </Button>
-                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
+                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
                   Thiết lập show diễn
                 </Button>
-                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/shows`} size="small">
+                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/shows`} size="small">
                   Thiết lập loại vé
                 </Button>
                 {(eventId === 43 || eventId === 44) &&
                   <>
-                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/shows`} size="small">
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/shows`} size="small">
                       Thay đổi tên bàn
                     </Button>
-                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
+                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
                       Khóa/Mở khóa tra cứu
                     </Button>
                   </>
                 }
                 {eventId === 43 &&
                   <>
-                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard`} size="small">
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard`} size="small">
                       Leaderboard Duo
                     </Button>
-                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
                       Sơ đồ trận Lobby
                     </Button>
                   </>
@@ -581,19 +582,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 }
                 {eventId == 44 &&
                   <>
-                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-a`} size="small">
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-a`} size="small">
                       Leaderboard Solo A
                     </Button>
-                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-b`} size="small">
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-b`} size="small">
                       Leaderboard Solo B
                     </Button>
-                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-arena`} size="small">
+                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-arena`} size="small">
                       Leaderboard Solo Arena
                     </Button>
-                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/leaderboard-arena-final`} size="small">
+                    <Button sx={{ minWidth: '170px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/leaderboard-arena-final`} size="small">
                       Leaderboard Solo Final
                     </Button>
-                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={RouterLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
+                    <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/so-do-tran-dau-lobbies`} size="small">
                       Sơ đồ trận Lobby
                     </Button>
                   </>

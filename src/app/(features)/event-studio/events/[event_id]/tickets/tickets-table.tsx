@@ -24,7 +24,8 @@ import { Bank as BankIcon } from '@phosphor-icons/react/dist/ssr/Bank';
 import { Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr/Lightning';
 import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
 import dayjs from 'dayjs';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import { Ticket } from './page';
 
 
@@ -279,7 +280,7 @@ export function TicketsTable({
                   <TableCell>{dayjs(row.createdAt).format('HH:mm:ss DD/MM/YYYY')}</TableCell>
                   <TableCell>{row.checkInAt ? dayjs(row.checkInAt).format('HH:mm:ss DD/MM/YYYY') : ''}</TableCell>
                   <TableCell>
-                    <IconButton color="primary" target='_blank' component={RouterLink}
+                    <IconButton color="primary" target='_blank' component={LocalizedLink}
                       href={`/event-studio/events/${eventId}/transactions/${row.transactionId}`}>
                       <ArrowSquareUpRightIcon />
                     </IconButton>

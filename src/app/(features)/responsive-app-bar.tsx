@@ -8,8 +8,10 @@ import MenuItem from '@mui/material/MenuItem';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import RouterLink from 'next/link';
 import * as React from 'react';
+import { useLocale } from '@/contexts/locale-context';
+import { useRouter, usePathname } from 'next/navigation';
+import { LocalizedLink } from '@/components/localized-link';
 
 const pages = ['Sự kiện mới', 'Event Studio'];
 
@@ -21,19 +23,29 @@ const LanguageSelectIcon = (props: any) => (
 export function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
-  const [lang, setLang] = React.useState<'vi' | 'en'>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = window.localStorage.getItem('lang');
-      if (saved === 'vi' || saved === 'en') return saved;
-    }
-    return 'vi';
-  });
+  const { locale } = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('lang', lang);
+  const switchLocale = (newLocale: 'vi' | 'en') => {
+    if (newLocale === locale) return;
+
+    let newPath = pathname;
+    
+    if (newLocale === 'en') {
+      // Switch to English: add /en prefix
+      if (!pathname.startsWith('/en')) {
+        newPath = `/en${pathname}`;
+      }
+    } else {
+      // Switch to Vietnamese: remove /en prefix
+      if (pathname.startsWith('/en')) {
+        newPath = pathname.substring(3) || '/';
+      }
     }
-  }, [lang]);
+
+    router.push(newPath);
+  };
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
@@ -57,7 +69,7 @@ export function ResponsiveAppBar() {
           {/* <Typography
             variant="h6"
             noWrap
-            component={RouterLink}
+            component={LocalizedLink}
             href="/"
             scroll={false}
             sx={{
@@ -75,7 +87,7 @@ export function ResponsiveAppBar() {
            */}
           <Box sx={{ flexGrow: 1, display: 'flex', my: 0, justifyContent: 'flex-start' }}>
             {/* <Button
-              component={RouterLink}
+              component={LocalizedLink}
               href='/marketplace'
               scroll={false}
               onClick={handleCloseNavMenu}
@@ -84,7 +96,7 @@ export function ResponsiveAppBar() {
               Sự kiện hot
             </Button> */}
             <Button
-              component={RouterLink}
+              component={LocalizedLink}
               href='/event-studio/events'
               scroll={false}
               onClick={handleCloseNavMenu}
@@ -96,10 +108,10 @@ export function ResponsiveAppBar() {
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
             <Select
-              value={lang}
+              value={locale}
               onChange={(e: SelectChangeEvent) => {
                 const value = e.target.value as 'vi' | 'en';
-                setLang(value);
+                switchLocale(value);
               }}
               variant="outlined"
               size="small"

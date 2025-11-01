@@ -1,5 +1,6 @@
 import * as React from 'react';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import { useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
@@ -78,38 +79,38 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
       <Divider />
       <MenuList disablePadding sx={{ p: '8px', '& .MuiMenuItem-root': { borderRadius: 1 } }}>
         
-        <MenuItem component={RouterLink} href={'/account'} onClick={onClose}>
+        <MenuItem component={LocalizedLink} href={'/account'} onClick={onClose}>
           <ListItemIcon>
             <UserIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
           {tt('Cài đặt tài khoản', 'Account Settings')}
         </MenuItem>
-        <MenuItem component={RouterLink} href={'/account'} onClick={onClose}>
+        <MenuItem component={LocalizedLink} href={'/account'} onClick={onClose}>
           <ListItemIcon>
             <Wallet fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
           <span>{tt('Ví trả trước: ', 'Prepaid Wallet: ')}</span><b style={{marginLeft: '8px'}}>0</b><span style={{marginLeft: '8px'}}>{tt('VNĐ', 'VND')}</span>
         </MenuItem>
         
-        <MenuItem component={RouterLink} href={'/account/my-tickets'} onClick={onClose}>
+        <MenuItem component={LocalizedLink} href={'/account/my-tickets'} onClick={onClose}>
           <ListItemIcon>
             <TicketIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
           {tt('Vé của tôi', 'My Tickets')}
         </MenuItem>
-        <MenuItem component={RouterLink} href={'/account/my-tickets'} onClick={onClose}>
+        <MenuItem component={LocalizedLink} href={'/account/my-tickets'} onClick={onClose}>
           <ListItemIcon>
             <Invoice fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
           {tt('Đơn hàng của tôi', 'My Orders')}
         </MenuItem>
-        <MenuItem component={RouterLink} href={'/account-event-agency'} onClick={onClose}>
+        <MenuItem component={LocalizedLink} href={'/account-event-agency'} onClick={onClose}>
           <ListItemIcon>
             <SealCheck fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
           {tt('Tài khoản Event Agency', 'Event Agency Account')}
         </MenuItem>
-        <MenuItem component={RouterLink} href={'/event-studio/events'} onClick={onClose}>
+        <MenuItem component={LocalizedLink} href={'/event-studio/events'} onClick={onClose}>
           <ListItemIcon>
             <CodesandboxLogo fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>

@@ -10,7 +10,8 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { EyeSlash as EyeSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -182,7 +183,7 @@ export function SignInForm(): React.JSX.Element {
         <Typography variant="h4">Đăng nhập</Typography>
         <Typography color="text.secondary" variant="body2">
           Bạn chưa có tài khoản?{' '}
-          <Link component={RouterLink} href={paths.auth.signUp} underline="hover" variant="subtitle2">
+          <Link component={LocalizedLink} href={paths.auth.signUp} underline="hover" variant="subtitle2">
             Đăng ký
           </Link>
         </Typography>

@@ -5,7 +5,8 @@ import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import * as React from 'react';
 
 import { config } from '@/config';
@@ -36,7 +37,7 @@ export default function NotFound(): React.JSX.Element {
           {tt('Bạn đã thử một đường dẫn không hợp lệ hoặc đến đây nhầm. Dù sao đi nữa, vui lòng sử dụng thanh điều hướng.', "You either tried some shady route or you came here by mistake. Whichever it is, try using the navigation")}
         </Typography>
         <Button
-          component={RouterLink}
+          component={LocalizedLink}
           href={paths.home}
           startIcon={<ArrowLeftIcon fontSize="var(--icon-fontSize-md)" />}
           variant="contained"

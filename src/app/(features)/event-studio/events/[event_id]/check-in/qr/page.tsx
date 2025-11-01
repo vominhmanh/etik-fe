@@ -9,7 +9,8 @@ import { ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icon
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import * as React from 'react';
 import { useZxing } from "react-zxing";
 import { useTranslation } from '@/contexts/locale-context';
@@ -487,7 +488,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 <Stack spacing={1}>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1" fontWeight="bold">{tt('Người mua:', 'Buyer:')}</Typography>
-                    <IconButton size='small' target='_blank' component={RouterLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}?checkInCode=${eCode}`}><ArrowSquareIn /></IconButton>
+                    <IconButton size='small' target='_blank' component={LocalizedLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}?checkInCode=${eCode}`}><ArrowSquareIn /></IconButton>
                   </Grid>
 
                   <Grid container justifyContent="space-between">

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
@@ -31,7 +32,7 @@ export default function NotFound(): React.JSX.Element {
           You either tried some shady route or you came here by mistake. Whichever it is, try using the navigation
         </Typography>
         <Button
-          component={RouterLink}
+          component={LocalizedLink}
           href={paths.home}
           startIcon={<ArrowLeftIcon fontSize="var(--icon-fontSize-md)" />}
           variant="contained"

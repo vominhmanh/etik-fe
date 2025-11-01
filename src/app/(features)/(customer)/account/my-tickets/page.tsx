@@ -20,7 +20,8 @@ import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import * as React from 'react';
 
 const getStatusMap = (tt: (vi: string, en: string) => string) => ({
@@ -228,7 +229,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   /> */}
                 </Stack>
                 <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
-                  <Button component={RouterLink} href={`/account/my-tickets/${transaction.id}`} size="small" startIcon={<EyeIcon />}>
+                  <Button component={LocalizedLink} href={`/account/my-tickets/${transaction.id}`} size="small" startIcon={<EyeIcon />}>
                     {tt('Xem chi tiết', 'View Details')}
                   </Button>
                 </Stack>

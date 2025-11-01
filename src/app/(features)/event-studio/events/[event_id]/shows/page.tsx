@@ -16,7 +16,8 @@ import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { AxiosResponse } from 'axios';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import * as React from 'react';
 
 import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
@@ -175,7 +176,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   <Button
                     startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
                     variant="outlined"
-                    component={RouterLink}
+                    component={LocalizedLink}
                     onClick={(event) => event.stopPropagation()}
                     href={`shows/${show.id}/ticket-categories/create`}
                   >
@@ -269,7 +270,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                             </Stack>
                             <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
                               <Button
-                                component={RouterLink}
+                                component={LocalizedLink}
                                 href={`/event-studio/events/${params.event_id}/shows/${show.id}/ticket-categories/${ticketCategory.id}`}
                                 size="small"
                                 startIcon={<Pencil />}

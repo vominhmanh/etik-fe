@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import { usePathname } from 'next/navigation';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { IconButton, Link } from '@mui/material';
@@ -133,12 +134,12 @@ export function SideNav(): React.JSX.Element {
           <Box sx={{ display: 'inline-flex' }}>
             <IconButton
               sx={{ color: 'var(--mui-palette-neutral-400)' }}
-              component={RouterLink}
+              component={LocalizedLink}
               href="/event-studio/events/"
             >
               <CaretLeftIcon />
             </IconButton>
-            <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
+            <Box component={LocalizedLink} href={paths.home} sx={{ display: 'inline-flex' }}>
               <Image
                 src={logoImage}
                 alt="Left Logo"
@@ -369,7 +370,7 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
       <Box
         {...(href
           ? {
-            component: external ? 'a' : RouterLink,
+            component: external ? 'a' : LocalizedLink,
             href,
             target: external ? '_blank' : undefined,
             rel: external ? 'noreferrer' : undefined,
@@ -453,7 +454,7 @@ function NavItemCollapse({
         <Box
           {...(href
             ? {
-              component: external ? 'a' : RouterLink,
+              component: external ? 'a' : LocalizedLink,
               href,
               target: external ? '_blank' : undefined,
               rel: external ? 'noreferrer' : undefined,
@@ -544,7 +545,7 @@ function NavItemCollapseChildItem({
       <Box
         {...(href && !onClick
           ? {
-            component: external ? 'a' : RouterLink,
+            component: external ? 'a' : LocalizedLink,
             href,
             target: external ? '_blank' : undefined,
             rel: external ? 'noreferrer' : undefined,

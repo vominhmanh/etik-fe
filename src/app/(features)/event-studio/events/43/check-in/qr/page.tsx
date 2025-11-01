@@ -8,7 +8,8 @@ import { ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icon
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import RouterLink from 'next/link';
+import { LocalizedLink } from '@/components/localized-link';
+
 import * as React from 'react';
 import { useZxing } from "react-zxing";
 import { Schedules } from './schedules';
@@ -432,7 +433,7 @@ export default function Page(): React.JSX.Element {
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Email:</Typography>
-                    <Typography variant="body1">{trxn?.email} <IconButton size='small' target='_blank' component={RouterLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}?checkInCode=${eCode}`}><ArrowSquareIn /></IconButton></Typography>
+                    <Typography variant="body1">{trxn?.email} <IconButton size='small' target='_blank' component={LocalizedLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}?checkInCode=${eCode}`}><ArrowSquareIn /></IconButton></Typography>
                   </Grid>
 
                   <Grid container justifyContent="space-between">
