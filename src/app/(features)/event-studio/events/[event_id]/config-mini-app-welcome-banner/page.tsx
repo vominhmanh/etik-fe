@@ -128,7 +128,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     try {
       setIsLoading(true);
       const response: AxiosResponse<CheckConfigResponse> = await baseHttpServiceInstance.get(
-        `/event-studio/events/${event_id}/mini-app-rating-online/configs/check-config`
+        `/event-studio/events/${event_id}/mini-app-welcome-banner/check-config`
       );
       setConfigExists(response.data.exists);
     } catch (error) {
@@ -146,7 +146,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     setIsLoading(true);
     try {
       const response = await baseHttpServiceInstance.post(
-        `/event-studio/events/${params.event_id}/mini-app-rating-online/configs/create-config`
+        `/event-studio/events/${params.event_id}/mini-app-welcome-banner/create-config`
       );
       notificationCtx.success(response.data.message);
       checkConfig();

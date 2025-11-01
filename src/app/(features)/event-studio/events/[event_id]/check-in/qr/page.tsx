@@ -51,6 +51,7 @@ export interface Transaction {
   id: number;
   email: string;
   name: string;
+  title: string;
   dob: string;
   phoneNumber: string;
   address: string;
@@ -446,6 +447,21 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     </Grid>
                   </form>
                 </CardContent>
+                <Divider />
+                <CardContent>
+                  <Typography variant="body1">
+                    Khách hàng không có mã QR?
+                    {' '}
+                    <a
+                      href={`/event-studio/events/${params.event_id}/transactions`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#1976d2', textDecoration: 'none' }}
+                    >
+                      Tìm kiếm trong danh sách giao dịch
+                    </a>
+                  </Typography>
+                </CardContent>
               </Card>
             </Stack>
           </Grid>
@@ -454,7 +470,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       <SwipeableDrawer disableBackdropTransition={!iOS} disableDiscovery={iOS} open={isCheckinControllerOpen} onOpen={() => setIsCheckinControllerOpen(true)} onClose={handleCloseDrawer} anchor="bottom">
         <Puller />
         <Container maxWidth="sm">
-          <Stack spacing={2} sx={{ mt: 3 }}>
+          <Stack spacing={2} sx={{ mt: 3, mb: 2 }}>
             <Typography variant="h6">Mã QR: {eCode}</Typography>
             <Divider />
             {isLoading ? (
@@ -465,8 +481,13 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
               <>
                 <Stack spacing={1}>
                   <Grid container justifyContent="space-between">
+                    <Typography variant="body1" fontWeight="bold">Người mua:</Typography>
+                    <IconButton size='small' target='_blank' component={RouterLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}?checkInCode=${eCode}`}><ArrowSquareIn /></IconButton>
+                  </Grid>
+
+                  <Grid container justifyContent="space-between">
                     <Typography variant="body1">Họ tên:</Typography>
-                    <Typography variant="body1">{trxn?.name}</Typography>
+                    <Typography variant="body1">{trxn?.title} {trxn?.name}</Typography>
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Ngày sinh:</Typography>
@@ -474,7 +495,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Email:</Typography>
-                    <Typography variant="body1">{trxn?.email} <IconButton size='small' target='_blank' component={RouterLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}?checkInCode=${eCode}`}><ArrowSquareIn /></IconButton></Typography>
+                    <Typography variant="body1">{trxn?.email}</Typography>
                   </Grid>
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1">Số điện thoại:</Typography>
@@ -545,30 +566,25 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     })}
                   </div>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái giao dịch:</Typography>
-                    <Chip
-                      size='small'
-                      color={getRowStatusDetails(trxn?.status || '').color}
-                      label={getRowStatusDetails(trxn?.status || '').label}
-                    />
+                    <Typography variant="body1" fontWeight="bold">Trạng thái</Typography>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Chip
+                        size='small'
+                        color={getRowStatusDetails(trxn?.status || '').color}
+                        label={getRowStatusDetails(trxn?.status || '').label}
+                      />
+                      <Chip
+                        size='small'
+                        color={getPaymentStatusDetails(trxn?.paymentStatus || '').color}
+                        label={getPaymentStatusDetails(trxn?.paymentStatus || '').label}
+                      />
+                      <Chip
+                        size='small'
+                        color={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').color}
+                        label={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').label}
+                      />
+                    </Stack>
                   </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái thanh toán:</Typography>
-                    <Chip
-                      size='small'
-                      color={getPaymentStatusDetails(trxn?.paymentStatus || '').color}
-                      label={getPaymentStatusDetails(trxn?.paymentStatus || '').label}
-                    />
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái xuất vé:</Typography>
-                    <Chip
-                      size='small'
-                      color={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').color}
-                      label={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').label}
-                    />
-                  </Grid>
-
                   <Divider />
 
 

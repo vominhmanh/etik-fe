@@ -132,6 +132,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     })
   }
 
+  function normalizeText(text: string): string {
+    return (text || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase();
+  }
+
   // Fetch tickets for the event 
   const fetchTickets = async () => {
     try {
@@ -260,15 +269,23 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   }
 
   const filteredTickets = React.useMemo(() => {
+    const q = normalizeText(querySearch);
     return tickets.filter((ticket) => {
       // Search filter
       if (querySearch && !(
         (ticket.id.toString().includes(querySearch.toLocaleLowerCase())) ||
-        (ticket.holderName.toLowerCase().includes(querySearch.toLowerCase())) ||
+        (normalizeText(ticket.holderName).includes(q)) ||
         (ticket.transactionTicketCategory.transaction.id.toString().includes(querySearch.toLocaleLowerCase())) ||
-        (ticket.transactionTicketCategory.transaction.email.toLowerCase().includes(querySearch.toLowerCase())) ||
-        (ticket.transactionTicketCategory.transaction.name.toLowerCase().includes(querySearch.toLowerCase())) ||
-        (ticket.transactionTicketCategory.transaction.phoneNumber.toLowerCase().includes(querySearch.toLowerCase()))
+        (normalizeText(ticket.transactionTicketCategory.transaction.email).includes(q)) ||
+        (normalizeText(ticket.transactionTicketCategory.transaction.name).includes(q)) ||
+        (ticket.transactionTicketCategory.transaction.phoneNumber.toLowerCase().includes(querySearch.toLowerCase())) ||
+        (
+          ticket.transactionTicketCategory.transaction.phoneNumber
+            .replace(/\s+/g, '')
+            .replace(/^\+84/, '0')
+            .toLocaleLowerCase()
+            .includes(querySearch.replace(/\s+/g, '').replace(/^\+84/, '0').toLocaleLowerCase())
+        )
       )) {
         return false;
       }

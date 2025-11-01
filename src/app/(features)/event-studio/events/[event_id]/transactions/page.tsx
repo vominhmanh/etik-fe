@@ -128,6 +128,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     })
   }
 
+  function normalizeText(text: string): string {
+    return (text || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase();
+  }
+
   async function fetchTransactions() {
     try {
       setIsLoading(true);
@@ -183,13 +192,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   }, [params.event_id]);
 
   const filteredTransactions = React.useMemo(() => {
+    const q = normalizeText(querySearch);
     return transactions.filter((transaction) => {
       if (querySearch && !(
         (transaction.id.toString().includes(querySearch.toLocaleLowerCase())) ||
-        (transaction.email.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) ||
-        (transaction.name.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) ||
+        (normalizeText(transaction.email).includes(q)) ||
+        (normalizeText(transaction.name).includes(q)) ||
+        (normalizeText(transaction.name).includes(q)) ||
         (transaction.phoneNumber.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase())) ||
-        (transaction.createdAt.toLocaleLowerCase().includes(querySearch.toLocaleLowerCase()))
+        (
+          transaction.phoneNumber
+            .replace(/\s+/g, '')
+            .replace(/^\+84/, '0')
+            .toLocaleLowerCase()
+            .includes(querySearch.replace(/\s+/g, '').replace(/^\+84/, '0').toLocaleLowerCase())
+        ) ||
+        (normalizeText(transaction.createdAt).includes(q))
       )) {
         return false;
       }
