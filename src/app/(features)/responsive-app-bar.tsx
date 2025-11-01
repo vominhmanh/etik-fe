@@ -45,7 +45,7 @@ export function ResponsiveAppBar() {
       }
     }
 
-    router.push(newPath);
+    router.push(newPath, { scroll: false });
   };
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {

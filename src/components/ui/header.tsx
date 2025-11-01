@@ -3,13 +3,42 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Logo from "./logo";
-import { Avatar, Box, Typography } from "@mui/material";
-import { useTranslation } from '@/contexts/locale-context';
+import { Avatar, Box, Typography, Select, MenuItem, SelectChangeEvent } from "@mui/material";
+import { useTranslation, useLocale } from '@/contexts/locale-context';
+import { useRouter, usePathname } from 'next/navigation';
+
+// Small down-arrow icon for language select
+const LanguageSelectIcon = (props: any) => (
+  <span {...props}>▾</span>
+);
 
 export default function Header() {
   const { tt } = useTranslation();
+  const { locale } = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const switchLocale = (newLocale: 'vi' | 'en') => {
+    if (newLocale === locale) return;
+
+    let newPath = pathname;
+    
+    if (newLocale === 'en') {
+      // Switch to English: add /en prefix
+      if (!pathname.startsWith('/en')) {
+        newPath = `/en${pathname}`;
+      }
+    } else {
+      // Switch to Vietnamese: remove /en prefix
+      if (pathname.startsWith('/en')) {
+        newPath = pathname.substring(3) || '/';
+      }
+    }
+
+    router.push(newPath, { scroll: false });
+  };
 
 
   useEffect(() => {
@@ -94,6 +123,77 @@ export default function Header() {
                 </li>
               </>
             )}
+
+            {/* Language Selector */}
+            <li>
+              <Select
+                value={locale}
+                onChange={(e: SelectChangeEvent) => {
+                  const value = e.target.value as 'vi' | 'en';
+                  switchLocale(value);
+                }}
+                variant="outlined"
+                size="small"
+                IconComponent={LanguageSelectIcon}
+                sx={{
+                  minWidth: 44,
+                  height: 32,
+                  color: 'rgb(31, 41, 55)',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'rgba(156, 163, 175, 0.3)'
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'rgba(156, 163, 175, 0.7)'
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'rgb(31, 41, 55)'
+                  },
+                  '& .MuiSelect-select': {
+                    py: 0.5,
+                    px: 1,
+                    minHeight: 'auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                  },
+                  '& .MuiSelect-icon': {
+                    color: 'rgba(31, 41, 55, 0.8)',
+                    right: 2,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontSize: 14,
+                  },
+                }}
+                MenuProps={{
+                  MenuListProps: { dense: true },
+                  PaperProps: {
+                    sx: {
+                      mt: 0.5,
+                      '& .MuiMenuItem-root': {
+                        minHeight: 32,
+                        py: 0.5,
+                        px: 1.5,
+                        fontSize: 13,
+                      },
+                    },
+                  },
+                }}
+                renderValue={(value) => (
+                  <span role="img" aria-label={(value as string) === 'vi' ? 'Vietnamese' : 'English'}>
+                    {(value as string) === 'vi' ? '🇻🇳' : '🇬🇧'}
+                  </span>
+                )}
+                inputProps={{ 'aria-label': 'Select language' }}
+              >
+                <MenuItem value="en" sx={{ minHeight: 32, py: 0.5, px: 1.5 }}>
+                  <span role="img" aria-label="English" style={{ marginRight: 8, fontSize: 16 }}>🇬🇧</span>
+                  <Typography variant="caption" sx={{ fontSize: 12 }}>EN</Typography>
+                </MenuItem>
+                <MenuItem value="vi" sx={{ minHeight: 32, py: 0.5, px: 1.5 }}>
+                  <span role="img" aria-label="Vietnamese" style={{ marginRight: 8, fontSize: 16 }}>🇻🇳</span>
+                  <Typography variant="caption" sx={{ fontSize: 12 }}>VI</Typography>
+                </MenuItem>
+              </Select>
+            </li>
           </ul>
         </div>
       </div>
