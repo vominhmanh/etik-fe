@@ -113,8 +113,28 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [selectedCategories, setSelectedCategories] = React.useState<Record<number, Record<number, number>>>({});
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
+  // Helper functions to get title options based on language
+  const getTitleOptions = React.useCallback(() => {
+    if (lang === 'en') {
+      return [
+        { value: 'Mr.', label: 'Mr.' },
+        { value: 'Ms', label: 'Ms' },
+        { value: 'Mx.', label: 'Mx.' },
+      ];
+    }
+    return [
+      { value: 'Anh', label: 'Anh' },
+      { value: 'Chị', label: 'Chị' },
+      { value: 'Bạn', label: 'Bạn' },
+    ];
+  }, [lang]);
+
+  const getDefaultTitle = React.useCallback(() => {
+    return lang === 'en' ? 'Mx.' : 'Bạn';
+  }, [lang]);
+
   const [customer, setCustomer] = React.useState({
-    title: tt('Bạn', 'Mx.'),
+    title: getDefaultTitle(),
     name: '',
     email: '',
     phoneNumber: '',
@@ -136,15 +156,14 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [ticketHoldersByCategory, setTicketHoldersByCategory] = React.useState<Record<string, TicketHolderInfo[]>>({});
   const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
   const [responseTransaction, setResponseTransaction] = React.useState<Transaction | null>(null);
-  
-  const displayCustomerTitle = React.useMemo(() => {
-    if (lang === 'en') {
-      if (customer.title === tt('Anh', 'Mr.')) return tt('Anh', 'Mr.');
-      if (customer.title === tt('Chị', 'Ms.')) return tt('Chị', 'Ms.');
-      return tt('Bạn', 'Mx.');
-    }
-    return customer.title;
-  }, [lang, customer.title]);
+
+  // Update customer title default when language changes
+  React.useEffect(() => {
+    setCustomer(prev => ({
+      ...prev,
+      title: getDefaultTitle(),
+    }));
+  }, [lang, getDefaultTitle]);
 
   const NOTIF_KEY = 'hideNotifMarketplaceEventNotApprovedUntil';
 
@@ -252,7 +271,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       }
       // ensure existing array is sized to quantity
       const existing = prev[key] || [];
-      const sized = Array.from({ length: quantity }, (_, i) => existing[i] || { title: 'Bạn', name: '', email: '', phone: '' });
+      const sized = Array.from({ length: quantity }, (_, i) => existing[i] || { title: getDefaultTitle(), name: '', email: '', phone: '' });
       return { ...prev, [key]: sized };
     });
   };
@@ -626,15 +645,17 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                                 <Select
                                   variant="standard"
                                   disableUnderline
-                                  value={customer.title || displayCustomerTitle}
+                                  value={customer.title}
                                   onChange={(e) =>
                                     setCustomer({ ...customer, title: e.target.value })
                                   }
                                   sx={{ minWidth: 65 }} // chiều rộng tối thiểu để gọn
                                 >
-                                  <MenuItem value={tt('Anh', 'Mr.')}>{tt('Anh', 'Mr.')}</MenuItem>
-                                  <MenuItem value={tt('Chị', 'Ms.')}>{tt('Chị', 'Ms.')}</MenuItem>
-                                  <MenuItem value={tt('Bạn', 'Mx.')}>{tt('Bạn', 'Mx.')}</MenuItem>
+                                  {getTitleOptions().map((option) => (
+                                    <MenuItem key={option.value} value={option.value}>
+                                      {option.label}
+                                    </MenuItem>
+                                  ))}
                                 </Select>
                               </InputAdornment>
                             }
@@ -838,7 +859,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt('Thông tin người mua', 'Buyer information')}</Typography>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="body2">{tt('Họ và tên', 'Full name')}</Typography>
-              <Typography variant="body2">{displayCustomerTitle ? `${displayCustomerTitle} ` : ''}{customer.name}</Typography>
+              <Typography variant="body2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="body2">Email</Typography>
@@ -961,8 +982,9 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
                   <Typography variant="h5">{tt('Đăng ký thành công !', 'Registration successful!')}</Typography>
                   <Typography variant="body2" sx={{ textAlign: 'justify' }}>
-                    {tt(`Cảm ơn ${displayCustomerTitle} ${customer.name} đã sử dụng ETIK. Hãy kiểm tra Email để xem vé. Nếu ${displayCustomerTitle} cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ `,
-                      `Thank you ${displayCustomerTitle} ${customer.name} for using ETIK. Please check your email for your tickets. If you need support, submit a request `)}
+                    {lang === 'vi' 
+                      ? `Cảm ơn ${customer.title} ${customer.name} đã sử dụng ETIK. Hãy kiểm tra Email để xem vé. Nếu ${customer.title} cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ `
+                      : `Thank you ${customer.title} ${customer.name} for using ETIK. Please check your email for your tickets. If you need support, submit a request `}
                     <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">{tt('tại đây.', 'here.')}</a>
                   </Typography>
                 </Stack>
