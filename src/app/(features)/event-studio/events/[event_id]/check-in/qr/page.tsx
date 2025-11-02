@@ -144,9 +144,9 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const getSentEmailTicketStatusDetails = React.useCallback((status: string): { label: string, color: ChipProps['color'] } => {
     switch (status) {
       case 'sent':
-        return { label: tt('Đã xuất', 'Sent'), color: 'success' };
+        return { label: tt('Đã xuất', 'Exported'), color: 'success' };
       case 'not_sent':
-        return { label: tt('Chưa xuất', 'Not sent'), color: 'default' };
+        return { label: tt('Chưa xuất', 'Not Exported'), color: 'default' };
       default:
         return { label: 'Unknown', color: 'default' };
     }
@@ -572,7 +572,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     })}
                   </div>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1" fontWeight="bold">Trạng thái</Typography>
+                    <Typography variant="body1" fontWeight="bold">{tt('Trạng thái', 'Status')}</Typography>
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <Chip
                         size='small'

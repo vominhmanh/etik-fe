@@ -109,18 +109,26 @@ export default function SendRequestEventAgencyAndEventApproval({ open, onClose, 
   }, []);
 
   const uploadImage = async (file: File): Promise<string | null> => {
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      const response = await baseHttpServiceInstance.post("/common/s3/upload_image_temp", formData, {
+      // Step 1: Request presigned URL from backend
+      const presignedResponse = await baseHttpServiceInstance.post('/common/s3/generate_presigned_url', {
+        filename: file.name,
+        content_type: file.type,
+      });
+
+      const { presignedUrl, fileUrl } = presignedResponse.data;
+
+      // Step 2: Upload file directly to S3 using presigned URL
+      await fetch(presignedUrl, {
+        method: 'PUT',
+        body: file,
         headers: {
-          "Content-Type": "multipart/form-data",
-          "Accept": "application/json",
+          'Content-Type': file.type,
         },
       });
 
-      return response.data.imageUrl; // Return the image URL
+      // Step 3: Return the public file URL
+      return fileUrl; // Return the image URL
     } catch (error) {
       notificationCtx.error("Lỗi tải ảnh:", error);
       return null;

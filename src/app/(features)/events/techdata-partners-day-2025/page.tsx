@@ -107,7 +107,8 @@ const paymentMethodLabelMap: Record<string, string> = {
   napas247: 'Napas 247',
 };
 
-export default function Page({ params }: { params: { event_slug: string } }): React.JSX.Element {
+export default function Page(): React.JSX.Element {
+  const params = { event_slug: 'techdata-partners-day-2025' }
   const searchParams = useSearchParams();
   const { tt, locale: lang } = useTranslation();
   const [event, setEvent] = React.useState<EventResponse | null>(null);
@@ -136,7 +137,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [ticketHoldersByCategory, setTicketHoldersByCategory] = React.useState<Record<string, TicketHolderInfo[]>>({});
   const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
   const [responseTransaction, setResponseTransaction] = React.useState<Transaction | null>(null);
-  
+
   const displayCustomerTitle = React.useMemo(() => {
     if (lang === 'en') {
       if (customer.title === tt('Anh', 'Mr.')) return tt('Anh', 'Mr.');
@@ -681,133 +682,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   </CardContent>
                 </Card>
 
-                {/* Ticket Quantity and Ticket Holders */}
-                {totalSelectedTickets > 0 && (
-                  <Card>
-                    <CardHeader
-                      title={tt('Danh sách vé', 'Tickets')}
-                    />
-                    <Divider />
-                    <CardContent>
-                      <Stack spacing={3}>
-                        {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
-                          const show = event?.shows.find((show) => show.id === parseInt(showId));
-                          return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
-                            const categoryId = parseInt(categoryIdStr);
-                            const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
-                            const quantity = qty || 0;
-                            return (
-                              <Stack spacing={3} key={`${showId}-${categoryId}`}>
-                                <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{show?.name || tt('Chưa xác định', 'Unknown')} - {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket type')}</Typography>
-                                    <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => setRequestedCategoryModalId(categoryId)}><Pencil /></IconButton>
-                                  </Stack>
-                                  <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                                    <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
-                                    <Typography variant="caption">x {quantity}</Typography>
-                                    <Typography variant="caption">
-                                      = {formatPrice((ticketCategory?.price || 0) * quantity)}
-                                    </Typography>
-                                  </Stack>
-                                </Stack>
 
-                                {qrOption === 'separate' && quantity > 0 && (
-                                  <Stack spacing={2}>
-                                    {Array.from({ length: quantity }, (_, index) => {
-                                      const holderInfo = ticketHoldersByCategory[`${showId}-${categoryId}`]?.[index];
-                                      return (
-                                        <Box key={index} sx={{ ml: 2, pl: 2, borderLeft: '2px solid', borderColor: 'divider' }}>
-                                          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
-                                            {index + 1}. {holderInfo?.name ? `${holderInfo?.title} ${holderInfo?.name}` : tt('Chưa có thông tin', 'No info')}
-                                          </Typography>
-                                          <br />
-                                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                            {holderInfo?.email || tt('Chưa có email', 'No email')} - {holderInfo?.phone || tt('Chưa có SĐT', 'No phone')}
-                                          </Typography>
-                                        </Box>
-                                      );
-                                    })}
-                                  </Stack>
-                                )}
-                              </Stack >
-                            );
-                          });
-                        })}
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {totalSelectedTickets > 1 && (
-                  <Card>
-                    <CardHeader
-                      title={tt('Tùy chọn bổ sung', 'Additional options')}
-                    />
-                    <Divider />
-                    <CardContent>
-                      <Grid container spacing={1} alignItems="center">
-                        <Grid item xs>
-                          <Typography variant="body2">{tt('Sử dụng mã QR riêng cho từng vé', 'Use a separate QR for each ticket')}</Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {tt('Bạn cần nhập email cho từng vé.', 'You need to enter an email for each ticket.')}
-                          </Typography>
-                        </Grid>
-                        <Grid item>
-                          <Checkbox
-                            checked={qrOption === 'separate'}
-                            onChange={(_e, checked) => {
-                              setQrOption(checked ? 'separate' : 'shared');
-                              if (checked) {
-                                notificationCtx.info(tt('Vui lòng điền thông tin cho từng vé', 'Please fill info for each ticket'));
-                              }
-                            }}
-                          />
-                        </Grid>
-                      </Grid>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Payment Method */}
-                {totalAmount > 0 &&
-                  <Card>
-                    <CardHeader
-                      title={tt('Phương thức thanh toán', 'Payment method')}
-                    />
-                    <Divider />
-                    <CardContent>
-                      <FormControl fullWidth>
-                        <Select
-                          name="payment_method"
-                          value={paymentMethod}
-                          onChange={(e) => setPaymentMethod(e.target.value)}
-                        >
-                          <MenuItem value="napas247" selected={true}>
-                            {tt('Chuyển khoản nhanh Napas 247', 'Napas 247 instant transfer')}
-                          </MenuItem>
-                        </Select>
-                        <FormHelperText>{tt('Tự động xuất vé khi thanh toán thành công', 'Tickets will be issued automatically after successful payment')}</FormHelperText>
-                      </FormControl>
-                    </CardContent>
-                  </Card>
-                }
-                {/* Payment Summary */}
-                {Object.values(selectedCategories).some((catMap) => Object.keys(catMap || {}).length > 0) && (
-                  <Card>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{tt('Tổng cộng:', 'Total:')}</Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                          {formatPrice(
-                            totalAmount
-                          )}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                )}
                 {/* Submit Button */}
                 <Grid spacing={3} container sx={{ alignItems: 'center', mt: '3' }}>
                   <Grid item sm={9} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
@@ -870,11 +745,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                           <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{show?.name || tt('Chưa xác định', 'Unknown')} - {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket type')}</Typography>
                         </Stack>
                         <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                          <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
-                          <Typography variant="caption">x {quantity}</Typography>
-                          <Typography variant="caption">
-                            = {formatPrice((ticketCategory?.price || 0) * quantity)}
-                          </Typography>
+                          <Typography variant="body2">{tt('Số lượng', 'Quantity')}: {quantity}</Typography>
                         </Stack>
                       </Stack>
 
@@ -904,18 +775,6 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
               })}
             </Stack>
             <Divider />
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body2">{tt('Phương thức thanh toán', 'Payment method')}</Typography>
-              <Typography variant="body2">{tt(paymentMethodLabelMap[paymentMethod] || paymentMethod, paymentMethod === 'napas247' ? 'Napas 247 instant transfer' : paymentMethod)}</Typography>
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{tt('Tổng cộng', 'Total')}</Typography>
-              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                {formatPrice(totalAmount)}
-              </Typography>
-            </Box>
           </Stack>
         </DialogContent>
         <DialogActions>
@@ -983,18 +842,18 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                     </Button>
                   )}
                   {event?.useCheckInFace && (
-                  <Button
-                    fullWidth
-                    variant='contained'
-                    size="small"
-                    component="a"
-                    href={`https://ekyc.etik.vn/ekyc-register?event_slug=${params.event_slug}&transaction_id=${responseTransaction?.id}&response_token=${responseTransaction?.customerResponseToken}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    startIcon={<ScanSmileyIcon />}
-                  >
-                    {tt('Đăng ký check-in bằng khuôn mặt', 'Register face check-in')}
-                  </Button>
+                    <Button
+                      fullWidth
+                      variant='contained'
+                      size="small"
+                      component="a"
+                      href={`https://ekyc.etik.vn/ekyc-register?event_slug=${params.event_slug}&transaction_id=${responseTransaction?.id}&response_token=${responseTransaction?.customerResponseToken}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      startIcon={<ScanSmileyIcon />}
+                    >
+                      {tt('Đăng ký check-in bằng khuôn mặt', 'Register face check-in')}
+                    </Button>
                   )}
                   <Button
                     fullWidth

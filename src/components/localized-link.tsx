@@ -2,6 +2,7 @@
 
 import { useLocale } from '@/contexts/locale-context';
 import Link, { LinkProps } from 'next/link';
+import { usePathname } from 'next/navigation';
 import { AnchorHTMLAttributes, forwardRef } from 'react';
 
 type LocalizedLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> &
@@ -25,9 +26,26 @@ type LocalizedLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof Li
 export const LocalizedLink = forwardRef<HTMLAnchorElement, LocalizedLinkProps>(
   ({ href, ...props }, ref) => {
     const { locale } = useLocale();
+    const pathname = usePathname();
 
     // Convert href to string if it's an object
-    const hrefString = typeof href === 'string' ? href : href.pathname || '/';
+    let hrefString = typeof href === 'string' ? href : href.pathname || '/';
+
+    // If href is a relative path, convert it to an absolute path
+    if (!hrefString.startsWith('/')) {
+      // Get the base pathname (remove /en prefix if present)
+      const basePathname = pathname.startsWith('/en') ? pathname.substring(3) : pathname;
+      
+      // Get the directory of the current path (everything except the last segment)
+      const currentDir = basePathname.substring(0, basePathname.lastIndexOf('/')) || '/';
+      
+      // Resolve the relative path
+      if (currentDir === '/') {
+        hrefString = `/${hrefString}`;
+      } else {
+        hrefString = `${currentDir}/${hrefString}`;
+      }
+    }
 
     // Add /en prefix for English locale, unless it already has it
     const localizedHref = locale === 'en' && !hrefString.startsWith('/en')

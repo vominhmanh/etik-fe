@@ -2,6 +2,7 @@ import { Box, Card, CardHeader, Divider, List, ListItem, ListItemAvatar, ListIte
 import dayjs from 'dayjs';
 import React, { useState } from 'react';
 import { Show } from './page';
+import { useTranslation } from '@/contexts/locale-context';
 
 export interface LatestProductsProps {
   shows?: Show[];
@@ -9,6 +10,7 @@ export interface LatestProductsProps {
 }
 
 export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps): React.JSX.Element {
+  const { tt } = useTranslation();
   const [selectedShow, setSelectedShow] = useState<Show | null>();
 
   const handleItemClick = (show: Show) => {
@@ -19,7 +21,7 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
 
   return (
     <Card>
-      <CardHeader title="Chọn lịch" />
+      <CardHeader title={tt("Chọn lịch", "Select Schedule")} />
       <Divider />
       <List>
         {shows.map((show) => (
@@ -44,7 +46,7 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
               secondary=
                     {show.startDateTime && show.endDateTime
                       ? `${dayjs(show.startDateTime).format('HH:mm')} - ${dayjs(show.endDateTime).format('HH:mm ngày DD/MM/YYYY')}`
-                      : "Chưa xác định"}
+                      : tt("Chưa xác định", "Not specified")}
               secondaryTypographyProps={{ variant: 'body2' }}
               
             />

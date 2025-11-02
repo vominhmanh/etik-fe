@@ -15,6 +15,8 @@ import { ArrowCounterClockwise as ArrowCounterClockwiseIcon } from '@phosphor-ic
 import { DotsThreeVertical as DotsThreeVerticalIcon } from '@phosphor-icons/react/dist/ssr/DotsThreeVertical';
 import React, { useEffect, useState } from 'react';
 import { Show } from './page';
+import { Ticket } from '@phosphor-icons/react/dist/ssr';
+import { useTranslation } from '@/contexts/locale-context';
 
 
 interface TicketCategoriesProps {
@@ -38,6 +40,7 @@ const colorMap: ColorMap = {
 };
 
 export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesProps): React.JSX.Element {
+  const { tt } = useTranslation();
   const ticketCategories = show.ticketCategories;
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]); // Track selected categories
 
@@ -62,7 +65,7 @@ export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesP
   return (
     <Card>
       <CardHeader
-        title={`Chọn loại vé | ${show.name}`}
+        title={`${show.name}`}
         action={
           <IconButton>
             <ArrowCounterClockwiseIcon fontSize="var(--icon-fontSize-md)" />
@@ -77,7 +80,7 @@ export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesP
             key={ticketCategory.id}
             sx={{ cursor: 'pointer' }}
           >
-            <Box
+            {/* <Box
               sx={{ display: 'flex', alignItems: 'center', marginRight: '10px' }}
               onClick={() => handleSelect(ticketCategory.id)}
             >
@@ -85,7 +88,7 @@ export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesP
                 sx={{ display: 'block' }}
                 checked={selectedCategories.includes(ticketCategory.id)} // Check if the category is selected
               />
-            </Box>
+            </Box> */}
             <ListItemAvatar
               onClick={() => handleSelect(ticketCategory.id)} // Select when the whole item is clicked
             >
@@ -96,7 +99,7 @@ export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesP
                   sx={{ height: '48px', width: '48px', fontSize: '2rem', borderRadius: '5px', bgcolor: colorMap[ticketCategory.id % 8] }}
                   variant="square"
                 >
-                  {ticketCategory.name[ticketCategory.name.length - 1]}
+                  <Ticket size={32} weight="fill" />
                 </Avatar>
               )}
             </ListItemAvatar>
@@ -104,12 +107,14 @@ export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesP
               onClick={() => handleSelect(ticketCategory.id)} // Select when the whole item is clicked
               primary={ticketCategory.name}
               primaryTypographyProps={{ variant: 'subtitle1' }}
-              secondary={`${formatPrice(ticketCategory.price)} | Đã bán ${ticketCategory.sold}/${ticketCategory.quantity} vé`}
+              secondary={
+                <>
+                  <div>{formatPrice(ticketCategory.price)}</div>
+                  <div>{tt("Đã bán", "Sold")} {ticketCategory.sold}/{ticketCategory.quantity} {tt("vé", "tickets")} | {tt("Đã checkin", "Checked in")} {ticketCategory.checkedIn}/{ticketCategory.sold} {tt("vé", "tickets")}</div>
+                </>
+              }
               secondaryTypographyProps={{ variant: 'body2' }}
             />
-            <IconButton edge="end" onClick={() => { return }}>
-              <DotsThreeVerticalIcon />
-            </IconButton>
           </ListItem>
         ))}
       </List>

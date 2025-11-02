@@ -12,7 +12,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, CaretDoubleRight, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, SignIn, SignOut, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, CaretDoubleRight, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, SignIn, SignOut, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import { LocalizedLink } from '@/components/localized-link';
 
 import * as React from 'react';
@@ -152,6 +152,7 @@ export interface Ticket {
   holderPhone: string;        // Name of the ticket holder
   holderEmail: string;        // Name of the ticket holder
   holderTitle: string;        // Name of the ticket holder
+  holderAvatar: string | null;  // Avatar URL of the ticket holder
   createdAt: string;   // The date the ticket was created
   checkInAt: string | null; // The date/time the ticket was checked in, nullable
 }
@@ -235,6 +236,8 @@ export interface Transaction {
   customerId: number;               // ID of the customer who made the transaction
   email: string;                    // Email of the customer
   name: string;                     // Name of the customer
+  avatar: string | null;            // Avatar URL of the customer
+  requireGuestAvatar: boolean;       // Whether to require guest avatar
   gender: string;                   // Gender of the customer
   title: string;                   // Gender of the customer
   phoneNumber: string;              // Customer's phone number
@@ -289,11 +292,67 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [selectedStatus, setSelectedStatus] = useState<string>(formData.status || '');
   const [editCategoryModalOpen, setEditCategoryModalOpen] = useState<boolean>(false);
   const [editingCategory, setEditingCategory] = useState<TransactionTicketCategory | null>(null);
-  const [editingHolderInfos, setEditingHolderInfos] = useState<{ title: string; name: string; email: string; phone: string; }[]>([]);
+  const [editingHolderInfos, setEditingHolderInfos] = useState<{ title: string; name: string; email: string; phone: string; avatar?: string; }[]>([]);
   const [ticketMenuAnchorEl, setTicketMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [activeMenuTicket, setActiveMenuTicket] = useState<{ categoryIndex: number; ticketIndex: number } | null>(null);
+  const [pendingHolderAvatarFiles, setPendingHolderAvatarFiles] = useState<Record<number, File>>({});
+  const [requireGuestAvatar, setRequireGuestAvatar] = useState<boolean>(false);
 
   const router = useRouter(); // Use useRouter from next/navigation
+
+  const uploadImageToS3 = async (file: File): Promise<string | null> => {
+    try {
+      // Step 1: Request presigned URL from backend
+      const presignedResponse = await baseHttpServiceInstance.post('/common/s3/generate_presigned_url', {
+        filename: file.name,
+        content_type: file.type,
+      });
+
+      const { presignedUrl, fileUrl } = presignedResponse.data;
+
+      // Step 2: Upload file directly to S3 using presigned URL
+      await fetch(presignedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      // Step 3: Return the public file URL
+      return fileUrl as string;
+    } catch (error) {
+      notificationCtx.error(error);
+      return null;
+    }
+  };
+
+  const createLocalPreviewUrl = (file: File): string => {
+    return URL.createObjectURL(file);
+  };
+
+  const handleHolderAvatarFile = (ticketId: number, file?: File) => {
+    if (!file) return;
+    try {
+      // Create local preview URL
+      const previewUrl = createLocalPreviewUrl(file);
+
+      // Store the file for later upload
+      setPendingHolderAvatarFiles(prev => ({ ...prev, [ticketId]: file }));
+
+      // Update the holder info with preview URL
+      setEditingHolderInfos(prev => {
+        return prev.map((h, i) => {
+          if (editingCategory?.tickets[i]?.id === ticketId) {
+            return { ...h, avatar: previewUrl };
+          }
+          return h;
+        });
+      });
+    } catch (error) {
+      notificationCtx.error(error);
+    }
+  };
 
   const handleFormChange = (event: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
@@ -352,6 +411,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
           address: response.data?.address || '',
           status: '',
         });
+
+        // Load requireGuestAvatar from transaction data
+        setRequireGuestAvatar(response.data?.requireGuestAvatar || false);
       } catch (error) {
         notificationCtx.error('Lỗi:', error);
       } finally {
@@ -496,8 +558,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
       name: t.holderName || '',
       email: t.holderEmail || '',
       phone: t.holderPhone || '',
+      avatar: t.holderAvatar || '',
     }));
     setEditingHolderInfos(infos);
+    setPendingHolderAvatarFiles({});
     setEditCategoryModalOpen(true);
   };
 
@@ -553,19 +617,31 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
   const handleSaveTicketHolders = async () => {
     if (!editingCategory) return;
-    const hasInvalid = editingHolderInfos.some((h) => !h.title || !h.name );
+    const hasInvalid = editingHolderInfos.some((h) => !h.title || !h.name);
     if (hasInvalid) {
       notificationCtx.warning('Vui lòng điền đủ Danh xưng, Họ tên và SĐT cho mỗi vé.');
       return;
     }
     try {
       setIsLoading(true);
+
+      // Upload avatars to S3 if any pending
+      const avatarUrls: Record<number, string> = {};
+      for (const [ticketIdStr, file] of Object.entries(pendingHolderAvatarFiles)) {
+        const ticketId = parseInt(ticketIdStr);
+        const uploadedUrl = await uploadImageToS3(file);
+        if (uploadedUrl) {
+          avatarUrls[ticketId] = uploadedUrl;
+        }
+      }
+
       const payload = {
         tickets: editingCategory.tickets.map((ticket, index) => ({
           id: ticket.id,
           holderTitle: editingHolderInfos[index]?.title,
           holderName: editingHolderInfos[index]?.name,
           holderPhone: editingHolderInfos[index]?.phone,
+          holderAvatar: avatarUrls[ticket.id] || editingHolderInfos[index]?.avatar || null,
         })),
       };
       await baseHttpServiceInstance.patch(
@@ -583,6 +659,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
               holderTitle: editingHolderInfos[i]?.title || t.holderTitle,
               holderName: editingHolderInfos[i]?.name || t.holderName,
               holderPhone: editingHolderInfos[i]?.phone || t.holderPhone,
+              holderAvatar: avatarUrls[t.id] || editingHolderInfos[i]?.avatar || t.holderAvatar,
             })),
           };
         });
@@ -590,6 +667,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
       });
       notificationCtx.success('Cập nhật thông tin vé thành công!');
       setEditCategoryModalOpen(false);
+      setPendingHolderAvatarFiles({});
     } catch (error) {
       notificationCtx.error(error);
     } finally {
@@ -1134,30 +1212,15 @@ export default function Page({ params }: { params: { event_id: number; transacti
                 </Button>
               </CardActions>
             </Card>
-            {transaction.ticketQuantity > 1 && (
-              <Card>
-                <CardHeader title="Tùy chọn bổ sung" />
-                <Divider />
-                <CardContent>
-                  <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                    <Stack>
-                      <Typography variant="body2">Sử dụng mã QR riêng cho từng vé</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        Bạn cần nhập thông tin cho từng vé.
-                      </Typography>
-                    </Stack>
-                    <Checkbox
-                      checked={transaction.qrOption === 'separate'}
-                      disabled
-                    />
-                  </Stack>
-                </CardContent>
-              </Card>
-            )}
+
             <Card>
               <CardHeader
                 title={`Danh sách vé: ${transaction.ticketQuantity} vé`}
-                
+                action={
+                  transaction.qrOption === 'shared' && requireGuestAvatar && (
+                    <Avatar src={transaction.avatar || ''} sx={{ width: 36, height: 36 }} />
+                  )
+                }
               />
               <Divider />
               <CardContent>
@@ -1180,28 +1243,33 @@ export default function Page({ params }: { params: { event_id: number; transacti
                       {transactionTicketCategory.tickets.length > 0 && (
                         <Stack spacing={2}>
                           {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
-                            <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
-                              {transaction.qrOption === 'separate' && (
-                                <>
-                                  <div>
-                                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
-                                      {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : 'Chưa có thông tin'}
-                                    </Typography>
-                                  </div>
-                                  <div>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                      {ticket.holderEmail || 'Chưa có email'} - {ticket.holderPhone || 'Chưa có SĐT'}
-                                    </Typography>
-                                  </div>
-                                </>
-                              )}
-                              <div>
-                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.checkInAt ? `Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
-                                <IconButton size="small" sx={{ ml: 2 }} onClick={(e) => handleOpenTicketMenu(e.currentTarget, categoryIndex, ticketIndex)}>
-                                  <DotsThreeOutline />
-                                </IconButton>
-                              </div>
-                            </Box>
+                            <Stack direction="row" spacing={0} alignItems="center">
+                              {requireGuestAvatar && transaction.qrOption === 'separate' && <Avatar src={ticket.holderAvatar || ''} sx={{ width: 32, height: 32 }} />}
+                              <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
+                                {transaction.qrOption === 'separate' && (
+                                  <>
+                                    <Stack direction="row" spacing={1} alignItems="center">
+
+
+                                      <div>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
+                                          {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : 'Chưa có thông tin'}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          {ticket.holderEmail || 'Chưa có email'} - {ticket.holderPhone || 'Chưa có SĐT'}
+                                        </Typography>
+                                      </div>
+                                    </Stack>
+                                  </>
+                                )}
+                                <div>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.checkInAt ? `Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
+                                  <IconButton size="small" sx={{ ml: 2 }} onClick={(e) => handleOpenTicketMenu(e.currentTarget, categoryIndex, ticketIndex)}>
+                                    <DotsThreeOutline />
+                                  </IconButton>
+                                </div>
+                              </Box>
+                            </Stack>
                           ))}
                         </Stack>
                       )}
@@ -1250,6 +1318,46 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     <Typography variant="body1">{formatPrice(transaction.totalAmount || 0)}</Typography>
                   </Grid>
                 </Stack>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader title="Tùy chọn bổ sung" />
+              <Divider />
+              <CardContent>
+                <Stack spacing={2}>
+                  <Grid container spacing={1} alignItems="center">
+                    <Grid xs>
+                      <Typography variant="body2">Ảnh đại diện cho khách mời</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        Bạn cần tải lên ảnh đại diện cho khách mời.
+                      </Typography>
+                    </Grid>
+                    <Grid>
+                      <Checkbox
+                        checked={requireGuestAvatar}
+                        onChange={(_e, checked) => {
+                          setRequireGuestAvatar(checked);
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+                  {transaction.ticketQuantity > 1 && (
+                    <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                      <Stack>
+                        <Typography variant="body2">Sử dụng mã QR riêng cho từng vé</Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          Bạn cần nhập thông tin cho từng vé.
+                        </Typography>
+                      </Stack>
+                      <Checkbox
+                        checked={transaction.qrOption === 'separate'}
+                        disabled
+                      />
+                    </Stack>
+                  )}
+                </Stack>
+
               </CardContent>
             </Card>
             <Card>
@@ -1336,47 +1444,75 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           {editingHolderInfos.map((holder, index) => (
                             <React.Fragment key={`holder-${index}`}>
                               <Grid md={6} xs={12}>
-                                <FormControl fullWidth size="small" required>
-                                  <InputLabel>Danh xưng* &emsp; Họ và tên vé {index + 1}</InputLabel>
-                                  <OutlinedInput
-                                    label={`Danh xưng* &emsp; Họ và tên vé ${index + 1}`}
-                                    value={holder.name}
-                                    onChange={(e) => {
-                                      setEditingHolderInfos((prev) => {
-                                        const next = [...prev];
-                                        next[index] = { ...next[index], name: e.target.value };
-                                        return next;
-                                      });
-                                    }}
-                                    startAdornment={<InputAdornment position="start">
-                                      <Select
-                                        variant="standard"
-                                        disableUnderline
-                                        value={holder.title || 'Bạn'}
-                                        onChange={(e) => {
-                                          setEditingHolderInfos((prev) => {
-                                            const next = [...prev];
-                                            next[index] = { ...next[index], title: e.target.value as string };
-                                            return next;
-                                          });
-                                        }}
-                                        sx={{ minWidth: 65 }}
-                                      >
-                                        <MenuItem value="Anh">Anh</MenuItem>
-                                        <MenuItem value="Chị">Chị</MenuItem>
-                                        <MenuItem value="Bạn">Bạn</MenuItem>
-                                        <MenuItem value="Em">Em</MenuItem>
-                                        <MenuItem value="Ông">Ông</MenuItem>
-                                        <MenuItem value="Bà">Bà</MenuItem>
-                                        <MenuItem value="Cô">Cô</MenuItem>
-                                        <MenuItem value="Mr.">Mr.</MenuItem>
-                                        <MenuItem value="Ms.">Ms.</MenuItem>
-                                        <MenuItem value="Miss">Miss</MenuItem>
-                                        <MenuItem value="Thầy">Thầy</MenuItem>
-                                      </Select>
-                                    </InputAdornment>}
-                                  />
-                                </FormControl>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  <Box sx={{ position: 'relative', width: 40, height: 40, flexShrink: 0, '&:hover .avatarUploadBtn': { opacity: 1, visibility: 'visible' } }}>
+                                    <Avatar src={holder.avatar || ''} sx={{ width: 40, height: 40 }} />
+                                    <IconButton
+                                      className="avatarUploadBtn"
+                                      sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '50%', opacity: 0, visibility: 'hidden', backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.35)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+                                      onClick={() => {
+                                        const input = document.getElementById(`upload-holder-avatar-${editingCategory?.tickets[index]?.id}`) as HTMLInputElement | null;
+                                        input?.click();
+                                      }}
+                                    >
+                                      <Plus size={14} />
+                                    </IconButton>
+                                    <input
+                                      id={`upload-holder-avatar-${editingCategory?.tickets[index]?.id}`}
+                                      type="file"
+                                      accept="image/*"
+                                      hidden
+                                      onChange={(e) => {
+                                        const f = e.target.files?.[0];
+                                        if (editingCategory?.tickets[index]?.id) {
+                                          handleHolderAvatarFile(editingCategory.tickets[index].id, f);
+                                        }
+                                        e.currentTarget.value = '';
+                                      }}
+                                    />
+                                  </Box>
+                                  <FormControl fullWidth size="small" required>
+                                    <InputLabel>Danh xưng* &emsp; Họ và tên vé {index + 1}</InputLabel>
+                                    <OutlinedInput
+                                      label={`Danh xưng* &emsp; Họ và tên vé ${index + 1}`}
+                                      value={holder.name}
+                                      onChange={(e) => {
+                                        setEditingHolderInfos((prev) => {
+                                          const next = [...prev];
+                                          next[index] = { ...next[index], name: e.target.value };
+                                          return next;
+                                        });
+                                      }}
+                                      startAdornment={<InputAdornment position="start">
+                                        <Select
+                                          variant="standard"
+                                          disableUnderline
+                                          value={holder.title || 'Bạn'}
+                                          onChange={(e) => {
+                                            setEditingHolderInfos((prev) => {
+                                              const next = [...prev];
+                                              next[index] = { ...next[index], title: e.target.value as string };
+                                              return next;
+                                            });
+                                          }}
+                                          sx={{ minWidth: 65 }}
+                                        >
+                                          <MenuItem value="Anh">Anh</MenuItem>
+                                          <MenuItem value="Chị">Chị</MenuItem>
+                                          <MenuItem value="Bạn">Bạn</MenuItem>
+                                          <MenuItem value="Em">Em</MenuItem>
+                                          <MenuItem value="Ông">Ông</MenuItem>
+                                          <MenuItem value="Bà">Bà</MenuItem>
+                                          <MenuItem value="Cô">Cô</MenuItem>
+                                          <MenuItem value="Mr.">Mr.</MenuItem>
+                                          <MenuItem value="Ms.">Ms.</MenuItem>
+                                          <MenuItem value="Miss">Miss</MenuItem>
+                                          <MenuItem value="Thầy">Thầy</MenuItem>
+                                        </Select>
+                                      </InputAdornment>}
+                                    />
+                                  </FormControl>
+                                </Stack>
                               </Grid>
                               <Grid md={3} xs={12}>
                                 <FormControl fullWidth size="small">

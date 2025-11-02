@@ -34,14 +34,24 @@ export default function UploadImagePage({ eventId = 0 }: CustomersTableProps) {
   // 🟢 Upload Image
   const handleUpload = async (file: File) => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await baseHttpServiceInstance.post('/common/s3/upload_image_temp', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      // Step 1: Request presigned URL from backend
+      const presignedResponse = await baseHttpServiceInstance.post('/common/s3/generate_presigned_url', {
+        filename: file.name,
+        content_type: file.type,
       });
 
-      setImagePreview(response.data.imageUrl);
+      const { presignedUrl, fileUrl } = presignedResponse.data;
+
+      // Step 2: Upload file directly to S3 using presigned URL
+      await fetch(presignedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      setImagePreview(fileUrl);
       setSelectedFile(file);
       setOnPreviewMode(true);
     } catch (error: any) {

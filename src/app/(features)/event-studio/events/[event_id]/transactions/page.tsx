@@ -148,7 +148,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       );
       setTransactions(response.data);
     } catch (error) {
-      notificationCtx.error('Lỗi:', error);
+      notificationCtx.error(tt('Lỗi:', 'Error:'), error);
     } finally {
       setIsLoading(false);
     }
@@ -181,9 +181,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      notificationCtx.success('Đã xuất file Excel');
+      notificationCtx.success(tt('Đã xuất file Excel', 'Excel file exported successfully'));
     } catch (error) {
-      notificationCtx.error('Xuất file thất bại:', error);
+      notificationCtx.error(tt('Xuất file thất bại:', 'Export file failed:'), error);
     } finally {
       setIsLoading(false);
     }
@@ -268,13 +268,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
 
   const handleExportTicketBulk = async () => {
-    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    let userConfirmed = confirm(tt("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?", "You are operating on multiple orders, are you sure you want to proceed?"));
     if (!userConfirmed) {
       return
     }
     setTicketAnchorEl(null)
     if (selected.size === 0) {
-      notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
+      notificationCtx.warning(tt(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`, `Please select at least one order to proceed.`));
       return
     }
     setBulkErrorMessage('');
@@ -310,13 +310,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const handleSendTransactionAndTicketBulk = async (channel: string | null = null) => {
-    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    let userConfirmed = confirm(tt("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?", "You are operating on multiple orders, are you sure you want to proceed?"));
     if (!userConfirmed) {
       return
     }
     setTicketAnchorEl(null)
     if (selected.size === 0) {
-      notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
+      notificationCtx.warning(tt(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`, `Please select at least one order to proceed.`));
       return
     }
     setBulkErrorMessage('');
@@ -353,10 +353,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleSetTransactionStatusBulk = async (status: string) => {
     if (selected.size === 0) {
-      notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
+      notificationCtx.warning(tt(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`, `Please select at least one order to proceed.`));
       return
     }
-    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    let userConfirmed = confirm(tt("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?", "You are operating on multiple orders, are you sure you want to proceed?"));
     if (!userConfirmed) {
       return
     }
@@ -395,10 +395,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleSendPaymentInstructionForTransactionBulk = async (channel: string) => {
     if (selected.size === 0) {
-      notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
+      notificationCtx.warning(tt(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`, `Please select at least one order to proceed.`));
       return
     }
-    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    let userConfirmed = confirm(tt("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?", "You are operating on multiple orders, are you sure you want to proceed?"));
     if (!userConfirmed) {
       return
     }
@@ -438,10 +438,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleSendEmailMarketingBulk = async () => {
     if (selected.size === 0) {
-      notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
+      notificationCtx.warning(tt(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`, `Please select at least one order to proceed.`));
       return
     }
-    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    let userConfirmed = confirm(tt("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?", "You are operating on multiple orders, are you sure you want to proceed?"));
     if (!userConfirmed) {
       return
     }
@@ -480,10 +480,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleSetPaidForTransactionBulk = async () => {
     if (selected.size === 0) {
-      notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
+      notificationCtx.warning(tt(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`, `Please select at least one order to proceed.`));
       return
     }
-    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    let userConfirmed = confirm(tt("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?", "You are operating on multiple orders, are you sure you want to proceed?"));
     if (!userConfirmed) {
       return
     }
@@ -522,10 +522,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleSetRefundForTransactionBulk = async () => {
     if (selected.size === 0) {
-      notificationCtx.warning(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`);
+      notificationCtx.warning(tt(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`, `Please select at least one order to proceed.`));
       return
     }
-    let userConfirmed = confirm("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?");
+    let userConfirmed = confirm(tt("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?", "You are operating on multiple orders, are you sure you want to proceed?"));
     if (!userConfirmed) {
       return
     }
@@ -606,7 +606,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <OutlinedInput
               fullWidth
               defaultValue={querySearch}
-              placeholder="Tìm kiếm đơn hàng..."
+              placeholder={tt("Tìm kiếm đơn hàng...", "Search orders...")}
               onChange={handleSearchTransactions}
               startAdornment={
                 <InputAdornment position="start">
@@ -636,58 +636,58 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               },
             }}>
               <FormControl sx={{ minWidth: '200px' }}>
-                <InputLabel>Trạng thái đơn hàng</InputLabel>
+                <InputLabel>{tt("Trạng thái đơn hàng", "Order Status")}</InputLabel>
                 <Select
                   value={filters.status}
-                  label="Trạng thái đơn hàng"
+                  label={tt("Trạng thái đơn hàng", "Order Status")}
                   name="status"
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                 >
                   <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="normal">Bình thường</MenuItem>
-                  <MenuItem value="normal">Đang chờ</MenuItem>
-                  <MenuItem value="staff_locked">Khoá bởi NV</MenuItem>
-                  <MenuItem value="customer_cancelled">Huỷ bởi KH</MenuItem>
+                  <MenuItem value="normal">{tt("Bình thường", "Normal")}</MenuItem>
+                  <MenuItem value="wait_for_response">{tt("Đang chờ", "Waiting")}</MenuItem>
+                  <MenuItem value="staff_locked">{tt("Khoá bởi NV", "Locked by Staff")}</MenuItem>
+                  <MenuItem value="customer_cancelled">{tt("Huỷ bởi KH", "Cancelled by Customer")}</MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '230px' }}>
-                <InputLabel>Trạng thái thanh toán</InputLabel>
+                <InputLabel>{tt("Trạng thái thanh toán", "Payment Status")}</InputLabel>
                 <Select
                   value={filters.paymentStatus}
-                  label="Trạng thái thanh toán"
+                  label={tt("Trạng thái thanh toán", "Payment Status")}
                   name="payment_status"
                   onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
                 >
                   <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="waiting_for_payment">Chờ thanh toán</MenuItem>
-                  <MenuItem value="paid">Đã thanh toán</MenuItem>
-                  <MenuItem value="refund">Đã hoàn tiền</MenuItem>
+                  <MenuItem value="waiting_for_payment">{tt("Chờ thanh toán", "Waiting for Payment")}</MenuItem>
+                  <MenuItem value="paid">{tt("Đã thanh toán", "Paid")}</MenuItem>
+                  <MenuItem value="refund">{tt("Đã hoàn tiền", "Refunded")}</MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
-                <InputLabel>Trạng thái xuất vé</InputLabel>
+                <InputLabel>{tt("Trạng thái xuất vé", "Ticket Export Status")}</InputLabel>
                 <Select
                   value={filters.sentTicketEmailStatus}
-                  label="Trạng thái xuất vé"
+                  label={tt("Trạng thái xuất vé", "Ticket Export Status")}
                   name="sentTicketEmailStatus"
                   onChange={(e) => handleFilterChange('sentTicketEmailStatus', e.target.value)}
                 >
                   <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="not_sent">Chưa xuất vé</MenuItem>
-                  <MenuItem value="sent">Đã xuất vé</MenuItem>
+                  <MenuItem value="not_sent">{tt("Chưa xuất vé", "Not Exported")}</MenuItem>
+                  <MenuItem value="sent">{tt("Đã xuất vé", "Exported")}</MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
-                <InputLabel>Trạng thái yêu cầu hủy</InputLabel>
+                <InputLabel>{tt("Trạng thái yêu cầu hủy", "Cancel Request Status")}</InputLabel>
                 <Select
                   value={filters.cancelRequestStatus}
-                  label="Trạng thái yêu cầu hủy"
+                  label={tt("Trạng thái yêu cầu hủy", "Cancel Request Status")}
                   name="cancelRequestStatus"
                   onChange={(e) => handleFilterChange('cancelRequestStatus', e.target.value)}
                 >
                   <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="pending">Đang yêu cầu hủy</MenuItem>
-                  <MenuItem value="no_request">Không có yêu cầu hủy</MenuItem>
+                  <MenuItem value="pending">{tt("Đang yêu cầu hủy", "Pending Cancellation")}</MenuItem>
+                  <MenuItem value="no_request">{tt("Không có yêu cầu hủy", "No Cancel Request")}</MenuItem>
                 </Select>
               </FormControl>
               <IconButton onClick={handleClearFilters}>
@@ -709,7 +709,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               aria-expanded={open ? 'true' : undefined}
               onClick={handleSelectAll}
             >
-              Chọn tất cả
+              {tt("Chọn tất cả", "Select All")}
             </Button>
             <Button
               size='small'
@@ -719,10 +719,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               aria-expanded={open ? 'true' : undefined}
               onClick={handleDeselectAll}
             >
-              Bỏ chọn tất cả
+              {tt("Bỏ chọn tất cả", "Deselect All")}
             </Button>
             <Typography variant='body2' sx={{ ml: '37px' }}>
-              Thao tác nhanh{selected.size > 0 ? ` ${selected.size} đơn hàng` : ''}:
+              {tt("Thao tác nhanh", "Quick Actions")}{selected.size > 0 ? ` ${selected.size} ${tt("đơn hàng", "orders")}` : ''}:
             </Typography>
 
             {/* Menu for Đơn hàng */}
@@ -735,7 +735,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               onClick={handleClick(setAnchorEl)}
               endIcon={<CaretDown />}
             >
-              Đơn hàng
+              {tt("Đơn hàng", "Orders")}
             </Button>
             <Menu
               id="basic-menu"
@@ -746,9 +746,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 'aria-labelledby': 'basic-button',
               }}
             >
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => handleSetTransactionStatusBulk('normal')}>Phê duyệt đơn hàng</MenuItem>
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => handleSetTransactionStatusBulk('staff_locked')}>Chuyển trạng thái 'Khoá bởi Nhân viên'</MenuItem>
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => handleSetTransactionStatusBulk('customer_cancelled')}>Chuyển trạng thái 'Huỷ bởi Khách hàng'</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => handleSetTransactionStatusBulk('normal')}>{tt("Phê duyệt đơn hàng", "Approve Order")}</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => handleSetTransactionStatusBulk('staff_locked')}>{tt("Chuyển trạng thái 'Khoá bởi Nhân viên'", "Change status to 'Locked by Staff'")}</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => handleSetTransactionStatusBulk('customer_cancelled')}>{tt("Chuyển trạng thái 'Huỷ bởi Khách hàng'", "Change status to 'Cancelled by Customer'")}</MenuItem>
             </Menu>
 
             {/* Menu for Thanh toán */}
@@ -761,7 +761,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               onClick={handleClick(setPaymentAnchorEl)}
               endIcon={<CaretDown />}
             >
-              Thanh toán
+              {tt("Thanh toán", "Payment")}
             </Button>
             <Menu
               id="payment-menu"
@@ -772,10 +772,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 'aria-labelledby': 'payment-button',
               }}
             >
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendPaymentInstructionForTransactionBulk('email') }}>Gửi h.dẫn t.toán đơn Napas247 qua email</MenuItem>
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendPaymentInstructionForTransactionBulk('zalo') }}>Gửi h.dẫn t.toán đơn Napas247 qua Zalo</MenuItem>
-              <MenuItem sx={{ fontSize: '14px' }} onClick={handleSetPaidForTransactionBulk}>Chuyển trạng thái 'Đã thanh toán'</MenuItem>
-              <MenuItem sx={{ fontSize: '14px' }} onClick={handleSetRefundForTransactionBulk}>Chuyển trạng thái 'Đã hoàn tiền'</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendPaymentInstructionForTransactionBulk('email') }}>{tt("Gửi h.dẫn t.toán đơn Napas247 qua email", "Send Napas247 payment instruction via email")}</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendPaymentInstructionForTransactionBulk('zalo') }}>{tt("Gửi h.dẫn t.toán đơn Napas247 qua Zalo", "Send Napas247 payment instruction via Zalo")}</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={handleSetPaidForTransactionBulk}>{tt("Chuyển trạng thái 'Đã thanh toán'", "Change status to 'Paid'")}</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={handleSetRefundForTransactionBulk}>{tt("Chuyển trạng thái 'Đã hoàn tiền'", "Change status to 'Refunded'")}</MenuItem>
             </Menu>
 
             {/* Menu for Xuất vé */}
@@ -788,7 +788,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               onClick={handleClick(setTicketAnchorEl)}
               endIcon={<CaretDown />}
             >
-              Xuất vé
+              {tt("Xuất vé", "Export Tickets")}
             </Button>
             <Menu
               id="ticket-menu"
@@ -799,8 +799,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 'aria-labelledby': 'ticket-button',
               }}
             >
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleExportTicketBulk() }}>Xuất vé</MenuItem>
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTransactionAndTicketBulk('email') }}>Gửi Email</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleExportTicketBulk() }}>{tt("Xuất vé", "Export Tickets")}</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTransactionAndTicketBulk('email') }}>{tt("Gửi Email", "Send Email")}</MenuItem>
             </Menu>
 
             {/* Menu for Thanh toán */}
@@ -813,7 +813,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               onClick={handleClick(setEmailMarketingAnchorEl)}
               endIcon={<CaretDown />}
             >
-              Email marketing
+              {tt("Email marketing", "Email Marketing")}
             </Button>
             <Menu
               id="email-marketing-menu"
@@ -826,10 +826,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             >
               <MenuItem sx={{ fontSize: '14px' }}>
                 <a href="templates/email-marketing" style={{ textDecoration: 'none' }} target="_blank" rel="noopener noreferrer">
-                  Chỉnh sửa mẫu email <ArrowSquareIn />
+                  {tt("Chỉnh sửa mẫu email", "Edit Email Template")} <ArrowSquareIn />
                 </a>
               </MenuItem>
-              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendEmailMarketingBulk() }}>Gửi email marketing</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendEmailMarketingBulk() }}>{tt("Gửi email marketing", "Send Marketing Email")}</MenuItem>
             </Menu>
           </Stack>
         </Box>

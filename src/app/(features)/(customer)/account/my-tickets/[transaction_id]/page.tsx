@@ -106,9 +106,9 @@ const getRowStatusDetails = (status: string, tt: (vi: string, en: string) => str
 const getSentEmailTicketStatusDetails = (status: string, tt: (vi: string, en: string) => string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'sent':
-      return { label: tt('Đã xuất', 'Sent'), color: 'success' };
+      return { label: tt('Đã xuất', 'Exported'), color: 'success' };
     case 'not_sent':
-      return { label: tt('Chưa xuất', 'Not Sent'), color: 'default' };
+      return { label: tt('Chưa xuất', 'Not Exported'), color: 'default' };
     default:
       return { label: tt('Không rõ', 'Unknown'), color: 'default' };
   }

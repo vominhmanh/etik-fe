@@ -118,28 +118,33 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   // 🟢 Upload Image to Server
   const handleUpload = async (file: File) => {
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      // Step 1: Request presigned URL from backend
+      const presignedResponse = await baseHttpServiceInstance.post('/common/s3/generate_presigned_url', {
+        filename: file.name,
+        content_type: file.type,
+      });
 
-      const response = await baseHttpServiceInstance.post(
-        "/common/s3/upload_image_temp",
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
+      const { presignedUrl, fileUrl } = presignedResponse.data;
+
+      // Step 2: Upload file directly to S3 using presigned URL
+      await fetch(presignedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
         },
-        true
-      );
+      });
 
-      setImagePreview(response.data.imageUrl); // Set new image preview
+      setImagePreview(fileUrl); // Set new image preview
       setOnPreviewMode(true);
     } catch (error: any) {
       const message =
-        // 1) If it’s a JS Error instance
+        // 1) If it's a JS Error instance
         error instanceof Error ? error.message
-        // 2) If it’s an AxiosError with a response body
+        // 2) If it's an AxiosError with a response body
         : error.response?.data?.message
           ? error.response.data.message
-        // 3) If it’s a plain string
+        // 3) If it's a plain string
         : typeof error === 'string'
           ? error
         // 4) Fallback to JSON‐dump of the object

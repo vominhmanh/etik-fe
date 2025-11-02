@@ -64,6 +64,8 @@ export interface EventOverviewResponse {
 
 export type TicketCategory = {
   id: number;
+  checkedIn: number;
+  disabled: boolean;
   avatar: string | null;
   name: string;
   price: number;
@@ -71,7 +73,6 @@ export type TicketCategory = {
   status: string;
   quantity: number;
   sold: number;
-  disabled: boolean;
   show: Show;
 };
 
@@ -1024,7 +1025,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Grid> */}
       </Grid>
       <Stack spacing={3} sx={{ mt: 5 }}>
-        <Typography variant="h4">{tt("Suất diễn & loại vé", "Shows & Ticket Categories")}</Typography>
+        <Typography variant="h4">{tt("Thống kê số lượng Đơn hàng và Vé", "Statistics of Order and Ticket Quantities")}</Typography>
         <Grid container spacing={3}>
           <Grid lg={5} md={5} xs={12} spacing={3}>
             <Stack spacing={3}>
