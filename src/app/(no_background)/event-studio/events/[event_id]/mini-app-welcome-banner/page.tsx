@@ -1,18 +1,12 @@
 "use client";
 
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import { AxiosResponse } from "axios";
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import dayjs from "dayjs";
 import { Box } from "@mui/material";
 
 // Define TypeScript interface matching FastAPI schema
-interface TransactionECodeResponse {
-  name: string;
-  eCode: string;
-}
-
-
 interface SelectedComponent {
   key: string;
   label: string;
@@ -32,7 +26,6 @@ interface WelcomeBannerImage {
 }
 
 interface WelcomeBannerSettings {
-  imageUrl: string;
   selectedComponents: SelectedComponent[];
   componentSettings: Record<string, ComponentSettings>;
 }
@@ -71,34 +64,47 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     fetchImage();
   }, [event_id]);
 
-  // useEffect(() => {
-  //   const fetchSettings = async () => {
-  //     try {
-  //       setIsLoading(true);
-  //       const response: AxiosResponse<WelcomeBannerSettings> = await baseHttpServiceInstance.get(
-  //         `mini-app-welcome-banner/${event_id}/transaction`
-  //       );
+  useEffect(() => {
+    const fetchSettings = async (isInitialLoad: boolean = false) => {
+      try {
+        if (isInitialLoad) {
+          setIsLoading(true);
+        }
+        const response: AxiosResponse<WelcomeBannerSettings> = await baseHttpServiceInstance.get(
+          `/mini-app-welcome-banner/${event_id}/transaction`
+        );
 
-  //       if (response.status === 200) {
-  //         const { selectedComponents, componentSettings } = response.data;
+        if (response.status === 200) {
+          const { selectedComponents, componentSettings } = response.data;
 
-  //         setSelectedComponents(
-  //           selectedComponents.reduce((acc, component) => {
-  //             acc[component.key] = component;
-  //             return acc;
-  //           }, {} as Record<string, SelectedComponent>)
-  //         );
-  //         setComponentSettings(componentSettings);
-  //       }
-  //     } catch (error: any) {
-  //       setError(`${error}`);
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
+          setSelectedComponents(
+            selectedComponents.reduce((acc, component) => {
+              acc[component.key] = component;
+              return acc;
+            }, {} as Record<string, SelectedComponent>)
+          );
+          setComponentSettings(componentSettings);
+        }
+      } catch (error: any) {
+        setError(`${error}`);
+      } finally {
+        if (isInitialLoad) {
+          setIsLoading(false);
+        }
+      }
+    };
 
-  //   fetchSettings();
-  // }, [event_id]);
+    // Initial fetch with loading
+    fetchSettings(true);
+
+    // Set up interval to fetch every 2 seconds without loading indicator
+    const interval = setInterval(() => {
+      fetchSettings(false);
+    }, 3000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
+  }, [event_id]);
 
   // Detect mobile screen size
   useEffect(() => {
@@ -161,7 +167,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           />
 
           {/* Overlaying Components */}
-          {Object.values(selectedComponents).map(({ key, label }) => (
+          {Object.values(selectedComponents)
+            .filter(({ label }) => label && label.trim() !== '' && label !== 'N/A' && label !== 'None')
+            .map(({ key, label }) => (
             <div
               key={key}
               style={{
@@ -176,6 +184,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 justifyContent: "center",
                 alignItems: "center",
                 borderRadius: "1.5%",
+                fontWeight: 900, 
               }}
             >
               {key === 'eCodeQr' ?
@@ -192,10 +201,26 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   className="bg-white p-2 shadow-lg"
                 />
                 :
-                (key === 'startDateTime' || key === 'endDateTime') ?
-                  dayjs(label || 0).format('HH:mm DD/MM/YYYY')
+                key === 'customerAvatar' ?
+                  <Box 
+                    component="img"
+                    src={label}
+                    alt="Customer Avatar"
+                    sx={{
+                      height: "100%",
+                      aspectRatio: "1/1",
+                      display: "block",
+                      objectFit: "cover",
+                      objectPosition: "center",
+                      borderRadius: "50%",
+                      overflow: "hidden",
+                    }}
+                  />
                   :
-                  <span dangerouslySetInnerHTML={{ __html: label }} />
+                  (key === 'startDateTime' || key === 'endDateTime') ?
+                    dayjs(label || 0).format('HH:mm DD/MM/YYYY')
+                    :
+                    <span dangerouslySetInnerHTML={{ __html: label }} />
               }
             </div>
           ))}

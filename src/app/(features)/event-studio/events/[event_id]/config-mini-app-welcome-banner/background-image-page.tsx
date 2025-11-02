@@ -28,15 +28,16 @@ interface ComponentSettings {
 const defaultComponents: { label: string; key: string }[] = [
   { label: 'Tên sự kiện', key: 'eventName' },
   { label: 'Tên khách mời', key: 'customerName' },
+  { label: 'Avatar khách mời', key: 'customerAvatar' },
   { label: 'Địa chỉ khách mời', key: 'customerAddress' },
   { label: 'SĐT khách mời', key: 'customerPhone' },
   { label: 'Email Khách mời', key: 'customerEmail' },
-  { label: 'Danh sách vé', key: 'ticketsList' },
-  { label: 'Mã Check-in', key: 'eCode' },
-  { label: 'Ảnh QR', key: 'eCodeQr' },
-  { label: 'Thời gian bắt đầu', key: 'startDateTime' },
-  { label: 'Thời gian kết thúc', key: 'endDateTime' },
-  { label: 'Địa điểm', key: 'place' },
+//   { label: 'Danh sách vé', key: 'ticketsList' },
+//   { label: 'Mã Check-in', key: 'eCode' },
+//   { label: 'Ảnh QR', key: 'eCodeQr' },
+//   { label: 'Thời gian bắt đầu', key: 'startDateTime' },
+//   { label: 'Thời gian kết thúc', key: 'endDateTime' },
+//   { label: 'Địa điểm', key: 'place' },
 ];
 
 export default function UploadImagePage({ eventId = 0 }: CustomersTableProps) {

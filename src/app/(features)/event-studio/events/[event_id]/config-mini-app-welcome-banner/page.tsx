@@ -25,14 +25,12 @@ import { useCallback, useEffect, useState } from 'react';
 import ReactQuill from 'react-quill';
 
 import NotificationContext from '@/contexts/notification-context';
+import { LocalizedLink } from '@/components/localized-link';
 
 import 'react-quill/dist/quill.snow.css';
 
 import BackgroundImagePage from './background-image-page';
-import { CandidatesPage } from './candidates-page';
-import PrivacySettings from './privacy-page';
-import { RatingCriteriaPage } from './rating-criteria-page';
-import { VotingQuestionPage } from './voting-question-page';
+
 // Define the event response type
 export type EventResponse = {
   id: number;
@@ -72,36 +70,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [selectedPage, setSelectedPage] = useState('candidates');
 
   const MENU_ITEMS = [
-    {
-      id: 'candidates',
-      icon: <UserCircle />,
-      label: 'Đối tượng bình chọn',
-      component: <CandidatesPage eventId={params.event_id} />,
-    },
-    {
-      id: 'criteria',
-      icon: <ListStar />,
-      label: 'Chấm điểm ứng viên',
-      component: <RatingCriteriaPage eventId={params.event_id} />,
-    },
-    {
-      id: 'votingQuestion',
-      icon: <Question />,
-      label: 'Câu hỏi bình chọn ứng viên',
-      component: <VotingQuestionPage eventId={params.event_id} />,
-    },
-    {
-      id: 'privacy',
-      icon: <Gear />,
-      label: 'Cài đặt quyền riêng tư',
-      component: <PrivacySettings eventId={params.event_id} eventSlug={event?.slug || ''} />,
-    },
-    {
-      id: 'history',
-      icon: <ListDashes />,
-      label: 'Lịch sử bình chọn',
-      component: <PrivacySettings eventId={params.event_id} eventSlug={event?.slug || ''} />,
-    },
+    
     {
       id: 'background',
       icon: <Panorama />,
@@ -112,14 +81,21 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       id: 'voting',
       icon: <StarHalf />,
       label: 'Truy cập trang Banner chào mừng',
-      component: <Typography>Trang Banner chào mừng</Typography>,
+      component: (
+        <Button
+          variant="contained"
+          component={LocalizedLink}
+          href={`/event-studio/events/${params.event_id}/mini-app-welcome-banner`}
+          target="_blank"
+          rel="noopener noreferrer"
+          startIcon={<Play />}
+          sx={{ width: 'auto' }}
+        >
+          Nhấn để đến Trang Banner chào mừng
+        </Button>
+      ),
     },
-    {
-      id: 'ranking',
-      icon: <ListNumbers />,
-      label: 'Truy cập trang Bảng xếp hạng',
-      component: <Typography>Bảng xếp hạng</Typography>,
-    },
+    
   ];
   
   async function checkConfig() {
