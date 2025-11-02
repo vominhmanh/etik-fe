@@ -83,7 +83,7 @@ export default function Header() {
                   style={{ display: 'flex', alignItems: 'center' }}
                 >
                   <Typography variant="body2" sx={{ marginRight: '8px' }}>
-                    {tt("Xin chào,", "Hello,")}
+                    {tt("Xin chào,", "Hi,")}
                   </Typography>
                   <Avatar sx={{ width: '25px', height: '25px', marginRight: '8px' }}>
                     {user.fullName?.charAt(0).toUpperCase() || "U"}

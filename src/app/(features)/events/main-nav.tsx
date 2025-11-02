@@ -51,9 +51,20 @@ export function MainNav(): React.JSX.Element {
             sx={{ alignItems: 'center', justifyContent: 'space-between', minHeight: '64px' }}
           >
             <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-              <div style={{ width: '45px' }}>
+              <Button
+                component={LocalizedLink}
+                href="/"
+                sx={{
+                  width: '45px',
+                  minWidth: '45px',
+                  padding: 0,
+                  '&:hover': {
+                    backgroundColor: 'transparent',
+                  },
+                }}
+              >
                 <Box component="img" src="/assets/etik-logo.png" sx={{ width: '100%' }} />
-              </div>
+              </Button>
             </Stack>
             {user ? (
               <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
