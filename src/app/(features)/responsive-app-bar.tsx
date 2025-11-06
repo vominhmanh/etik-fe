@@ -98,7 +98,7 @@ export function ResponsiveAppBar() {
             </Button> */}
             <Button
               component={LocalizedLink}
-              href='/event-studio/events'
+              href='/dashboard'
               scroll={false}
               onClick={handleCloseNavMenu}
               sx={{ my: 0, color: 'white', display: 'block', py: 0, fontSize: { xs: '11px', md: '13px' }, p:0 }}

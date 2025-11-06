@@ -65,7 +65,7 @@ export function SignUpForm(): React.JSX.Element {
   }), [tt]);
   
   const { control, handleSubmit, setError, formState: { errors } } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
-  const returnUrl = searchParams.get('returnUrl') || '/event-studio/events';
+  const returnUrl = searchParams.get('returnUrl') || '/dashboard';
 
   const onSubmit =
     async (values: Values): Promise<void> => {

@@ -78,7 +78,7 @@ export default function Header() {
             ) : user ? (
               <li>
                 <Link
-                  href="/event-studio/events"
+                  href="/dashboard"
                   className="btn-sm bg-white text-gray-800 shadow hover:bg-gray-50"
                   style={{ display: 'flex', alignItems: 'center' }}
                 >

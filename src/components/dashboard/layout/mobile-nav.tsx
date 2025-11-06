@@ -32,7 +32,7 @@ import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
 
 import { getNavItems } from './config';
-import { CurrencyCircleDollar, DiceSix, ImageSquare, Mailbox, Sliders, SpinnerBall, SquaresFour, StackPlus, StarHalf, UserList } from '@phosphor-icons/react/dist/ssr';
+import { CurrencyCircleDollar, DiceSix, ImageSquare, Mailbox, Sliders, SpinnerBall, SquaresFour, StackPlus, StarHalf, Tag, UserList } from '@phosphor-icons/react/dist/ssr';
 import NotificationContext from '@/contexts/notification-context';
 import { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
@@ -193,6 +193,13 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               title={tt("Thiết kế thư mời", "Invitation Letter Design")}
               href={`/event-studio/events/${dynamicId}/invitation-letter-design`}
               icon={ImageSquare}
+            />
+            <NavItemCollapseChildItem
+              pathname={pathname}
+              key="ticket-tag-design"
+              title={tt("Thiết kế tem vé", "Ticket Tag Design")}
+              href={`/event-studio/events/${dynamicId}/ticket-tag-design`}
+              icon={Tag}
             />
             <NavItemCollapseChildItem
               pathname={pathname}

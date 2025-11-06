@@ -44,7 +44,7 @@ export function SignInForm(): React.JSX.Element {
   const [showPassword, setShowPassword] = React.useState<boolean>();
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const searchParams = useSearchParams();
-  const returnUrl = React.useMemo(() => getDecodedReturnUrl(searchParams.get('returnUrl'), '/event-studio/events'), [searchParams]);
+  const returnUrl = React.useMemo(() => getDecodedReturnUrl(searchParams.get('returnUrl'), '/dashboard'), [searchParams]);
   const errorParam = useSearchParams().get('error');
   const notificationCtx = React.useContext(NotificationContext);
   

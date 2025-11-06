@@ -4,7 +4,7 @@ const nextConfig = {
     return [
       {
         // Vietnamese (default): /:slug → /events/:slug
-        source: '/:slug((?!en|account|share|account-event-agency|marketplace|transaction-checkout|auth|errors|event-studio|events|sso|_next|static|favicon.ico)[^/]+)',
+        source: '/:slug((?!en|dashboard|account|share|account-event-agency|marketplace|transaction-checkout|auth|errors|event-studio|events|sso|_next|static|favicon.ico)[^/]+)',
         destination: '/events/:slug',
         permanent: false,    // 307 redirect; switch to `true` for a 308 permanent
       },

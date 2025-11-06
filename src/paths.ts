@@ -2,7 +2,8 @@ export const paths = {
   home: '/',
   auth: { signIn: '/auth/login', signUp: '/auth/sign-up', resetPassword: '/auth/reset-password' },
   dashboard: {
-    overview: '/event-studio/events' as const,
+    overview: '/dashboard' as const,
+    eventStudio: '/event-studio/events' as const,
     account: '/event-studio/events/dashboard/account',
     customers: '/event-studio/events/dashboard/transactions',
     integrations: '/event-studio/events/dashboard/configuration',

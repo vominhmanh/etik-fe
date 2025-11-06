@@ -52,6 +52,7 @@ import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
 
 import { getNavItems } from './config';
+import { Tag } from '@phosphor-icons/react/dist/ssr/Tag';
 
 export type EventResponse = {
   id: number;
@@ -233,6 +234,13 @@ export function SideNav(): React.JSX.Element {
                 title={tt("Thiết kế thư mời", "Invitation Letter Design")}
                 href={`/event-studio/events/${dynamicId}/invitation-letter-design`}
                 icon={ImageSquare}
+              />
+               <NavItemCollapseChildItem
+                pathname={pathname}
+                key="ticket-tag-design"
+                title={tt("Thiết kế tem vé", "Ticket Tag Design")}
+                href={`/event-studio/events/${dynamicId}/ticket-tag-design`}
+                icon={Tag}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}

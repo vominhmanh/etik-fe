@@ -19,7 +19,7 @@ import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
-import { BuildingOffice, CodesandboxLogo, Invoice, SealCheck, Wallet } from '@phosphor-icons/react/dist/ssr';
+import { BuildingOffice, CodesandboxLogo, Invoice, SealCheck, Wallet, House } from '@phosphor-icons/react/dist/ssr';
 import { useTranslation } from '@/contexts/locale-context';
 
 export interface UserPopoverProps {
@@ -78,6 +78,12 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
       </Box>
       <Divider />
       <MenuList disablePadding sx={{ p: '8px', '& .MuiMenuItem-root': { borderRadius: 1 } }}>
+        <MenuItem component={LocalizedLink} href={'/dashboard'} onClick={onClose}>
+          <ListItemIcon>
+            <House fontSize="var(--icon-fontSize-md)" />
+          </ListItemIcon>
+          {tt('Trang tổng quan', 'Dashboard')}
+        </MenuItem>
         
         <MenuItem component={LocalizedLink} href={'/account'} onClick={onClose}>
           <ListItemIcon>
