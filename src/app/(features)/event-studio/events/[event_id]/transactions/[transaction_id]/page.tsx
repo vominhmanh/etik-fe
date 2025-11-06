@@ -155,6 +155,7 @@ export interface Ticket {
   holderAvatar: string | null;  // Avatar URL of the ticket holder
   createdAt: string;   // The date the ticket was created
   checkInAt: string | null; // The date/time the ticket was checked in, nullable
+  historyCheckIns: CheckInHistory[]; // List of check-in history
 }
 
 export interface Show {
@@ -228,6 +229,15 @@ export interface HistoryAction {
   createdAt: string; // ISO 8601 string for datetime
   createdBy: number | null;
   creator: HistorySendingCreatorResponse | null;
+}
+
+export interface CheckInHistory {
+  id: number;
+  type: 'check-in' | 'check-out';
+  imageUrl: string | null;
+  createdAt: string; // ISO 8601 string for datetime
+  createdBy: number | null;
+  creator: HistorySendingCreatorResponse;
 }
 
 export interface Transaction {
@@ -532,17 +542,39 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
       if (response.status === 200) {
         notificationCtx.success(response.data?.message || 'Check-in tất cả vé thành công!');
-        setTransaction((prev) => {
-          if (!prev) return prev;
-          const updatedCategories = prev.transactionTicketCategories.map((cat) => ({
-            ...cat,
-            tickets: cat.tickets.map((t) => ({
-              ...t,
-              checkInAt: t.checkInAt || new Date().toISOString(),
-            })),
-          }));
-          return { ...prev, transactionTicketCategories: updatedCategories };
-        });
+        // Refetch transaction to get updated historyCheckIns
+        const refreshResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
+          `/event-studio/events/${event_id}/transactions/${transaction_id}`,
+          {
+            params: checkInCode ? { checkInCode } : undefined,
+          }
+        );
+        setTransaction(refreshResponse.data);
+      }
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkOutAllTickets = async () => {
+    try {
+      setIsLoading(true);
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/check-out-all`
+      );
+
+      if (response.status === 200) {
+        notificationCtx.success(response.data?.message || 'Check-out tất cả vé thành công!');
+        // Refetch transaction to get updated historyCheckIns
+        const refreshResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
+          `/event-studio/events/${event_id}/transactions/${transaction_id}`,
+          {
+            params: checkInCode ? { checkInCode } : undefined,
+          }
+        );
+        setTransaction(refreshResponse.data);
       }
     } catch (error) {
       notificationCtx.error(error);
@@ -593,19 +625,45 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
       if (response.status === 200) {
         notificationCtx.success(response.data?.message || 'Check-in thành công!');
-        setTransaction((prev) => {
-          if (!prev) return prev;
-          const updatedCategories = prev.transactionTicketCategories.map((cat, cIdx) => {
-            if (cIdx !== categoryIndex) return cat;
-            return {
-              ...cat,
-              tickets: cat.tickets.map((t, tIdx) =>
-                tIdx === ticketIndex ? { ...t, checkInAt: new Date().toISOString() } : t
-              ),
-            };
-          });
-          return { ...prev, transactionTicketCategories: updatedCategories };
-        });
+        // Refetch transaction to get updated historyCheckIns
+        const refreshResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
+          `/event-studio/events/${event_id}/transactions/${transaction_id}`,
+          {
+            params: checkInCode ? { checkInCode } : undefined,
+          }
+        );
+        setTransaction(refreshResponse.data);
+        handleCloseTicketMenu();
+      }
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCheckOutSpecificTicket = async () => {
+    if (!activeMenuTicket || !transaction) return;
+    const { categoryIndex, ticketIndex } = activeMenuTicket;
+    const category = transaction.transactionTicketCategories[categoryIndex];
+    const ticket = category?.tickets[ticketIndex];
+    if (!ticket) return;
+    try {
+      setIsLoading(true);
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/check-out/${ticket.id}`
+      );
+
+      if (response.status === 200) {
+        notificationCtx.success(response.data?.message || 'Check-out thành công!');
+        // Refetch transaction to get updated historyCheckIns
+        const refreshResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
+          `/event-studio/events/${event_id}/transactions/${transaction_id}`,
+          {
+            params: checkInCode ? { checkInCode } : undefined,
+          }
+        );
+        setTransaction(refreshResponse.data);
         handleCloseTicketMenu();
       }
     } catch (error) {
@@ -938,7 +996,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
                     <Stack spacing={2} direction={'row'}>
                       <Button size="small" startIcon={<SignIn />} onClick={checkInAllTickets}>
-                        Check-in
+                        Check-in tất cả vé
+                      </Button>
+                      <Button size="small" startIcon={<SignOut />} onClick={checkOutAllTickets}>
+                        Check-out tất cả vé
                       </Button>
                     </Stack>
                   )}
@@ -1232,7 +1293,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                           <TicketIcon fontSize="var(--icon-fontSize-md)" />
                           <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name} - {transactionTicketCategory.ticketCategory.name}</Typography>
-                          {transaction.qrOption === 'separate' && <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => openEditCategoryModal(transactionTicketCategory)}><Pencil /></IconButton>}
+                        <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => openEditCategoryModal(transactionTicketCategory)}><Pencil /></IconButton>
                         </Stack>
                         <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
                           <Typography variant="body2">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography>
@@ -1246,24 +1307,22 @@ export default function Page({ params }: { params: { event_id: number; transacti
                             <Stack direction="row" spacing={0} alignItems="center">
                               {requireGuestAvatar && transaction.qrOption === 'separate' && <Avatar src={ticket.holderAvatar || ''} sx={{ width: 32, height: 32 }} />}
                               <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
-                                {transaction.qrOption === 'separate' && (
                                   <>
                                     <Stack direction="row" spacing={1} alignItems="center">
-
-
                                       <div>
                                         <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
                                           {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : 'Chưa có thông tin'}
                                         </Typography>
+                                        {transaction.qrOption === 'separate' && (
                                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                           {ticket.holderEmail || 'Chưa có email'} - {ticket.holderPhone || 'Chưa có SĐT'}
                                         </Typography>
+                                        )}
                                       </div>
                                     </Stack>
                                   </>
-                                )}
                                 <div>
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.checkInAt ? `Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>TID-{ticket.id} {ticket.checkInAt ? `Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
                                   <IconButton size="small" sx={{ ml: 2 }} onClick={(e) => handleOpenTicketMenu(e.currentTarget, categoryIndex, ticketIndex)}>
                                     <DotsThreeOutline />
                                   </IconButton>
@@ -1286,9 +1345,26 @@ export default function Page({ params }: { params: { event_id: number; transacti
                         <MenuItem onClick={handleCloseTicketMenu} sx={{ fontSize: '14px', color: 'primary' }}>
                           <DeviceMobile style={{ marginRight: 8 }} /> Gửi vé qua Zalo
                         </MenuItem> */}
-                        <MenuItem disabled={!!isLoading || !!(activeMenuTicket && !!transaction.transactionTicketCategories[activeMenuTicket.categoryIndex]?.tickets[activeMenuTicket.ticketIndex]?.checkInAt)} onClick={handleCheckInSpecificTicket} sx={{ fontSize: '14px', color: 'primary' }}>
-                          <Check style={{ marginRight: 8 }} /> Check-in
-                        </MenuItem>
+                          <MenuItem disabled={!!isLoading || !!(activeMenuTicket && (() => {
+                            const ticket = transaction.transactionTicketCategories[activeMenuTicket.categoryIndex]?.tickets[activeMenuTicket.ticketIndex];
+                            if (!ticket) return true;
+                            const latestCheckIn = ticket.historyCheckIns && ticket.historyCheckIns.length > 0 
+                              ? ticket.historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+                              : null;
+                            return latestCheckIn?.type === 'check-in';
+                          })())} onClick={handleCheckInSpecificTicket} sx={{ fontSize: '14px', color: 'primary' }}>
+                            <Check style={{ marginRight: 8 }} /> Check-in
+                          </MenuItem>
+                          <MenuItem disabled={!!isLoading || !!(activeMenuTicket && (() => {
+                            const ticket = transaction.transactionTicketCategories[activeMenuTicket.categoryIndex]?.tickets[activeMenuTicket.ticketIndex];
+                            if (!ticket) return true;
+                            const latestCheckIn = ticket.historyCheckIns && ticket.historyCheckIns.length > 0 
+                              ? ticket.historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+                              : null;
+                            return !latestCheckIn || latestCheckIn.type !== 'check-in';
+                          })())} onClick={handleCheckOutSpecificTicket} sx={{ fontSize: '14px', color: 'primary' }}>
+                            <SignOut style={{ marginRight: 8 }} /> Check-out
+                          </MenuItem>
                       </Menu>
                     </div>
                   ))}
@@ -1342,20 +1418,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
                       />
                     </Grid>
                   </Grid>
-                  {transaction.ticketQuantity > 1 && (
-                    <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                      <Stack>
-                        <Typography variant="body2">Sử dụng mã QR riêng cho từng vé</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          Bạn cần nhập thông tin cho từng vé.
-                        </Typography>
-                      </Stack>
-                      <Checkbox
-                        checked={transaction.qrOption === 'separate'}
-                        disabled
-                      />
-                    </Stack>
-                  )}
                 </Stack>
 
               </CardContent>
@@ -1432,7 +1494,88 @@ export default function Page({ params }: { params: { event_id: number; transacti
                 </Table>
               </CardContent>
             </Card>
-            {transaction.qrOption === 'separate' && (
+            <Card>
+              <CardHeader
+                title="Lịch sử check-in"
+                subheader='Lịch sử check-in của khách hàng'
+              />
+              <Divider />
+              <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 600 }}>
+                <Table sx={{ width: '100%' }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Thời gian</TableCell>
+                      <TableCell sx={{ minWidth: '200px' }}>Nội dung</TableCell>
+                      <TableCell>Ảnh</TableCell>
+                      <TableCell>Người thực hiện</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {transaction.transactionTicketCategories.map((transactionTicketCategory: TransactionTicketCategory) => (
+                      transactionTicketCategory.tickets.map((ticket: Ticket) => {
+                        const checkInHistory = ticket.historyCheckIns || [];
+                        return (
+                          <React.Fragment key={ticket.id}>
+                            <TableRow>
+                              <TableCell colSpan={4} sx={{ backgroundColor: 'action.hover', fontWeight: 'bold', py: 1.5 }}>
+                                <Typography variant="body2" sx={{ fontWeight: 'bold', m: 0 }}>
+                                  Lịch sử check-in của TID-{ticket.id} {ticket.holderTitle} {ticket.holderName}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                            {checkInHistory.length > 0 ? (
+                              checkInHistory.map((history: CheckInHistory) => (
+                                <TableRow hover key={history.id}>
+                                  <TableCell>
+                                    {dayjs(history.createdAt || 0).format('HH:mm:ss DD/MM/YYYY')}
+                                  </TableCell>
+                                  <TableCell>
+                                    {history.type === 'check-in' ? 'Check-in thành công' : 'Check-out thành công'}
+                                  </TableCell>
+                                  <TableCell>
+                                    {history.imageUrl ? (
+                                      <Box
+                                        component="img"
+                                        src={history.imageUrl}
+                                        alt="Check-in image"
+                                        sx={{
+                                          width: 60,
+                                          height: 60,
+                                          objectFit: 'cover',
+                                          borderRadius: 1,
+                                          cursor: 'pointer'
+                                        }}
+                                        onClick={() => window.open(history.imageUrl || '', '_blank')}
+                                      />
+                                    ) : (
+                                      <Typography variant="body2" color="text.secondary">
+                                        Không có ảnh
+                                      </Typography>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography variant="body2">{history.creator?.fullName || 'N/A'}</Typography>
+                                    <Typography variant="body2" color="text.secondary">{history.creator?.email || ''}</Typography>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell colSpan={4} align="center">
+                                  <Typography variant="body2" color="text.secondary">
+                                    Chưa có lịch sử check-in
+                                  </Typography>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
+                        );
+                      })
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
               <Modal open={editCategoryModalOpen} onClose={() => setEditCategoryModalOpen(false)} aria-labelledby="edit-ticket-category-modal-title" aria-describedby="edit-ticket-category-modal-description">
                 <Container maxWidth="xl">
                   <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { md: '700px', xs: '95%' }, maxHeight: '90vh', bgcolor: 'background.paper', boxShadow: 24 }}>
@@ -1553,8 +1696,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   </Card>
                 </Container>
               </Modal>
-            )}
-
           </Stack>
         </Grid>
       </Grid>

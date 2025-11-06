@@ -541,7 +541,7 @@ export default function Page(): React.JSX.Element {
                                     </>
                                   )}
                                   <div>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}</Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>TID-{ticket.id} {ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}</Typography>
                                   </div>
                                 </Box>
                               ))}

@@ -24,6 +24,7 @@ import { useTranslation } from "@/contexts/locale-context";
 interface TicketCategoriesProps {
   show: Show;
   qrOption?: string;
+  requireTicketHolderInfo?: boolean;
   requestedCategoryModalId?: number;
   onModalRequestHandled?: () => void;
   onCategorySelect: (ticketCategoryId: number) => void;
@@ -45,7 +46,7 @@ const colorMap: ColorMap = {
   7: deepPurple[300],
 };
 
-export function TicketCategories({ show, qrOption, requestedCategoryModalId, onModalRequestHandled, onCategorySelect, onAddToCart }: TicketCategoriesProps): React.JSX.Element {
+export function TicketCategories({ show, qrOption, requireTicketHolderInfo, requestedCategoryModalId, onModalRequestHandled, onCategorySelect, onAddToCart }: TicketCategoriesProps): React.JSX.Element {
   const { tt } = useTranslation();
   const ticketCategories = show.ticketCategories;
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
@@ -385,7 +386,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                     </Typography>
                   </Grid>
                 </Stack>
-                {qrOption === 'separate' && (
+                {requireTicketHolderInfo && (
                   <Stack spacing={1}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt("Thông tin người tham dự", "Attendee Information")}</Typography>
                     <Grid container spacing={2}>
@@ -393,9 +394,9 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                         <React.Fragment key={`holder-${index}`}>
                           <Grid item md={5} xs={12}>
                             <FormControl fullWidth size="small" required>
-                              <InputLabel>{tt(`Danh xưng* &emsp; Họ và tên vé ${index + 1}`, `Title* &emsp; Full Name ticket ${index + 1}`)}</InputLabel>
+                              <InputLabel>{tt(`Danh xưng*    Họ và tên vé ${index + 1}`, `Title* &emsp; Full Name ticket ${index + 1}`)}</InputLabel>
                               <OutlinedInput
-                                label={tt(`Danh xưng* &emsp; Họ và tên vé ${index + 1}`, `Title* &emsp; Full Name ticket ${index + 1}`)}
+                                label={tt(`Danh xưng*    Họ và tên vé ${index + 1}`, `Title* &emsp; Full Name ticket ${index + 1}`)}
                                 value={holder.name}
                                 onChange={(e) => {
                                   setTicketHolderInfos((prev) => {
@@ -436,6 +437,8 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                               />
                             </FormControl>
                           </Grid>
+                          {qrOption === 'separate' && (
+                            <>
                           <Grid item md={4} xs={12}>
                             <FormControl fullWidth size="small">
                               <InputLabel>{tt(`Email vé ${index + 1}`, `Email ticket ${index + 1}`)}</InputLabel>
@@ -470,6 +473,8 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                               />
                             </FormControl>
                           </Grid>
+                          </>
+                        )}
                         </React.Fragment>
                       ))}
                     </Grid>

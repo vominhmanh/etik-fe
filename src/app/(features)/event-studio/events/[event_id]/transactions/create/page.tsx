@@ -91,6 +91,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     document.title = tt("Tạo đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện", "Create Order | ETIK - E-tickets & Event Management");
   }, [tt]);
   const [qrOption, setQrOption] = React.useState<string>("shared");
+  const [requireTicketHolderInfo, setRequireTicketHolderInfo] = React.useState<boolean>(false);
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
   const [extraFee, setExtraFee] = React.useState<number>(0);
@@ -343,8 +344,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
 
 
-    // Validate per-ticket holder info when separate QR is selected
-    if (qrOption === 'separate') {
+    // Validate per-ticket holder info when required
+    if (requireTicketHolderInfo) {
       for (const [showId, categories] of Object.entries(selectedCategories)) {
         for (const [categoryIdStr, qty] of Object.entries(categories || {})) {
           const categoryId = parseInt(categoryIdStr);
@@ -368,12 +369,48 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       }
     }
 
+    // Validate for separate QR option - must have email and phone for each holder
+    if (qrOption === 'separate') {
+      for (const [showId, categories] of Object.entries(selectedCategories)) {
+        for (const [categoryIdStr, qty] of Object.entries(categories || {})) {
+          const categoryId = parseInt(categoryIdStr);
+          const quantity = qty || 0;
+          if (quantity <= 0) continue;
+          const key = `${showId}-${categoryId}`;
+          const holders = ticketHoldersByCategory[key] || [];
+          if (holders.length < quantity) {
+            notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự cho từng vé.', 'Please fill in information for each ticket holder.'));
+            setRequestedCategoryModalId(categoryId);
+            return;
+          }
+          for (let i = 0; i < quantity; i++) {
+            const h = holders[i];
+            if (!h || !h.title || !h.name) {
+              notificationCtx.warning(tt('Vui lòng điền đủ tên cho từng vé.', 'Please fill in name for each ticket holder.'));
+              setRequestedCategoryModalId(categoryId);
+              return;
+            }
+            if (!h.email) {
+              notificationCtx.warning(tt('Vui lòng điền đủ email cho từng vé khi sử dụng mã QR riêng.', 'Please fill in email for each ticket holder when using separate QR codes.'));
+              setRequestedCategoryModalId(categoryId);
+              return;
+            }
+            if (!h.phone) {
+              notificationCtx.warning(tt('Vui lòng điền đủ số điện thoại cho từng vé khi sử dụng mã QR riêng.', 'Please fill in phone number for each ticket holder when using separate QR codes.'));
+              setRequestedCategoryModalId(categoryId);
+              return;
+            }
+          }
+        }
+      }
+    }
+
     setConfirmOpen(true);
   };
 
   const handleSubmit = async () => {
     try {
-      if (qrOption === 'separate') {
+      if (requireTicketHolderInfo) {
         for (const [showId, categories] of Object.entries(selectedCategories)) {
           for (const [categoryIdStr, qty] of Object.entries(categories || {})) {
             const categoryId = parseInt(categoryIdStr);
@@ -393,6 +430,46 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự cho từng vé.', 'Please fill in information for each ticket holder.'));
               setRequestedCategoryModalId(categoryId);
               return;
+            }
+          }
+        }
+      }
+
+      // Validate for separate QR option - must have email and phone for each holder
+      if (qrOption === 'separate') {
+        for (const [showId, categories] of Object.entries(selectedCategories)) {
+          for (const [categoryIdStr, qty] of Object.entries(categories || {})) {
+            const categoryId = parseInt(categoryIdStr);
+            const quantity = qty || 0;
+            if (quantity <= 0) continue;
+            const key = `${showId}-${categoryId}`;
+            const holders = ticketHoldersByCategory[key] || [];
+            if (holders.length < quantity) {
+              setConfirmOpen(false);
+              notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự cho từng vé.', 'Please fill in information for each ticket holder.'));
+              setRequestedCategoryModalId(categoryId);
+              return;
+            }
+            for (let i = 0; i < quantity; i++) {
+              const h = holders[i];
+              if (!h || !h.title || !h.name) {
+                setConfirmOpen(false);
+                notificationCtx.warning(tt('Vui lòng điền đủ tên cho từng vé.', 'Please fill in name for each ticket holder.'));
+                setRequestedCategoryModalId(categoryId);
+                return;
+              }
+              if (!h.email) {
+                setConfirmOpen(false);
+                notificationCtx.warning(tt('Vui lòng điền đủ email cho từng vé khi sử dụng mã QR riêng.', 'Please fill in email for each ticket holder when using separate QR codes.'));
+                setRequestedCategoryModalId(categoryId);
+                return;
+              }
+              if (!h.phone) {
+                setConfirmOpen(false);
+                notificationCtx.warning(tt('Vui lòng điền đủ số điện thoại cho từng vé khi sử dụng mã QR riêng.', 'Please fill in phone number for each ticket holder when using separate QR codes.'));
+                setRequestedCategoryModalId(categoryId);
+                return;
+              }
             }
           }
         }
@@ -443,11 +520,26 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             return holderData;
           });
           
+          // Send holders based on requireTicketHolderInfo or qrOption
+          let holdersToSend = undefined;
+          if (qrOption === 'separate') {
+            // For separate QR, always send holders with email and phone
+            holdersToSend = holdersWithS3Urls;
+          } else if (requireTicketHolderInfo) {
+            // For requireTicketHolderInfo, send holders but without email/phone (will use customer's)
+            holdersToSend = holdersWithS3Urls.map(h => ({
+              title: h.title,
+              name: h.name,
+              avatar: h.avatar,
+              // Don't include email and phone - will use customer's
+            }));
+          }
+          
           return {
             showId: parseInt(showId),
             ticketCategoryId: parseInt(categoryIdStr),
             quantity: qty || 0,
-            holders: qrOption === 'separate' ? holdersWithS3Urls : undefined,
+            holders: holdersToSend,
           };
         })
       ));
@@ -470,6 +562,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         customer: customerData,
         tickets,
         qrOption,
+        requireTicketHolderInfo,
         requireGuestAvatar,
         paymentMethod,
         extraFee,
@@ -522,6 +615,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 key={show.id}
                 show={show}
                 qrOption={qrOption}
+                requireTicketHolderInfo={requireTicketHolderInfo}
                 requestedCategoryModalId={requestedCategoryModalId || undefined}
                 onModalRequestHandled={() => setRequestedCategoryModalId(null)}
                 onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
@@ -703,7 +797,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               </Stack>
                             </Stack>
 
-                            {qrOption === 'separate' && quantity > 0 && (
+                            {requireTicketHolderInfo && quantity > 0 && (
                               <Stack spacing={2}>
                                 {Array.from({ length: quantity }, (_, index) => {
                                   const holderInfo = ticketHoldersByCategory[`${showId}-${categoryId}`]?.[index];
@@ -740,9 +834,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                           {index + 1}. {holderInfo?.name ? `${holderInfo?.title} ${holderInfo?.name}` : tt('Chưa có thông tin', 'No information')}
                                         </Typography>
                                         <br />
+                                        {qrOption === 'separate' && (
                                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                          {holderInfo?.email || tt('Chưa có email', 'No email')} - {holderInfo?.phone || tt('Chưa có SĐT', 'No phone')}
-                                        </Typography>
+                                            {holderInfo?.email || tt('Chưa có email', 'No email')} - {holderInfo?.phone || tt('Chưa có SĐT', 'No phone')}
+                                          </Typography>
+                                        )}
                                       </Box>
                                     </Stack>
                                   );
@@ -782,18 +878,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </Grid>
                   </Grid>
                   {totalSelectedTickets > 1 && (
+                    <>
                     <Grid container spacing={1} alignItems="center">
                       <Grid xs>
-                        <Typography variant="body2">{tt("Sử dụng mã QR riêng cho từng vé", "Use separate QR code for each ticket")}</Typography>
+                        <Typography variant="body2">{tt("Nhập thông tin người sở hữu cho từng vé", "Enter ticket holder information for each ticket")}</Typography>
                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {tt("Bạn cần nhập email cho từng vé.", "You need to enter email for each ticket.")}
-                        </Typography>
+                        {tt("Chọn nếu bạn biết thông tin của từng khách mời.", "Select if you know the information of each guest.")}
+                      </Typography>
                       </Grid>
                       <Grid>
                         <Checkbox
-                          checked={qrOption === 'separate'}
+                          checked={requireTicketHolderInfo}
                           onChange={(_e, checked) => {
-                            setQrOption(checked ? 'separate' : 'shared');
+                            setRequireTicketHolderInfo(checked);
                             if (checked) {
                               notificationCtx.info(tt('Vui lòng điền thông tin người sở hữu cho từng vé', 'Please fill in information for each ticket holder'));
                             }
@@ -801,6 +898,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         />
                       </Grid>
                     </Grid>
+                    {requireTicketHolderInfo && (
+                    <Grid container spacing={1} alignItems="center">
+                      <Grid xs>
+                        <Typography variant="body2">{tt("Sử dụng mã QR riêng cho từng vé", "Use separate QR code for each ticket")}</Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          {tt("Chọn nếu bạn muốn tạo và gửi mã QR riêng qua email từng khách mời.", "Select if you want to send separate QR codes for each guest.")}
+                        </Typography>
+                      </Grid>
+                      <Grid>
+                        <Checkbox
+                          checked={qrOption === 'separate'}
+                          onChange={(_e, checked) => {
+                            setQrOption(checked ? 'separate' : 'shared');
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                    )}
+                    </>
                   )}
                 </Stack>
               </CardContent>
@@ -921,7 +1037,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               </Stack>
                             </Stack>
 
-                            {qrOption === 'separate' && quantity > 0 && (
+                            {requireTicketHolderInfo && quantity > 0 && (
                               <Box sx={{ ml: 2 }}>
                                 <Stack spacing={1}>
                                   {Array.from({ length: quantity }, (_, index) => {

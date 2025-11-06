@@ -2,7 +2,7 @@
 
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Avatar, Box, CardMedia, Checkbox, Container, FormControlLabel, FormGroup, FormHelperText, IconButton, InputAdornment, MenuItem, Modal, Select, Stack, TextField } from '@mui/material';
+import { Avatar, Box, CardMedia, Checkbox, Container, FormControlLabel, FormGroup, FormHelperText, IconButton, InputAdornment, MenuItem, Modal, Radio, Select, Stack, TableBody, Table, TextField, TableHead, TableCell, TableRow } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -85,6 +85,12 @@ export interface SendTicketMethodsRequest {
 export interface CheckInFaceConfig {
   useCheckInFace: boolean;
 }
+
+export interface Printer {
+  id: string;
+  ip: string;
+  name: string;
+}
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
     document.title = "Cài đặt nâng cao | ETIK - Vé điện tử & Quản lý sự kiện";
@@ -136,6 +142,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [checkInFaceConfig, setCheckInFaceConfig] = useState<CheckInFaceConfig>({
     useCheckInFace: false,
   });
+
+  // Mock printer data
+  const [printers, setPrinters] = useState<Printer[]>([
+    { id: 'system', ip: 'không có', name: 'Sử dụng máy in hệ thống' },
+    { id: '1', ip: '192.168.1.100', name: 'Máy in văn phòng HP' },
+    { id: '2', ip: '192.168.1.101', name: 'Máy in Canon PIXMA' },
+    { id: '3', ip: '192.168.1.102', name: 'Máy in Epson EcoTank' },
+  ]);
+  const [selectedPrinterId, setSelectedPrinterId] = useState<string>('system');
+  const [isPrinterLoading, setIsPrinterLoading] = useState<boolean>(false);
 
 
   useEffect(() => {
@@ -385,7 +401,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       throw error;
     }
   }
-  
+
 
   async function saveSMTPSettings(eventId: number, smtpConfig: SMTPConfig): Promise<void> {
     try {
@@ -405,7 +421,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       throw error;
     }
   }
-  
+
 
   async function saveEmailTemplateSettings(eventId: number, emailTemplateConfig: EmailTemplateConfig): Promise<void> {
     try {
@@ -471,6 +487,24 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       throw error;
     }
   }
+
+  const handlePrinterChange = (printerId: string) => {
+    setSelectedPrinterId(printerId);
+  };
+
+  const handleSavePrinterSettings = async () => {
+    try {
+      setIsPrinterLoading(true);
+      // Mock API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Selected printer:', selectedPrinterId);
+      notificationCtx.success('Cài đặt máy in đã được lưu thành công!');
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsPrinterLoading(false);
+    }
+  };
 
 
 
@@ -576,7 +610,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         </FormGroup>
                       </Stack>
                     </Grid>
-                    
+
                   </Grid>
                 </CardContent>
                 <Divider />
@@ -741,6 +775,49 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button variant="contained" color="primary" onClick={handleSaveEmailTemplateConfig} disabled={isEmailTemplateLoading}>
                     {isEmailTemplateLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
+                  </Button>
+                </CardActions>
+              </Card>
+              <Card>
+                <CardHeader
+                  title="Cài đặt máy in vé"
+                />
+                <Divider />
+                <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 600 }}>
+                  <Table size="small" sx={{ width: '100%' }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ padding: '8px 16px' }}>Radio</TableCell>
+                        <TableCell sx={{ minWidth: '200px', padding: '8px 16px' }}>IP máy in</TableCell>
+                        <TableCell sx={{ padding: '8px 16px' }}>Tên máy in</TableCell>
+                        <TableCell sx={{ padding: '8px 16px' }}>Thao tác</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {printers.map((printer) => (
+                        <TableRow key={printer.id}>
+                          <TableCell sx={{ padding: '8px 16px' }}>
+                            <Radio
+                              checked={selectedPrinterId === printer.id}
+                              onChange={() => handlePrinterChange(printer.id)}
+                              value={printer.id}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell sx={{ minWidth: '200px', padding: '8px 16px' }}>{printer.ip}</TableCell>
+                          <TableCell sx={{ padding: '8px 16px' }}>{printer.name}</TableCell>
+                          <TableCell sx={{ padding: '8px 16px' }}>
+                            {/* Có thể thêm các nút thao tác ở đây nếu cần */}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+                <Divider />
+                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button variant="contained" color="primary" onClick={handleSavePrinterSettings} disabled={isPrinterLoading}>
+                    {isPrinterLoading ? <CircularProgress size={24} /> : "Lưu lựa chọn"}
                   </Button>
                 </CardActions>
               </Card>

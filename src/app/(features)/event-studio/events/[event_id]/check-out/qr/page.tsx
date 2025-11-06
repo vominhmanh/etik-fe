@@ -2,7 +2,8 @@
 
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Accordion, AccordionDetails, AccordionSummary, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, OutlinedInput, Stack, styled, SwipeableDrawer, Typography } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Chip, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, OutlinedInput, Stack, styled, SwipeableDrawer, Typography } from '@mui/material';
+import type { ChipProps } from '@mui/material/Chip';
 import { grey } from '@mui/material/colors';
 import { ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
@@ -12,6 +13,7 @@ import { LocalizedLink } from '@/components/localized-link';
 
 import * as React from 'react';
 import { useZxing } from "react-zxing";
+import { useTranslation } from '@/contexts/locale-context';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 
@@ -20,13 +22,27 @@ const iOS =
 
 
 // Ticket.ts
+export interface CheckInHistory {
+  id: number;
+  type: 'check-in' | 'check-out';
+  imageUrl: string | null;
+  createdAt: string; // ISO 8601 string for datetime
+  createdBy: number | null;
+  creator: {
+    id: number;
+    fullName: string;
+    email: string;
+  };
+}
+
 export interface Ticket {
   id: number;
   holderName: string;
-  holderPhone: string;
-  holderEmail: string;
   holderTitle: string;
+  holderEmail: string | null;
+  holderPhone: string | null;
   checkInAt: Date | null;
+  historyCheckIns?: CheckInHistory[];
 }
 
 export type TicketCategory = {
@@ -54,6 +70,7 @@ export interface Transaction {
   id: number;
   email: string;
   name: string;
+  title: string;
   dob: string;
   phoneNumber: string;
   address: string;
@@ -106,11 +123,55 @@ type MyDynamicObject = {
 };
 
 
-export default function Page(): React.JSX.Element {
-  const params = { event_id: 43 }
+// These helper functions will be moved inside the component to use tt
+
+export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+  const { tt } = useTranslation();
+
+  // Function to map payment statuses to corresponding labels and colors
+  const getPaymentStatusDetails = React.useCallback((paymentStatus: string): { label: string, color: ChipProps['color'] } => {
+    switch (paymentStatus) {
+      case 'waiting_for_payment':
+        return { label: tt('Chờ thanh toán', 'Waiting for payment'), color: 'warning' };
+      case 'paid':
+        return { label: tt('Đã thanh toán', 'Paid'), color: 'success' };
+      case 'refund':
+        return { label: tt('Đã hoàn tiền', 'Refunded'), color: 'secondary' };
+      default:
+        return { label: 'Unknown', color: 'default' };
+    }
+  }, [tt]);
+
+  // Function to map row statuses to corresponding labels and colors
+  const getRowStatusDetails = React.useCallback((status: string): { label: string, color: ChipProps['color'] } => {
+    switch (status) {
+      case 'normal':
+        return { label: tt('Bình thường', 'Normal'), color: 'success' };
+      case 'wait_for_response':
+        return { label: tt('Đang chờ', 'Waiting'), color: 'warning' };
+      case 'customer_cancelled':
+        return { label: tt('Huỷ bởi KH', 'Cancelled by Customer'), color: 'error' };
+      case 'staff_locked':
+        return { label: tt('Khoá bởi NV', 'Locked by Staff'), color: 'error' };
+      default:
+        return { label: 'Unknown', color: 'default' };
+    }
+  }, [tt]);
+
+  const getSentEmailTicketStatusDetails = React.useCallback((status: string): { label: string, color: ChipProps['color'] } => {
+    switch (status) {
+      case 'sent':
+        return { label: tt('Đã xuất', 'Exported'), color: 'success' };
+      case 'not_sent':
+        return { label: tt('Chưa xuất', 'Not Exported'), color: 'default' };
+      default:
+        return { label: 'Unknown', color: 'default' };
+    }
+  }, [tt]);
+
   React.useEffect(() => {
-    document.title = "Soát vé bằng mã QR | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Soát vé bằng mã QR | ETIK - Vé điện tử & Quản lý sự kiện", "Check-out with QR Code | ETIK - E-tickets & Event Management");
+  }, [tt]);
 
   const [qrManualInput, setQrManualInput] = React.useState<string>('');
   const [eCode, setECode] = React.useState<string>('');
@@ -175,12 +236,12 @@ export default function Page(): React.JSX.Element {
         try {
           setIsLoading(true);
           const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
-            `/event-studio/events/${params.event_id}/check-in/get-shows-ticket-categories-to-check-in`
+            `/event-studio/events/${params.event_id}/check-in-or-check-out/get-shows-ticket-categories`
           );
           setEvent(response.data);
           // setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
-          notificationCtx.error('Lỗi:', error);
+          notificationCtx.error(tt('Lỗi:', 'Error:'), error);
         } finally {
           setIsLoading(false);
         }
@@ -195,7 +256,7 @@ export default function Page(): React.JSX.Element {
     try {
       setIsLoading(true);
       const transactionResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance
-        .get(`/event-studio/events/${params.event_id}/check-in`, { params: { check_in_e_code: eCode } });
+        .get(`/event-studio/events/${params.event_id}/check-in-or-check-out/check-in`, { params: { check_in_e_code: eCode } });
       const dataTrxn = transactionResponse.data
       setTrxn(dataTrxn);
 
@@ -215,18 +276,30 @@ export default function Page(): React.JSX.Element {
       dataTrxn.transactionTicketCategories.forEach(transactionTicketCategory => {
         transactionTicketCategory.tickets.forEach((ticket) => {
           const ticketKey = `${ticket.id}-${transactionTicketCategory.ticketCategory.show.id}-${transactionTicketCategory.ticketCategory.id}`
-          ticDisabledState[ticketKey] = false
-          ticCheckboxState[ticketKey] = false
-
-          if (ticket.checkInAt != null) {
-            ticDisabledState[ticketKey] = true
+          
+          // Check latest HistoryCheckIn to determine if ticket is checked in
+          const historyCheckIns = ticket.historyCheckIns || [];
+          const latestCheckIn = historyCheckIns.length > 0
+            ? historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+            : null;
+          
+          const isCheckedIn = latestCheckIn?.type === 'check-in';
+          const isCheckedOut = latestCheckIn?.type === 'check-out';
+          const isInSelectedSchedule = transactionTicketCategory.ticketCategory.show.id === selectedSchedule?.id && selectedCategories.includes(transactionTicketCategory.ticketCategory.id);
+          
+          // For check-out: only enable tickets that are checked in (not checked out)
+          if (isCheckedIn && isInSelectedSchedule) {
+            // Ticket is checked in and in selected schedule - can check-out
+            ticDisabledState[ticketKey] = false
             ticCheckboxState[ticketKey] = true
+          } else if (isCheckedOut || !isCheckedIn) {
+            // Ticket is checked out or never checked in - disable
+            ticDisabledState[ticketKey] = true
+            ticCheckboxState[ticketKey] = false
           } else {
-            if (transactionTicketCategory.ticketCategory.show.id == selectedSchedule?.id && selectedCategories.includes(transactionTicketCategory.ticketCategory.id)) {
-              ticCheckboxState[ticketKey] = true
-            } else {
-              ticDisabledState[ticketKey] = true
-            }
+            // Not in selected schedule - disable
+            ticDisabledState[ticketKey] = true
+            ticCheckboxState[ticketKey] = false
           }
         })
       })
@@ -246,15 +319,15 @@ export default function Page(): React.JSX.Element {
         // 2. Join them with commas
         const joined = invalidCats?.join(', ') || '';
 
-        // 3. Truncate to 25 chars with “…” if necessary
+        // 3. Truncate to 25 chars with "…" if necessary
         const display =
           joined.length > 30
             ? joined.slice(0, 27).trimEnd() + '...'
             : joined;
 
-        // 4. Show the warning
+        // 4. Show the warning for check-out
         notificationCtx.warning(
-          `Không có vé hợp lệ cho danh mục đã chọn: ${selectedSchedule?.name} — ${display}`
+          tt(`Không có vé đã check-in cho danh mục đã chọn: ${selectedSchedule?.name} — ${display}`, `No checked-in tickets for selected categories: ${selectedSchedule?.name} — ${display}`)
         );
       }
 
@@ -266,43 +339,43 @@ export default function Page(): React.JSX.Element {
       setIsLoading(false);
     }
   };
-  const sendCheckinRequest = (eCode: string) => {
+  const sendCheckoutRequest = (eCode: string) => {
     if (trxn) {
 
-      // Collect check-in details by filtering tickets with true checkbox state and false disabled state
-      const ticketsToCheckIn: { [key: string]: number[] } = {};
+      // Collect check-out details by filtering tickets with true checkbox state and false disabled state
+      const ticketsToCheckOut: { [key: string]: number[] } = {};
 
       Object.keys(ticketCheckboxState).forEach(ticketKey => {
         if (ticketCheckboxState[ticketKey] && !ticketDisabledState[ticketKey]) {
           const [ticketId, showId, ticketCategoryId] = ticketKey.split('-').map(Number);
 
           const key = `${showId}-${ticketCategoryId}`;
-          if (!ticketsToCheckIn[key]) {
-            ticketsToCheckIn[key] = [];
+          if (!ticketsToCheckOut[key]) {
+            ticketsToCheckOut[key] = [];
           }
-          ticketsToCheckIn[key].push(ticketId);
+          ticketsToCheckOut[key].push(ticketId);
         }
       });
 
       // Loop through each show/ticketCategory group and send requests
-      const requests = Object.entries(ticketsToCheckIn).map(([key, ticketIds]) => {
+      const requests = Object.entries(ticketsToCheckOut).map(([key, ticketIds]) => {
         const [showId, ticketCategoryId] = key.split('-').map(Number);
-        const checkInAll = ticketIds.length === trxn.transactionTicketCategories.find(
+        const checkOutAll = ticketIds.length === trxn.transactionTicketCategories.find(
           category => category.ticketCategory.show.id === showId &&
             category.ticketCategory.id === ticketCategoryId
         )?.tickets.length;
 
-        return baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/check-in`, {
+        return baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/check-in-or-check-out/check-out`, {
           eCode,
           showId,
           ticketCategoryId,
-          checkInAll,
-          checkInCustomerIds: checkInAll ? [] : ticketIds,
+          checkInAll: checkOutAll,
+          checkInCustomerIds: checkOutAll ? [] : ticketIds,
         });
       });
 
       if (requests.length === 0) {
-        notificationCtx.warning(`Vui lòng chọn ít nhất 1 vé để check-in.`);
+        notificationCtx.warning(tt(`Vui lòng chọn ít nhất 1 vé để check-out.`, `Please select at least 1 ticket to check-out.`));
         return
       }
       setIsLoading(true);
@@ -310,9 +383,9 @@ export default function Page(): React.JSX.Element {
       // Execute all requests and update UI state
       Promise.all(requests)
         .then(() => {
-          getTransactionByECode(eCode); // Refresh data after check-in
+          getTransactionByECode(eCode); // Refresh data after check-out
           setIsSuccessful(true);
-          notificationCtx.success(`Check-in thành công.`);
+          notificationCtx.success(tt(`Check-out thành công.`, `Check-out successful.`));
         })
         .catch(error => {
           notificationCtx.error(error);
@@ -356,10 +429,15 @@ export default function Page(): React.JSX.Element {
   }));
 
   return (
-    <Container maxWidth="xl" sx={{ py: '64px' }}>
+    <>
       <Stack spacing={3}>
         <div>
-          <Typography variant="h4">Checkin tuyển thủ tại bàn đấu</Typography>
+          <Typography variant="h4">{tt('Check-out sự kiện', 'Event Check-out')} {event?.name}</Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            <LocalizedLink href={`/event-studio/events/${params.event_id}/check-in/qr`} style={{ textDecoration: 'none', color: 'primary' }}>
+              Chuyển sang Check-in
+            </LocalizedLink>
+          </Typography>
         </div>
         <Grid container spacing={3}>
           <Grid item lg={5} md={5} xs={12} spacing={3}>
@@ -374,27 +452,27 @@ export default function Page(): React.JSX.Element {
           <Grid item lg={7} md={7} xs={12} spacing={3} sx={{ display: selectedSchedule && selectedCategories.length > 0 ? 'block' : 'none' }}>
             <Stack spacing={3}>
               <Card>
-                <CardHeader subheader="Vui lòng hướng mã QR về phía camera." title="Quét mã QR" />
+                <CardHeader subheader={tt("Vui lòng hướng mã QR về phía camera.", "Please point the QR code towards the camera.")} title={tt("Quét mã QR", "Scan QR Code")} />
                 <Divider />
                 <CardContent>
                   <video ref={ref} width={'100%'} />
                 </CardContent>
                 <CardActions>
-                  <Button disabled={!isAvailable} onClick={() => (isOn ? off() : on())} startIcon={<Lightning />}>Flash</Button>
+                  <Button disabled={!isAvailable} onClick={() => (isOn ? off() : on())} startIcon={<Lightning />}>{tt('Flash', 'Flash')}</Button>
                 </CardActions>
               </Card>
 
               <Card>
-                <CardHeader subheader="Vui lòng nhập mã để check-in thủ công nếu không quét được mã QR." title="Check-in thủ công" />
+                <CardHeader subheader={tt("Vui lòng nhập mã để check-out thủ công nếu không quét được mã QR.", "Please enter the code to manually check-out if QR code scanning is not possible.")} title={tt("check-out thủ công", "Manual check-out")} />
                 <Divider />
                 <CardContent>
                   <form onSubmit={handleManualCheckInSubmit}>
                     <Grid container rowSpacing={2} spacing={2}>
                       <Grid item md={8} xs={12}>
                         <FormControl fullWidth required>
-                          <InputLabel>Mã check-in</InputLabel>
+                          <InputLabel>{tt('Mã QR', 'QR Code')}</InputLabel>
                           <OutlinedInput
-                            label="Tên loại vé"
+                            label={tt('Mã QR', 'QR Code')}
                             name="name"
                             value={qrManualInput}
                             onChange={(e) => setQrManualInput(e.target.value)}
@@ -403,11 +481,26 @@ export default function Page(): React.JSX.Element {
                       </Grid>
                       <Grid item md={4} xs={12}>
                         <Button variant='contained' sx={{ width: '100%', height: '100%' }} onClick={handleManualCheckInClick} startIcon={<EyeIcon />}>
-                          Kiểm tra
+                          {tt('Kiểm tra', 'Check')}
                         </Button>
                       </Grid>
                     </Grid>
                   </form>
+                </CardContent>
+                <Divider />
+                <CardContent>
+                  <Typography variant="body1">
+                    {tt('Khách hàng không có mã QR?', 'Customer doesn\'t have QR code?')}
+                    {' '}
+                    <a
+                      href={`/event-studio/events/${params.event_id}/tickets`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#1976d2', textDecoration: 'none' }}
+                    >
+                      {tt('Tìm kiếm trong danh sách vé', 'Search in tickets list')}
+                    </a>
+                  </Typography>
                 </CardContent>
               </Card>
             </Stack>
@@ -417,33 +510,47 @@ export default function Page(): React.JSX.Element {
       <SwipeableDrawer disableBackdropTransition={!iOS} disableDiscovery={iOS} open={isCheckinControllerOpen} onOpen={() => setIsCheckinControllerOpen(true)} onClose={handleCloseDrawer} anchor="bottom">
         <Puller />
         <Container maxWidth="sm">
-          <Stack spacing={2} sx={{ mt: 3 }}>
-            <Typography variant="h6">Mã QR: {eCode}</Typography>
+          <Stack spacing={2} sx={{ mt: 3, mb: 2 }}>
+            <Typography variant="h6">{tt('Mã QR:', 'QR Code:')} {eCode}</Typography>
             <Divider />
             {isLoading ? (
-              <Typography color="warning">Đang kiểm tra...</Typography>
+              <Typography color="warning">{tt('Đang kiểm tra...', 'Checking...')}</Typography>
             ) : isSuccessful === false ? (
-              <Typography color="error">KHÔNG TÌM THẤY </Typography>
+              <Typography color="error">{tt('KHÔNG TÌM THẤY', 'NOT FOUND')} </Typography>
             ) : (
               <>
                 <Stack spacing={1}>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Tên đội:</Typography>
-                    <Typography variant="body1">{trxn?.name}</Typography>
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Email:</Typography>
-                    <Typography variant="body1">{trxn?.email} <IconButton size='small' target='_blank' component={LocalizedLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}?checkInCode=${eCode}`}><ArrowSquareIn /></IconButton></Typography>
+                    <Typography variant="body1" fontWeight="bold">{tt('Người mua:', 'Buyer:')}</Typography>
+                    <IconButton size='small' target='_blank' component={LocalizedLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}?checkInCode=${eCode}`}><ArrowSquareIn /></IconButton>
                   </Grid>
 
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Số báo danh:</Typography>
+                    <Typography variant="body1">{tt('Họ tên:', 'Full Name:')}</Typography>
+                    <Typography variant="body1">{trxn?.title} {trxn?.name}</Typography>
+                  </Grid>
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1">{tt('Ngày sinh:', 'Date of Birth:')}</Typography>
+                    <Typography variant="body1">{trxn?.dob ? dayjs(trxn?.dob || 0).format('DD/MM/YYYY') : `__/__/____`}</Typography>
+                  </Grid>
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1">{tt('Email:', 'Email:')}</Typography>
+                    <Typography variant="body1">{trxn?.email}</Typography>
+                  </Grid>
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1">{tt('Số điện thoại:', 'Phone Number:')}</Typography>
+                    <Typography variant="body1">{trxn?.phoneNumber}</Typography>
+                  </Grid>
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1">{tt('Địa chỉ:', 'Address:')}</Typography>
                     <Typography variant="body1">{trxn?.address && trxn?.address.length > 30 ? trxn?.address.substring(0, 30) + '...' : trxn?.address}</Typography>
                   </Grid>
                   <Divider />
-                  <Grid container justifyContent="left">
-                    <Typography variant="body1" fontWeight="bold">Danh sách lịch thi đấu đang có:</Typography>
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1" fontWeight="bold">{tt('Danh sách vé đang có:', 'Current Tickets:')}</Typography>
+                    <Typography variant="body1">{trxn?.ticketQuantity}</Typography>
                   </Grid>
+
                   <div>
                     {trxn?.transactionTicketCategories?.map((category) => {
                       const accordionKey = `${category.ticketCategory.show.id}-${category.ticketCategory.id}`;
@@ -457,7 +564,7 @@ export default function Page(): React.JSX.Element {
                         >
                           <AccordionSummary sx={{ backgroundColor: 'light' }} expandIcon={<CaretDown />}>
                             <Grid container justifyContent="space-between">
-                              <Typography variant="body1">Game:</Typography>
+                              <Typography variant="body1">{tt('Show:', 'Show:')}</Typography>
                               <Typography variant="body1">
                                 {category.ticketCategory.show.name} - {category.ticketCategory.name}
                               </Typography>
@@ -481,12 +588,28 @@ export default function Page(): React.JSX.Element {
                                   }
                                   label={
                                     <Stack direction="column" alignItems="left">
-                                      <Typography variant="body2">TID-{ticket.id} {ticket.holderName}</Typography>
-                                      {ticket.checkInAt &&
-                                        <Typography variant="caption">
-                                          Đã check-in lúc {dayjs(ticket.checkInAt).format("HH:mm:ss DD/MM/YYYY")}
-                                        </Typography>
-                                      }
+                                      <Typography variant="body2">TID-{ticket.id} {ticket.holderName || ticket.holderTitle}</Typography>
+                                      {(() => {
+                                        const historyCheckIns = ticket.historyCheckIns || [];
+                                        const latestCheckIn = historyCheckIns.length > 0
+                                          ? historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+                                          : null;
+                                        
+                                        if (latestCheckIn?.type === 'check-in') {
+                                          return (
+                                            <Typography variant="caption" color="success.main">
+                                              {tt('Đã check-in lúc', 'Checked in at')} {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
+                                            </Typography>
+                                          );
+                                        } else if (latestCheckIn?.type === 'check-out') {
+                                          return (
+                                            <Typography variant="caption" color="error.main">
+                                              {tt('Đã check-out lúc', 'Checked out at')} {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
+                                            </Typography>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
                                     </Stack>
                                   }
                                   sx={{ display: 'flex', alignItems: 'center', marginLeft: 2 }}
@@ -498,6 +621,26 @@ export default function Page(): React.JSX.Element {
                       );
                     })}
                   </div>
+                  <Grid container justifyContent="space-between">
+                    <Typography variant="body1" fontWeight="bold">{tt('Trạng thái', 'Status')}</Typography>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Chip
+                        size='small'
+                        color={getRowStatusDetails(trxn?.status || '').color}
+                        label={getRowStatusDetails(trxn?.status || '').label}
+                      />
+                      <Chip
+                        size='small'
+                        color={getPaymentStatusDetails(trxn?.paymentStatus || '').color}
+                        label={getPaymentStatusDetails(trxn?.paymentStatus || '').label}
+                      />
+                      <Chip
+                        size='small'
+                        color={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').color}
+                        label={getSentEmailTicketStatusDetails(trxn?.exportedTicketAt ? 'sent' : 'not_sent').label}
+                      />
+                    </Stack>
+                  </Grid>
                   <Divider />
 
 
@@ -535,10 +678,10 @@ export default function Page(): React.JSX.Element {
                     }
                     onClick={() => {
                       setConfirmCheckin(true);
-                      sendCheckinRequest(eCode);
+                      sendCheckoutRequest(eCode);
                     }}
                   >
-                    Check-in
+                    {tt('check-out', 'check-out')}
                   </Button>
                 </Stack>
               </>
@@ -547,7 +690,7 @@ export default function Page(): React.JSX.Element {
         </Container>
       </SwipeableDrawer >
 
-    </Container>
+    </>
   );
 }
 

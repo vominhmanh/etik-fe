@@ -22,10 +22,27 @@ const iOS =
 
 
 // Ticket.ts
+export interface CheckInHistory {
+  id: number;
+  type: 'check-in' | 'check-out';
+  imageUrl: string | null;
+  createdAt: string; // ISO 8601 string for datetime
+  createdBy: number | null;
+  creator: {
+    id: number;
+    fullName: string;
+    email: string;
+  };
+}
+
 export interface Ticket {
   id: number;
   holderName: string;
+  holderTitle: string;
+  holderEmail: string | null;
+  holderPhone: string | null;
   checkInAt: Date | null;
+  historyCheckIns?: CheckInHistory[];
 }
 
 export type TicketCategory = {
@@ -219,7 +236,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         try {
           setIsLoading(true);
           const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
-            `/event-studio/events/${params.event_id}/check-in/get-shows-ticket-categories-to-check-in`
+            `/event-studio/events/${params.event_id}/check-in-or-check-out/get-shows-ticket-categories`
           );
           setEvent(response.data);
           // setFormValues(response.data); // Initialize form with the event data
@@ -239,7 +256,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     try {
       setIsLoading(true);
       const transactionResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance
-        .get(`/event-studio/events/${params.event_id}/check-in`, { params: { check_in_e_code: eCode } });
+        .get(`/event-studio/events/${params.event_id}/check-in-or-check-out/check-in`, { params: { check_in_e_code: eCode } });
       const dataTrxn = transactionResponse.data
       setTrxn(dataTrxn);
 
@@ -259,18 +276,35 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       dataTrxn.transactionTicketCategories.forEach(transactionTicketCategory => {
         transactionTicketCategory.tickets.forEach((ticket) => {
           const ticketKey = `${ticket.id}-${transactionTicketCategory.ticketCategory.show.id}-${transactionTicketCategory.ticketCategory.id}`
-          ticDisabledState[ticketKey] = false
-          ticCheckboxState[ticketKey] = false
-
-          if (ticket.checkInAt != null) {
+          
+          // Check latest HistoryCheckIn to determine if ticket is checked in
+          const historyCheckIns = ticket.historyCheckIns || [];
+          const latestCheckIn = historyCheckIns.length > 0
+            ? historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+            : null;
+          
+          const isCheckedIn = latestCheckIn?.type === 'check-in';
+          const isCheckedOut = latestCheckIn?.type === 'check-out';
+          const isInSelectedSchedule = transactionTicketCategory.ticketCategory.show.id === selectedSchedule?.id && selectedCategories.includes(transactionTicketCategory.ticketCategory.id);
+          
+          // For check-in: only enable tickets that are not checked in (checked out or never checked in)
+          if (isCheckedIn) {
+            // Ticket is already checked in - disable
             ticDisabledState[ticketKey] = true
             ticCheckboxState[ticketKey] = true
-          } else {
-            if (transactionTicketCategory.ticketCategory.show.id == selectedSchedule?.id && selectedCategories.includes(transactionTicketCategory.ticketCategory.id)) {
+          } else if (isCheckedOut || !latestCheckIn) {
+            // Ticket is checked out or never checked in - can check-in if in selected schedule
+            if (isInSelectedSchedule) {
+              ticDisabledState[ticketKey] = false
               ticCheckboxState[ticketKey] = true
             } else {
               ticDisabledState[ticketKey] = true
+              ticCheckboxState[ticketKey] = false
             }
+          } else {
+            // Not in selected schedule - disable
+            ticDisabledState[ticketKey] = true
+            ticCheckboxState[ticketKey] = false
           }
         })
       })
@@ -290,15 +324,15 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         // 2. Join them with commas
         const joined = invalidCats?.join(', ') || '';
 
-        // 3. Truncate to 25 chars with “…” if necessary
+        // 3. Truncate to 25 chars with "…" if necessary
         const display =
           joined.length > 30
             ? joined.slice(0, 27).trimEnd() + '...'
             : joined;
 
-        // 4. Show the warning
+        // 4. Show the warning for check-in
         notificationCtx.warning(
-          tt(`Không có vé hợp lệ cho danh mục đã chọn: ${selectedSchedule?.name} — ${display}`, `No valid tickets for selected categories: ${selectedSchedule?.name} — ${display}`)
+          tt(`Tất cả vé đã được check-in cho danh mục đã chọn: ${selectedSchedule?.name} — ${display}`, `All tickets are already checked in for selected categories: ${selectedSchedule?.name} — ${display}`)
         );
       }
 
@@ -336,7 +370,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
             category.ticketCategory.id === ticketCategoryId
         )?.tickets.length;
 
-        return baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/check-in`, {
+        return baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/check-in-or-check-out/check-in`, {
           eCode,
           showId,
           ticketCategoryId,
@@ -404,6 +438,11 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       <Stack spacing={3}>
         <div>
           <Typography variant="h4">{tt('Check-in sự kiện', 'Event Check-in')} {event?.name}</Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            <LocalizedLink href={`/event-studio/events/${params.event_id}/check-out/qr`} style={{ textDecoration: 'none', color: 'primary' }}>
+              Chuyển sang Check-out
+            </LocalizedLink>
+          </Typography>
         </div>
         <Grid container spacing={3}>
           <Grid item lg={5} md={5} xs={12} spacing={3}>
@@ -554,12 +593,28 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                   }
                                   label={
                                     <Stack direction="column" alignItems="left">
-                                      <Typography variant="body2">{ticket.holderName}</Typography>
-                                      {ticket.checkInAt &&
-                                        <Typography variant="caption">
-                                          {tt('Đã check-in lúc', 'Checked in at')} {dayjs(ticket.checkInAt).format("HH:mm:ss DD/MM/YYYY")}
-                                        </Typography>
-                                      }
+                                      <Typography variant="body2">TID-{ticket.id} {ticket.holderName || ticket.holderTitle}</Typography>
+                                      {(() => {
+                                        const historyCheckIns = ticket.historyCheckIns || [];
+                                        const latestCheckIn = historyCheckIns.length > 0
+                                          ? historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+                                          : null;
+                                        
+                                        if (latestCheckIn?.type === 'check-in') {
+                                          return (
+                                            <Typography variant="caption" color="success.main">
+                                              {tt('Đã check-in lúc', 'Checked in at')} {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
+                                            </Typography>
+                                          );
+                                        } else if (latestCheckIn?.type === 'check-out') {
+                                          return (
+                                            <Typography variant="caption" color="error.main">
+                                              {tt('Đã check-out lúc', 'Checked out at')} {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
+                                            </Typography>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
                                     </Stack>
                                   }
                                   sx={{ display: 'flex', alignItems: 'center', marginLeft: 2 }}

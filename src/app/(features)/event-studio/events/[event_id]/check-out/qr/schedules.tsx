@@ -23,7 +23,7 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
 
   return (
     <Card>
-      <CardHeader title={tt('Chọn lịch', 'Select Schedule')} />
+      <CardHeader title={tt('Chọn lịch chiếu', 'Select Schedule')} />
       <Divider />
       <List>
         {shows.map((show) => (
