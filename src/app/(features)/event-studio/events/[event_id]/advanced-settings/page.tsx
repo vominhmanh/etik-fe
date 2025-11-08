@@ -3,6 +3,7 @@
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { Avatar, Box, CardMedia, Checkbox, Container, FormControlLabel, FormGroup, FormHelperText, IconButton, InputAdornment, MenuItem, Modal, Radio, Select, Stack, TableBody, Table, TextField, TableHead, TableCell, TableRow } from '@mui/material';
+import { PencilSimple, Trash } from '@phosphor-icons/react/dist/ssr';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -86,18 +87,15 @@ export interface CheckInFaceConfig {
   useCheckInFace: boolean;
 }
 
-export interface Printer {
-  id: string;
-  ip: string;
-  name: string;
-}
+import PrinterModal, { TicketTagPrinter } from './printer-modal';
+
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
     document.title = "Cài đặt nâng cao | ETIK - Vé điện tử & Quản lý sự kiện";
   }, []);
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
-  const { event_id } = params;
+  const event_id = params.event_id;
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
   const [previewBannerUrl, setPreviewBannerUrl] = React.useState<string>(event?.bannerUrl || '');
   const [isImageSelected, setIsImageSelected] = React.useState(false);
@@ -143,26 +141,23 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     useCheckInFace: false,
   });
 
-  // Mock printer data
-  const [printers, setPrinters] = useState<Printer[]>([
-    { id: 'system', ip: 'không có', name: 'Sử dụng máy in hệ thống' },
-    { id: '1', ip: '192.168.1.100', name: 'Máy in văn phòng HP' },
-    { id: '2', ip: '192.168.1.101', name: 'Máy in Canon PIXMA' },
-    { id: '3', ip: '192.168.1.102', name: 'Máy in Epson EcoTank' },
-  ]);
-  const [selectedPrinterId, setSelectedPrinterId] = useState<string>('system');
+  const [printers, setPrinters] = useState<TicketTagPrinter[]>([]);
+  const [selectedPrinterId, setSelectedPrinterId] = useState<number | null>(null);
   const [isPrinterLoading, setIsPrinterLoading] = useState<boolean>(false);
+  const [openPrinterModal, setOpenPrinterModal] = useState<boolean>(false);
+  const [editingPrinter, setEditingPrinter] = useState<TicketTagPrinter | null>(null);
 
 
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const [smtpRes, emailTplRes, sendMethodsRes, faceCfgRes] = await Promise.allSettled([
+        const [smtpRes, emailTplRes, sendMethodsRes, faceCfgRes, eventRes] = await Promise.allSettled([
           getSMTPSettings(params.event_id),
           getEmailTemplateSettings(params.event_id),
           getSendTicketMethods(params.event_id),
           getCheckInFaceConfig(params.event_id),
+          baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}`),
         ]);
 
         if (smtpRes.status === 'fulfilled' && smtpRes.value) {
@@ -188,12 +183,30 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         } else if (faceCfgRes.status === 'rejected') {
           notificationCtx.warning('Không tải được cài đặt Check-in bằng khuôn mặt');
         }
+
+        if (eventRes.status === 'fulfilled' && eventRes.value) {
+          const eventData = eventRes.value.data;
+          setSelectedPrinterId(eventData.ticketTagPrinterId || null);
+        }
       } finally {
         setIsLoading(false);
       }
     }
     fetchData();
+    fetchPrinters();
   }, [params.event_id]);
+
+  const fetchPrinters = async () => {
+    if (!params.event_id) return;
+    try {
+      const response: AxiosResponse<TicketTagPrinter[]> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${params.event_id}/ticket-tag-printers`
+      );
+      setPrinters(response.data);
+    } catch (error: any) {
+      notificationCtx.error(error.response?.data?.detail || 'Không tải được danh sách máy in');
+    }
+  };
 
   useEffect(() => {
     if (!params.event_id) return;
@@ -488,22 +501,57 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   }
 
-  const handlePrinterChange = (printerId: string) => {
+  const handlePrinterChange = (printerId: number | null) => {
     setSelectedPrinterId(printerId);
   };
 
   const handleSavePrinterSettings = async () => {
     try {
       setIsPrinterLoading(true);
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Selected printer:', selectedPrinterId);
+      await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/ticket-tag-printers/select`,
+        { ticketTagPrinterId: selectedPrinterId }
+      );
       notificationCtx.success('Cài đặt máy in đã được lưu thành công!');
-    } catch (error) {
-      notificationCtx.error(error);
+    } catch (error: any) {
+      notificationCtx.error(error.response?.data?.detail || 'Có lỗi xảy ra khi lưu cài đặt');
     } finally {
       setIsPrinterLoading(false);
     }
+  };
+
+  const handleAddPrinter = () => {
+    setEditingPrinter(null);
+    setOpenPrinterModal(true);
+  };
+
+  const handleEditPrinter = (printer: TicketTagPrinter) => {
+    setEditingPrinter(printer);
+    setOpenPrinterModal(true);
+  };
+
+  const handleDeletePrinter = async (printerId: number) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa máy in này?')) {
+      return;
+    }
+
+    try {
+      await baseHttpServiceInstance.delete(
+        `/event-studio/events/${event_id}/ticket-tag-printers/${printerId}`
+      );
+      notificationCtx.success('Xóa máy in thành công!');
+      fetchPrinters();
+      // If deleted printer was selected, reset to system printer
+      if (selectedPrinterId === printerId) {
+        setSelectedPrinterId(null);
+      }
+    } catch (error: any) {
+      notificationCtx.error(error.response?.data?.detail || 'Có lỗi xảy ra khi xóa máy in');
+    }
+  };
+
+  const handlePrinterSaved = () => {
+    fetchPrinters();
   };
 
 
@@ -781,6 +829,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <Card>
                 <CardHeader
                   title="Cài đặt máy in vé"
+                  action={
+                    <Button variant="contained" color="primary" onClick={handleAddPrinter}>
+                      Thêm máy in
+                    </Button>
+                  }
                 />
                 <Divider />
                 <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 600 }}>
@@ -788,12 +841,29 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ padding: '8px 16px' }}>Radio</TableCell>
-                        <TableCell sx={{ minWidth: '200px', padding: '8px 16px' }}>IP máy in</TableCell>
                         <TableCell sx={{ padding: '8px 16px' }}>Tên máy in</TableCell>
+                        <TableCell sx={{ minWidth: '200px', padding: '8px 16px' }}>IP máy in</TableCell>
                         <TableCell sx={{ padding: '8px 16px' }}>Thao tác</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
+                      {/* System printer row */}
+                      <TableRow key="system">
+                        <TableCell sx={{ padding: '8px 16px' }}>
+                          <Radio
+                            checked={selectedPrinterId === null}
+                            onChange={() => handlePrinterChange(null)}
+                            value="system"
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell sx={{ padding: '8px 16px' }}>Sử dụng máy in hệ thống</TableCell>
+                        <TableCell sx={{ minWidth: '200px', padding: '8px 16px' }}>không có</TableCell>
+                        <TableCell sx={{ padding: '8px 16px' }}>
+                          {/* No actions for system printer */}
+                        </TableCell>
+                      </TableRow>
+                      {/* Printer rows */}
                       {printers.map((printer) => (
                         <TableRow key={printer.id}>
                           <TableCell sx={{ padding: '8px 16px' }}>
@@ -804,10 +874,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               size="small"
                             />
                           </TableCell>
-                          <TableCell sx={{ minWidth: '200px', padding: '8px 16px' }}>{printer.ip}</TableCell>
                           <TableCell sx={{ padding: '8px 16px' }}>{printer.name}</TableCell>
+                          <TableCell sx={{ minWidth: '200px', padding: '8px 16px' }}>{printer.ipAddress}</TableCell>
                           <TableCell sx={{ padding: '8px 16px' }}>
-                            {/* Có thể thêm các nút thao tác ở đây nếu cần */}
+                            <Stack direction="row" spacing={1}>
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleEditPrinter(printer)}
+                              >
+                                <PencilSimple size={20} />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeletePrinter(printer.id)}
+                              >
+                                <Trash size={20} />
+                              </IconButton>
+                            </Stack>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -826,6 +911,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Grid>
       </Stack>
       <SendRequestEventAgencyAndEventApproval open={openEventAgencyRegistrationModal} onClose={handleOnCloseEventAgencyRegistrationModal} eventId={event_id} />
+      <PrinterModal
+        eventId={event_id}
+        printer={editingPrinter}
+        open={openPrinterModal}
+        onClose={() => {
+          setOpenPrinterModal(false);
+          setEditingPrinter(null);
+        }}
+        onPrinterSaved={handlePrinterSaved}
+      />
       <Modal
         open={openConfirmSubmitEventApprovalModal}
         onClose={() => setOpenConfirmSubmitEventApprovalModal(false)}

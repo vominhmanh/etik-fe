@@ -204,6 +204,7 @@ export interface Transaction {
   shareUuid: string | null
   event: Event
   qrOption: string
+  requireGuestAvatar: boolean
 }
 
 
@@ -607,26 +608,27 @@ export default function Page({ params }: { params: { transaction_id: number } })
                       {transactionTicketCategory.tickets.length > 0 && (
                         <Stack spacing={2}>
                           {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
-                            <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
-                              {transaction.qrOption === 'separate' && (
+                            <Stack direction="row" spacing={0} alignItems="center">
+                              <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
                                 <>
-                                  <div>
-                                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
-                                      {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : tt('Chưa có thông tin', 'No information')}
-                                    </Typography>
-                                  </div>
-                                  <div>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                      {ticket.holderEmail || tt('Chưa có email', 'No email')} - {ticket.holderPhone || tt('Chưa có SĐT', 'No phone')}
-                                    </Typography>
-                                  </div>
+                                  <Stack direction="row" spacing={1} alignItems="center">
+                                    <div>
+                                      <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
+                                        {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : tt('Chưa có thông tin', 'No information')}
+                                      </Typography>
+                                      {transaction.qrOption === 'separate' && (
+                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                        {ticket.holderEmail || tt('Chưa có email', 'No email')} - {ticket.holderPhone || tt('Chưa có SĐT', 'No phone')}
+                                      </Typography>
+                                      )}
+                                    </div>
+                                  </Stack>
                                 </>
-                              )}
-                              <div>
-                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>TID-{ticket.id} {ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}</Typography>
-
-                              </div>
-                            </Box>
+                                <div>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>TID-{ticket.id} {ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}</Typography>
+                                </div>
+                              </Box>
+                            </Stack>
                           ))}
                         </Stack>
                       )}
@@ -660,32 +662,28 @@ export default function Page({ params }: { params: { transaction_id: number } })
                 </Stack>
               </CardContent>
             </Card>
-            {transaction.ticketQuantity > 1 && (
-              <Card>
-                <CardHeader title={tt('Tùy chọn bổ sung', 'Additional Options')} />
-                <Divider />
-                <CardContent>
-                  <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                    <Stack>
-                      <Typography variant="body2">{tt('Sử dụng mã QR riêng cho từng vé', 'Use separate QR code for each ticket')}</Typography>
+            <Card>
+              <CardHeader title={tt('Tùy chọn bổ sung', 'Additional Options')} />
+              <Divider />
+              <CardContent>
+                <Stack spacing={2}>
+                  <Grid container spacing={1} alignItems="center">
+                    <Grid xs>
+                      <Typography variant="body2">{tt('Ảnh đại diện cho khách mời', 'Guest Avatar')}</Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {tt('Bạn cần nhập thông tin cho từng vé.', 'You need to enter information for each ticket.')}
+                        {tt('Bạn cần tải lên ảnh đại diện cho khách mời.', 'You need to upload an avatar for guests.')}
                       </Typography>
-                    </Stack>
-                    <Checkbox
-                      checked={transaction.qrOption === 'separate'}
-                      disabled
-                      onChange={(_e, checked) => {
-                        setTransaction({ ...transaction, qrOption: checked ? 'separate' : 'shared' });
-                        if (checked) {
-                          notificationCtx.info(tt('Vui lòng điền thông tin cho từng vé', 'Please fill in information for each ticket'));
-                        }
-                      }}
-                    />
-                  </Stack>
-                </CardContent>
-              </Card>
-            )}
+                    </Grid>
+                    <Grid>
+                      <Checkbox
+                        checked={transaction.requireGuestAvatar || false}
+                        disabled
+                      />
+                    </Grid>
+                  </Grid>
+                </Stack>
+              </CardContent>
+            </Card>
             {Boolean(eCode) && (
               <Card>
                 <CardHeader title={tt('Mã QR check-in', 'Check-in QR Code')} subheader={tt('Vui lòng bảo mật mã QR check-in', 'Please keep your check-in QR code secure')} />
