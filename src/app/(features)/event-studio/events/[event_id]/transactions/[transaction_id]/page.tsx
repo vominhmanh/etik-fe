@@ -12,7 +12,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, CaretDoubleRight, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, SignIn, SignOut, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, CaretDoubleRight, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import { LocalizedLink } from '@/components/localized-link';
 
 import * as React from 'react';
@@ -33,6 +33,7 @@ import dayjs from 'dayjs';
 
 import NotificationContext from '@/contexts/notification-context';
 import { useRouter, useSearchParams } from 'next/navigation';
+import PrintTagModal from './print-tag-modal';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -153,6 +154,7 @@ export interface Ticket {
   holderEmail: string;        // Name of the ticket holder
   holderTitle: string;        // Name of the ticket holder
   holderAvatar: string | null;  // Avatar URL of the ticket holder
+  eCode?: string;
   createdAt: string;   // The date the ticket was created
   checkInAt: string | null; // The date/time the ticket was checked in, nullable
   historyCheckIns: CheckInHistory[]; // List of check-in history
@@ -277,6 +279,7 @@ export interface Transaction {
   cancelRequestStatus: string | null;
   event: Event;
   qrOption: string;
+  eCode?: string;
 }
 
 
@@ -307,6 +310,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [activeMenuTicket, setActiveMenuTicket] = useState<{ categoryIndex: number; ticketIndex: number } | null>(null);
   const [pendingHolderAvatarFiles, setPendingHolderAvatarFiles] = useState<Record<number, File>>({});
   const [requireGuestAvatar, setRequireGuestAvatar] = useState<boolean>(false);
+  const [printTagModalOpen, setPrintTagModalOpen] = useState<boolean>(false);
 
   const router = useRouter(); // Use useRouter from next/navigation
 
@@ -802,7 +806,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const createdSource = getCreatedSource(transaction.createdSource);
 
   return (
-    <Stack spacing={3}>
+    <>
+      <Stack spacing={3}>
       <Backdrop
         open={isLoading}
         sx={{
@@ -989,6 +994,13 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           startIcon={<ImageSquare />} // Icon for document-like invitation letter
                         >
                           Xem ảnh thư mời
+                        </Button>
+                        <Button
+                          onClick={() => setPrintTagModalOpen(true)}
+                          size="small"
+                          startIcon={<Printer />}
+                        >
+                          In tag vé
                         </Button>
                       </Stack>
                     </>
@@ -1699,6 +1711,13 @@ export default function Page({ params }: { params: { event_id: number; transacti
           </Stack>
         </Grid>
       </Grid>
-    </Stack>
+      </Stack>
+      <PrintTagModal
+        open={printTagModalOpen}
+        onClose={() => setPrintTagModalOpen(false)}
+        transaction={transaction}
+        eventId={event_id}
+      />
+    </>
   );
 }

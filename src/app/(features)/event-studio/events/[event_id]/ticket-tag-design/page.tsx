@@ -72,6 +72,22 @@ const defaultComponents: { label: string; key: string }[] = [
   { label: 'Địa điểm', key: 'place' },
 ];
 
+const defaultComponentLabels = defaultComponents.reduce<Record<string, string>>((acc, comp) => {
+  acc[comp.key] = comp.label;
+  return acc;
+}, {});
+
+const DEFAULT_TEMPLATE_SIZE = '50x50mm';
+
+const cloneComponentSettings = (settings: Record<string, ComponentSettings>) =>
+  Object.fromEntries(Object.entries(settings).map(([key, value]) => [key, { ...value }]));
+
+const buildSelectedComponentMap = (keys: string[]) =>
+  keys.reduce<Record<string, SelectedComponent>>((acc, key) => {
+    acc[key] = { key, label: defaultComponentLabels[key] || key };
+    return acc;
+  }, {});
+
 /** ---------------- Default templates ---------------- */
 const defaultTemplates: Record<
   string,
@@ -81,42 +97,47 @@ const defaultTemplates: Record<
   }
 > = {
   '40x30mm': {
-    selectedComponents: ['eventName', 'customerName', 'eCodeQr', 'eCode'],
+    selectedComponents: ['customerName', 'eCodeQr', 'eCode', 'eventName'],
     componentSettings: {
-      eventName: { width: 50, height: 12, top: 5, left: 5, fontSize: 10, color: '000000' },
-      customerName: { width: 50, height: 10, top: 18, left: 5, fontSize: 10, color: '000000' },
-      eCodeQr: { width: 25, height: 25, top: 50, left: 70, fontSize: 10, color: '000000' },
-      eCode: { width: 25, height: 8, top: 75, left: 70, fontSize: 6, color: '000000' },
+      eventName: { width: 100, height: 12, top: 1, left: 0, fontSize: 8, color: '000000' },
+      customerName: { width: 100, height: 15, top: 18, left: 0, fontSize: 11, color: '000000' },
+      startDateTime: { width: 60, height: 8, top: 29, left: 5, fontSize: 7, color: '000000' },
+      place: { width: 60, height: 8, top: 38, left: 5, fontSize: 7, color: '000000' },
+      eCodeQr: { width: 30, height: 30, top: 50, left: 60, fontSize: 10, color: '000000' },
+      eCode: { width: 30, height: 8, top: 80, left: 60, fontSize: 7, color: '000000' },
     },
   },
   '50x40mm': {
-    selectedComponents: ['eventName', 'customerName', 'place', 'eCodeQr', 'eCode'],
+    selectedComponents: ['customerName', 'eCodeQr', 'eCode', 'eventName'],
     componentSettings: {
-      eventName: { width: 60, height: 12, top: 5, left: 5, fontSize: 12, color: '000000' },
-      customerName: { width: 60, height: 10, top: 18, left: 5, fontSize: 9, color: '000000' },
-      place: { width: 60, height: 8, top: 29, left: 5, fontSize: 7, color: '000000' },
-      eCodeQr: { width: 25, height: 25, top: 45, left: 70, fontSize: 10, color: '000000' },
-      eCode: { width: 25, height: 8, top: 70, left: 70, fontSize: 7, color: '000000' },
+      eventName: { width: 100, height: 12, top: 1, left: 0, fontSize: 8, color: '000000' },
+      customerName: { width: 100, height: 15, top: 18, left: 0, fontSize: 11, color: '000000' },
+      startDateTime: { width: 60, height: 8, top: 29, left: 5, fontSize: 7, color: '000000' },
+      place: { width: 60, height: 8, top: 38, left: 5, fontSize: 7, color: '000000' },
+      eCodeQr: { width: 30, height: 30, top: 50, left: 60, fontSize: 10, color: '000000' },
+      eCode: { width: 30, height: 8, top: 80, left: 60, fontSize: 7, color: '000000' },
     },
   },
   '50x50mm': {
-    selectedComponents: ['eventName', 'customerName', 'startDateTime', 'place', 'eCodeQr', 'eCode'],
+    selectedComponents: ['customerName', 'eCodeQr', 'eCode', 'eventName'],
     componentSettings: {
-      eventName: { width: 60, height: 12, top: 5, left: 5, fontSize: 12, color: '000000' },
-      customerName: { width: 60, height: 10, top: 18, left: 5, fontSize: 9, color: '000000' },
+      eventName: { width: 100, height: 12, top: 1, left: 0, fontSize: 8, color: '000000' },
+      customerName: { width: 100, height: 15, top: 18, left: 0, fontSize: 11, color: '000000' },
       startDateTime: { width: 60, height: 8, top: 29, left: 5, fontSize: 7, color: '000000' },
       place: { width: 60, height: 8, top: 38, left: 5, fontSize: 7, color: '000000' },
-      eCodeQr: { width: 30, height: 30, top: 50, left: 65, fontSize: 10, color: '000000' },
-      eCode: { width: 30, height: 8, top: 80, left: 65, fontSize: 7, color: '000000' },
+      eCodeQr: { width: 30, height: 30, top: 50, left: 60, fontSize: 10, color: '000000' },
+      eCode: { width: 30, height: 8, top: 80, left: 60, fontSize: 7, color: '000000' },
     },
   },
   '50x30mm': {
-    selectedComponents: ['eventName', 'customerName', 'eCodeQr', 'eCode'],
+    selectedComponents: ['customerName', 'eCodeQr', 'eCode', 'eventName'],
     componentSettings: {
-      eventName: { width: 45, height: 12, top: 5, left: 5, fontSize: 11, color: '000000' },
-      customerName: { width: 45, height: 10, top: 18, left: 5, fontSize: 10, color: '000000' },
-      eCodeQr: { width: 25, height: 25, top: 50, left: 70, fontSize: 10, color: '000000' },
-      eCode: { width: 25, height: 8, top: 75, left: 70, fontSize: 6, color: '000000' },
+      eventName: { width: 100, height: 12, top: 1, left: 0, fontSize: 8, color: '000000' },
+      customerName: { width: 100, height: 15, top: 18, left: 0, fontSize: 11, color: '000000' },
+      startDateTime: { width: 60, height: 8, top: 29, left: 5, fontSize: 7, color: '000000' },
+      place: { width: 60, height: 8, top: 38, left: 5, fontSize: 7, color: '000000' },
+      eCodeQr: { width: 30, height: 30, top: 50, left: 60, fontSize: 10, color: '000000' },
+      eCode: { width: 30, height: 8, top: 80, left: 60, fontSize: 7, color: '000000' },
     },
   },
 };
@@ -130,9 +151,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const notificationCtx = useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [selectedComponents, setSelectedComponents] = useState<Record<string, SelectedComponent>>({});
-  const [componentSettings, setComponentSettings] = useState<Record<string, ComponentSettings>>({});
-  const [selectedSize, setSelectedSize] = useState<string>('50x30mm');
+  const defaultTemplate = defaultTemplates[DEFAULT_TEMPLATE_SIZE];
+  const [selectedComponents, setSelectedComponents] = useState<Record<string, SelectedComponent>>(() =>
+    buildSelectedComponentMap(defaultTemplate.selectedComponents)
+  );
+  const [componentSettings, setComponentSettings] = useState<Record<string, ComponentSettings>>(() =>
+    cloneComponentSettings(defaultTemplate.componentSettings)
+  );
+  const [selectedSize, setSelectedSize] = useState<string>(DEFAULT_TEMPLATE_SIZE);
   const [previewData, setPreviewData] = useState<Record<string, string>>({}); // print mode if non-empty
   const printAreaRef = useRef<HTMLDivElement>(null);
   const hasUserEditedRef = useRef(false);
@@ -150,21 +176,36 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           `/event-studio/events/${event_id}/ticket-tag-settings`
         );
         if (response.status === 200 && !hasUserEditedRef.current && !isCancelled) {
-          const { size, selectedComponents, componentSettings } = response.data;
-          setSelectedSize(size || '50x30mm');
-          setSelectedComponents(
-            selectedComponents.reduce(
-              (acc, c) => {
-                acc[c.key] = c;
+          const { size, selectedComponents: apiSelected, componentSettings: apiSettings } = response.data;
+          const effectiveSize = size || DEFAULT_TEMPLATE_SIZE;
+          const hasValidApiConfig =
+            Array.isArray(apiSelected) &&
+            apiSelected.length > 0 &&
+            apiSettings &&
+            Object.keys(apiSettings).length > 0;
+
+          if (hasValidApiConfig) {
+            setSelectedSize(effectiveSize);
+            setSelectedComponents(
+              apiSelected.reduce((acc, c) => {
+                acc[c.key] = { key: c.key, label: c.label || defaultComponentLabels[c.key] || c.key };
                 return acc;
-              },
-              {} as Record<string, SelectedComponent>
-            )
-          );
-          setComponentSettings(componentSettings);
+              }, {} as Record<string, SelectedComponent>)
+            );
+            setComponentSettings(cloneComponentSettings(apiSettings));
+          } else {
+            const fallbackTemplate = defaultTemplates[effectiveSize] || defaultTemplates[DEFAULT_TEMPLATE_SIZE];
+            setSelectedSize(effectiveSize);
+            setSelectedComponents(buildSelectedComponentMap(fallbackTemplate.selectedComponents));
+            setComponentSettings(cloneComponentSettings(fallbackTemplate.componentSettings));
+          }
         }
       } catch (error: any) {
-        notificationCtx.error(`Lỗi khi tải cấu hình: ${error}`);
+        const fallbackTemplate = defaultTemplates[DEFAULT_TEMPLATE_SIZE];
+        setSelectedSize(DEFAULT_TEMPLATE_SIZE);
+        setSelectedComponents(buildSelectedComponentMap(fallbackTemplate.selectedComponents));
+        setComponentSettings(cloneComponentSettings(fallbackTemplate.componentSettings));
+        notificationCtx.warning(`Không thể tải cấu hình, sử dụng mặc định. ${error}`);
       } finally {
         if (!isCancelled) setIsLoading(false);
       }
@@ -220,15 +261,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
   const applyDefaultTemplate = () => {
     hasUserEditedRef.current = true;
-    const template = defaultTemplates[selectedSize];
+    const template = defaultTemplates[selectedSize] || defaultTemplates[DEFAULT_TEMPLATE_SIZE];
     if (!template) return;
-    const newSelected: Record<string, SelectedComponent> = {};
-    template.selectedComponents.forEach((k) => {
-      const comp = defaultComponents.find((c) => c.key === k);
-      if (comp) newSelected[k] = { key: k, label: comp.label };
-    });
-    setSelectedComponents(newSelected);
-    setComponentSettings({ ...template.componentSettings });
+    setSelectedComponents(buildSelectedComponentMap(template.selectedComponents));
+    setComponentSettings(cloneComponentSettings(template.componentSettings));
     notificationCtx.success('Đã áp dụng thiết kế mặc định!');
   };
 

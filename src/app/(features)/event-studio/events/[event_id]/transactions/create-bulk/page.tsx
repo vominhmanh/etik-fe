@@ -18,6 +18,7 @@ import Grid from '@mui/material/Unstable_Grid2';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import axios, { AxiosResponse } from 'axios';
 import { LocalizedLink } from '@/components/localized-link';
+import FormHelperText from '@mui/material/FormHelperText';
 
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -83,6 +84,7 @@ type CustomerExcelInput = {
   'Số điện thoại': string;
   'Địa chỉ': string;
 };
+type CustomerValidationError = { lineId: number; field: string; input: string; msg: string };
 const VisuallyHiddenInput = styled('input')({
   clip: 'rect(0 0 0 0)',
   clipPath: 'inset(50%)',
@@ -102,6 +104,15 @@ const paymentMethodLabelMap: Record<string, string> = {
   transfer: 'Chuyển khoản',
   napas247: 'Napas 247',
 };
+const customerFieldLabelMap: Record<string, string> = {
+  name: 'Họ tên',
+  email: 'Email',
+  phoneNumber: 'Số điện thoại',
+  address: 'Địa chỉ',
+  title: 'Danh xưng',
+};
+const normalizeFieldKey = (field: string): string =>
+  field.replace(/[-_\s]+(.)?/g, (_match, group) => (group ? group.toUpperCase() : '')).trim();
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
@@ -120,17 +131,41 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [ticketHoldersByCategory, setTicketHoldersByCategory] = React.useState<Record<string, TicketHolderInfo[]>>({});
   const [requestedCategoryModalId, setRequestedCategoryModalId] = React.useState<number | null>(null);
   const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
-  const [customerValidationErrors, setCustomerValidationErrors] = React.useState<Array<{ lineId: number; field: string; input: string; msg: string }>>([]);
+  const [customerValidationErrors, setCustomerValidationErrors] = React.useState<CustomerValidationError[]>([]);
 
   const [customers, setCustomers] = React.useState<Customer[]>([
     { title: 'Bạn', name: '', email: '', phoneNumber: '', address: '' },
   ]);
+
+  const customerErrorsMap = React.useMemo<Record<number, Record<string, CustomerValidationError[]>>>(() => {
+    return customerValidationErrors.reduce((acc, error) => {
+      const rowIndex = error.lineId - 1;
+      if (rowIndex < 0) return acc;
+      const key = normalizeFieldKey(error.field);
+      if (!acc[rowIndex]) acc[rowIndex] = {};
+      if (!acc[rowIndex][key]) acc[rowIndex][key] = [];
+      acc[rowIndex][key].push(error);
+      return acc;
+    }, {} as Record<number, Record<string, CustomerValidationError[]>>);
+  }, [customerValidationErrors]);
+
+  const sortedValidationErrors = React.useMemo(() => {
+    return [...customerValidationErrors].sort((a, b) => {
+      if (a.lineId === b.lineId) {
+        return normalizeFieldKey(a.field).localeCompare(normalizeFieldKey(b.field));
+      }
+      return a.lineId - b.lineId;
+    });
+  }, [customerValidationErrors]);
 
   // Handle change in customer fields
   const handleCustomerChange = (index: number, field: keyof Customer, value: string) => {
     const updatedCustomers = [...customers];
     updatedCustomers[index][field] = value;
     setCustomers(updatedCustomers);
+    setCustomerValidationErrors(prev =>
+      prev.filter(err => !(err.lineId === index + 1 && normalizeFieldKey(err.field) === field))
+    );
   };
 
   // Add a new customer
@@ -290,6 +325,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const handleSubmit = async () => {
+    setConfirmOpen(false);
 
     const invalidCustomers = customers.filter(customer => (!customer.name || !customer.email))
     if (invalidCustomers.length > 0) {
@@ -335,34 +371,37 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       const response = await baseHttpServiceInstance.post(
         `/event-studio/events/${params.event_id}/transactions/create-bulk`,
-        transactionData
+        transactionData, {}, true
       );
       const newTransaction = response.data;
+      setConfirmOpen(false);
       router.push(`/event-studio/events/${params.event_id}/transactions`); // Navigate to a different page on success
       notificationCtx.success('Tạo giao dịch thành công');
     } catch (error) {
       const err: any = error as any;
       if ((axios.isAxiosError && axios.isAxiosError(err) && err.response?.status === 422) || err?.response?.status === 422) {
         const detail = err?.response?.data?.detail || [];
-        const items = Array.isArray(detail)
-          ? detail
-              .map((d: any) => {
-                const loc = d?.loc || [];
-                const idx = typeof loc[2] === 'number' ? loc[2] : null;
-                const field = String(loc[3] ?? '');
-                if (idx == null) return null;
-                return {
-                  lineId: idx + 1,
-                  field,
-                  input: String(d?.input ?? ''),
-                  msg: String(d?.msg ?? ''),
-                };
-              })
-              .filter(Boolean)
+        const items: CustomerValidationError[] = Array.isArray(detail)
+          ? detail.reduce((acc: CustomerValidationError[], d: any) => {
+              const loc = d?.loc || [];
+              const idx = typeof loc[2] === 'number' ? loc[2] : null;
+              const field = String(loc[3] ?? '');
+              if (idx == null) {
+                return acc;
+              }
+              acc.push({
+                lineId: idx + 1,
+                field,
+                input: String(d?.input ?? ''),
+                msg: String(d?.msg ?? ''),
+              });
+              return acc;
+            }, [])
           : [];
-        setCustomerValidationErrors(items as Array<{ lineId: number; field: string; input: string; msg: string }>);
+        setCustomerValidationErrors(items);
         setConfirmOpen(false);
       } else {
+        setConfirmOpen(false);
         notificationCtx.error(error);
       }
     } finally {
@@ -444,10 +483,26 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   </TableHead>
                   <TableBody>
                     {customers.map((customer, index) => (
-                      <TableRow hover key={index}>
+                      <TableRow
+                        hover
+                        key={index}
+                        sx={
+                          customerErrorsMap[index] && Object.keys(customerErrorsMap[index]).length > 0
+                            ? { backgroundColor: 'rgba(255, 152, 0, 0.08)' }
+                            : undefined
+                        }
+                      >
+                        {(() => {
+                          const rowErrors = customerErrorsMap[index] || {};
+                          const nameErrors = rowErrors['name'] || [];
+                          const emailErrors = rowErrors['email'] || [];
+                          const phoneErrors = rowErrors['phoneNumber'] || [];
+                          const addressErrors = rowErrors['address'] || [];
+                          return (
+                            <>
                         <TableCell>{index + 1}</TableCell>
                         <TableCell>
-                          <FormControl fullWidth required>
+                          <FormControl fullWidth required error={nameErrors.length > 0}>
                             <OutlinedInput
                               name={`customer_name_${index}`}
                               value={customer.name}
@@ -482,10 +537,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                 </InputAdornment>
                               }
                             />
+                            {nameErrors.map((err, errIdx) => (
+                              <FormHelperText key={`name-error-${index}-${errIdx}`}>
+                                {`${err.msg}`}
+                              </FormHelperText>
+                            ))}
                           </FormControl>
                         </TableCell>
                         <TableCell>
-                          <FormControl fullWidth required>
+                          <FormControl fullWidth required error={emailErrors.length > 0}>
                             <OutlinedInput
                               name={`customer_email_${index}`}
                               type="email"
@@ -496,10 +556,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               size="small"
                               sx={{ fontSize: '11px' }}
                             />
+                            {emailErrors.map((err, errIdx) => (
+                              <FormHelperText key={`email-error-${index}-${errIdx}`}>
+                                {`${err.msg}`}
+                              </FormHelperText>
+                            ))}
                           </FormControl>
                         </TableCell>
                         <TableCell>
-                          <FormControl fullWidth>
+                          <FormControl fullWidth required error={phoneErrors.length > 0}>
                             <OutlinedInput
                               name={`customer_phone_number_${index}`}
                               type="tel"
@@ -510,10 +575,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               size="small"
                               sx={{ fontSize: '11px' }}
                             />
+                            {phoneErrors.map((err, errIdx) => (
+                              <FormHelperText key={`phone-error-${index}-${errIdx}`}>
+                                {`${err.msg}`}
+                              </FormHelperText>
+                            ))}
                           </FormControl>
                         </TableCell>
                         <TableCell>
-                          <FormControl fullWidth>
+                          <FormControl fullWidth error={addressErrors.length > 0}>
                             <OutlinedInput
                               name={`customer_address_${index}`}
                               value={customer.address}
@@ -523,6 +593,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               size="small"
                               sx={{ fontSize: '11px' }}
                             />
+                            {addressErrors.map((err, errIdx) => (
+                              <FormHelperText key={`address-error-${index}-${errIdx}`}>
+                                {`${err.msg}`}
+                              </FormHelperText>
+                            ))}
                           </FormControl>
                         </TableCell>
                         <TableCell>
@@ -530,6 +605,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             <X />
                           </IconButton>
                         </TableCell>
+                            </>
+                          );
+                        })()}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -547,16 +625,29 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               </CardActions>
             </Card>
             {customerValidationErrors.length > 0 && (
-            <Card sx={{ backgroundColor: (theme) => theme.palette.warning.light, borderLeft: '4px solid', borderColor: 'warning.main' }}>
-              <CardHeader title="Lỗi dữ liệu người mua" subheader="Vui lòng sửa các lỗi bên dưới" />
+            <Card sx={{ backgroundColor: '#FFF9ED' }}>
+              <CardHeader
+                titleTypographyProps={{ variant: 'subtitle2', sx: { fontWeight: 600 } }}
+                subheader="Vui lòng sửa các lỗi bên dưới"
+                subheaderTypographyProps={{ variant: 'caption', sx: { color: 'warning.dark' } }}
+                sx={{ py: 1 }}
+              />
               <Divider />
-              <CardContent sx={{ py: 1 }}>
+              <CardContent sx={{ py: 1, px: 2 }}>
                 <Stack spacing={0.5}>
-                  {customerValidationErrors.map((e, i) => (
-                    <Typography key={i} variant="body2">
-                      Dòng {e.lineId} - {e.field}: {e.input} — {e.msg}
-                    </Typography>
-                  ))}
+                  {sortedValidationErrors.map((e, i) => {
+                    const fieldKey = normalizeFieldKey(e.field);
+                    const fieldLabel = customerFieldLabelMap[fieldKey] || e.field;
+                    const displayValue = e.input ? e.input : 'Trống';
+                    return (
+                      <Typography key={`${e.lineId}-${fieldKey}-${i}`} variant="caption" sx={{ lineHeight: 1.4 }}>
+                        <Box component="span" sx={{ fontWeight: 600 }}>{`Dòng ${e.lineId}`}</Box>
+                        {` • ${fieldLabel}: `}
+                        <Box component="span" sx={{ fontFamily: 'monospace' }}>{`"${displayValue}"`}</Box>
+                        {` — ${e.msg}`}
+                      </Typography>
+                    );
+                  })}
                 </Stack>
               </CardContent>
             </Card>
@@ -691,15 +782,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               </Button>
             </Grid>
             <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} fullWidth maxWidth="md">
-              <DialogTitle sx={{ color: "primary.main" }}>Xác nhận tạo đơn hàng</DialogTitle>
+              <DialogTitle sx={{ color: "primary.main" }}>Xác nhận tạo {customers.length} đơn hàng</DialogTitle>
               <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
                 <Stack spacing={2} sx={{ mt: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Thông tin người mua</Typography>
+                  {/* <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Thông tin người mua mỗi đơn hàng</Typography> */}
                   <Box sx={{ maxHeight: '200px', overflowY: 'auto' }}>
                     {customers.map((customer, index) => (
                       <Box key={index} sx={{ mb: 2, p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
                         <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                          Khách hàng {index + 1}
+                          Người mua {index + 1}
                         </Typography>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                           <Typography variant="body2">Họ và tên</Typography>
@@ -718,7 +809,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   </Box>
                   <Divider />
 
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Danh sách vé</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Danh sách vé mỗi đơn hàng</Typography>
                   <Stack spacing={1}>
                     {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
                       const show = event?.shows.find((show) => show.id === parseInt(showId));
