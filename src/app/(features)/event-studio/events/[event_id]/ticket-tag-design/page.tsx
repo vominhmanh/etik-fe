@@ -278,7 +278,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       customerEmail: 'nguyenvana@example.com',
       ticketsList: 'Vé VIP - 2 vé',
       eCode: 'FMPJ8A',
-      eCodeQr: 'https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=FMPJ8A',
+      eCodeQr: 'https://api.qrserver.com/v1/create-qr-code/?margin=16&size=140x140&data=FMPJ8A',
       startDateTime: '15/01/2025 19:00',
       endDateTime: '15/01/2025 22:00',
       place: 'Trung tâm Hội nghị Quốc gia',

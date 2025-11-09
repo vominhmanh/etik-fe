@@ -5,6 +5,7 @@ import { CardMedia } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
+import CardActionArea from '@mui/material/CardActionArea';
 import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
@@ -102,48 +103,54 @@ export default function Page(): React.JSX.Element {
       <Grid container spacing={3}>
         {events.map((event) => (
           <Grid key={event.id} lg={4} sm={6} xs={12}>
-            <Card>
-              <CardMedia
-                sx={{ height: 140 }}
-                image={
-                  event.bannerUrl ? event.bannerUrl : 'https://mui.com/static/images/cards/contemplative-reptile.jpg'
-                }
-                title={event.name}
-              />
-              <CardContent>
-                <Typography gutterBottom variant="h5" component="div">
-                  {event.name}
-                </Typography>
-                <Stack direction="column" spacing={2} sx={{ alignItems: 'left', mt: 2 }}>
-                  <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
-                    <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {tt('Đơn vị tổ chức:', 'Organizer:')} {event.organizer}
-                    </Typography>
+            <Card sx={{ height: '100%' }}>
+              <CardActionArea
+                component={LocalizedLink}
+                href={`/events/${event.slug}`}
+                sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
+              >
+                <CardMedia
+                  sx={{ height: 140 }}
+                  image={
+                    event.bannerUrl ? event.bannerUrl : 'https://mui.com/static/images/cards/contemplative-reptile.jpg'
+                  }
+                  title={event.name}
+                />
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Typography gutterBottom variant="h5" component="div">
+                    {event.name}
+                  </Typography>
+                  <Stack direction="column" spacing={2} sx={{ alignItems: 'left', mt: 2 }}>
+                    <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
+                      <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {tt('Đơn vị tổ chức:', 'Organizer:')} {event.organizer}
+                      </Typography>
+                    </Stack>
+                    <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
+                      <ClockIcon fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {event.startDateTime && event.endDateTime
+                          ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
+                          : tt('Chưa xác định', 'To be determined')} {event.timeInstruction ? `(${event.timeInstruction})` : ''}
+                      </Typography>
+                    </Stack>
+                    <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
+                      <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {event.place ? event.place : tt('Chưa xác định', 'To be determined')} {event.locationInstruction ? `(${event.locationInstruction})` : ''}
+                      </Typography>
+                    </Stack>
                   </Stack>
-                  <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
-                    <ClockIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {event.startDateTime && event.endDateTime
-                        ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : tt('Chưa xác định', 'To be determined')} {event.timeInstruction ? `(${event.timeInstruction})` : ''}
-                    </Typography>
-                  </Stack>
-                  <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
-                    <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {event.place ? event.place : tt('Chưa xác định', 'To be determined')} {event.locationInstruction ? `(${event.locationInstruction})` : ''}
-                    </Typography>
-                  </Stack>
+                </CardContent>
+                <Divider />
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'center', p: 1 }}>
+                  <UserPlus fontSize="var(--icon-fontSize-sm)" />
+                  <Typography color="text.primary" variant="body2">
+                    {tt('Đặt vé sự kiện này', 'Book Tickets for This Event')}
+                  </Typography>
                 </Stack>
-              </CardContent>
-              <Divider />
-              <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 1 }}>
-                <Button component={LocalizedLink}
-                  href={`/events/${event.slug}`} size="small" startIcon={<UserPlus />}>
-                  {tt('Đặt vé sự kiện này', 'Book Tickets for This Event')}
-                </Button>
-              </Stack>
+              </CardActionArea>
             </Card>
           </Grid>
         ))}

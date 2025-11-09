@@ -6,18 +6,16 @@ import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios 
 import { CardMedia, Tooltip } from '@mui/material';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
+import CardActionArea from '@mui/material/CardActionArea';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import { cyan, deepOrange, deepPurple, green, indigo, pink, yellow } from '@mui/material/colors';
-import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { MapPin, WarningCircle } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
-import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
 import { LocalizedLink } from '@/components/localized-link';
@@ -153,87 +151,74 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       <Grid container spacing={3}>
         {transactions.map((transaction) => (
           <Grid key={transaction.id} lg={4} md={6} xs={12}>
-            <Card sx={{ display: 'flex', flexDirection: 'column'}}>
-              <CardMedia
-                sx={{ height: 170 }}
-                image={transaction.event.bannerUrl || ''}
-                title={transaction.event.name}>
-              </CardMedia>
-              <CardContent>
-                <Stack spacing={2}>
-                  <Stack spacing={1} direction={'row'} sx={{ alignItems: 'center' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'center', mr: 2, width: '80px', height: '80px' }}>
-                      {transaction.event.avatarUrl ?
-                        <Box component="img" src={transaction.event.avatarUrl} sx={{ height: '80px', width: '80px', borderRadius: '50%' }} />
-                        :
-                        <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
-                          {(transaction.event.name[0] ?? 'a').toUpperCase()}
-                        </Avatar>}
-                    </Box>
-                    <Typography align="center" variant="h5">
-                      {transaction.event.name}
-                    </Typography>
-                  </Stack>
+            <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <CardActionArea
+                component={LocalizedLink}
+                href={`/account/my-tickets/${transaction.id}`}
+                sx={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', height: '100%' }}
+              >
+                <CardMedia
+                  sx={{ height: 170 }}
+                  image={transaction.event.bannerUrl || ''}
+                  title={transaction.event.name}
+                />
+                <CardContent>
+                  <Stack spacing={2}>
+                    <Stack spacing={1} direction={'row'} sx={{ alignItems: 'center' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'center', mr: 2, width: '80px', height: '80px' }}>
+                        {transaction.event.avatarUrl ? (
+                          <Box component="img" src={transaction.event.avatarUrl} sx={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                        ) : (
+                          <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
+                            {(transaction.event.name[0] ?? 'a').toUpperCase()}
+                          </Avatar>
+                        )}
+                      </Box>
+                      <Typography align="center" variant="h5">
+                        {transaction.event.name}
+                      </Typography>
+                    </Stack>
 
-                  <Stack direction="row" spacing={1}>
-                    <ClockIcon fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {transaction.event.startDateTime && transaction.event.endDateTime
-                        ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : tt('Chưa xác định', 'To be determined')} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
-                    </Typography>
+                    <Stack direction="row" spacing={1}>
+                      <ClockIcon fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {transaction.event.startDateTime && transaction.event.endDateTime
+                          ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
+                          : tt('Chưa xác định', 'To be determined')} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={1}>
+                      <MapPin fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {transaction.event.place ? transaction.event.place : tt('Chưa xác định', 'To be determined')} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
+                      </Typography>
+                    </Stack>
                   </Stack>
-                  <Stack direction="row" spacing={1}>
-                    <MapPin fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {transaction.event.place ? transaction.event.place : tt('Chưa xác định', 'To be determined')} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
-                    </Typography>
-                  </Stack>
-                </Stack>
-                <Stack spacing={2} direction={'row'} sx={{ mt: 2 }}>
-                  <Chip color='success' size='small' label={`${transaction.ticketQuantity} ${tt('vé', 'tickets')}`} />
-                  <Chip
-                    color={getPaymentStatusDetails(transaction.paymentStatus, tt).color}
-                    label={getPaymentStatusDetails(transaction.paymentStatus, tt).label}
-                    size='small'
-                  />
-                  <Stack spacing={0} direction={'row'}>
+                  <Stack spacing={2} direction={'row'} sx={{ mt: 2 }}>
+                    <Chip color='success' size='small' label={`${transaction.ticketQuantity} ${tt('vé', 'tickets')}`} />
                     <Chip
-                      color={getRowStatusDetails(transaction.status, tt).color}
-                      label={getRowStatusDetails(transaction.status, tt).label}
+                      color={getPaymentStatusDetails(transaction.paymentStatus, tt).color}
+                      label={getPaymentStatusDetails(transaction.paymentStatus, tt).label}
                       size='small'
                     />
-                    {transaction.cancelRequestStatus == 'pending' &&
-                      <Tooltip title={
-                        <Typography>{tt('Khách hàng yêu cầu hủy', 'Customer requested cancellation')}</Typography>
-                      }>
-                        <Chip size='small' color={'error'} label={<WarningCircle size={16} />} />
-                      </Tooltip>
-                    }
-                  </Stack>
+                    <Stack spacing={0} direction={'row'}>
+                      <Chip
+                        color={getRowStatusDetails(transaction.status, tt).color}
+                        label={getRowStatusDetails(transaction.status, tt).label}
+                        size='small'
+                      />
+                      {transaction.cancelRequestStatus == 'pending' &&
+                        <Tooltip title={
+                          <Typography>{tt('Khách hàng yêu cầu hủy', 'Customer requested cancellation')}</Typography>
+                        }>
+                          <Chip size='small' color={'error'} label={<WarningCircle size={16} />} />
+                        </Tooltip>
+                      }
+                    </Stack>
 
-                </Stack>
-              </CardContent>
-              <Divider />
-              <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 2 }}>
-                <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
-                  {/* <Chip
-                    label={statusMap[ticketCategory.status]?.label}
-                    color={statusMap[ticketCategory.status]?.color}
-                    size="small"
-                  />
-                  <Chip
-                    label={typeMap[ticketCategory.type]?.label}
-                    color={typeMap[ticketCategory.type]?.color}
-                    size="small"
-                  /> */}
-                </Stack>
-                <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
-                  <Button component={LocalizedLink} href={`/account/my-tickets/${transaction.id}`} size="small" startIcon={<EyeIcon />}>
-                    {tt('Xem chi tiết', 'View Details')}
-                  </Button>
-                </Stack>
-              </Stack>
+                  </Stack>
+                </CardContent>
+              </CardActionArea>
             </Card>
           </Grid>
         ))}

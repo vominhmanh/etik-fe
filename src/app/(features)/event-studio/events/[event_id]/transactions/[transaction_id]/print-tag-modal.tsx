@@ -398,7 +398,7 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
       };
 
       if (component.key === 'eCodeQr') {
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?margin=16&size=280x280&data=${encodeURIComponent(
           value
         )}`;
         return (

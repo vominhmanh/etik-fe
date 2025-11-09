@@ -161,7 +161,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     objectFit: "contain", // Ensures the image fits within the box
                     objectPosition: "top",
                   }}
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${label}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?margin=16&size=150x150&data=${label}`}
                   alt="QR Code"
                   className="bg-white p-2 shadow-lg"
                 />

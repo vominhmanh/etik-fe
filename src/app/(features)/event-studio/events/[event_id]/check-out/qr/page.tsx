@@ -2,10 +2,11 @@
 
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Accordion, AccordionDetails, AccordionSummary, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Chip, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, OutlinedInput, Stack, styled, SwipeableDrawer, Typography } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Chip, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, MenuItem, OutlinedInput, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, styled, SwipeableDrawer, Typography } from '@mui/material';
 import type { ChipProps } from '@mui/material/Chip';
+import type { SelectChangeEvent } from '@mui/material/Select';
 import { grey } from '@mui/material/colors';
-import { ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
+import { ArrowClockwise, ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
@@ -20,6 +21,7 @@ import { TicketCategories } from './ticket-categories';
 const iOS =
   typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
+const CAMERA_STORAGE_KEY = 'etik_check_out_camera_device';
 
 // Ticket.ts
 export interface CheckInHistory {
@@ -44,6 +46,12 @@ export interface Ticket {
   checkInAt: Date | null;
   historyCheckIns?: CheckInHistory[];
 }
+
+export type RecentScan = {
+  qrCode: string;
+  scannedAt: string;
+  type: 'check_in' | 'check_out';
+};
 
 export type TicketCategory = {
   id: number;
@@ -180,6 +188,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [isLoading, setIsLoading] = React.useState(false);
   const [trxn, setTrxn] = React.useState<Transaction>();
   const [confirmCheckin, setConfirmCheckin] = React.useState(false);
+  const [videoDevices, setVideoDevices] = React.useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = React.useState<string>('');
   const notificationCtx = React.useContext(NotificationContext);
   const [selectedSchedule, setSelectedSchedule] = React.useState<Show>();
   const [selectedCategories, setSelectedCategories] = React.useState<number[]>([]);
@@ -187,6 +197,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [accordionState, setAccordionState] = React.useState<MyDynamicObject>({});
   const [ticketDisabledState, setTicketDisabledState] = React.useState<MyDynamicObject>({});
   const [ticketCheckboxState, setTicketCheckboxState] = React.useState<MyDynamicObject>({});
+  const [recentScans, setRecentScans] = React.useState<RecentScan[]>([]);
+  const [recentScansLoading, setRecentScansLoading] = React.useState<boolean>(false);
   const hasTicketsSelected = Object.entries(ticketCheckboxState).some(
     ([ticketKey, checked]) =>
       checked && !ticketDisabledState[ticketKey]
@@ -200,7 +212,79 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       }
     },
     timeBetweenDecodingAttempts: 50,
+    constraints: {
+      video: selectedDeviceId
+        ? { deviceId: { exact: selectedDeviceId } }
+        : undefined,
+    },
   });
+
+  React.useEffect(() => {
+    if (!selectedDeviceId || typeof window === 'undefined') {
+      return;
+    }
+
+    const ensureCameraSwitch = window.setTimeout(() => {
+      const videoEl = ref.current;
+      const stream = videoEl?.srcObject instanceof MediaStream ? videoEl.srcObject : null;
+      const activeDeviceId = stream?.getVideoTracks()[0]?.getSettings().deviceId;
+
+      if (activeDeviceId && activeDeviceId !== selectedDeviceId) {
+        window.location.reload();
+      }
+    }, 1200);
+
+    return () => window.clearTimeout(ensureCameraSwitch);
+  }, [selectedDeviceId, ref]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !navigator?.mediaDevices?.enumerateDevices) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadDevices = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        if (!isMounted) {
+          return;
+        }
+        const videoInputs = devices.filter((device) => device.kind === 'videoinput');
+        setVideoDevices(videoInputs);
+
+        const savedDeviceId = window.localStorage.getItem(CAMERA_STORAGE_KEY);
+        if (savedDeviceId && videoInputs.some((device) => device.deviceId === savedDeviceId)) {
+          setSelectedDeviceId(savedDeviceId);
+        } else if (videoInputs.length > 0) {
+          setSelectedDeviceId(videoInputs[0].deviceId);
+        } else {
+          setSelectedDeviceId('');
+        }
+      } catch (error) {
+        console.error('Failed to load video input devices', error);
+      }
+    };
+
+    loadDevices();
+    const handleDeviceChange = () => loadDevices();
+    navigator.mediaDevices.addEventListener?.('devicechange', handleDeviceChange);
+
+    return () => {
+      isMounted = false;
+      navigator.mediaDevices.removeEventListener?.('devicechange', handleDeviceChange);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (selectedDeviceId) {
+      window.localStorage.setItem(CAMERA_STORAGE_KEY, selectedDeviceId);
+    }
+  }, [selectedDeviceId]);
 
   const handleCloseDrawer = () => {
     setIsCheckinControllerOpen(false)
@@ -227,6 +311,29 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       [key]: !prevState[key], // Toggle the value for the specific accordion key
     }));
   };
+
+  const fetchRecentScans = React.useCallback(async (): Promise<void> => {
+    try {
+      setRecentScansLoading(true);
+      const response: AxiosResponse<RecentScan[]> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${params.event_id}/check-in-or-check-out/check-in/recent-scans`,
+        {
+          params: {
+            scan_type: 'check_out',
+          },
+        }
+      );
+      setRecentScans(response.data ?? []);
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setRecentScansLoading(false);
+    }
+  }, [notificationCtx, params.event_id]);
+
+  React.useEffect(() => {
+    void fetchRecentScans();
+  }, [fetchRecentScans]);
 
 
   // Fetch event details on component mount
@@ -256,7 +363,13 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     try {
       setIsLoading(true);
       const transactionResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance
-        .get(`/event-studio/events/${params.event_id}/check-in-or-check-out/check-in`, { params: { check_in_e_code: eCode } });
+        .get(`/event-studio/events/${params.event_id}/check-in-or-check-out/check-in`, {
+          params: {
+            check_in_e_code: eCode,
+            scan_qr_code: firstTimeScan,
+            scan_type: 'check_out',
+          },
+        });
       const dataTrxn = transactionResponse.data
       setTrxn(dataTrxn);
 
@@ -331,6 +444,10 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         );
       }
 
+      if (firstTimeScan) {
+        await fetchRecentScans();
+      }
+
       setIsSuccessful(true);
     } catch (error) {
       notificationCtx.error(error);
@@ -397,6 +514,12 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     }
   };
 
+  const handleHistoryRowClick = (code: string) => {
+    setIsCheckinControllerOpen(true);
+    setECode(code);
+    getTransactionByECode(code);
+  }
+
   const runManualCheckIn = () => {
     if (qrManualInput) {
       setIsCheckinControllerOpen(true);
@@ -455,13 +578,30 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 <CardHeader subheader={tt("Vui lòng hướng mã QR về phía camera.", "Please point the QR code towards the camera.")} title={tt("Quét mã QR", "Scan QR Code")} />
                 <Divider />
                 <CardContent>
-                  <video ref={ref} width={'100%'} />
+                  {videoDevices.length > 0 && (
+                    <FormControl size="small" sx={{ mb: 2, minWidth: 200 }}>
+                      <InputLabel>{tt('Camera', 'Camera')}</InputLabel>
+                      <Select
+                        label={tt('Camera', 'Camera')}
+                        value={selectedDeviceId}
+                        onChange={(event: SelectChangeEvent<string>) => setSelectedDeviceId(event.target.value)}
+                      >
+                        {videoDevices.map((device, index) => (
+                          <MenuItem key={device.deviceId || index} value={device.deviceId}>
+                            {device.label || `${tt('Camera', 'Camera')} ${index + 1}`}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  )}
+                  <video key={selectedDeviceId || 'default'} ref={ref} width={'100%'} />
                 </CardContent>
                 <CardActions>
                   <Button disabled={!isAvailable} onClick={() => (isOn ? off() : on())} startIcon={<Lightning />}>{tt('Flash', 'Flash')}</Button>
                 </CardActions>
               </Card>
 
+              
               <Card>
                 <CardHeader subheader={tt("Vui lòng nhập mã để check-out thủ công nếu không quét được mã QR.", "Please enter the code to manually check-out if QR code scanning is not possible.")} title={tt("check-out thủ công", "Manual check-out")} />
                 <Divider />
@@ -503,6 +643,70 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   </Typography>
                 </CardContent>
               </Card>
+              <Card>
+                <CardHeader
+                  title={tt('Lịch sử check-out gần nhất', 'Recent check-out history')}
+                  action={
+                    <IconButton
+                      size="small"
+                      onClick={() => { void fetchRecentScans(); }}
+                      disabled={recentScansLoading}
+                    >
+                      <ArrowClockwise />
+                    </IconButton>
+                  }
+                />
+                <Divider />
+                <CardContent sx={{ p: 0 }}>
+                  {recentScansLoading ? (
+                    <Box sx={{ p: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        {tt('Đang tải lịch sử check-out...', 'Loading recent check-outs...')}
+                      </Typography>
+                    </Box>
+                  ) : recentScans.length === 0 ? (
+                    <Box sx={{ p: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        {tt('Chưa có lịch sử check-out.', 'No check-out history yet.')}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <TableContainer
+                      sx={{
+                        width: '100%',
+                        maxHeight: 320,
+                        overflowY: 'auto',
+                        overflowX: 'auto',
+                      }}
+                    >
+                      <Table size="small" sx={{ minWidth: '100%' }}>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>{tt('Mã QR', 'QR Code')}</TableCell>
+                            <TableCell align="right">{tt('Thời gian', 'Time')}</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {recentScans.map((scan, index) => (
+                            <TableRow
+                              key={`${scan.qrCode}-${scan.scannedAt}-${index}`}
+                              hover
+                              sx={{ cursor: 'pointer' }}
+                              onClick={() => handleHistoryRowClick(scan.qrCode)}
+                            >
+                              <TableCell>{scan.qrCode}</TableCell>
+                              <TableCell align="right">
+                                {dayjs(scan.scannedAt).format('HH:mm:ss DD/MM/YYYY')}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
+                </CardContent>
+              </Card>
+
             </Stack>
           </Grid>
         </Grid>

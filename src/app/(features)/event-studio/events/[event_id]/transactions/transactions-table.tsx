@@ -18,7 +18,7 @@ import { LocalizedLink } from '@/components/localized-link';
 
 import * as React from 'react';
 
-import { Chip } from '@mui/material';
+import { Chip, ChipProps } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import { WarningCircle } from '@phosphor-icons/react/dist/ssr';
 import { ArrowSquareUpRight as ArrowSquareUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowSquareUpRight';
@@ -42,7 +42,7 @@ const getPaymentMethodDetails = (paymentMethod: string) => {
 };
 
 // Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (paymentStatus: string) => {
+const getPaymentStatusDetails = (paymentStatus: string): { label: string, color: ChipProps['color'] } => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
       return { label: 'Chờ thanh toán', color: 'default' };
@@ -71,7 +71,7 @@ const getRowStatusDetails = (status: string): { label: string, color: "success" 
   }
 };
 
-const getSentEmailTicketStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+const getSentEmailTicketStatusDetails = (status: string): { label: string, color: ChipProps['color'] } => {
   switch (status) {
     case 'sent':
       return { label: 'Đã xuất', color: 'success' };
@@ -276,7 +276,7 @@ export function TransactionsTable({
                       }
                     >
                       <Chip
-                        color={getPaymentStatusDetails(row.paymentStatus).color}
+                        color={getPaymentStatusDetails(row.paymentStatus).color as ChipProps['color']}
                         label={
                           <>
                             {getPaymentMethodDetails(row.paymentMethod).icon}{" "}
@@ -289,7 +289,7 @@ export function TransactionsTable({
                   </TableCell>
                   <TableCell>
                     <Chip
-                      color={getSentEmailTicketStatusDetails(row.exportedTicketAt ? 'sent' : 'not_sent').color}
+                      color={getSentEmailTicketStatusDetails(row.exportedTicketAt ? 'sent' : 'not_sent').color as ChipProps['color']}
                       label={getSentEmailTicketStatusDetails(row.exportedTicketAt ? 'sent' : 'not_sent').label}
                       size="small"
                     />
@@ -308,14 +308,18 @@ export function TransactionsTable({
         </Table>
       </Box>
       <Divider />
-      <TablePagination
-        component="div"
-        count={count}
-        page={page}
-        rowsPerPage={rowsPerPage}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-      />
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: 2 }}>
+        <TablePagination
+          component="div"
+          count={count}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          showFirstButton
+          showLastButton
+        />
+      </Box>
       <Divider />
     </Card>
   );

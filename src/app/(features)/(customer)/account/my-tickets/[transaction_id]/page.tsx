@@ -691,7 +691,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                 <CardContent>
                   <Stack spacing={1} sx={{ display: 'flex', alignItems: 'center' }}>
                     <div style={{ width: '100px' }}>
-                      <Box component="img" src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${eCode}`} alt="Check-in QR code" />
+                      <Box component="img" src={`https://api.qrserver.com/v1/create-qr-code/?margin=16&size=100x100&data=${eCode}`} alt="Check-in QR code" />
                     </div>
                     <Typography sx={{ textAlign: 'center' }}>{eCode}</Typography>
                   </Stack>
