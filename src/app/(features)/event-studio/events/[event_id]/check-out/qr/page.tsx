@@ -214,8 +214,18 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     timeBetweenDecodingAttempts: 50,
     constraints: {
       video: selectedDeviceId
-        ? { deviceId: { exact: selectedDeviceId } }
-        : undefined,
+        ? { 
+            deviceId: { ideal: selectedDeviceId }, // Use 'ideal' instead of 'exact' for better iOS compatibility
+            facingMode: 'environment', // iOS Safari requires this
+            width: { ideal: 480 },
+            height: { ideal: 480 },
+          }
+        : {
+            facingMode: 'environment', // iOS Safari requires this for back camera
+            width: { ideal: 480 },
+            height: { ideal: 480 },
+            aspectRatio: { ideal: 1 },
+          },
     },
   });
 
@@ -246,35 +256,62 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
     const loadDevices = async () => {
       try {
+        // On iOS Safari, we need camera permission to get device labels
+        // Check if we already have an active stream (permission granted)
+        const videoEl = ref.current;
+        const hasActiveStream = videoEl?.srcObject instanceof MediaStream && 
+          videoEl.srcObject.getVideoTracks().length > 0;
+
+        // If no active stream, try to enumerate anyway (might work on some browsers)
+        // On iOS, this will return devices without labels until permission is granted
         const devices = await navigator.mediaDevices.enumerateDevices();
         if (!isMounted) {
           return;
         }
         const videoInputs = devices.filter((device) => device.kind === 'videoinput');
-        setVideoDevices(videoInputs);
+        
+        // Only update if we have devices with labels (permission granted) or if it's the first load
+        if (videoInputs.length > 0 && (hasActiveStream || videoInputs.some(d => d.label))) {
+          setVideoDevices(videoInputs);
 
-        const savedDeviceId = window.localStorage.getItem(CAMERA_STORAGE_KEY);
-        if (savedDeviceId && videoInputs.some((device) => device.deviceId === savedDeviceId)) {
-          setSelectedDeviceId(savedDeviceId);
+          const savedDeviceId = window.localStorage.getItem(CAMERA_STORAGE_KEY);
+          if (savedDeviceId && videoInputs.some((device) => device.deviceId === savedDeviceId)) {
+            setSelectedDeviceId(savedDeviceId);
+          } else if (videoInputs.length > 0 && !selectedDeviceId) {
+            setSelectedDeviceId(videoInputs[0].deviceId);
+          }
         } else if (videoInputs.length > 0) {
-          setSelectedDeviceId(videoInputs[0].deviceId);
-        } else {
-          setSelectedDeviceId('');
+          // Devices found but no labels (iOS before permission) - set devices anyway
+          setVideoDevices(videoInputs);
+          if (!selectedDeviceId && videoInputs.length > 0) {
+            setSelectedDeviceId(videoInputs[0].deviceId);
+          }
         }
       } catch (error) {
         console.error('Failed to load video input devices', error);
       }
     };
 
+    // Initial load
     loadDevices();
+    
+    // Reload devices when video stream becomes active (permission granted)
+    const checkStream = setInterval(() => {
+      const videoEl = ref.current;
+      if (videoEl?.srcObject instanceof MediaStream) {
+        loadDevices();
+      }
+    }, 1000);
+
     const handleDeviceChange = () => loadDevices();
     navigator.mediaDevices.addEventListener?.('devicechange', handleDeviceChange);
 
     return () => {
       isMounted = false;
+      clearInterval(checkStream);
       navigator.mediaDevices.removeEventListener?.('devicechange', handleDeviceChange);
     };
-  }, []);
+  }, [ref, selectedDeviceId]);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') {
@@ -594,7 +631,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       </Select>
                     </FormControl>
                   )}
-                  <video key={selectedDeviceId || 'default'} ref={ref} width={'100%'} />
+                  <video key={selectedDeviceId || 'default'} ref={ref} width={'100%'} playsInline autoPlay muted />
                 </CardContent>
                 <CardActions>
                   <Button disabled={!isAvailable} onClick={() => (isOn ? off() : on())} startIcon={<Lightning />}>{tt('Flash', 'Flash')}</Button>
