@@ -229,23 +229,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     },
   });
 
-  React.useEffect(() => {
-    if (!selectedDeviceId || typeof window === 'undefined') {
-      return;
-    }
-
-    const ensureCameraSwitch = window.setTimeout(() => {
-      const videoEl = ref.current;
-      const stream = videoEl?.srcObject instanceof MediaStream ? videoEl.srcObject : null;
-      const activeDeviceId = stream?.getVideoTracks()[0]?.getSettings().deviceId;
-
-      if (activeDeviceId && activeDeviceId !== selectedDeviceId) {
-        window.location.reload();
-      }
-    }, 1200);
-
-    return () => window.clearTimeout(ensureCameraSwitch);
-  }, [selectedDeviceId, ref]);
+  // Removed aggressive device switching check that caused infinite reloads on iOS
+  // The useZxing hook handles device switching through constraints
 
   React.useEffect(() => {
     if (typeof window === 'undefined' || !navigator?.mediaDevices?.enumerateDevices) {
@@ -253,6 +238,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     }
 
     let isMounted = true;
+    let hasLoadedWithPermission = false;
 
     const loadDevices = async () => {
       try {
@@ -270,22 +256,27 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         }
         const videoInputs = devices.filter((device) => device.kind === 'videoinput');
         
+        // Check if we have devices with labels (permission granted)
+        const hasLabels = videoInputs.some(d => d.label);
+        
         // Only update if we have devices with labels (permission granted) or if it's the first load
-        if (videoInputs.length > 0 && (hasActiveStream || videoInputs.some(d => d.label))) {
+        if (videoInputs.length > 0 && (hasActiveStream || hasLabels || !hasLoadedWithPermission)) {
           setVideoDevices(videoInputs);
 
-          const savedDeviceId = window.localStorage.getItem(CAMERA_STORAGE_KEY);
-          if (savedDeviceId && videoInputs.some((device) => device.deviceId === savedDeviceId)) {
-            setSelectedDeviceId(savedDeviceId);
-          } else if (videoInputs.length > 0 && !selectedDeviceId) {
-            setSelectedDeviceId(videoInputs[0].deviceId);
+          // Only set device ID if we don't have one yet or if we just got permission
+          if (hasLabels || hasActiveStream) {
+            hasLoadedWithPermission = true;
+            const savedDeviceId = window.localStorage.getItem(CAMERA_STORAGE_KEY);
+            if (savedDeviceId && videoInputs.some((device) => device.deviceId === savedDeviceId)) {
+              setSelectedDeviceId((prev) => prev || savedDeviceId);
+            } else if (videoInputs.length > 0) {
+              setSelectedDeviceId((prev) => prev || videoInputs[0].deviceId);
+            }
           }
-        } else if (videoInputs.length > 0) {
+        } else if (videoInputs.length > 0 && !hasLoadedWithPermission) {
           // Devices found but no labels (iOS before permission) - set devices anyway
           setVideoDevices(videoInputs);
-          if (!selectedDeviceId && videoInputs.length > 0) {
-            setSelectedDeviceId(videoInputs[0].deviceId);
-          }
+          setSelectedDeviceId((prev) => prev || (videoInputs[0]?.deviceId || ''));
         }
       } catch (error) {
         console.error('Failed to load video input devices', error);
@@ -296,9 +287,18 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     loadDevices();
     
     // Reload devices when video stream becomes active (permission granted)
+    // Only check for a limited time to avoid infinite loops
+    let checkCount = 0;
+    const maxChecks = 10; // Check for up to 10 seconds
     const checkStream = setInterval(() => {
+      checkCount++;
+      if (checkCount > maxChecks) {
+        clearInterval(checkStream);
+        return;
+      }
+      
       const videoEl = ref.current;
-      if (videoEl?.srcObject instanceof MediaStream) {
+      if (videoEl?.srcObject instanceof MediaStream && !hasLoadedWithPermission) {
         loadDevices();
       }
     }, 1000);
@@ -311,7 +311,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       clearInterval(checkStream);
       navigator.mediaDevices.removeEventListener?.('devicechange', handleDeviceChange);
     };
-  }, [ref, selectedDeviceId]);
+  }, [ref]);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') {
