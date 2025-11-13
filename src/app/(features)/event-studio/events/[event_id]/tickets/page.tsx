@@ -10,7 +10,7 @@ import { AxiosResponse } from 'axios';
 import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
-import { FormControl, Grid, IconButton, InputLabel, MenuItem, Select } from '@mui/material';
+import { Checkbox, FormControl, Grid, IconButton, InputLabel, ListItemText, MenuItem, Select } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Card from '@mui/material/Card';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -79,13 +79,13 @@ export interface Ticket {
 }
 
 interface Filter {
-  show: number | null;
-  ticketCategory: number | null;
-  status: string;
-  paymentStatus: string;
-  sentTicketEmailStatus: string;
-  checkInStatus: string;
-  cancelRequestStatus: string;
+  show: number[];
+  ticketCategory: number[];
+  status: string[];
+  paymentStatus: string[];
+  sentTicketEmailStatus: string[];
+  checkInStatus: string[];
+  cancelRequestStatus: string[];
 }
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
@@ -100,16 +100,62 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [selected, setSelected] = React.useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [filters, setFilters] = React.useState<Filter>({
-    show: null,
-    ticketCategory: null,
-    status: '',
-    paymentStatus: '',
-    sentTicketEmailStatus: '',
-    checkInStatus: '',
-    cancelRequestStatus: '',
+    show: [],
+    ticketCategory: [],
+    status: [],
+    paymentStatus: [],
+    sentTicketEmailStatus: [],
+    checkInStatus: [],
+    cancelRequestStatus: [],
   });
   const [filterShows, setFilterShows] = React.useState<FilterShow[]>([]);
   const [querySearch, setQuerySearch] = React.useState<string>('');
+  const STORAGE_KEY = `tickets-table-sort-${params.event_id}`;
+
+  // Load sorting state from localStorage
+  const [orderBy, setOrderBy] = React.useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return parsed.orderBy || '';
+        } catch {
+          return '';
+        }
+      }
+    }
+    return '';
+  });
+
+  const [order, setOrder] = React.useState<'asc' | 'desc'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return parsed.order || 'asc';
+        } catch {
+          return 'asc';
+        }
+      }
+    }
+    return 'asc';
+  });
+
+  // Save to localStorage when sorting changes
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && orderBy) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ orderBy, order }));
+    }
+  }, [orderBy, order, STORAGE_KEY]);
+
+  const handleSortChange = (newOrderBy: string, newOrder: 'asc' | 'desc') => {
+    setOrderBy(newOrderBy);
+    setOrder(newOrder);
+    setPage(0); // Reset to first page when sorting changes
+  };
+
   const handleRowsPerPageChange = (newRowsPerPage: number) => {
     setRowsPerPage(newRowsPerPage);
     setPage(0); // Reset to the first page whenever rows per page change
@@ -125,13 +171,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleClearFilters = () => {
     setFilters({
-      show: null,
-      ticketCategory: null,
-      status: '',
-      paymentStatus: '',
-      sentTicketEmailStatus: '',
-      checkInStatus: '',
-      cancelRequestStatus: '',
+      show: [],
+      ticketCategory: [],
+      status: [],
+      paymentStatus: [],
+      sentTicketEmailStatus: [],
+      checkInStatus: [],
+      cancelRequestStatus: [],
     })
   }
 
@@ -273,7 +319,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const filteredTickets = React.useMemo(() => {
     const q = normalizeText(querySearch);
-    return tickets.filter((ticket) => {
+    let filtered = tickets.filter((ticket) => {
       // Search filter
       if (querySearch && !(
         (ticket.id.toString().includes(querySearch.toLocaleLowerCase())) ||
@@ -294,54 +340,95 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       }
 
       // Show filter
-      if (filters.show && ticket.transactionTicketCategory.ticketCategory.show.id !== filters.show) {
+      if (filters.show.length > 0 && !filters.show.includes(ticket.transactionTicketCategory.ticketCategory.show.id)) {
         return false;
       }
 
       // Ticket Category filter
-      if (filters.ticketCategory && ticket.ticketCategoryId !== filters.ticketCategory) {
+      if (filters.ticketCategory.length > 0 && !filters.ticketCategory.includes(ticket.ticketCategoryId)) {
         return false;
       }
 
       // Transaction Status filter
-      if (filters.status && ticket.transactionTicketCategory.transaction.status !== filters.status) {
+      if (filters.status.length > 0 && !filters.status.includes(ticket.transactionTicketCategory.transaction.status)) {
         return false;
       }
 
       // Payment Status filter
-      if (filters.paymentStatus && ticket.transactionTicketCategory.transaction.paymentStatus !== filters.paymentStatus) {
+      if (filters.paymentStatus.length > 0 && !filters.paymentStatus.includes(ticket.transactionTicketCategory.transaction.paymentStatus)) {
         return false;
       }
 
       // Sent Ticket Email Status filter
-      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'sent' && !ticket.transactionTicketCategory.transaction.exportedTicketAt) {
-        return false;
-      }
-      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'not_sent' && ticket.transactionTicketCategory.transaction.exportedTicketAt) {
-        return false;
+      if (filters.sentTicketEmailStatus.length > 0) {
+        const isSent = !!ticket.transactionTicketCategory.transaction.exportedTicketAt;
+        const shouldInclude = 
+          (filters.sentTicketEmailStatus.includes('sent') && isSent) ||
+          (filters.sentTicketEmailStatus.includes('not_sent') && !isSent);
+        if (!shouldInclude) {
+          return false;
+        }
       }
 
       // Check-in Status filter
-      if (filters.checkInStatus && filters.checkInStatus === 'checked' && !ticket.checkInAt) {
-        return false;
-      }
-      if (filters.checkInStatus && filters.checkInStatus === 'not_checked' && ticket.checkInAt) {
-        return false;
-      }
-
-      // Cancel request status filter
-      if (filters.cancelRequestStatus && filters.cancelRequestStatus === 'pending' && ticket.transactionTicketCategory.transaction.cancelRequestStatus != 'pending') {
-        return false;
+      if (filters.checkInStatus.length > 0) {
+        const isChecked = !!ticket.checkInAt;
+        const shouldInclude = 
+          (filters.checkInStatus.includes('checked') && isChecked) ||
+          (filters.checkInStatus.includes('not_checked') && !isChecked);
+        if (!shouldInclude) {
+          return false;
+        }
       }
 
       // Cancel request status filter
-      if (filters.cancelRequestStatus && filters.cancelRequestStatus === 'no_request' && ticket.transactionTicketCategory.transaction.cancelRequestStatus != null) {
-        return false;
+      if (filters.cancelRequestStatus.length > 0) {
+        const isPending = ticket.transactionTicketCategory.transaction.cancelRequestStatus === 'pending';
+        const hasNoRequest = ticket.transactionTicketCategory.transaction.cancelRequestStatus == null;
+        const shouldInclude = 
+          (filters.cancelRequestStatus.includes('pending') && isPending) ||
+          (filters.cancelRequestStatus.includes('no_request') && hasNoRequest);
+        if (!shouldInclude) {
+          return false;
+        }
       }
 
       return true;
     });
-  }, [tickets, querySearch, filters]);
+
+    // Apply sorting
+    if (orderBy) {
+      filtered = [...filtered].sort((a, b) => {
+        let aValue: string | null = null;
+        let bValue: string | null = null;
+
+        if (orderBy === 'createdAt') {
+          aValue = a.createdAt;
+          bValue = b.createdAt;
+        } else if (orderBy === 'checkInAt') {
+          aValue = a.checkInAt || null;
+          bValue = b.checkInAt || null;
+        }
+
+        // Handle null values - put nulls at the end
+        if (aValue === null && bValue === null) return 0;
+        if (aValue === null) return 1;
+        if (bValue === null) return -1;
+
+        // Compare dates
+        const aDate = new Date(aValue).getTime();
+        const bDate = new Date(bValue).getTime();
+
+        if (order === 'asc') {
+          return aDate - bDate;
+        } else {
+          return bDate - aDate;
+        }
+      });
+    }
+
+    return filtered;
+  }, [tickets, querySearch, filters, orderBy, order]);
 
   const paginatedCustomers = applyPagination(filteredTickets, page, rowsPerPage);
 
@@ -422,99 +509,209 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <FormControl sx={{ minWidth: '200px' }}>
                 <InputLabel>Suất diễn</InputLabel>
                 <Select
+                  multiple
                   value={filters.show}
                   label="Suất diễn"
                   name="show"
-                  onChange={(e) => handleFilterChange('show', Number(e.target.value))}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    handleFilterChange('show', typeof value === 'string' ? value.split(',').map(Number) : (value as number[]));
+                  }}
+                  renderValue={(selected) => (selected as number[]).length === 0 ? 'Tất cả' : `${(selected as number[]).length} đã chọn`}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
+                  }}
                 >
-                  <MenuItem value={''}><Empty /></MenuItem>
                   {filterShows.map(show => (
-                    <MenuItem key={show.id} value={show.id}>{show.name}</MenuItem>
+                    <MenuItem key={show.id} value={show.id}>
+                      <Checkbox checked={filters.show.includes(show.id)} />
+                      <ListItemText primary={show.name} />
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
                 <InputLabel>Loại vé</InputLabel>
                 <Select
+                  multiple
                   value={filters.ticketCategory}
                   label="Loại vé"
                   name="ticketCategory"
-                  onChange={(e) => handleFilterChange('ticketCategory', Number(e.target.value))}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    handleFilterChange('ticketCategory', typeof value === 'string' ? value.split(',').map(Number) : (value as number[]));
+                  }}
+                  renderValue={(selected) => (selected as number[]).length === 0 ? 'Tất cả' : `${(selected as number[]).length} đã chọn`}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
+                  }}
                 >
-                  <MenuItem value={''}><Empty /></MenuItem>
                   {
-                    filterShows.find(show => show.id === filters.show)?.ticketCategories.map(tc => (
-                      <MenuItem key={tc.id} value={tc.id}>{tc.name}</MenuItem>
-                    ))
+                    filterShows
+                      .filter(show => filters.show.length === 0 || filters.show.includes(show.id))
+                      .flatMap(show => show.ticketCategories)
+                      .map(tc => (
+                        <MenuItem key={tc.id} value={tc.id}>
+                          <Checkbox checked={filters.ticketCategory.includes(tc.id)} />
+                          <ListItemText primary={tc.name} />
+                        </MenuItem>
+                      ))
                   }
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
                 <InputLabel>Trạng thái đơn hàng</InputLabel>
                 <Select
+                  multiple
                   value={filters.status}
                   label="Trạng thái đơn hàng"
                   name="status"
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  onChange={(e) => handleFilterChange('status', e.target.value as string[])}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? 'Tất cả' : `${(selected as string[]).length} đã chọn`}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
+                  }}
                 >
-                  <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="normal">Bình thường</MenuItem>
-                  <MenuItem value="wait_for_response">Đang chờ</MenuItem>
-                  <MenuItem value="staff_locked">Khoá bởi NV</MenuItem>
-                  <MenuItem value="customer_cancelled">Huỷ bởi KH</MenuItem>
+                  <MenuItem value="normal">
+                    <Checkbox checked={filters.status.includes('normal')} />
+                    <ListItemText primary="Bình thường" />
+                  </MenuItem>
+                  <MenuItem value="wait_for_response">
+                    <Checkbox checked={filters.status.includes('wait_for_response')} />
+                    <ListItemText primary="Đang chờ" />
+                  </MenuItem>
+                  <MenuItem value="staff_locked">
+                    <Checkbox checked={filters.status.includes('staff_locked')} />
+                    <ListItemText primary="Khoá bởi NV" />
+                  </MenuItem>
+                  <MenuItem value="customer_cancelled">
+                    <Checkbox checked={filters.status.includes('customer_cancelled')} />
+                    <ListItemText primary="Huỷ bởi KH" />
+                  </MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '230px' }}>
                 <InputLabel>Trạng thái thanh toán</InputLabel>
                 <Select
+                  multiple
                   value={filters.paymentStatus}
                   label="Trạng thái thanh toán"
                   name="payment_status"
-                  onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
+                  onChange={(e) => handleFilterChange('paymentStatus', e.target.value as string[])}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? 'Tất cả' : `${(selected as string[]).length} đã chọn`}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
+                  }}
                 >
-                  <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="waiting_for_payment">Chờ thanh toán</MenuItem>
-                  <MenuItem value="paid">Đã thanh toán</MenuItem>
-                  <MenuItem value="refund">Đã hoàn tiền</MenuItem>
+                  <MenuItem value="waiting_for_payment">
+                    <Checkbox checked={filters.paymentStatus.includes('waiting_for_payment')} />
+                    <ListItemText primary="Chờ thanh toán" />
+                  </MenuItem>
+                  <MenuItem value="paid">
+                    <Checkbox checked={filters.paymentStatus.includes('paid')} />
+                    <ListItemText primary="Đã thanh toán" />
+                  </MenuItem>
+                  <MenuItem value="refund">
+                    <Checkbox checked={filters.paymentStatus.includes('refund')} />
+                    <ListItemText primary="Đã hoàn tiền" />
+                  </MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
                 <InputLabel>Trạng thái xuất vé</InputLabel>
                 <Select
+                  multiple
                   value={filters.sentTicketEmailStatus}
                   label="Trạng thái xuất vé"
                   name="sentTicketEmailStatus"
-                  onChange={(e) => handleFilterChange('sentTicketEmailStatus', e.target.value)}
+                  onChange={(e) => handleFilterChange('sentTicketEmailStatus', e.target.value as string[])}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? 'Tất cả' : `${(selected as string[]).length} đã chọn`}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
+                  }}
                 >
-                  <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="not_sent">Chưa xuất vé</MenuItem>
-                  <MenuItem value="sent">Đã xuất vé</MenuItem>
+                  <MenuItem value="not_sent">
+                    <Checkbox checked={filters.sentTicketEmailStatus.includes('not_sent')} />
+                    <ListItemText primary="Chưa xuất vé" />
+                  </MenuItem>
+                  <MenuItem value="sent">
+                    <Checkbox checked={filters.sentTicketEmailStatus.includes('sent')} />
+                    <ListItemText primary="Đã xuất vé" />
+                  </MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
                 <InputLabel>Trạng thái check-in</InputLabel>
                 <Select
+                  multiple
                   value={filters.checkInStatus}
                   label="Trạng thái check-in"
                   name="checkInStatus"
-                  onChange={(e) => handleFilterChange('checkInStatus', e.target.value)}
+                  onChange={(e) => handleFilterChange('checkInStatus', e.target.value as string[])}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? 'Tất cả' : `${(selected as string[]).length} đã chọn`}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
+                  }}
                 >
-                  <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="not_checked">Chưa check-in</MenuItem>
-                  <MenuItem value="checked">Đã check-in</MenuItem>
+                  <MenuItem value="not_checked">
+                    <Checkbox checked={filters.checkInStatus.includes('not_checked')} />
+                    <ListItemText primary="Chưa check-in" />
+                  </MenuItem>
+                  <MenuItem value="checked">
+                    <Checkbox checked={filters.checkInStatus.includes('checked')} />
+                    <ListItemText primary="Đã check-in" />
+                  </MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
                 <InputLabel>Trạng thái yêu cầu hủy</InputLabel>
                 <Select
+                  multiple
                   value={filters.cancelRequestStatus}
                   label="Trạng thái yêu cầu hủy"
                   name="cancelRequestStatus"
-                  onChange={(e) => handleFilterChange('cancelRequestStatus', e.target.value)}
+                  onChange={(e) => handleFilterChange('cancelRequestStatus', e.target.value as string[])}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? 'Tất cả' : `${(selected as string[]).length} đã chọn`}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
+                  }}
                 >
-                  <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="pending">Đang yêu cầu hủy</MenuItem>
-                  <MenuItem value="no_request">Không có yêu cầu hủy</MenuItem>
+                  <MenuItem value="pending">
+                    <Checkbox checked={filters.cancelRequestStatus.includes('pending')} />
+                    <ListItemText primary="Đang yêu cầu hủy" />
+                  </MenuItem>
+                  <MenuItem value="no_request">
+                    <Checkbox checked={filters.cancelRequestStatus.includes('no_request')} />
+                    <ListItemText primary="Không có yêu cầu hủy" />
+                  </MenuItem>
                 </Select>
               </FormControl>
               <IconButton onClick={handleClearFilters}>
@@ -530,8 +727,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         rows={paginatedCustomers}
         rowsPerPage={rowsPerPage}
         eventId={params.event_id}
+        orderBy={orderBy}
+        order={order}
         onPageChange={handlePageChange}
         onRowsPerPageChange={handleRowsPerPageChange}
+        onSortChange={handleSortChange}
         selected={selected}
         onSelectMultiple={handleSelectMultiple}
         onDeselectMultiple={handleDeselectMultiple}

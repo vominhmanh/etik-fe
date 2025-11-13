@@ -13,7 +13,7 @@ import { useTranslation } from '@/contexts/locale-context';
 import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
-import { Box, Divider, FormControl, Grid, IconButton, InputLabel, Menu, MenuItem, Select, Table, TableBody, TableCell, TableRow, useTheme } from '@mui/material';
+import { Box, Checkbox, Divider, FormControl, Grid, IconButton, InputLabel, ListItemText, Menu, MenuItem, Select, Table, TableBody, TableCell, TableRow, useTheme } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Card from '@mui/material/Card';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -41,6 +41,51 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [querySearch, setQuerySearch] = React.useState<string>('');
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
+  const STORAGE_KEY = `transactions-table-sort-${params.event_id}`;
+
+  // Load sorting state from localStorage
+  const [orderBy, setOrderBy] = React.useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return parsed.orderBy || '';
+        } catch {
+          return '';
+        }
+      }
+    }
+    return '';
+  });
+
+  const [order, setOrder] = React.useState<'asc' | 'desc'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return parsed.order || 'asc';
+        } catch {
+          return 'asc';
+        }
+      }
+    }
+    return 'asc';
+  });
+
+  // Save to localStorage when sorting changes
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && orderBy) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ orderBy, order }));
+    }
+  }, [orderBy, order, STORAGE_KEY]);
+
+  const handleSortChange = (newOrderBy: string, newOrder: 'asc' | 'desc') => {
+    setOrderBy(newOrderBy);
+    setOrder(newOrder);
+    setPage(0); // Reset to first page when sorting changes
+  };
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [bulkErrorMessage, setBulkErrorMessage] = React.useState<string>('');
@@ -111,10 +156,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const [filters, setFilters] = React.useState({
-    status: '',
-    paymentStatus: '',
-    sentTicketEmailStatus: '',
-    cancelRequestStatus: '',
+    status: [] as string[],
+    paymentStatus: [] as string[],
+    sentTicketEmailStatus: [] as string[],
+    cancelRequestStatus: [] as string[],
   });
 
 
@@ -124,10 +169,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleClearFilters = () => {
     setFilters({
-      status: '',
-      paymentStatus: '',
-      sentTicketEmailStatus: '',
-      cancelRequestStatus: '',
+      status: [],
+      paymentStatus: [],
+      sentTicketEmailStatus: [],
+      cancelRequestStatus: [],
     })
   }
 
@@ -196,7 +241,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const filteredTransactions = React.useMemo(() => {
     const q = normalizeText(querySearch);
-    return transactions.filter((transaction) => {
+    let filtered = transactions.filter((transaction) => {
       if (querySearch && !(
         (transaction.id.toString().includes(querySearch.toLocaleLowerCase())) ||
         (normalizeText(transaction.email).includes(q)) ||
@@ -216,36 +261,57 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       }
 
       // Transaction Status filter
-      if (filters.status && transaction.status !== filters.status) {
+      if (filters.status.length > 0 && !filters.status.includes(transaction.status)) {
         return false;
       }
 
       // Payment Status filter
-      if (filters.paymentStatus && transaction.paymentStatus !== filters.paymentStatus) {
+      if (filters.paymentStatus.length > 0 && !filters.paymentStatus.includes(transaction.paymentStatus)) {
         return false;
       }
 
       // Sent Ticket Email Status filter
-      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'sent' && !transaction.exportedTicketAt) {
-        return false;
-      }
-      if (filters.sentTicketEmailStatus && filters.sentTicketEmailStatus === 'not_sent' && transaction.exportedTicketAt) {
-        return false;
-      }
-
-      // Cancel request status filter
-      if (filters.cancelRequestStatus && filters.cancelRequestStatus === 'pending' && transaction.cancelRequestStatus != 'pending') {
-        return false;
+      if (filters.sentTicketEmailStatus.length > 0) {
+        const isSent = !!transaction.exportedTicketAt;
+        const shouldInclude = 
+          (filters.sentTicketEmailStatus.includes('sent') && isSent) ||
+          (filters.sentTicketEmailStatus.includes('not_sent') && !isSent);
+        if (!shouldInclude) {
+          return false;
+        }
       }
 
       // Cancel request status filter
-      if (filters.cancelRequestStatus && filters.cancelRequestStatus === 'no_request' && transaction.cancelRequestStatus != null) {
-        return false;
+      if (filters.cancelRequestStatus.length > 0) {
+        const isPending = transaction.cancelRequestStatus === 'pending';
+        const hasNoRequest = transaction.cancelRequestStatus == null;
+        const shouldInclude = 
+          (filters.cancelRequestStatus.includes('pending') && isPending) ||
+          (filters.cancelRequestStatus.includes('no_request') && hasNoRequest);
+        if (!shouldInclude) {
+          return false;
+        }
       }
 
       return true;
     });
-  }, [transactions, querySearch, filters]);
+
+    // Apply sorting
+    if (orderBy === 'createdAt') {
+      filtered = [...filtered].sort((a, b) => {
+        const aDate = new Date(a.createdAt).getTime();
+        const bDate = new Date(b.createdAt).getTime();
+
+        if (order === 'asc') {
+          return aDate - bDate;
+        } else {
+          return bDate - aDate;
+        }
+      });
+    }
+
+    return filtered;
+  }, [transactions, querySearch, filters, orderBy, order]);
 
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [paymentAnchorEl, setPaymentAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -638,56 +704,121 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <FormControl sx={{ minWidth: '200px' }}>
                 <InputLabel>{tt("Trạng thái đơn hàng", "Order Status")}</InputLabel>
                 <Select
+                  multiple
                   value={filters.status}
                   label={tt("Trạng thái đơn hàng", "Order Status")}
                   name="status"
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  onChange={(e) => handleFilterChange('status', e.target.value as string[])}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? tt("Tất cả", "All") : `${(selected as string[]).length} ${tt("đã chọn", "selected")}`}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
+                  }}
                 >
-                  <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="normal">{tt("Bình thường", "Normal")}</MenuItem>
-                  <MenuItem value="wait_for_response">{tt("Đang chờ", "Waiting")}</MenuItem>
-                  <MenuItem value="staff_locked">{tt("Khoá bởi NV", "Locked by Staff")}</MenuItem>
-                  <MenuItem value="customer_cancelled">{tt("Huỷ bởi KH", "Cancelled by Customer")}</MenuItem>
+                  <MenuItem value="normal">
+                    <Checkbox checked={filters.status.includes('normal')} />
+                    <ListItemText primary={tt("Bình thường", "Normal")} />
+                  </MenuItem>
+                  <MenuItem value="wait_for_response">
+                    <Checkbox checked={filters.status.includes('wait_for_response')} />
+                    <ListItemText primary={tt("Đang chờ", "Waiting")} />
+                  </MenuItem>
+                  <MenuItem value="staff_locked">
+                    <Checkbox checked={filters.status.includes('staff_locked')} />
+                    <ListItemText primary={tt("Khoá bởi NV", "Locked by Staff")} />
+                  </MenuItem>
+                  <MenuItem value="customer_cancelled">
+                    <Checkbox checked={filters.status.includes('customer_cancelled')} />
+                    <ListItemText primary={tt("Huỷ bởi KH", "Cancelled by Customer")} />
+                  </MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '230px' }}>
                 <InputLabel>{tt("Trạng thái thanh toán", "Payment Status")}</InputLabel>
                 <Select
+                  multiple
                   value={filters.paymentStatus}
                   label={tt("Trạng thái thanh toán", "Payment Status")}
                   name="payment_status"
-                  onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
+                  onChange={(e) => handleFilterChange('paymentStatus', e.target.value as string[])}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? tt("Tất cả", "All") : `${(selected as string[]).length} ${tt("đã chọn", "selected")}`}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
+                  }}
                 >
-                  <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="waiting_for_payment">{tt("Chờ thanh toán", "Waiting for Payment")}</MenuItem>
-                  <MenuItem value="paid">{tt("Đã thanh toán", "Paid")}</MenuItem>
-                  <MenuItem value="refund">{tt("Đã hoàn tiền", "Refunded")}</MenuItem>
+                  <MenuItem value="waiting_for_payment">
+                    <Checkbox checked={filters.paymentStatus.includes('waiting_for_payment')} />
+                    <ListItemText primary={tt("Chờ thanh toán", "Waiting for Payment")} />
+                  </MenuItem>
+                  <MenuItem value="paid">
+                    <Checkbox checked={filters.paymentStatus.includes('paid')} />
+                    <ListItemText primary={tt("Đã thanh toán", "Paid")} />
+                  </MenuItem>
+                  <MenuItem value="refund">
+                    <Checkbox checked={filters.paymentStatus.includes('refund')} />
+                    <ListItemText primary={tt("Đã hoàn tiền", "Refunded")} />
+                  </MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
                 <InputLabel>{tt("Trạng thái xuất vé", "Ticket Export Status")}</InputLabel>
                 <Select
+                  multiple
                   value={filters.sentTicketEmailStatus}
                   label={tt("Trạng thái xuất vé", "Ticket Export Status")}
                   name="sentTicketEmailStatus"
-                  onChange={(e) => handleFilterChange('sentTicketEmailStatus', e.target.value)}
+                  onChange={(e) => handleFilterChange('sentTicketEmailStatus', e.target.value as string[])}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? tt("Tất cả", "All") : `${(selected as string[]).length} ${tt("đã chọn", "selected")}`}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
+                  }}
                 >
-                  <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="not_sent">{tt("Chưa xuất vé", "Not Exported")}</MenuItem>
-                  <MenuItem value="sent">{tt("Đã xuất vé", "Exported")}</MenuItem>
+                  <MenuItem value="not_sent">
+                    <Checkbox checked={filters.sentTicketEmailStatus.includes('not_sent')} />
+                    <ListItemText primary={tt("Chưa xuất vé", "Not Exported")} />
+                  </MenuItem>
+                  <MenuItem value="sent">
+                    <Checkbox checked={filters.sentTicketEmailStatus.includes('sent')} />
+                    <ListItemText primary={tt("Đã xuất vé", "Exported")} />
+                  </MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
                 <InputLabel>{tt("Trạng thái yêu cầu hủy", "Cancel Request Status")}</InputLabel>
                 <Select
+                  multiple
                   value={filters.cancelRequestStatus}
                   label={tt("Trạng thái yêu cầu hủy", "Cancel Request Status")}
                   name="cancelRequestStatus"
-                  onChange={(e) => handleFilterChange('cancelRequestStatus', e.target.value)}
+                  onChange={(e) => handleFilterChange('cancelRequestStatus', e.target.value as string[])}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? tt("Tất cả", "All") : `${(selected as string[]).length} ${tt("đã chọn", "selected")}`}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
+                  }}
                 >
-                  <MenuItem value={''}><Empty /></MenuItem>
-                  <MenuItem value="pending">{tt("Đang yêu cầu hủy", "Pending Cancellation")}</MenuItem>
-                  <MenuItem value="no_request">{tt("Không có yêu cầu hủy", "No Cancel Request")}</MenuItem>
+                  <MenuItem value="pending">
+                    <Checkbox checked={filters.cancelRequestStatus.includes('pending')} />
+                    <ListItemText primary={tt("Đang yêu cầu hủy", "Pending Cancellation")} />
+                  </MenuItem>
+                  <MenuItem value="no_request">
+                    <Checkbox checked={filters.cancelRequestStatus.includes('no_request')} />
+                    <ListItemText primary={tt("Không có yêu cầu hủy", "No Cancel Request")} />
+                  </MenuItem>
                 </Select>
               </FormControl>
               <IconButton onClick={handleClearFilters}>
@@ -871,9 +1002,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         rows={paginatedCustomers}
         rowsPerPage={rowsPerPage}
         eventId={params.event_id}
+        orderBy={orderBy}
+        order={order}
         selected={selected}
         onPageChange={handlePageChange}
         onRowsPerPageChange={handleRowsPerPageChange}
+        onSortChange={handleSortChange}
         onSelectMultiple={handleSelectMultiple}
         onDeselectMultiple={handleDeselectMultiple}
         onSelectOne={handleSelectOne}

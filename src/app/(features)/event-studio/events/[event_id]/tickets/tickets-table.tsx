@@ -12,6 +12,7 @@ import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import * as React from 'react';
@@ -84,6 +85,8 @@ const getSentEmailTicketStatusDetails = (status: string): { label: string, color
   }
 };
 
+type Order = 'asc' | 'desc';
+
 export interface CustomersTableProps {
   count?: number; // Total number of transactions.
   page?: number; // Current page index (0-based).
@@ -91,8 +94,11 @@ export interface CustomersTableProps {
   rowsPerPage?: number; // Number of rows displayed per page.
   eventId: number; // The ID of the event these transactions belong to.
   selected: Set<number>; // Set of selected transaction IDs.
+  orderBy?: string; // Current sort column.
+  order?: Order; // Current sort order.
   onPageChange: (newPage: number) => void; // Callback to handle page changes.
   onRowsPerPageChange: (newRowsPerPage: number) => void; // Callback to handle changes in rows per page.
+  onSortChange: (orderBy: string, order: Order) => void; // Callback to handle sort changes.
   onSelectMultiple: (rowIds: number[]) => void; // Callback to handle selecting multiple rows.
   onDeselectMultiple: (rowIds: number[]) => void; // Callback to handle deselecting multiple rows.
   onSelectOne: (rowId: number) => void; // Callback to handle selecting a single row.
@@ -141,13 +147,21 @@ export function TicketsTable({
   rowsPerPage = 10,
   eventId = 0,
   selected, // use from parent component
+  orderBy = '',
+  order = 'asc',
   onPageChange,
   onRowsPerPageChange,
+  onSortChange,
   onSelectMultiple,
   onDeselectMultiple,
   onSelectOne,
   onDeselectOne,
 }: CustomersTableProps): React.JSX.Element {
+  const handleRequestSort = (property: string) => {
+    const isAsc = orderBy === property && order === 'asc';
+    const newOrder = isAsc ? 'desc' : 'asc';
+    onSortChange(property, newOrder);
+  };
 
   const handleChangePage = (event: unknown, newPage: number) => {
     onPageChange(newPage);
@@ -193,8 +207,24 @@ export function TicketsTable({
               <TableCell>Trạng thái</TableCell>
               <TableCell>Thanh toán</TableCell>
               <TableCell>Xuất vé</TableCell>
-              <TableCell>Thời gian tạo</TableCell>
-              <TableCell>Thời gian check-in</TableCell>
+              <TableCell>
+                <TableSortLabel
+                  active={orderBy === 'createdAt'}
+                  direction={orderBy === 'createdAt' ? order : 'asc'}
+                  onClick={() => handleRequestSort('createdAt')}
+                >
+                  Thời gian tạo
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <TableSortLabel
+                  active={orderBy === 'checkInAt'}
+                  direction={orderBy === 'checkInAt' ? order : 'asc'}
+                  onClick={() => handleRequestSort('checkInAt')}
+                >
+                  Thời gian check-in
+                </TableSortLabel>
+              </TableCell>
               <TableCell> </TableCell>
             </TableRow>
           </TableHead>
