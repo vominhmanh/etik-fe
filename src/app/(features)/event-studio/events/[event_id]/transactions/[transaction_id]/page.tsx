@@ -34,6 +34,7 @@ import dayjs from 'dayjs';
 import NotificationContext from '@/contexts/notification-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PrintTagModal from './print-tag-modal';
+import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from '@/config/phone-countries';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -150,9 +151,11 @@ interface Event {
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
   holderName: string;        // Name of the ticket holder
-  holderPhone: string;        // Name of the ticket holder
-  holderEmail: string;        // Name of the ticket holder
-  holderTitle: string;        // Name of the ticket holder
+  holderPhone: string;        // Phone number of the ticket holder
+  holderPhoneCountry?: string; // ISO 3166-1 alpha-2 country code for phone number
+  holderPhoneNationalNumber?: string; // National significant number without trunk '0'
+  holderEmail: string;        // Email of the ticket holder
+  holderTitle: string;        // Title of the ticket holder
   holderAvatar: string | null;  // Avatar URL of the ticket holder
   eCode?: string;
   createdAt: string;   // The date the ticket was created
@@ -253,6 +256,8 @@ export interface Transaction {
   gender: string;                   // Gender of the customer
   title: string;                   // Gender of the customer
   phoneNumber: string;              // Customer's phone number
+  phoneCountry?: string | null;
+  phoneNationalNumber?: string | null;
   address: string | null;           // Customer's address, nullable
   dob: string | null;               // Date of birth, nullable
   transactionTicketCategories: TransactionTicketCategory[]; // List of ticket categories in the transaction
@@ -295,6 +300,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
     name: transaction?.name || '',
     title: transaction?.title || '',
     phoneNumber: transaction?.phoneNumber || '',
+    phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
     address: transaction?.address || '',
     dob: transaction?.dob || null,
     status: ''
@@ -305,7 +311,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [selectedStatus, setSelectedStatus] = useState<string>(formData.status || '');
   const [editCategoryModalOpen, setEditCategoryModalOpen] = useState<boolean>(false);
   const [editingCategory, setEditingCategory] = useState<TransactionTicketCategory | null>(null);
-  const [editingHolderInfos, setEditingHolderInfos] = useState<{ title: string; name: string; email: string; phone: string; avatar?: string; }[]>([]);
+  const [editingHolderInfos, setEditingHolderInfos] = useState<{ title: string; name: string; email: string; phone: string; phoneCountryIso2?: string; avatar?: string; }[]>([]);
   const [ticketMenuAnchorEl, setTicketMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [activeMenuTicket, setActiveMenuTicket] = useState<{ categoryIndex: number; ticketIndex: number } | null>(null);
   const [pendingHolderAvatarFiles, setPendingHolderAvatarFiles] = useState<Record<number, File>>({});
@@ -383,6 +389,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
         {
           name: formData.name,
           phoneNumber: formData.phoneNumber,
+          phoneCountry: formData.phoneCountryIso2,
+          phoneNationalNumber: formData.phoneNumber.replace(/\D/g, '').replace(/^0(?!$)/, ''),
           dob: formData.dob,
           title: formData.title,
           address: formData.address,
@@ -420,7 +428,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
         setFormData({
           title: response.data?.title || 'Bạn',
           name: response.data?.name || '',
-          phoneNumber: response.data?.phoneNumber || '',
+          phoneNumber: response.data?.phoneNationalNumber || response.data?.phoneNumber || '',
+          phoneCountryIso2: response.data?.phoneCountry || DEFAULT_PHONE_COUNTRY.iso2,
           dob: response.data?.dob || null,
           address: response.data?.address || '',
           status: '',
@@ -593,7 +602,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
       title: t.holderTitle || 'Bạn',
       name: t.holderName || '',
       email: t.holderEmail || '',
-      phone: t.holderPhone || '',
+      phone: t.holderPhoneNationalNumber || t.holderPhone || '',
+      phoneCountryIso2: t.holderPhoneCountry || DEFAULT_PHONE_COUNTRY.iso2,
       avatar: t.holderAvatar || '',
     }));
     setEditingHolderInfos(infos);
@@ -698,13 +708,24 @@ export default function Page({ params }: { params: { event_id: number; transacti
       }
 
       const payload = {
-        tickets: editingCategory.tickets.map((ticket, index) => ({
-          id: ticket.id,
-          holderTitle: editingHolderInfos[index]?.title,
-          holderName: editingHolderInfos[index]?.name,
-          holderPhone: editingHolderInfos[index]?.phone,
-          holderAvatar: avatarUrls[ticket.id] || editingHolderInfos[index]?.avatar || null,
-        })),
+        tickets: editingCategory.tickets.map((ticket, index) => {
+          const holder = editingHolderInfos[index];
+          if (!holder) return null;
+          
+          // Derive NSN from phone number (strip leading '0' if present)
+          const digits = holder.phone.replace(/\D/g, '');
+          const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+          
+          return {
+            id: ticket.id,
+            holderTitle: holder.title,
+            holderName: holder.name,
+            holderPhone: holder.phone,
+            holderPhoneCountry: holder.phoneCountryIso2,
+            holderPhoneNationalNumber: phoneNSN,
+            holderAvatar: avatarUrls[ticket.id] || holder.avatar || null,
+          };
+        }).filter(Boolean),
       };
       await baseHttpServiceInstance.patch(
         `/event-studio/events/${event_id}/transactions/${transaction_id}/update-ticket-holders`,
@@ -795,6 +816,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
       setIsLoading(false);
     }
   };
+
+  const selectedPhoneCountry = React.useMemo(() => {
+    return PHONE_COUNTRIES.find(c => c.iso2 === formData.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
+  }, [formData.phoneCountryIso2]);
 
   if (!transaction) {
     return <Typography>Loading...</Typography>;
@@ -1245,6 +1270,29 @@ export default function Page({ params }: { params: { event_id: number; transacti
                         onChange={(event: any) => handleFormChange(event)}
                         name="phoneNumber"
                         label="Số điện thoại"
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <Select
+                              variant="standard"
+                              disableUnderline
+                              value={formData.phoneCountryIso2}
+                              onChange={(event) =>
+                                setFormData({ ...formData, phoneCountryIso2: event.target.value })
+                              }
+                              sx={{ minWidth: 80 }}
+                              renderValue={(value) => {
+                                const country = PHONE_COUNTRIES.find(c => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                return country.dialCode;
+                              }}
+                            >
+                              {PHONE_COUNTRIES.map((country) => (
+                                <MenuItem key={country.iso2} value={country.iso2}>
+                                  {country.nameVi} ({country.dialCode})
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </InputAdornment>
+                        }
                       />
                     </FormControl>
                   </Grid>
@@ -1694,6 +1742,33 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                         return next;
                                       });
                                     }}
+                                    startAdornment={
+                                      <InputAdornment position="start">
+                                        <Select
+                                          variant="standard"
+                                          disableUnderline
+                                          value={holder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
+                                          onChange={(event) => {
+                                            setEditingHolderInfos((prev) => {
+                                              const next = [...prev];
+                                              next[index] = { ...next[index], phoneCountryIso2: event.target.value };
+                                              return next;
+                                            });
+                                          }}
+                                          sx={{ minWidth: 50 }}
+                                          renderValue={(value) => {
+                                            const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                            return country.dialCode;
+                                          }}
+                                        >
+                                          {PHONE_COUNTRIES.map((country) => (
+                                            <MenuItem key={country.iso2} value={country.iso2}>
+                                              {country.nameVi} ({country.dialCode})
+                                            </MenuItem>
+                                          ))}
+                                        </Select>
+                                      </InputAdornment>
+                                    }
                                   />
                                 </FormControl>
                               </Grid>

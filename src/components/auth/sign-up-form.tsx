@@ -14,14 +14,18 @@ import FormHelperText from '@mui/material/FormHelperText';
 import InputLabel from '@mui/material/InputLabel';
 import Link from '@mui/material/Link';
 import OutlinedInput from '@mui/material/OutlinedInput';
+import InputAdornment from '@mui/material/InputAdornment';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
 import { Modal, Card, CardContent } from '@mui/material';
 import { Container } from '@mui/system';
+import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY } from '@/config/phone-countries';
 
-import { AuthRes } from '@/types/auth';
+import { AuthRes, SignUpReq } from '@/types/auth';
 import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { useUser } from '@/hooks/use-user';
@@ -32,13 +36,14 @@ import { useTranslation } from '@/contexts/locale-context';
 type Values = {
   fullName: string;
   phoneNumber: string;
+  phoneCountryIso2: string;
   email: string;
   password: string;
   terms: boolean;
   otp?: string;
 };
 
-const defaultValues = { fullName: '', phoneNumber: '', email: '', password: '', terms: false, otp: '' } satisfies Values;
+const defaultValues = { fullName: '', phoneNumber: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2, email: '', password: '', terms: false, otp: '' } satisfies Values;
 
 export function SignUpForm(): React.JSX.Element {
   const { tt } = useTranslation();
@@ -71,7 +76,19 @@ export function SignUpForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
       try {
-        const res: AuthRes = await authClient.signUp(values);
+        // Derive NSN from phone number (strip leading '0' if present)
+        const digits = values.phoneNumber.replace(/\D/g, '');
+        const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+
+        const signUpData: SignUpReq = {
+          fullName: values.fullName,
+          email: values.email,
+          phoneNumber: values.phoneNumber,
+          phoneCountry: values.phoneCountryIso2,
+          phoneNationalNumber: phoneNSN,
+          password: values.password,
+        };
+        const res: AuthRes = await authClient.signUp(signUpData);
         setIsOtpModalOpen(true); // Open OTP modal on successful signup
 
       } catch (error: any) {
@@ -143,9 +160,41 @@ export function SignUpForm(): React.JSX.Element {
               control={control}
               name="phoneNumber"
               render={({ field }) => (
-                <FormControl error={Boolean(errors.phoneNumber)}>
+                <FormControl error={Boolean(errors.phoneNumber)} fullWidth>
                   <InputLabel>{tt('Số điện thoại', 'Phone Number')}</InputLabel>
-                  <OutlinedInput {...field} label={tt('Số điện thoại', 'Phone Number')} />
+                  <OutlinedInput
+                    {...field}
+                    label={tt('Số điện thoại', 'Phone Number')}
+                    type="tel"
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <Controller
+                          control={control}
+                          name="phoneCountryIso2"
+                          render={({ field: countryField }) => (
+                            <Select
+                              variant="standard"
+                              disableUnderline
+                              value={countryField.value}
+                              onChange={countryField.onChange}
+                              sx={{ minWidth: 80 }}
+                              renderValue={(value) => {
+                                const country =
+                                  PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                return country.dialCode;
+                              }}
+                            >
+                              {PHONE_COUNTRIES.map((country) => (
+                                <MenuItem key={country.iso2} value={country.iso2}>
+                                  {country.nameVi} ({country.dialCode})
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          )}
+                        />
+                      </InputAdornment>
+                    }
+                  />
                   {errors.phoneNumber ? <FormHelperText>{errors.phoneNumber.message}</FormHelperText> : null}
                 </FormControl>
               )}

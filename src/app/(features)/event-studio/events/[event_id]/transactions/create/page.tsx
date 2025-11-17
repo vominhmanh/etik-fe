@@ -29,6 +29,7 @@ import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 import { Pencil } from '@phosphor-icons/react/dist/ssr';
 import { Plus } from '@phosphor-icons/react/dist/ssr';
+import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from '@/config/phone-countries';
 
 export type TicketCategory = {
   id: number;
@@ -70,7 +71,7 @@ export type EventResponse = {
   locationInstruction: string | null;
   shows: Show[];
 };
-type TicketHolderInfo = { title: string; name: string; email: string; phone: string; avatar?: string };
+type TicketHolderInfo = { title: string; name: string; email: string; phone: string; phoneCountryIso2?: string; avatar?: string };
 
 const getPaymentMethodLabel = (paymentMethod: string, tt: (vi: string, en: string) => string): string => {
   switch (paymentMethod) {
@@ -102,6 +103,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     name: '',
     email: '',
     phoneNumber: '',
+    phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
     dob: null as string | null,
     address: '',
     avatar: ''
@@ -118,6 +120,21 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [requireGuestAvatar, setRequireGuestAvatar] = React.useState<boolean>(false);
   const [pendingCustomerAvatarFile, setPendingCustomerAvatarFile] = React.useState<File | null>(null);
   const [pendingHolderAvatarFiles, setPendingHolderAvatarFiles] = React.useState<Record<string, File>>({});
+
+  const selectedPhoneCountry = React.useMemo(() => {
+    return PHONE_COUNTRIES.find((c) => c.iso2 === customer.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
+  }, [customer.phoneCountryIso2]);
+
+  const customerNSN = React.useMemo(() => {
+    if (!customer.phoneNumber) return '';
+    const digits = customer.phoneNumber.replace(/\D/g, '');
+    return digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+  }, [customer.phoneNumber]);
+
+  const formattedCustomerPhone = React.useMemo(() => {
+    if (!customerNSN) return '';
+    return `${selectedPhoneCountry.dialCode} ${customerNSN}`;
+  }, [customerNSN, selectedPhoneCountry]);
 
   // Fetch event details on component mount
   React.useEffect(() => {
@@ -174,7 +191,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     });
   };
 
-  const handleAddToCartQuantity = (showId: number, categoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; }[]) => {
+  const handleAddToCartQuantity = (showId: number, categoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; phoneCountryIso2?: string; }[]) => {
     setSelectedCategories(prev => {
       const forShow = prev[showId] || {};
       const updatedForShow = { ...forShow } as Record<number, number>;
@@ -199,7 +216,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const existing = prev[key] || [];
       if (holders && holders.length > 0) {
         const merged = Array.from({ length: quantity }, (_, i) => {
-          const prevHolder: TicketHolderInfo = existing[i] || { title: 'Bạn', name: '', email: '', phone: '', avatar: (requireGuestAvatar && customer.avatar) ? customer.avatar : '' };
+          const prevHolder: TicketHolderInfo = existing[i] || { title: 'Bạn', name: '', email: '', phone: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2, avatar: (requireGuestAvatar && customer.avatar) ? customer.avatar : '' };
           const incoming = holders[i];
           let combined: TicketHolderInfo = incoming ? { ...prevHolder, ...incoming } as TicketHolderInfo : prevHolder;
           if (!combined.avatar) {
@@ -210,7 +227,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         return { ...prev, [key]: merged };
       }
       // ensure existing array is sized to quantity
-      const sized = Array.from({ length: quantity }, (_, i) => existing[i] || { title: 'Bạn', name: '', email: '', phone: '', avatar: (requireGuestAvatar && customer.avatar) ? customer.avatar : '' });
+      const sized = Array.from({ length: quantity }, (_, i) => existing[i] || { title: 'Bạn', name: '', email: '', phone: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2, avatar: (requireGuestAvatar && customer.avatar) ? customer.avatar : '' });
       return { ...prev, [key]: sized };
     });
   };
@@ -505,9 +522,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           const holders = ticketHoldersByCategory[key] || [];
           
           // Replace preview URLs with S3 URLs if requireGuestAvatar is true
+          // Also convert phoneCountryIso2 to phoneCountry and phoneNationalNumber
           const holdersWithS3Urls = holders.map((h, index) => {
             const fileKey = `${showId}-${categoryIdStr}-${index}`;
-            const holderData = { ...h };
+            const holderData: any = { ...h };
             
             // Only include avatar if requireGuestAvatar is true
             if (requireGuestAvatar && holderAvatarUrls[fileKey]) {
@@ -515,6 +533,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             } else if (!requireGuestAvatar) {
               // Remove avatar field if not required
               delete holderData.avatar;
+            }
+            
+            // Convert phoneCountryIso2 to phoneCountry and phoneNationalNumber
+            if (holderData.phone) {
+              // Derive NSN from phone number (strip leading '0' if present)
+              const digits = holderData.phone.replace(/\D/g, '');
+              const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+              holderData.phoneCountry = holderData.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2;
+              holderData.phoneNationalNumber = phoneNSN;
+              // Keep phoneCountryIso2 for internal use, but also send phoneCountry
+              delete holderData.phoneCountryIso2; // Remove from final payload
             }
             
             return holderData;
@@ -550,6 +579,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         name: customer.name,
         email: customer.email,
         phoneNumber: customer.phoneNumber,
+        phoneCountry: customer.phoneCountryIso2,
+        phoneNationalNumber: customerNSN,
         dob: customer.dob,
         address: customer.address,
       };
@@ -700,6 +731,30 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         type="tel"
                         value={customer.phoneNumber}
                         onChange={(e) => setCustomer({ ...customer, phoneNumber: e.target.value })}
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <Select
+                              variant="standard"
+                              disableUnderline
+                              value={customer.phoneCountryIso2}
+                              onChange={(e) =>
+                                setCustomer({ ...customer, phoneCountryIso2: e.target.value as string })
+                              }
+                              sx={{ minWidth: 80 }}
+                              renderValue={(value) => {
+                                const country =
+                                  PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                return country.dialCode;
+                              }}
+                            >
+                              {PHONE_COUNTRIES.map((country) => (
+                                <MenuItem key={country.iso2} value={country.iso2}>
+                                  {country.nameVi} ({country.dialCode})
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </InputAdornment>
+                        }
                       />
                     </FormControl>
                   </Grid>
@@ -1004,7 +1059,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2">{tt("Số điện thoại", "Phone Number")}</Typography>
-                    <Typography variant="body2">{customer.phoneNumber}</Typography>
+                    <Typography variant="body2">
+                      {formattedCustomerPhone || customer.phoneNumber}
+                    </Typography>
                   </Box>
                   <Divider />
 

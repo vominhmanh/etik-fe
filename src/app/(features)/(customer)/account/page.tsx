@@ -5,7 +5,7 @@ import { useTranslation } from '@/contexts/locale-context';
 import { useUser } from '@/hooks/use-user';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { User } from '@/types/auth';
-import { Avatar } from '@mui/material';
+import { Avatar, InputAdornment } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
@@ -15,9 +15,12 @@ import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
+import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY } from '@/config/phone-countries';
 import { AxiosResponse } from 'axios';
 import * as React from 'react';
 import { useContext, useEffect, useState } from 'react';
@@ -26,6 +29,8 @@ export interface UserInformationResponse {
   fullName: string;
   email: string;
   phoneNumber: string;
+  phoneCountry?: string;
+  phoneNationalNumber?: string;
   address: string;
   hasPassword: boolean;
   googleConnected: boolean;
@@ -34,6 +39,8 @@ export interface UserInformationResponse {
 export interface UserInformationUpdate {
   fullName: string;
   phoneNumber: string;
+  phoneCountry?: string;
+  phoneNationalNumber?: string;
   address: string;
 }
 
@@ -44,9 +51,10 @@ export default function Page(): React.JSX.Element {
     newPassword: '',
     confirmPassword: '',
   });
-  const [formValues, setFormValues] = useState<UserInformationUpdate>({
+  const [formValues, setFormValues] = useState<UserInformationUpdate & { phoneCountryIso2: string }>({
     fullName: '',
     phoneNumber: '',
+    phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
     address: ''
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -64,9 +72,12 @@ export default function Page(): React.JSX.Element {
       setIsLoading(true);
       const data = await getUserInformation();
       if (data) {
+        // Use phoneNationalNumber if available, otherwise fallback to phoneNumber
+        const phoneDisplay = data.phoneNationalNumber || data.phoneNumber || '';
         setFormValues({
           fullName: data.fullName,
-          phoneNumber: data.phoneNumber,
+          phoneNumber: phoneDisplay,
+          phoneCountryIso2: data.phoneCountry || DEFAULT_PHONE_COUNTRY.iso2,
           address: data.address,
         });
         setUserInfo(data)
@@ -135,9 +146,29 @@ export default function Page(): React.JSX.Element {
   const handleSave = async () => {
     try {
       setIsLoading(true);
-      await updateUserInformation(formValues);
+      // Derive NSN from phone number (strip leading '0' if present)
+      const digits = formValues.phoneNumber.replace(/\D/g, '');
+      const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+
+      const updateData: UserInformationUpdate = {
+        fullName: formValues.fullName,
+        phoneNumber: formValues.phoneNumber,
+        phoneCountry: formValues.phoneCountryIso2,
+        phoneNationalNumber: phoneNSN,
+        address: formValues.address,
+      };
+      await updateUserInformation(updateData);
       notificationCtx.success(tt('Cập nhật thông tin thành công.', 'Information updated successfully.'));
-      setUserInfo({ email: userInfo?.email || '', fullName: formValues.fullName, phoneNumber: formValues.phoneNumber, address: formValues.address, hasPassword: userInfo?.hasPassword || false, googleConnected: userInfo?.googleConnected || false })
+      setUserInfo({ 
+        email: userInfo?.email || '', 
+        fullName: formValues.fullName, 
+        phoneNumber: phoneNSN, 
+        phoneCountry: formValues.phoneCountryIso2,
+        phoneNationalNumber: phoneNSN,
+        address: formValues.address, 
+        hasPassword: userInfo?.hasPassword || false, 
+        googleConnected: userInfo?.googleConnected || false 
+      })
     } catch (error) {
       notificationCtx.error(tt('Không thể cập nhật thông tin.', 'Unable to update information.'));
     } finally {
@@ -261,7 +292,37 @@ export default function Page(): React.JSX.Element {
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth>
                       <InputLabel shrink>{tt('Số điện thoại', 'Phone Number')}</InputLabel>
-                      <OutlinedInput notched value={formValues.phoneNumber} onChange={handleInfoChange} label={tt('Số điện thoại', 'Phone Number')} name="phoneNumber" type="tel" />
+                      <OutlinedInput
+                        notched
+                        value={formValues.phoneNumber}
+                        onChange={handleInfoChange}
+                        label={tt('Số điện thoại', 'Phone Number')}
+                        name="phoneNumber"
+                        type="tel"
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <Select
+                              variant="standard"
+                              disableUnderline
+                              value={formValues.phoneCountryIso2}
+                              onChange={(event) =>
+                                setFormValues({ ...formValues, phoneCountryIso2: event.target.value })
+                              }
+                              sx={{ minWidth: 80 }}
+                              renderValue={(value) => {
+                                const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                return country.dialCode;
+                              }}
+                            >
+                              {PHONE_COUNTRIES.map((country) => (
+                                <MenuItem key={country.iso2} value={country.iso2}>
+                                  {country.nameVi} ({country.dialCode})
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </InputAdornment>
+                        }
+                      />
                     </FormControl>
                   </Grid>
                   <Grid md={12} xs={12}>

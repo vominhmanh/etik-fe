@@ -13,6 +13,8 @@ export type SignUpReq = {
   fullName: string;
   email: string;
   phoneNumber: string;
+  phoneCountry?: string;
+  phoneNationalNumber?: string;
   password: string;
 };
 

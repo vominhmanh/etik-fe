@@ -19,6 +19,7 @@ import { Show } from "./page";
 import { Plus, Ticket, X } from "@phosphor-icons/react/dist/ssr";
 import NotificationContext from "@/contexts/notification-context";
 import { useTranslation } from "@/contexts/locale-context";
+import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY } from "@/config/phone-countries";
 
 
 interface TicketCategoriesProps {
@@ -28,7 +29,7 @@ interface TicketCategoriesProps {
   requestedCategoryModalId?: number;
   onModalRequestHandled?: () => void;
   onCategorySelect: (ticketCategoryId: number) => void;
-  onAddToCart?: (ticketCategoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; }[]) => void;
+  onAddToCart?: (ticketCategoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; phoneCountryIso2?: string; }[]) => void;
 }
 
 type ColorMap = {
@@ -56,8 +57,8 @@ export function TicketCategories({ show, qrOption, requireTicketHolderInfo, requ
   const [cartQuantities, setCartQuantities] = useState<Record<number, number>>({});
   const [showMore, setShowMore] = useState(false);
   const notificationCtx = React.useContext(NotificationContext);
-  type TicketHolderInfo = { title: string; name: string; email: string; phone: string };
-  const [ticketHolderInfos, setTicketHolderInfos] = useState<{ title: string; name: string; email: string; phone: string; }[]>([]);
+  type TicketHolderInfo = { title: string; name: string; email: string; phone: string; phoneCountryIso2?: string };
+  const [ticketHolderInfos, setTicketHolderInfos] = useState<TicketHolderInfo[]>([]);
   const [ticketHolderInfosByCategory, setTicketHolderInfosByCategory] = useState<Record<number, TicketHolderInfo[]>>({});
   // no separate holder modal; details are inside the description modal
 
@@ -71,7 +72,7 @@ export function TicketCategories({ show, qrOption, requireTicketHolderInfo, requ
     const initialQty = Math.max(1, Math.min(maxAllowed, ticketQuantities[target.id] || 1));
     setTicketQuantities((prev) => ({ ...prev, [target.id]: initialQty }));
     const saved = ticketHolderInfosByCategory[target.id] || [];
-    const next = Array.from({ length: initialQty }, (_, i) => saved[i] || { title: 'Bạn', name: '', email: '', phone: '' });
+    const next = Array.from({ length: initialQty }, (_, i) => saved[i] || { title: 'Bạn', name: '', email: '', phone: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2 });
     setTicketHolderInfos(next);
     onModalRequestHandled && onModalRequestHandled();
   }, [requestedCategoryModalId]);
@@ -120,7 +121,7 @@ export function TicketCategories({ show, qrOption, requireTicketHolderInfo, requ
     // Initialize holder infos to match current quantity (default 1)
     const initialQty = Math.max(1, Math.min(getMaxAllowedForCategory(ticketCategory), ticketQuantities[ticketCategory.id] || 1));
     const saved = ticketHolderInfosByCategory[ticketCategory.id] || [];
-    const next = Array.from({ length: initialQty }, (_, i) => saved[i] || { title: 'Bạn', name: '', email: '', phone: '' });
+    const next = Array.from({ length: initialQty }, (_, i) => saved[i] || { title: 'Bạn', name: '', email: '', phone: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2 });
     setTicketHolderInfos(next);
   };
 
@@ -136,7 +137,7 @@ export function TicketCategories({ show, qrOption, requireTicketHolderInfo, requ
       if (clamped <= 0) return [];
       if (clamped === prev.length) return prev;
       if (clamped < prev.length) return prev.slice(0, clamped);
-      const additions = Array.from({ length: clamped - prev.length }, () => ({ title: 'Bạn', name: '', email: '', phone: '' }));
+      const additions = Array.from({ length: clamped - prev.length }, () => ({ title: 'Bạn', name: '', email: '', phone: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2 }));
       return [...prev, ...additions];
     });
   };
@@ -470,6 +471,33 @@ export function TicketCategories({ show, qrOption, requireTicketHolderInfo, requ
                                     return next;
                                   });
                                 }}
+                                startAdornment={
+                                  <InputAdornment position="start">
+                                    <Select
+                                      variant="standard"
+                                      disableUnderline
+                                      value={holder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
+                                      onChange={(event) => {
+                                        setTicketHolderInfos((prev) => {
+                                          const next = [...prev];
+                                          next[index] = { ...next[index], phoneCountryIso2: event.target.value };
+                                          return next;
+                                        });
+                                      }}
+                                      sx={{ minWidth: 50 }}
+                                      renderValue={(value) => {
+                                        const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                        return country.dialCode;
+                                      }}
+                                    >
+                                      {PHONE_COUNTRIES.map((country) => (
+                                        <MenuItem key={country.iso2} value={country.iso2}>
+                                          {country.nameVi} ({country.dialCode})
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                  </InputAdornment>
+                                }
                               />
                             </FormControl>
                           </Grid>
