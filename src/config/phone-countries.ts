@@ -39,4 +39,73 @@ export const PHONE_COUNTRIES: PhoneCountry[] = [
 
 export const DEFAULT_PHONE_COUNTRY: PhoneCountry = PHONE_COUNTRIES[0]; // Việt Nam
 
+/**
+ * Parse E.164 format phone number to extract country code and national number
+ * @param e164Phone Phone number in E.164 format (e.g., '+84333247242')
+ * @returns Object with countryCode (ISO 3166-1 alpha-2) and nationalNumber (NSN without trunk '0')
+ */
+export function parseE164Phone(e164Phone: string | null | undefined): {
+  countryCode: string;
+  nationalNumber: string;
+} | null {
+  if (!e164Phone) return null;
+
+  try {
+    // Import google-libphonenumber dynamically to avoid SSR issues
+    const { PhoneNumberUtil, PhoneNumberFormat } = require('google-libphonenumber');
+    const phoneUtil = PhoneNumberUtil.getInstance();
+    
+    const parsed = phoneUtil.parse(e164Phone, null);
+    const countryCode = phoneUtil.getRegionCodeForNumber(parsed);
+    const nationalNumber = phoneUtil.format(parsed, PhoneNumberFormat.NATIONAL);
+    
+    // Extract digits only from national number and remove leading trunk '0'
+    const digits = nationalNumber.replace(/\D/g, '');
+    const nsn = digits.startsWith('0') && digits.length > 1 ? digits.slice(1) : digits;
+    
+    return {
+      countryCode: countryCode || DEFAULT_PHONE_COUNTRY.iso2,
+      nationalNumber: nsn || '',
+    };
+  } catch (error) {
+    console.error('Failed to parse E.164 phone:', e164Phone, error);
+    // Fallback: try to extract country code from known dial codes
+    for (const country of PHONE_COUNTRIES) {
+      if (e164Phone.startsWith(country.dialCode)) {
+        const nationalNumber = e164Phone.slice(country.dialCode.length);
+        return {
+          countryCode: country.iso2,
+          nationalNumber: nationalNumber.replace(/^0+/, ''), // Remove leading zeros
+        };
+      }
+    }
+    return null;
+  }
+}
+
+/**
+ * Format phone country and national number to E.164 format
+ * @param countryCode ISO 3166-1 alpha-2 country code (e.g., 'VN')
+ * @param nationalNumber National Significant Number without trunk '0' (e.g., '333247242')
+ * @returns Phone number in E.164 format (e.g., '+84333247242')
+ */
+export function formatToE164(countryCode: string, nationalNumber: string): string | null {
+  if (!countryCode || !nationalNumber) return null;
+
+  try {
+    const { PhoneNumberUtil, PhoneNumberFormat } = require('google-libphonenumber');
+    const phoneUtil = PhoneNumberUtil.getInstance();
+    
+    const parsed = phoneUtil.parse(nationalNumber, countryCode);
+    return phoneUtil.format(parsed, PhoneNumberFormat.E164);
+  } catch (error) {
+    console.error('Failed to format to E.164:', countryCode, nationalNumber, error);
+    // Fallback: construct manually
+    const country = PHONE_COUNTRIES.find(c => c.iso2 === countryCode);
+    if (country) {
+      return `${country.dialCode}${nationalNumber}`;
+    }
+    return null;
+  }
+}
 

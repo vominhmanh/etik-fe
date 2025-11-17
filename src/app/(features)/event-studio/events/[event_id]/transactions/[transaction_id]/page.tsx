@@ -34,7 +34,7 @@ import dayjs from 'dayjs';
 import NotificationContext from '@/contexts/notification-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PrintTagModal from './print-tag-modal';
-import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from '@/config/phone-countries';
+import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone, formatToE164 } from '@/config/phone-countries';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -151,9 +151,7 @@ interface Event {
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
   holderName: string;        // Name of the ticket holder
-  holderPhone: string;        // Phone number of the ticket holder
-  holderPhoneCountry?: string; // ISO 3166-1 alpha-2 country code for phone number
-  holderPhoneNationalNumber?: string; // National significant number without trunk '0'
+  holderPhone: string;        // Phone number of the ticket holder in E.164 format (e.g., +84333247242)
   holderEmail: string;        // Email of the ticket holder
   holderTitle: string;        // Title of the ticket holder
   holderAvatar: string | null;  // Avatar URL of the ticket holder
@@ -255,9 +253,7 @@ export interface Transaction {
   requireGuestAvatar: boolean;       // Whether to require guest avatar
   gender: string;                   // Gender of the customer
   title: string;                   // Gender of the customer
-  phoneNumber: string;              // Customer's phone number
-  phoneCountry?: string | null;
-  phoneNationalNumber?: string | null;
+  phoneNumber: string;              // Customer's phone number in E.164 format (e.g., +84333247242)
   address: string | null;           // Customer's address, nullable
   dob: string | null;               // Date of birth, nullable
   transactionTicketCategories: TransactionTicketCategory[]; // List of ticket categories in the transaction
@@ -425,11 +421,14 @@ export default function Page({ params }: { params: { event_id: number; transacti
           }
         );
         setTransaction(response.data);
+        
+        // Parse E.164 phone number to extract country and national number
+        const parsedPhone = parseE164Phone(response.data?.phoneNumber);
         setFormData({
           title: response.data?.title || 'Bạn',
           name: response.data?.name || '',
-          phoneNumber: response.data?.phoneNationalNumber || response.data?.phoneNumber || '',
-          phoneCountryIso2: response.data?.phoneCountry || DEFAULT_PHONE_COUNTRY.iso2,
+          phoneNumber: parsedPhone?.nationalNumber || '',
+          phoneCountryIso2: parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2,
           dob: response.data?.dob || null,
           address: response.data?.address || '',
           status: '',
@@ -598,14 +597,18 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
   const openEditCategoryModal = (category: TransactionTicketCategory) => {
     setEditingCategory(category);
-    const infos = category.tickets.map((t) => ({
-      title: t.holderTitle || 'Bạn',
-      name: t.holderName || '',
-      email: t.holderEmail || '',
-      phone: t.holderPhoneNationalNumber || t.holderPhone || '',
-      phoneCountryIso2: t.holderPhoneCountry || DEFAULT_PHONE_COUNTRY.iso2,
-      avatar: t.holderAvatar || '',
-    }));
+    const infos = category.tickets.map((t) => {
+      // Parse E.164 phone number to extract country and national number
+      const parsedPhone = parseE164Phone(t.holderPhone);
+      return {
+        title: t.holderTitle || 'Bạn',
+        name: t.holderName || '',
+        email: t.holderEmail || '',
+        phone: parsedPhone?.nationalNumber || '',
+        phoneCountryIso2: parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2,
+        avatar: t.holderAvatar || '',
+      };
+    });
     setEditingHolderInfos(infos);
     setPendingHolderAvatarFiles({});
     setEditCategoryModalOpen(true);
@@ -731,23 +734,34 @@ export default function Page({ params }: { params: { event_id: number; transacti
         `/event-studio/events/${event_id}/transactions/${transaction_id}/update-ticket-holders`,
         payload
       );
+      
+      // Update transaction state with E.164 formatted phone numbers
       setTransaction((prev) => {
         if (!prev) return prev;
         const updatedCategories = prev.transactionTicketCategories.map((cat) => {
           if (cat.ticketCategory.id !== (editingCategory?.ticketCategory.id || 0)) return cat;
           return {
             ...cat,
-            tickets: cat.tickets.map((t, i) => ({
-              ...t,
-              holderTitle: editingHolderInfos[i]?.title || t.holderTitle,
-              holderName: editingHolderInfos[i]?.name || t.holderName,
-              holderPhone: editingHolderInfos[i]?.phone || t.holderPhone,
-              holderAvatar: avatarUrls[t.id] || editingHolderInfos[i]?.avatar || t.holderAvatar,
-            })),
+            tickets: cat.tickets.map((t, i) => {
+              const holder = editingHolderInfos[i];
+              if (!holder) return t;
+              
+              // Format phone to E.164
+              const e164Phone = formatToE164(holder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2, holder.phone.replace(/\D/g, '').replace(/^0+/, ''));
+              
+              return {
+                ...t,
+                holderTitle: holder.title || t.holderTitle,
+                holderName: holder.name || t.holderName,
+                holderPhone: e164Phone || t.holderPhone,
+                holderAvatar: avatarUrls[t.id] || holder.avatar || t.holderAvatar,
+              };
+            }),
           };
         });
         return { ...prev, transactionTicketCategories: updatedCategories };
       });
+      
       notificationCtx.success('Cập nhật thông tin vé thành công!');
       setEditCategoryModalOpen(false);
       setPendingHolderAvatarFiles({});
@@ -1375,7 +1389,19 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                         </Typography>
                                         {transaction.qrOption === 'separate' && (
                                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                          {ticket.holderEmail || 'Chưa có email'} - {ticket.holderPhone || 'Chưa có SĐT'}
+                                          {(() => {
+                                            const email = ticket.holderEmail || 'Chưa có email';
+                                            if (!ticket.holderPhone) {
+                                              return `${email} - Chưa có SĐT`;
+                                            }
+                                            // Parse E.164 phone to get country code and national number
+                                            const parsedPhone = parseE164Phone(ticket.holderPhone);
+                                            if (parsedPhone) {
+                                              const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
+                                              return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
+                                            }
+                                            return `${email} - ${ticket.holderPhone}`;
+                                          })()}
                                         </Typography>
                                         )}
                                       </div>

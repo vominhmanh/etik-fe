@@ -29,7 +29,7 @@ import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 import { Pencil } from '@phosphor-icons/react/dist/ssr';
 import { Plus } from '@phosphor-icons/react/dist/ssr';
-import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from '@/config/phone-countries';
+import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone } from '@/config/phone-countries';
 
 export type TicketCategory = {
   id: number;
@@ -891,8 +891,32 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                         <br />
                                         {qrOption === 'separate' && (
                                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                            {holderInfo?.email || tt('Chưa có email', 'No email')} - {holderInfo?.phone || tt('Chưa có SĐT', 'No phone')}
-                                          </Typography>
+                                          {(() => {
+                                            const email = holderInfo?.email || tt('Chưa có email', 'No email');
+                                            if (!holderInfo?.phone) {
+                                              return `${email} - ${tt('Chưa có SĐT', 'No phone')}`;
+                                            }
+                                            // Use phoneCountryIso2 from user input, or parse E.164 if not available
+                                            const countryIso2 = holderInfo?.phoneCountryIso2;
+                                            
+                                            if (countryIso2) {
+                                              // Use country from user input
+                                              const country = PHONE_COUNTRIES.find(c => c.iso2 === countryIso2) || DEFAULT_PHONE_COUNTRY;
+                                              // Format phone number (remove leading 0 if present)
+                                              const digits = holderInfo.phone.replace(/\D/g, '');
+                                              const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+                                              return `${email} - ${country.dialCode} ${phoneNSN}`;
+                                            } else {
+                                              // Try to parse E.164 format (fallback)
+                                              const parsedPhone = parseE164Phone(holderInfo.phone);
+                                              if (parsedPhone) {
+                                                const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
+                                                return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
+                                              }
+                                              return `${email} - ${holderInfo.phone}`;
+                                            }
+                                          })()}
+                                        </Typography>
                                         )}
                                       </Box>
                                     </Stack>

@@ -24,6 +24,7 @@ import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '@/contexts/locale-context';
+import { parseE164Phone, PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY } from '@/config/phone-countries';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -535,7 +536,19 @@ export default function Page(): React.JSX.Element {
                                       </div>
                                       <div>
                                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                          {ticket.holderEmail || tt('Chưa có email', 'No email')} - {ticket.holderPhone || tt('Chưa có SĐT', 'No phone')}
+                                          {(() => {
+                                            const email = ticket.holderEmail || tt('Chưa có email', 'No email');
+                                            if (!ticket.holderPhone) {
+                                              return `${email} - ${tt('Chưa có SĐT', 'No phone')}`;
+                                            }
+                                            // Parse E.164 phone to get country code and national number
+                                            const parsedPhone = parseE164Phone(ticket.holderPhone);
+                                            if (parsedPhone) {
+                                              const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
+                                              return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
+                                            }
+                                            return `${email} - ${ticket.holderPhone}`;
+                                          })()}
                                         </Typography>
                                       </div>
                                     </>

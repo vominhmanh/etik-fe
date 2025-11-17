@@ -30,6 +30,7 @@ import ReCAPTCHA from 'react-google-recaptcha';
 
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
+import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY, parseE164Phone } from '@/config/phone-countries';
 
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { orange } from '@mui/material/colors';
@@ -138,6 +139,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     name: '',
     email: '',
     phoneNumber: '',
+    phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
     address: '',
   });
   const [paymentMethod, setPaymentMethod] = React.useState<string>('napas247');
@@ -415,17 +417,41 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         Object.entries(catMap || {}).map(([categoryIdStr, qty]) => {
           const key = `${showId}-${categoryIdStr}`;
           const holders = ticketHoldersByCategory[key] || [];
+          
+          // Convert phoneCountryIso2 to phoneCountry and phoneNationalNumber for holders
+          const processedHolders = holders.map((h: any) => {
+            if (!h.phone) return h;
+            // Derive NSN from phone number (strip leading '0' if present)
+            const digits = h.phone.replace(/\D/g, '');
+            const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+            return {
+              ...h,
+              phoneCountry: h.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2,
+              phoneNationalNumber: phoneNSN,
+            };
+          });
+          
           return {
             showId: parseInt(showId),
             ticketCategoryId: parseInt(categoryIdStr),
             quantity: qty || 0,
-            holders: qrOption === 'separate' ? holders : undefined,
+            holders: qrOption === 'separate' ? processedHolders : undefined,
           };
         })
       ));
 
+      // Convert phoneCountryIso2 to phoneCountry and phoneNationalNumber for customer
+      const digits = customer.phoneNumber.replace(/\D/g, '');
+      const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+      const { phoneCountryIso2, ...customerWithoutPhoneCountryIso2 } = customer;
+      const customerData = {
+        ...customerWithoutPhoneCountryIso2,
+        phoneCountry: phoneCountryIso2,
+        phoneNationalNumber: phoneNSN,
+      };
+
       const transactionData = {
-        customer,
+        customer: customerData,
         tickets,
         paymentMethod,
         qrOption,
@@ -683,6 +709,30 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                             type="tel"
                             value={customer.phoneNumber}
                             onChange={(e) => setCustomer({ ...customer, phoneNumber: e.target.value })}
+                            startAdornment={
+                              <InputAdornment position="start">
+                                <Select
+                                  variant="standard"
+                                  disableUnderline
+                                  value={customer.phoneCountryIso2}
+                                  onChange={(e) =>
+                                    setCustomer({ ...customer, phoneCountryIso2: e.target.value as string })
+                                  }
+                                  sx={{ minWidth: 50 }}
+                                  renderValue={(value) => {
+                                    const country =
+                                      PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                    return country.dialCode;
+                                  }}
+                                >
+                                  {PHONE_COUNTRIES.map((country) => (
+                                    <MenuItem key={country.iso2} value={country.iso2}>
+                                      {country.nameVi} ({country.dialCode})
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </InputAdornment>
+                            }
                           />
                         </FormControl>
                       </Grid>
@@ -867,7 +917,14 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="body2">{tt('Số điện thoại', 'Phone number')}</Typography>
-              <Typography variant="body2">{customer.phoneNumber}</Typography>
+              <Typography variant="body2">
+                {(() => {
+                  const selectedCountry = PHONE_COUNTRIES.find(c => c.iso2 === customer.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
+                  const digits = customer.phoneNumber.replace(/\D/g, '');
+                  const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+                  return phoneNSN ? `${selectedCountry.dialCode} ${phoneNSN}` : customer.phoneNumber;
+                })()}
+              </Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="body2">{tt('Địa chỉ', 'Address')}</Typography>

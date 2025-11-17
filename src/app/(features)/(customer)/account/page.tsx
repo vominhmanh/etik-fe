@@ -20,7 +20,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY } from '@/config/phone-countries';
+import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY, parseE164Phone, formatToE164 } from '@/config/phone-countries';
 import { AxiosResponse } from 'axios';
 import * as React from 'react';
 import { useContext, useEffect, useState } from 'react';
@@ -28,9 +28,7 @@ import { useContext, useEffect, useState } from 'react';
 export interface UserInformationResponse {
   fullName: string;
   email: string;
-  phoneNumber: string;
-  phoneCountry?: string;
-  phoneNationalNumber?: string;
+  phoneNumber: string; // E.164 format (e.g., +84333247242)
   address: string;
   hasPassword: boolean;
   googleConnected: boolean;
@@ -72,12 +70,12 @@ export default function Page(): React.JSX.Element {
       setIsLoading(true);
       const data = await getUserInformation();
       if (data) {
-        // Use phoneNationalNumber if available, otherwise fallback to phoneNumber
-        const phoneDisplay = data.phoneNationalNumber || data.phoneNumber || '';
+        // Parse E.164 format phone number to extract country and national number
+        const parsedPhone = parseE164Phone(data.phoneNumber);
         setFormValues({
           fullName: data.fullName,
-          phoneNumber: phoneDisplay,
-          phoneCountryIso2: data.phoneCountry || DEFAULT_PHONE_COUNTRY.iso2,
+          phoneNumber: parsedPhone?.nationalNumber || '',
+          phoneCountryIso2: parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2,
           address: data.address,
         });
         setUserInfo(data)
@@ -159,12 +157,13 @@ export default function Page(): React.JSX.Element {
       };
       await updateUserInformation(updateData);
       notificationCtx.success(tt('Cập nhật thông tin thành công.', 'Information updated successfully.'));
+      
+      // Format to E.164 for display
+      const e164Phone = formatToE164(formValues.phoneCountryIso2, phoneNSN) || '';
       setUserInfo({ 
         email: userInfo?.email || '', 
         fullName: formValues.fullName, 
-        phoneNumber: phoneNSN, 
-        phoneCountry: formValues.phoneCountryIso2,
-        phoneNationalNumber: phoneNSN,
+        phoneNumber: e164Phone,
         address: formValues.address, 
         hasPassword: userInfo?.hasPassword || false, 
         googleConnected: userInfo?.googleConnected || false 

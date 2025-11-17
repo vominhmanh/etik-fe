@@ -34,6 +34,7 @@ import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
 import { Link } from '@phosphor-icons/react';
 import { AxiosResponse } from 'axios';
+import { parseE164Phone, PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY } from '@/config/phone-countries';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -618,7 +619,19 @@ export default function Page({ params }: { params: { transaction_id: number } })
                                       </Typography>
                                       {transaction.qrOption === 'separate' && (
                                       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        {ticket.holderEmail || tt('Chưa có email', 'No email')} - {ticket.holderPhone || tt('Chưa có SĐT', 'No phone')}
+                                        {(() => {
+                                          const email = ticket.holderEmail || tt('Chưa có email', 'No email');
+                                          if (!ticket.holderPhone) {
+                                            return `${email} - ${tt('Chưa có SĐT', 'No phone')}`;
+                                          }
+                                          // Parse E.164 phone to get country code and national number
+                                          const parsedPhone = parseE164Phone(ticket.holderPhone);
+                                          if (parsedPhone) {
+                                            const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
+                                            return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
+                                          }
+                                          return `${email} - ${ticket.holderPhone}`;
+                                        })()}
                                       </Typography>
                                       )}
                                     </div>
