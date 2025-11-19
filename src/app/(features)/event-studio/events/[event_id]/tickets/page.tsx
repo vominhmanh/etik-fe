@@ -90,6 +90,8 @@ interface Filter {
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const { tt } = useTranslation();
+  const STORAGE_KEY = `tickets-table-sort-${params.event_id}`;
+  const AUTO_RELOAD_STORAGE_KEY = `tickets-auto-reload-${params.event_id}`;
   React.useEffect(() => {
     document.title = tt("Danh sách khách hàng & vé | ETIK - Vé điện tử & Quản lý sự kiện", "Customer & Ticket List | ETIK - E-tickets & Event Management");
   }, [tt]);
@@ -124,8 +126,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   });
   const [filterShows, setFilterShows] = React.useState<FilterShow[]>([]);
   const [querySearch, setQuerySearch] = React.useState<string>('');
-  const STORAGE_KEY = `tickets-table-sort-${params.event_id}`;
-  const AUTO_RELOAD_STORAGE_KEY = `tickets-auto-reload-${params.event_id}`;
 
   // Load sorting state from localStorage
   const [orderBy, setOrderBy] = React.useState<string>(() => {
@@ -495,7 +495,20 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">{tt("Danh sách khách hàng & vé", "Customer & Ticket List")}</Typography>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          
+        </Stack>
+        <div>
+          <Button
+            startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
+            component={LocalizedLink}
+            href="transactions/create"
+            variant="contained"
+          >
+            {tt("Thêm", "Add")}
+          </Button>
+        </div>
+      </Stack>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={() => fetchTickets()}>
               {tt("Tải lại", "Reload")}
             </Button>
@@ -524,18 +537,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               {tt("Đồng bộ Google Sheets", "Sync Google Sheets")}
             </Button>
           </Stack>
-        </Stack>
-        <div>
-          <Button
-            startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
-            component={LocalizedLink}
-            href="transactions/create"
-            variant="contained"
-          >
-            {tt("Thêm", "Add")}
-          </Button>
-        </div>
-      </Stack>
       <Card sx={{ p: 2 }}>
         <Grid container spacing={3} direction={'row'} sx={{ alignItems: 'center' }}>
           <Grid item xs={12} md={3}>
