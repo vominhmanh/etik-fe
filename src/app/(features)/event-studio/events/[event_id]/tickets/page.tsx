@@ -10,7 +10,7 @@ import { AxiosResponse } from 'axios';
 import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
-import { Checkbox, FormControl, Grid, IconButton, InputLabel, ListItemText, MenuItem, Select } from '@mui/material';
+import { Checkbox, FormControl, FormControlLabel, Grid, IconButton, InputLabel, ListItemText, MenuItem, Select, Switch } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Card from '@mui/material/Card';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -99,6 +99,20 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const notificationCtx = React.useContext(NotificationContext);
   const [selected, setSelected] = React.useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [autoReload, setAutoReload] = React.useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(AUTO_RELOAD_STORAGE_KEY);
+      if (saved !== null) {
+        try {
+          return JSON.parse(saved) === true;
+        } catch {
+          return false;
+        }
+      }
+    }
+    return false; // Default: off
+  });
+  const [isAutoReloading, setIsAutoReloading] = React.useState<boolean>(false);
   const [filters, setFilters] = React.useState<Filter>({
     show: [],
     ticketCategory: [],
@@ -111,6 +125,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [filterShows, setFilterShows] = React.useState<FilterShow[]>([]);
   const [querySearch, setQuerySearch] = React.useState<string>('');
   const STORAGE_KEY = `tickets-table-sort-${params.event_id}`;
+  const AUTO_RELOAD_STORAGE_KEY = `tickets-auto-reload-${params.event_id}`;
 
   // Load sorting state from localStorage
   const [orderBy, setOrderBy] = React.useState<string>(() => {
@@ -191,9 +206,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   }
 
   // Fetch tickets for the event 
-  const fetchTickets = async () => {
+  const fetchTickets = React.useCallback(async (showBackdrop: boolean = true) => {
     try {
-      setIsLoading(true);
+      if (showBackdrop) {
+        setIsLoading(true);
+      } else {
+        setIsAutoReloading(true);
+      }
       const response: AxiosResponse<Ticket[]> = await baseHttpServiceInstance.get(
         `/event-studio/events/${params.event_id}/tickets`
       );
@@ -201,9 +220,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     } catch (error) {
       notificationCtx.error('Lỗi:', error);
     } finally {
-      setIsLoading(false);
+      if (showBackdrop) {
+        setIsLoading(false);
+      } else {
+        setIsAutoReloading(false);
+      }
     }
-  }
+  }, [params.event_id, notificationCtx]);
 
   const handleExportExcel = async () => {
     try {
@@ -242,7 +265,31 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   React.useEffect(() => {
     fetchTickets();
-  }, [params.event_id]);
+  }, [params.event_id, fetchTickets]);
+
+  // Save auto reload state to localStorage
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(AUTO_RELOAD_STORAGE_KEY, JSON.stringify(autoReload));
+    }
+  }, [autoReload, AUTO_RELOAD_STORAGE_KEY]);
+
+  // Auto reload interval
+  React.useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    if (autoReload) {
+      intervalId = setInterval(() => {
+        fetchTickets(false); // Don't show backdrop during auto reload
+      }, 5000); // 5 seconds
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [autoReload, fetchTickets]);
 
   React.useEffect(() => {
     const fetchShowsWithTicketCategories = async () => {
@@ -436,7 +483,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   return (
     <Stack spacing={3}>
       <Backdrop
-        open={isLoading}
+        open={isLoading && !autoReload}
         sx={{
           color: '#fff',
           zIndex: (theme) => theme.zIndex.drawer + 1,
@@ -449,9 +496,27 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">{tt("Danh sách khách hàng & vé", "Customer & Ticket List")}</Typography>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={fetchTickets}>
+            <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={() => fetchTickets()}>
               {tt("Tải lại", "Reload")}
             </Button>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={autoReload}
+                  onChange={(e) => setAutoReload(e.target.checked)}
+                  size="small"
+                />
+              }
+              label={
+                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                  <Typography variant="body2">{tt("Live Update", "Live Update")}</Typography>
+                  {isAutoReloading && (
+                    <CircularProgress size={14} sx={{ ml: 0.5 }} />
+                  )}
+                </Stack>
+              }
+              sx={{ ml: 1 }}
+            />
             <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />} onClick={handleExportExcel}>
               {tt("Xuất file excel", "Export Excel")}
             </Button>

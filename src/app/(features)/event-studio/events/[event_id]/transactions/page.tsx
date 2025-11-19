@@ -13,7 +13,7 @@ import { useTranslation } from '@/contexts/locale-context';
 import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
-import { Box, Checkbox, Divider, FormControl, Grid, IconButton, InputLabel, ListItemText, Menu, MenuItem, Select, Table, TableBody, TableCell, TableRow, useTheme } from '@mui/material';
+import { Box, Checkbox, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, ListItemText, Menu, MenuItem, Select, Switch, Table, TableBody, TableCell, TableRow, useTheme } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Card from '@mui/material/Card';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -42,6 +42,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
   const STORAGE_KEY = `transactions-table-sort-${params.event_id}`;
+  const AUTO_RELOAD_STORAGE_KEY = `transactions-auto-reload-${params.event_id}`;
 
   // Load sorting state from localStorage
   const [orderBy, setOrderBy] = React.useState<string>(() => {
@@ -88,6 +89,20 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [autoReload, setAutoReload] = React.useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(AUTO_RELOAD_STORAGE_KEY);
+      if (saved !== null) {
+        try {
+          return JSON.parse(saved) === true;
+        } catch {
+          return false;
+        }
+      }
+    }
+    return false; // Default: off
+  });
+  const [isAutoReloading, setIsAutoReloading] = React.useState<boolean>(false);
   const [bulkErrorMessage, setBulkErrorMessage] = React.useState<string>('');
   const [bulkErrorDetails, setBulkErrorDetails] = React.useState<BulkErrorDetail[]>([]);
 
@@ -185,9 +200,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       .toLowerCase();
   }
 
-  async function fetchTransactions() {
+  const fetchTransactions = React.useCallback(async (showBackdrop: boolean = true) => {
     try {
-      setIsLoading(true);
+      if (showBackdrop) {
+        setIsLoading(true);
+      } else {
+        setIsAutoReloading(true);
+      }
       const response: AxiosResponse<Transaction[]> = await baseHttpServiceInstance.get(
         `/event-studio/events/${params.event_id}/transactions`
       );
@@ -195,9 +214,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     } catch (error) {
       notificationCtx.error(tt('Lỗi:', 'Error:'), error);
     } finally {
-      setIsLoading(false);
+      if (showBackdrop) {
+        setIsLoading(false);
+      } else {
+        setIsAutoReloading(false);
+      }
     }
-  }
+  }, [params.event_id, notificationCtx, tt]);
 
   const handleExportExcel = async () => {
     try {
@@ -238,6 +261,30 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   React.useEffect(() => {
     fetchTransactions();
   }, [params.event_id]);
+
+  // Save auto reload state to localStorage
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(AUTO_RELOAD_STORAGE_KEY, JSON.stringify(autoReload));
+    }
+  }, [autoReload, AUTO_RELOAD_STORAGE_KEY]);
+
+  // Auto reload interval
+  React.useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    if (autoReload) {
+      intervalId = setInterval(() => {
+        fetchTransactions(false); // Don't show backdrop during auto reload
+      }, 5000); // 5 seconds
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [autoReload, fetchTransactions]);
 
   const filteredTransactions = React.useMemo(() => {
     const q = normalizeText(querySearch);
@@ -634,7 +681,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   return (
     <Stack spacing={3}>
       <Backdrop
-        open={isLoading}
+        open={isLoading && !autoReload}
         sx={{
           color: '#fff',
           zIndex: (theme) => theme.zIndex.drawer + 1,
@@ -647,9 +694,27 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">{tt("Danh sách đơn hàng", "Order List")}</Typography>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={fetchTransactions}>
+            <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={() => fetchTransactions()}>
               {tt("Tải lại", "Reload")}
             </Button>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={autoReload}
+                  onChange={(e) => setAutoReload(e.target.checked)}
+                  size="small"
+                />
+              }
+              label={
+                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                  <Typography variant="body2">{tt("Live Update", "Live Update")}</Typography>
+                  {isAutoReloading && (
+                    <CircularProgress size={14} sx={{ ml: 0.5 }} />
+                  )}
+                </Stack>
+              }
+              sx={{ ml: 1 }}
+            />
             <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />} onClick={handleExportExcel}>
               {tt("Xuất file excel", "Export Excel")}
             </Button>
