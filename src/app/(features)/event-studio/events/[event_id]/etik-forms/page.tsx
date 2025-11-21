@@ -20,6 +20,7 @@ import {
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
+import CardActionArea from '@mui/material/CardActionArea';
 import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
@@ -31,6 +32,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { ArrowSquareIn, CheckCircle, Clipboard, Eye, Storefront } from '@phosphor-icons/react/dist/ssr';
+import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
@@ -44,8 +46,6 @@ import NotificationContext from '@/contexts/notification-context';
 import { LocalizedLink } from '@/components/localized-link';
 
 import 'react-quill/dist/quill.snow.css';
-
-import SendRequestEventAgencyAndEventApproval from '../../../../../../components/events/event/send-request-event-agency-and-event-approval';
 
 // Define the event response type
 type EventResponse = {
@@ -111,6 +111,23 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     useState<CheckEventAgencyRegistrationAndEventApprovalRequestResponse | null>(null);
   const [openEventAgencyRegistrationModal, setOpenEventAgencyRegistrationModal] = useState(false);
   const [openConfirmSubmitEventApprovalModal, setOpenConfirmSubmitEventApprovalModal] = useState(false);
+
+  type Survey = {
+    id: number;
+    title: string;
+    description: string;
+  };
+
+  const surveys: Survey[] = [
+    {
+      id: 1,
+      title: tt('Form mua vé', 'Ticket purchase form'),
+      description: tt(
+        'Bảng câu hỏi khách hàng phải trả lời khi mua vé',
+        'Questionnaire customers must answer when buying tickets'
+      ),
+    },
+  ];
 
   const [smtpFormValues, setSmtpFormValues] = useState<SMTPConfig>({
     smtpProvider: 'use_etik_smtp',
@@ -560,371 +577,51 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         >
           <CircularProgress color="inherit" />
         </Backdrop>
-        
-        <Stack spacing={3}>
-          <Typography variant="h4">{tt('ETIK Forms', 'ETIK Forms')}</Typography>
-          <Typography variant="body1">{tt('ETIK Forms là công cụ giúp bạn tạo các form dễ dàng và hiệu quả. Bạn có thể tạo các form cho các sự kiện của mình.', 'ETIK Forms is a tool that helps you create forms easily and efficiently. You can create forms for your events.')}</Typography>
+
+        <Stack direction="row" spacing={3} alignItems="center" justifyContent="space-between">
+          <Stack spacing={1}>
+            <Typography variant="h4">{tt('ETIK Forms', 'ETIK Forms')}</Typography>
+            <Typography variant="body1">
+              {tt(
+                'ETIK Forms là công cụ giúp bạn tạo các form dễ dàng và hiệu quả. Bạn có thể tạo các form cho các sự kiện của mình.',
+                'ETIK Forms is a tool that helps you create forms easily and efficiently. You can create forms for your events.'
+              )}
+            </Typography>
+          </Stack>
+          <Button
+            component={LocalizedLink}
+            startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
+            variant="contained"
+            href="create"
+          >
+            {tt('Tạo mới', 'Create new')}
+          </Button>
         </Stack>
         <Grid container spacing={3}>
-          <Grid lg={4} md={6} xs={12}>
-            <Stack spacing={3}>
+          {surveys.map((survey) => (
+            <Grid key={survey.id} lg={4} md={6} xs={12}>
               <Card>
-                <CardHeader title={tt('Thông tin liên hệ', 'Contact Information')} />
-                <Divider />
-                <CardContent>
-                  <Grid container spacing={3}>
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel>{tt('Email đơn vị tổ chức', 'Organizer Email')}</InputLabel>
-                        <OutlinedInput
-                          value={formValues.organizerEmail}
-                          onChange={handleInputChange}
-                          label={tt('Email đơn vị tổ chức', 'Organizer Email')}
-                          name="organizerEmail"
-                        />
-                      </FormControl>
-                    </Grid>
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth>
-                        <InputLabel>{tt('Số điện thoại đơn vị tổ chức', 'Organizer Phone Number')}</InputLabel>
-                        <OutlinedInput
-                          value={formValues.organizerPhoneNumber}
-                          onChange={handleInputChange}
-                          label={tt('Số điện thoại đơn vị tổ chức', 'Organizer Phone Number')}
-                          name="organizerPhoneNumber"
-                          type="tel"
-                        />
-                      </FormControl>
-                    </Grid>
-                  </Grid>
-                </CardContent>
+                <CardActionArea
+                  component={LocalizedLink}
+                  href={`/event-studio/events/${event_id}/etik-forms/checkout-form`}
+                >
+                  <CardHeader title={survey.title} subheader={survey.description} />
+                  <CardActions sx={{ justifyContent: 'flex-end', width: '100%', pt: 0, pb: 2, px: 3 }}>
+                    <Button
+                      size="small"
+                      color="primary"
+                      startIcon={<Eye fontSize="var(--icon-fontSize-sm)" />}
+                    >
+                      {tt('Xem chi tiết', 'View details')}
+                    </Button>
+                  </CardActions>
+                </CardActionArea>
               </Card>
-            </Stack>
-          </Grid>
-          <Grid lg={8} md={6} xs={12}>
-            <Stack spacing={3}>
-              <Card>
-                <CardHeader title={tt('Thông tin sự kiện', 'Event Information')} />
-                <Divider />
-                <CardContent>
-                  <Grid container spacing={3}>
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel>{tt('Tên sự kiện', 'Event Name')}</InputLabel>
-                        <OutlinedInput
-                          value={formValues.name}
-                          onChange={handleInputChange}
-                          label={tt('Tên sự kiện', 'Event Name')}
-                          name="name"
-                        />
-                      </FormControl>
-                    </Grid>
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel>{tt('Đơn vị tổ chức', 'Organizer')}</InputLabel>
-                        <OutlinedInput
-                          value={formValues.organizer}
-                          onChange={handleInputChange}
-                          label={tt('Đơn vị tổ chức', 'Organizer')}
-                          name="organizer"
-                        />
-                      </FormControl>
-                    </Grid>
-                    <Grid md={12} xs={12}>
-                      <ReactQuill
-                        ref={reactQuillRef}
-                        value={description}
-                        onChange={handleDescriptionChange}
-                        modules={modules}
-                        placeholder={tt('Mô tả', 'Description')}
-                      />
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader title={tt('Địa điểm & Thời gian', 'Location & Time')} />
-                <Divider />
-                <CardContent>
-                  <Grid container spacing={3}>
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel>{tt('Địa điểm', 'Location')}</InputLabel>
-                        <OutlinedInput
-                          value={formValues.place || ''}
-                          onChange={handleInputChange}
-                          label={tt('Địa điểm', 'Location')}
-                          name="place"
-                        />
-                      </FormControl>
-                    </Grid>
-
-                    <Grid md={6} xs={12}>
-                      <FormControl fullWidth>
-                        <InputLabel>{tt('URL Địa điểm', 'Location URL')}</InputLabel>
-                        <OutlinedInput
-                          value={formValues.locationUrl || ''}
-                          onChange={handleInputChange}
-                          label={tt('URL Địa điểm', 'Location URL')}
-                          name="locationUrl"
-                        />
-                      </FormControl>
-                    </Grid>
-                    <Grid md={6} xs={12}>
-                      <FormControl fullWidth>
-                        <InputLabel>{tt('Hướng dẫn thêm về địa điểm', 'Additional Location Instructions')}</InputLabel>
-                        <OutlinedInput
-                          value={formValues.locationInstruction || ''}
-                          onChange={handleInputChange}
-                          label={tt('Hướng dẫn thêm về địa điểm', 'Additional Location Instructions')}
-                          name="locationInstruction"
-                        />
-                      </FormControl>
-                    </Grid>
-
-                    <Grid md={4} xs={12}>
-                      <FormControl fullWidth required>
-                        <TextField
-                          label={tt('Thời gian bắt đầu', 'Start Time')}
-                          type="datetime-local"
-                          value={formValues.startDateTime || ''}
-                          onChange={handleInputChange}
-                          name="startDateTime"
-                          InputLabelProps={{ shrink: true }}
-                        />
-                      </FormControl>
-                    </Grid>
-
-                    <Grid md={4} xs={12}>
-                      <FormControl fullWidth required>
-                        <TextField
-                          label={tt('Thời gian kết thúc', 'End Time')}
-                          type="datetime-local"
-                          onChange={handleInputChange}
-                          name="endDateTime"
-                          value={formValues.endDateTime || ''}
-                          InputLabelProps={{ shrink: true }}
-                        />
-                      </FormControl>
-                    </Grid>
-                    <Grid md={4} xs={12}>
-                      <FormControl fullWidth>
-                        <InputLabel>{tt('Hướng dẫn thêm về thời gian', 'Additional Time Instructions')}</InputLabel>
-                        <OutlinedInput
-                          value={formValues.timeInstruction || ''}
-                          onChange={handleInputChange}
-                          label={tt('Hướng dẫn thêm về thời gian', 'Additional Time Instructions')}
-                          name="timeInstruction"
-                        />
-                      </FormControl>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-
-              <Card id="otherSettings">
-                <CardHeader title={tt('Thông tin khác', 'Other Information')} />
-                <Divider />
-                <CardContent>
-                  <Grid container spacing={3}>
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel>{tt('Trang khách hàng tự đăng ký', 'Customer Registration Page')}</InputLabel>
-                        <OutlinedInput
-                          value={formValues.slug}
-                          label={tt('Trang khách hàng tự đăng ký', 'Customer Registration Page')}
-                          name="slug"
-                          onChange={handleInputChange}
-                          startAdornment={<InputAdornment position="start">etik.vn/</InputAdornment>}
-                          endAdornment={
-                            <IconButton size="small" onClick={() => handleCopyToClipboard(`etik.vn/${event?.slug}`)}>
-                              <Clipboard />
-                            </IconButton>
-                          }
-                        />
-                      </FormControl>
-                    </Grid>
-
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth>
-                        <InputLabel>
-                          {tt('Liên kết ngoài (trang thông tin sự kiện)', 'External Link (Event Information Page)')}
-                        </InputLabel>
-                        <OutlinedInput
-                          value={formValues.externalLink}
-                          label={tt(
-                            'Liên kết ngoài (trang thông tin sự kiện)',
-                            'External Link (Event Information Page)'
-                          )}
-                          name="externalLink"
-                          onChange={handleInputChange}
-                        />
-                      </FormControl>
-                    </Grid>
-
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth disabled>
-                        <InputLabel>Secure API key</InputLabel>
-                        <OutlinedInput
-                          value={event.secureApiKey}
-                          label="Secure API key"
-                          name="secureApiKey"
-                          endAdornment={
-                            <IconButton size="small" onClick={() => handleCopyToClipboard(event.secureApiKey)}>
-                              <Clipboard />
-                            </IconButton>
-                          }
-                        />
-                      </FormControl>
-                    </Grid>
-
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel>{tt('Chế độ hiển thị sự kiện', 'Event Display Mode')}</InputLabel>
-                        <Select
-                          disabled={!(event.adminReviewStatus === 'accepted')}
-                          label={tt('Chế độ hiển thị sự kiện', 'Event Display Mode')}
-                          name="displayOption"
-                          value={formValues.displayOption}
-                          onChange={(e: any) => handleInputChange(e)}
-                        >
-                          {/* <MenuItem value={'do_not_display'}>{tt("Không hiển thị", "Do Not Display")}</MenuItem> */}
-                          <MenuItem value={'display_with_members'}>
-                            {tt('Chỉ hiển thị với người quản lý sự kiện', 'Only visible to event managers')}
-                          </MenuItem>
-                          <MenuItem value={'display_with_everyone'}>
-                            {tt('Hiển thị với mọi người', 'Visible to everyone')}
-                          </MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel>
-                          {tt('Cho phép tìm kiếm trên Marketplace', 'Allow Search on Marketplace')}
-                        </InputLabel>
-                        <Select
-                          disabled={!(event.adminReviewStatus === 'accepted')}
-                          label={tt('Cho phép tìm kiếm trên Marketplace', 'Allow Search on Marketplace')}
-                          name="displayOnMarketplace"
-                          value={formValues.displayOnMarketplace}
-                          onChange={(e: any) => handleInputChange(e)}
-                        >
-                          <MenuItem value={'true'}>{tt('Cho phép', 'Allow')}</MenuItem>
-                          <MenuItem value={'false'}>{tt('Không cho phép', 'Do Not Allow')}</MenuItem>
-                        </Select>
-                        {!(event.adminReviewStatus === 'accepted') && (
-                          <FormHelperText>
-                            {tt(
-                              'Vui lòng nâng cấp thành Sự kiện Được xác thực để thay đổi chế độ hiển thị sự kiện',
-                              'Please upgrade to a Verified Event to change the event display mode'
-                            )}
-                          </FormHelperText>
-                        )}
-                      </FormControl>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-
-              <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-                <Button variant="contained" onClick={handleFormSubmit}>
-                  {tt('Lưu', 'Save')}
-                </Button>
-              </Grid>
-            </Stack>
-          </Grid>
+            </Grid>
+          ))}
         </Grid>
       </Stack>
-      <SendRequestEventAgencyAndEventApproval
-        open={openEventAgencyRegistrationModal}
-        onClose={handleOnCloseEventAgencyRegistrationModal}
-        eventId={event_id}
-      />
-      <Modal
-        open={openConfirmSubmitEventApprovalModal}
-        onClose={() => setOpenConfirmSubmitEventApprovalModal(false)}
-        aria-labelledby="ticket-category-description-modal-title"
-        aria-describedby="ticket-category-description-modal-description"
-      >
-        <Container maxWidth="xl">
-          <Card
-            sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: { sm: '500px', xs: '90%' },
-              bgcolor: 'background.paper',
-              boxShadow: 24,
-            }}
-          >
-            <CardHeader title={tt('Quy định chung', 'General Regulations')} />
-            <Divider />
-            <CardContent>
-              <Stack spacing={1} textAlign={'justify'}>
-                <Typography variant="body2">
-                  <b>
-                    {tt(
-                      'Để sự kiện được nâng cấp thành Sự kiện Được xác thực, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:',
-                      'To upgrade your event to a Verified Event, the event organizer must comply with the following regulations before submitting the request:'
-                    )}
-                  </b>
-                </Typography>
-                <Typography variant="body2">
-                  {tt(
-                    '- Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.',
-                    '- The event must have complete information including name, description, organizer, banner image, and avatar.'
-                  )}
-                </Typography>
-                <Typography variant="body2">
-                  {tt(
-                    '- Thời gian và địa điểm rõ ràng, chính xác. Hạn chế thay đổi thông tin về thời gian, địa điểm và phải thông báo cho ETIK trước khi thay đổi.',
-                    '- Clear and accurate time and location. Minimize changes to time and location information and must notify ETIK before making changes.'
-                  )}
-                </Typography>
 
-                <Typography variant="body2">
-                  {tt(
-                    '- Chính sách Giá vé, chính sách hoàn trả, hủy vé rõ ràng, minh bạch.',
-                    '- Clear and transparent ticket pricing, refund policy, and cancellation policy.'
-                  )}
-                </Typography>
-                <Typography variant="body2">
-                  {tt(
-                    '- Sự kiện tuân thủ quy định của pháp luật Việt Nam, phù hợp chuẩn mực đạo đức, thuần phong mỹ tục.',
-                    '- The event must comply with Vietnamese law and be consistent with ethical standards and good customs.'
-                  )}
-                </Typography>
-                <Typography variant="body2">
-                  {tt(
-                    '- Cung cấp cho ETIK các thông tin, giấy tờ để xác minh khi được yêu cầu.',
-                    '- Provide ETIK with information and documents for verification when requested.'
-                  )}
-                </Typography>
-                <Typography variant="body2">
-                  {tt(
-                    'Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH 0333.247.242 hoặc email tienphongsmart@gmail.com',
-                    'If you need support, please contact Customer Service Hotline 0333.247.242 or email tienphongsmart@gmail.com'
-                  )}
-                </Typography>
-              </Stack>
-              <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleSendRequestEventApproval}
-                  disabled={isLoading}
-                >
-                  {tt('Gửi yêu cầu', 'Submit Request')}
-                </Button>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Container>
-      </Modal>
     </>
   );
 }

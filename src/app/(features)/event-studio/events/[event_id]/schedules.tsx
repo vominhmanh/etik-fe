@@ -18,6 +18,15 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
     onSelectionChange(show);
   };
 
+  // Select first show by default (if any)
+  React.useEffect(() => {
+    if (!selectedShow && shows.length > 0) {
+      const firstShow = shows[0];
+      setSelectedShow(firstShow);
+      onSelectionChange(firstShow);
+    }
+  }, [shows, selectedShow, onSelectionChange]);
+
 
   return (
     <Card>

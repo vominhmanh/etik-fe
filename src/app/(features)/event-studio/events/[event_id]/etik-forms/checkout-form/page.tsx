@@ -1,0 +1,696 @@
+'use client';
+
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
+import { LocalizedLink } from '@/components/localized-link';
+import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
+import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
+import * as React from 'react';
+
+import {
+  Box,
+  CardContent,
+  CardHeader,
+  Checkbox,
+  Container,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  InputLabel,
+  MenuItem,
+  Modal,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TextField,
+} from '@mui/material';
+import Typography from '@mui/material/Typography';
+import Card from '@mui/material/Card';
+import IconButton from '@mui/material/IconButton';
+import { ArrowLeft, X, Plus, Pencil } from '@phosphor-icons/react/dist/ssr';
+import NotificationContext from '@/contexts/notification-context';
+
+type FieldType = 'text' | 'number' | 'radio' | 'checkbox' | 'date' | 'time' | 'datetime';
+
+interface FieldDefinition {
+  id: number;
+  name: string;
+  label: string;
+  type: FieldType;
+  visible: boolean;
+  required: boolean;
+  note: string;
+  locked: boolean; // không cho chỉnh sửa (3 trường đầu)
+  nonDeletable: boolean; // không cho xoá (6 trường đầu)
+  options?: string[]; // cho radio / checkbox
+}
+
+interface NewFieldState {
+  label: string;
+  type: FieldType;
+  visible: boolean;
+  required: boolean;
+  note: string;
+  options: string[];
+}
+
+const INITIAL_FIELDS: FieldDefinition[] = [
+  {
+    id: 1,
+    name: 'name',
+    label: 'Họ tên',
+    type: 'text',
+    visible: true,
+    required: true,
+    note: '',
+    locked: true,
+    nonDeletable: true,
+  },
+  {
+    id: 2,
+    name: 'email',
+    label: 'Email',
+    type: 'text',
+    visible: true,
+    required: true,
+    note: '',
+    locked: true,
+    nonDeletable: true,
+  },
+  {
+    id: 3,
+    name: 'phone_number',
+    label: 'Số điện thoại',
+    type: 'text',
+    visible: true,
+    required: true,
+    note: '',
+    locked: true,
+    nonDeletable: true,
+  },
+  {
+    id: 4,
+    name: 'address',
+    label: 'Địa chỉ',
+    type: 'text',
+    visible: false,
+    required: false,
+    note: '',
+    locked: false,
+    nonDeletable: true,
+  },
+  {
+    id: 5,
+    name: 'dob',
+    label: 'Ngày sinh',
+    type: 'date',
+    visible: false,
+    required: false,
+    note: '',
+    locked: false,
+    nonDeletable: true,
+  },
+  {
+    id: 6,
+    name: 'idcard_number',
+    label: 'Căn cước công dân', 
+    type: 'text',
+    visible: false,
+    required: false,
+    note: '',
+    locked: false,
+    nonDeletable: true,
+  },
+];
+
+export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  React.useEffect(() => {
+    document.title = 'ETIK Forms - Form mua vé | ETIK - Vé điện tử & Quản lý sự kiện';
+  }, []);
+
+  const [fields, setFields] = React.useState<FieldDefinition[]>(INITIAL_FIELDS);
+  const [isFieldModalOpen, setFieldModalOpen] = React.useState<boolean>(false);
+  const [editingFieldId, setEditingFieldId] = React.useState<number | null>(null);
+  const [newField, setNewField] = React.useState<NewFieldState>({
+    label: '',
+    type: 'text',
+    visible: true,
+    required: false,
+    note: '',
+    options: [''],
+  });
+
+  const notificationCtx = React.useContext(NotificationContext);
+
+  const editingField = React.useMemo(
+    () => (editingFieldId != null ? fields.find((f) => f.id === editingFieldId) || null : null),
+    [fields, editingFieldId]
+  );
+
+  // Load form config from backend
+  React.useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const resp = await baseHttpServiceInstance.get(
+          `/event-studio/events/${params.event_id}/forms/checkout/config`
+        );
+        const apiFields = resp.data.fields as any[];
+        if (!apiFields || apiFields.length === 0) return;
+
+        const mapped: FieldDefinition[] = apiFields.map((f: any) => {
+          const builtinKey = f.builtin_key as string | null;
+          const isCore =
+            builtinKey === 'name' || builtinKey === 'email' || builtinKey === 'phone_number';
+          const isOptional =
+            builtinKey === 'address' ||
+            builtinKey === 'dob' ||
+            builtinKey === 'idcard_number';
+
+          const locked = !!isCore;
+          const nonDeletable = !!(isCore || isOptional);
+
+          const options =
+            f.options && f.options.length > 0
+              ? (f.options as any[]).map((opt) => opt.label as string)
+              : undefined;
+
+          return {
+            id: f.id,
+            name: f.internal_name,
+            label: f.label,
+            type: f.field_type,
+            visible: f.visible,
+            required: f.required,
+            note: f.note || '',
+            locked,
+            nonDeletable,
+            options,
+          } as FieldDefinition;
+        });
+
+        setFields(mapped);
+      } catch (error) {
+        // nếu chưa có form trong DB thì giữ cấu hình mặc định
+        console.error('Failed to load checkout form config', error);
+      }
+    };
+    fetchConfig();
+  }, [params.event_id]);
+
+  const handleDeleteField = (id: number) => {
+    setFields((prev) => prev.filter((field) => field.id !== id));
+  };
+
+  const handleOpenAddFieldModal = () => {
+    setEditingFieldId(null);
+    setNewField({
+      label: '',
+      type: 'text',
+      visible: true,
+      required: false,
+      note: '',
+      options: [''],
+    });
+    setFieldModalOpen(true);
+  };
+
+  const handleOpenEditFieldModal = (field: FieldDefinition) => {
+    setEditingFieldId(field.id);
+    setNewField({
+      label: field.label,
+      type: field.type,
+      visible: field.visible,
+      required: field.required,
+      note: field.note,
+      options: field.options && field.options.length > 0 ? field.options : [''],
+    });
+    setFieldModalOpen(true);
+  };
+
+  const handleAddOption = () => {
+    setNewField((prev) => ({
+      ...prev,
+      options: [...prev.options, ''],
+    }));
+  };
+
+  const handleOptionChange = (index: number, value: string) => {
+    setNewField((prev) => {
+      const next = [...prev.options];
+      next[index] = value;
+      return { ...prev, options: next };
+    });
+  };
+
+  const handleRemoveOption = (index: number) => {
+    setNewField((prev) => {
+      if (prev.options.length <= 1) return prev; // tối thiểu 1 option
+      const next = prev.options.filter((_, i) => i !== index);
+      return { ...prev, options: next };
+    });
+  };
+
+  const handleSaveField = () => {
+    if (!newField.label.trim()) {
+      // mock: không dùng notification, chỉ không làm gì nếu thiếu tên
+      return;
+    }
+
+    const cleanedOptions =
+      newField.type === 'radio' || newField.type === 'checkbox'
+        ? newField.options.filter((opt) => opt.trim() !== '')
+        : undefined;
+
+    // Chế độ tạo mới
+    if (editingFieldId == null) {
+      const nextId = fields.length ? Math.max(...fields.map((f) => f.id)) + 1 : 1;
+      const created: FieldDefinition = {
+        id: nextId,
+        name: newField.label.trim(),
+        label: newField.label.trim(),
+        type: newField.type,
+        visible: newField.visible,
+        required: newField.required,
+        note: newField.note,
+        locked: false,
+        nonDeletable: false,
+        options: cleanedOptions && cleanedOptions.length > 0 ? cleanedOptions : undefined,
+      };
+      setFields((prev) => [...prev, created]);
+    } else {
+      // Chế độ chỉnh sửa
+      setFields((prev) =>
+        prev.map((field) => {
+          if (field.id !== editingFieldId) return field;
+          const canEditLabel = !(field.locked || field.nonDeletable);
+          const canEditType = !(field.locked || field.nonDeletable);
+          const canEditVisibilityAndRequired = !field.locked;
+
+          return {
+            ...field,
+            label: canEditLabel ? newField.label.trim() : field.label,
+            type: canEditType ? newField.type : field.type,
+            visible: canEditVisibilityAndRequired ? newField.visible : field.visible,
+            required: canEditVisibilityAndRequired ? newField.required : field.required,
+            note: newField.note,
+            options:
+              (newField.type === 'radio' || newField.type === 'checkbox') &&
+              cleanedOptions &&
+              cleanedOptions.length > 0
+                ? cleanedOptions
+                : undefined,
+          };
+        })
+      );
+    }
+
+    setFieldModalOpen(false);
+  };
+
+  const renderTypeLabel = (type: FieldType): string => {
+    switch (type) {
+      case 'text':
+        return 'Text';
+      case 'number':
+        return 'Số';
+      case 'radio':
+        return 'Chọn một';
+      case 'checkbox':
+        return 'Chọn nhiều';
+      case 'date':
+        return 'Ngày tháng năm';
+      case 'time':
+        return 'Giờ';
+      case 'datetime':
+        return 'Ngày giờ';
+      default:
+        return type;
+    }
+  };
+
+  const handleSaveConfigToServer = async () => {
+    try {
+      const builtinCore = new Set(['name', 'email', 'phone_number']);
+      const builtinOptional = new Set(['address', 'dob', 'idcard_number']);
+
+      const payloadFields = fields.map((field, index) => {
+        const isBuiltinCore = builtinCore.has(field.name);
+        const isBuiltinOptional = builtinOptional.has(field.name);
+
+        const kind = isBuiltinCore
+          ? 'builtin_core'
+          : isBuiltinOptional
+          ? 'builtin_optional'
+          : 'custom';
+
+        const builtin_key = isBuiltinCore || isBuiltinOptional ? field.name : null;
+
+        const sort_order = (index + 1) * 10;
+
+        const options =
+          (field.type === 'radio' || field.type === 'checkbox') && field.options
+            ? field.options
+                .filter((opt) => opt.trim() !== '')
+                .map((label, optIndex) => ({
+                  // id bỏ trống để backend tự tạo / sync
+                  value: label,
+                  label,
+                  sort_order: (optIndex + 1) * 10,
+                  is_active: true,
+                }))
+            : undefined;
+
+        return {
+          // Không gửi id cho custom mới; backend sẽ map builtin theo sort_order + builtin_key
+          id: field.id,
+          kind,
+          builtin_key,
+          internal_name: field.name,
+          label: field.label,
+          field_type: field.type,
+          visible: field.visible,
+          required: field.required,
+          note: field.note || null,
+          sort_order,
+          options,
+        };
+      });
+
+      await baseHttpServiceInstance.put(
+       `/event-studio/events/${params.event_id}/forms/checkout/config`,
+        {
+          name: 'Form mua vé',
+          description: 'Form dùng khi khách mua vé',
+          fields: payloadFields,
+        }
+      );
+      notificationCtx.success('Đã lưu cấu hình form mua vé');
+    } catch (error: any) {
+      notificationCtx.error(error);
+    }
+  };
+
+  return (
+    <>
+      <Stack spacing={3}>
+        <Stack direction="row" spacing={3} alignItems="center">
+          <IconButton
+            component={LocalizedLink}
+            href={`/event-studio/events/${params.event_id}/etik-forms`}
+            sx={{ mr: 1 }}
+          >
+            <ArrowLeft fontSize="var(--icon-fontSize-md)" />
+          </IconButton>
+          <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
+            <Typography variant="h4">Form mua vé</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Bảng câu hỏi khách hàng phải trả lời khi mua vé
+            </Typography>
+          </Stack>
+        </Stack>
+
+        <Card>
+          <CardHeader title="Khách hàng sẽ cần nhập thông tin gì khi mua vé?" />
+          <Divider />
+          <CardContent sx={{ p: 0 }}>
+            <Box sx={{ width: '100%', overflowX: 'auto' }}>
+              <Table
+                sx={{
+                  minWidth: 650,
+                  width: '100%',
+                  '& td, & th': {
+                    py: 0.5,
+                  },
+                }}
+                size="small"
+              >
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Trường thông tin/ câu hỏi</TableCell>
+                    <TableCell>Định dạng</TableCell>
+                    <TableCell>Hiển thị</TableCell>
+                    <TableCell>Bắt buộc</TableCell>
+                    <TableCell>Ghi chú cho khách</TableCell>
+                    <TableCell align="right"></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                {fields.map((field) => (
+                  <TableRow key={field.id}>
+                    <TableCell sx={{ minWidth: 220 }}>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                        {field.label}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ minWidth: 120 }}>
+                        <Stack spacing={0.5}>
+                          <Typography variant="body2">
+                            {renderTypeLabel(field.type)}
+                          </Typography>
+                          {field.options && field.options.length > 0 && (
+                            <Typography variant="caption" color="text.secondary">
+                              {field.options.join(', ')}
+                            </Typography>
+                          )}
+                        </Stack>
+                    </TableCell>
+                    <TableCell sx={{ minWidth: 80 }}>
+                      <Checkbox
+                        checked={field.visible}
+                          // chỉ hiển thị, không chỉnh trong bảng
+                          disabled
+                      />
+                    </TableCell>
+                    <TableCell sx={{ minWidth: 80 }}>
+                      <Checkbox
+                        checked={field.required}
+                          // chỉ hiển thị, không chỉnh trong bảng
+                          disabled
+                      />
+                    </TableCell>
+                    <TableCell sx={{ minWidth: 200 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                          {field.note || '—'}
+                        </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          {!field.locked && (
+                            <IconButton
+                              color="primary"
+                              onClick={() => handleOpenEditFieldModal(field)}
+                            >
+                              <Pencil />
+                            </IconButton>
+                          )}
+                        
+                        </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <Button
+                      startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
+                      onClick={handleOpenAddFieldModal}
+                    >
+                      Thêm trường
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+            </Box>
+          </CardContent>
+        </Card>
+        <Stack direction="row" justifyContent="flex-end">
+          <Button
+            variant="contained"
+            onClick={handleSaveConfigToServer}
+          >
+            Lưu cấu hình
+          </Button>
+        </Stack>
+      </Stack>
+
+      <Modal
+        open={isFieldModalOpen}
+        onClose={() => setFieldModalOpen(false)}
+        aria-labelledby="add-field-modal-title"
+        aria-describedby="add-field-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: { sm: 500, xs: '90%' },
+              bgcolor: 'background.paper',
+              boxShadow: 24,
+            }}
+          >
+            <CardHeader title={editingField ? 'Chỉnh sửa trường' : 'Thêm trường mới'} />
+            <Divider />
+            <CardContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              <Stack spacing={3}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Tên trường"
+                  multiline
+                  minRows={2}
+                  value={newField.label}
+                  onChange={(e) =>
+                    setNewField((prev) => ({ ...prev, label: e.target.value }))
+                  }
+                  disabled={!!editingField && (editingField.locked || editingField.nonDeletable)}
+                />
+
+                <FormControl fullWidth size="small">
+                  <InputLabel id="new-field-type-label">Định dạng</InputLabel>
+                  <Select
+                    labelId="new-field-type-label"
+                    value={newField.type}
+                    label="Định dạng"
+                    onChange={(e) =>
+                      setNewField((prev) => ({ ...prev, type: e.target.value as FieldType }))
+                    }
+                    disabled={!!editingField && (editingField.locked || editingField.nonDeletable)}
+                  >
+                    <MenuItem value="text">Text</MenuItem>
+                    <MenuItem value="number">Số</MenuItem>
+                    <MenuItem value="radio">Chọn một</MenuItem>
+                    <MenuItem value="checkbox">Chọn nhiều</MenuItem>
+                    <MenuItem value="date">Ngày tháng năm</MenuItem>
+                    <MenuItem value="time">Giờ</MenuItem>
+                    <MenuItem value="datetime">Ngày giờ</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={newField.visible}
+                      onChange={(e) =>
+                        setNewField((prev) => ({ ...prev, visible: e.target.checked }))
+                      }
+                      disabled={!!editingField && editingField.locked}
+                    />
+                  }
+                  label="Hiển thị"
+                />
+
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={newField.required}
+                      onChange={(e) =>
+                        setNewField((prev) => ({ ...prev, required: e.target.checked }))
+                      }
+                      disabled={!!editingField && editingField.locked}
+                    />
+                  }
+                  label="Bắt buộc"
+                />
+
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Ghi chú cho khách"
+                  multiline
+                  minRows={2}
+                  value={newField.note}
+                  onChange={(e) =>
+                    setNewField((prev) => ({ ...prev, note: e.target.value }))
+                  }
+                />
+
+                {(newField.type === 'radio' || newField.type === 'checkbox') && (
+                  <Stack spacing={2}>
+                    <Typography variant="subtitle2">
+                      Tuỳ chọn ({renderTypeLabel(newField.type)})
+                    </Typography>
+                    {newField.options.map((opt, index) => (
+                      <Stack
+                        key={index}
+                        direction="row"
+                        spacing={1}
+                        alignItems="center"
+                      >
+                        <TextField
+                          size="small"
+                          fullWidth
+                          placeholder={`Tuỳ chọn ${index + 1}`}
+                          multiline
+                          minRows={1}
+                          value={opt}
+                          onChange={(e) => handleOptionChange(index, e.target.value)}
+                        />
+                        {newField.options.length > 1 && (
+                          <IconButton
+                            color="primary"
+                            onClick={() => handleRemoveOption(index)}
+                          >
+                            <X />
+                          </IconButton>
+                        )}
+                      </Stack>
+                    ))}
+                    <Button
+                      startIcon={<Plus fontSize="var(--icon-fontSize-sm)" />}
+                      onClick={handleAddOption}
+                      size="small"
+                    >
+                      Thêm tuỳ chọn
+                    </Button>
+                  </Stack>
+                )}
+              </Stack>
+            </CardContent>
+            <Divider />
+            <Stack direction="row" spacing={2} justifyContent="space-between" p={2}>
+              <Stack direction="row" spacing={1}>
+                {editingField && !editingField.nonDeletable && (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    startIcon={<X />}
+                    onClick={() => {
+                      setFields((prev) => prev.filter((f) => f.id !== editingField.id));
+                      setFieldModalOpen(false);
+                    }}
+                  >
+                    Xóa câu hỏi
+                  </Button>
+                )}
+              </Stack>
+              <Stack direction="row" spacing={2}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setFieldModalOpen(false)}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleSaveField}
+                >
+                  Lưu
+                </Button>
+              </Stack>
+            </Stack>
+          </Card>
+        </Container>
+      </Modal>
+    </>
+  );
+}

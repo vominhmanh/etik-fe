@@ -6,7 +6,9 @@ import * as React from 'react';
 import SendRequestEventAgencyAndEventApproval from '@/components/events/event/send-request-event-agency-and-event-approval';
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Avatar, Box, Container, Modal, Stack } from '@mui/material';
+import { Avatar, Box, Container, Modal, Stack, Table, TableBody, TableCell, TableHead, TableRow, Paper } from '@mui/material';
+import MuiFormControlLabel from '@mui/material/FormControlLabel';
+import MuiSwitch from '@mui/material/Switch';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -26,7 +28,9 @@ import type { AxiosResponse } from 'axios';
 import { LocalizedLink } from '@/components/localized-link';
 import { useTranslation } from '@/contexts/locale-context';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { ApexOptions } from 'apexcharts';
+import { Chart } from '@/components/core/chart';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 
@@ -65,6 +69,8 @@ export interface EventOverviewResponse {
 export type TicketCategory = {
   id: number;
   checkedIn: number;
+  nowInside: number;
+  nowOutside: number;
   disabled: boolean;
   avatar: string | null;
   name: string;
@@ -130,6 +136,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [eventAgencyRegistrationAndEventApprovalRequest, setEventAgencyRegistrationAndEventApprovalRequest] = useState<CheckEventAgencyRegistrationAndEventApprovalRequestResponse | null>(null);
   const [openEventAgencyRegistrationModal, setOpenEventAgencyRegistrationModal] = useState(false);
   const [openConfirmSubmitEventApprovalModal, setOpenConfirmSubmitEventApprovalModal] = useState(false);
+  const [autoReloadShows, setAutoReloadShows] = React.useState(false);
 
   const handleCategorySelection = (categoryIds: number[]) => {
     setSelectedCategories(categoryIds);
@@ -138,29 +145,73 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const handleSelectionChange = (selected: Show) => {
     setSelectedSchedule(selected);
   };
+
+  // Default selectedSchedule = first show (if exists)
+  React.useEffect(() => {
+    if (!selectedSchedule && event?.shows && event.shows.length > 0) {
+      setSelectedSchedule(event.shows[0]);
+    }
+  }, [event, selectedSchedule]);
   React.useEffect(() => {
     document.title = `${event?.name || ''} | ETIK - Vé điện tử & Quản lý sự kiện`;
   }, [event]);
 
+  // Fetch event information (without shows)
   React.useEffect(() => {
-    if (eventId) {
-      const fetchEventDetails = async () => {
-        try {
-          setIsLoading(true);
-          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
-            `/event-studio/events/${eventId}/get-event-with-ticket-categories`
-          );
-          setEvent(response.data);
-          setDescription(response.data.description || '');
-        } catch (error) {
-          notificationCtx.error(error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchEventDetails();
-    }
+    if (!eventId) return;
+
+    const fetchEventInfo = async () => {
+      try {
+        setIsLoading(true);
+        const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
+          `/event-studio/events/${eventId}/info`
+        );
+        setEvent((prev) => ({
+          ...(prev || { shows: [] as Show[] }),
+          ...response.data,
+        }));
+        setDescription(response.data.description || '');
+      } catch (error) {
+        notificationCtx.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEventInfo();
   }, [eventId]);
+
+  const fetchEventShows = React.useCallback(async () => {
+    if (!eventId) return;
+
+    try {
+      const response: AxiosResponse<{ shows: Show[] }> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${eventId}/shows-with-ticket-categories`
+      );
+      setEvent((prev) => ({
+        ...(prev || ({} as EventResponse)),
+        shows: response.data.shows,
+      }));
+    } catch (error) {
+      notificationCtx.error(error);
+    }
+  }, [eventId, notificationCtx]);
+
+  // Initial fetch of shows + ticket categories
+  React.useEffect(() => {
+    fetchEventShows();
+  }, [fetchEventShows]);
+
+  // Auto reload shows every 10s when toggle is on
+  React.useEffect(() => {
+    if (!autoReloadShows) return;
+
+    const intervalId = setInterval(() => {
+      fetchEventShows();
+    }, 10_000);
+
+    return () => clearInterval(intervalId);
+  }, [autoReloadShows, fetchEventShows]);
 
 
   React.useEffect(() => {
@@ -396,7 +447,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         <Box component="img" src={event?.avatarUrl} sx={{ height: '80px', width: '80px', borderRadius: '50%' }} />
                         :
                         <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
-                          {(event?.name[0] ?? 'a').toUpperCase()}
+                          {(event?.name?.[0] ?? 'A').toUpperCase()}
                         </Avatar>}
                     </div>
                     <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
@@ -609,6 +660,307 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
         </Grid>
       </Grid>
+      <Stack spacing={3} sx={{ mb: 5 }}>
+        <Card>
+          <CardHeader
+            title={tt("ETIK Dashboard", "ETIK Dashboard")}
+            action={(
+              <MuiFormControlLabel
+                control={(
+                  <MuiSwitch
+                    color="primary"
+                    checked={autoReloadShows}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setAutoReloadShows(e.target.checked)
+                    }
+                  />
+                )}
+                label={tt("Auto Reload", "Auto Reload")}
+              />
+            )}
+          />
+        </Card>
+        {/* Part 1 (4/12) */}
+        <Grid container spacing={3}>
+          <Grid lg={4} md={4} xs={12}>
+            <Stack spacing={3}>
+              <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
+              {selectedSchedule && (
+                <TicketCategories show={selectedSchedule} onCategoriesSelect={handleCategorySelection} />
+              )}
+            </Stack>
+          </Grid>
+
+          {/* Right side: Check-in statistics dashboard */}
+          <Grid lg={8} md={8} xs={12}>
+            <Card sx={{ bgcolor: 'background.paper', height: '100%' }}>
+              <CardHeader
+                title={tt('Thống kê Check-in', 'Check-in statistics')}
+                subheader={selectedSchedule ? selectedSchedule.name : event?.name}
+              />
+              <CardContent>
+                {(() => {
+                  const activeShow = selectedSchedule ?? event?.shows?.[0];
+
+                  // Avoid rendering charts on the very first render while data is still loading
+                  if (!activeShow) {
+                    return (
+                      <Typography variant="body2" color="text.secondary">
+                        {tt('Đang tải dữ liệu lịch diễn...', 'Loading schedule data...')}
+                      </Typography>
+                    );
+                  }
+
+                  const categories = activeShow.ticketCategories ?? [];
+
+                  const totals = categories.reduce(
+                    (acc, c) => {
+                      acc.totalCheckedIn += c.checkedIn || 0;
+                      acc.totalSold += c.sold || 0;
+                      acc.totalNowInside += c.nowInside || 0;
+                      acc.totalNowOutside += c.nowOutside || 0;
+                      return acc;
+                    },
+                    { totalCheckedIn: 0, totalSold: 0, totalNowInside: 0, totalNowOutside: 0 }
+                  );
+
+                  const remainingNotCheckedIn = Math.max(
+                    totals.totalSold - totals.totalCheckedIn,
+                    0
+                  );
+
+                  const formatPercentOfSold = (value: number) => {
+                    if (totals.totalSold <= 0) return '0%';
+                    const rate = (value / totals.totalSold) * 100;
+                    return `${rate.toFixed(1)}%`;
+                  };
+
+                  const overallRate =
+                    totals.totalSold > 0 ? (totals.totalCheckedIn / totals.totalSold) * 100 : 0;
+
+                  // Always provide a numeric series so ApexCharts doesn't see undefined on first render
+                  const donutSeries =
+                    totals.totalSold > 0
+                      ? [totals.totalCheckedIn, Math.max(totals.totalSold - totals.totalCheckedIn, 0)]
+                      : [0, 0];
+
+                  const donutOptions: ApexOptions = {
+                    chart: { type: 'donut' as const, background: 'transparent' },
+                    labels: [tt('Đã check-in', 'Checked-in'), tt('Chưa check-in', 'Not checked-in')],
+                    colors: ['#22c55e', '#e5e7eb'],
+                    dataLabels: {
+                      enabled: true,
+                      formatter: (val: any) => {
+                        const num = typeof val === 'number' ? val : parseFloat(val);
+                        if (!Number.isFinite(num)) return '';
+                        return `${num.toFixed(1)}%`;
+                      },
+                    },
+                    legend: { position: 'bottom' as const },
+                    stroke: { width: 0 },
+                  };
+
+                  const barCategories = categories.map((c) => c.name);
+                  const barSeriesData = categories.map((c) => {
+                    const val = c.sold > 0 ? (c.checkedIn / c.sold) * 100 : 0;
+                    return Number.isFinite(val) ? val : 0;
+                  });
+
+                  const barOptions: ApexOptions = {
+                    chart: { type: 'bar' as const, toolbar: { show: false } },
+                    plotOptions: {
+                      bar: {
+                        horizontal: true,
+                        borderRadius: 4,
+                      },
+                    },
+                    xaxis: {
+                      categories: barCategories,
+                      labels: {
+                        formatter: (val: any) => {
+                          const num = typeof val === 'number' ? val : parseFloat(val);
+                          if (!Number.isFinite(num)) return '';
+                          return `${num.toFixed(0)}%`;
+                        },
+                      },
+                      max: 100,
+                    },
+                    dataLabels: {
+                      enabled: true,
+                      formatter: function (val: any) {
+                        const num = typeof val === 'number' ? val : parseFloat(val);
+                        if (!Number.isFinite(num)) return '';
+                        return `${num.toFixed(1)}%`;
+                      },
+                    },
+                    tooltip: {
+                      y: {
+                        formatter: function (val: any) {
+                          const num = typeof val === 'number' ? val : parseFloat(val);
+                          if (!Number.isFinite(num)) return '';
+                          return `${num.toFixed(1)}%`;
+                        },
+                      },
+                    },
+                    colors: ['#f59e0b'],
+                  };
+
+                  const hasDonutData = donutSeries.length > 0 && donutSeries.some((v) => v > 0);
+                  const hasBarData = barCategories.length > 0 && barSeriesData.some((v) => v > 0);
+
+                  return (
+                    <Stack spacing={3}>
+                      {/* Top: donut + summary cards */}
+                      <Grid container spacing={3}>
+                        <Grid lg={5} md={6} xs={12}>
+                          <Stack spacing={1} sx={{ alignItems: 'center', justifyContent: 'center' }}>
+                            <Box
+                              sx={{
+                                minHeight: 220,
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              {hasDonutData ? (
+                                <Chart
+                                  height={220}
+                                  width="100%"
+                                  options={donutOptions}
+                                  series={donutSeries}
+                                  type="donut"
+                                />
+                              ) : (
+                                <Typography variant="body2" color="text.secondary" align="center">
+                                  {tt('Chưa có dữ liệu check-in', 'No check-in data yet')}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Stack>
+                        </Grid>
+                        <Grid lg={7} md={6} xs={12}>
+                          <Grid container spacing={2}>
+                            <Grid xs={6} md={6}>
+                              <Paper variant="outlined" sx={{ p: 2 }}>
+                                <Typography variant="subtitle2">
+                                  {tt('Đã bán', 'Sold')}
+                                </Typography>
+                                <Typography variant="h5">{totals.totalSold}</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {formatPercentOfSold(totals.totalSold)}
+                                </Typography>
+                              </Paper>
+                            </Grid>
+                            <Grid xs={6} md={6}>
+                              <Paper variant="outlined" sx={{ p: 2 }}>
+                                <Typography variant="subtitle2">
+                                  {tt('Đã check-in', 'Checked-in')}
+                                </Typography>
+                                <Typography variant="h5">{totals.totalCheckedIn}</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {formatPercentOfSold(totals.totalCheckedIn)}
+                                </Typography>
+                              </Paper>
+                            </Grid>
+                            <Grid xs={6} md={6}>
+                              <Paper variant="outlined" sx={{ p: 2 }}>
+                                <Typography variant="subtitle2" color="warning.main">
+                                  {tt('Chưa check-in', 'Not yet checked-in')}
+                                </Typography>
+                                <Typography variant="h5" color="warning.main">
+                                  {remainingNotCheckedIn}
+                                </Typography>
+                                <Typography variant="body2" color="warning.main">
+                                  {formatPercentOfSold(remainingNotCheckedIn)}
+                                </Typography>
+                              </Paper>
+                            </Grid>
+                            <Grid xs={6} md={6}>
+                              <Paper variant="outlined" sx={{ p: 2 }}>
+                                <Typography variant="subtitle2">
+                                  {tt('Trong sự kiện', 'Inside event')}
+                                </Typography>
+                                <Typography variant="h5">{totals.totalNowInside}</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {formatPercentOfSold(totals.totalNowInside)}
+                                </Typography>
+                              </Paper>
+                            </Grid>
+                            <Grid xs={6} md={6}>
+                              <Paper variant="outlined" sx={{ p: 2 }}>
+                                <Typography variant="subtitle2">
+                                  {tt('Đã ra ngoài', 'Outside event')}
+                                </Typography>
+                                <Typography variant="h5">{totals.totalNowOutside}</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {formatPercentOfSold(totals.totalNowOutside)}
+                                </Typography>
+                              </Paper>
+                            </Grid>
+                          </Grid>
+                        </Grid>
+                      </Grid>
+
+                      {/* Middle: horizontal bar chart */}
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                          {tt('Tỉ lệ check-in theo loại vé', 'Check-in rate by ticket type')}
+                        </Typography>
+                        {hasBarData ? (
+                          <Chart
+                            height={260}
+                            width="100%"
+                            options={barOptions}
+                            series={[{ name: tt('Tỉ lệ check-in', 'Check-in rate'), data: barSeriesData }]}
+                            type="bar"
+                          />
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            {tt('Chưa có dữ liệu để hiển thị', 'No data to display')}
+                          </Typography>
+                        )}
+                      </Box>
+
+                      {/* Bottom: detail table */}
+                      <Box sx={{ mt: 2, overflowX: 'auto' }}>
+                        <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                          {tt('Chi tiết theo loại vé', 'Details by ticket type')}
+                        </Typography>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>{tt('Loại vé', 'Ticket type')}</TableCell>
+                              <TableCell>{tt('Giá bán', 'Price')}</TableCell>
+                              <TableCell>{tt('Đã bán', 'Sold')}</TableCell>
+                              <TableCell>{tt('Đã check-in', 'Checked-in')}</TableCell>
+                              <TableCell>{tt('Tỉ lệ check-in', 'Check-in rate')}</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {categories.map((c) => {
+                              const rate = c.sold > 0 ? (c.checkedIn / c.sold) * 100 : 0;
+                              return (
+                                <TableRow key={c.id}>
+                                  <TableCell>{c.name}</TableCell>
+                                  <TableCell>{c.price.toLocaleString('vi-VN')}đ</TableCell>
+                                  <TableCell>{c.sold}</TableCell>
+                                  <TableCell>{c.checkedIn}</TableCell>
+                                  <TableCell>{`${rate.toFixed(1)}%`}</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </Box>
+                    </Stack>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Stack>
       <Grid container spacing={3}>
         <Grid lg={4} sm={6} xs={12}>
           <Card sx={{ height: '100%' }}>
@@ -1024,19 +1376,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           />
         </Grid> */}
       </Grid>
-      <Stack spacing={3} sx={{ mt: 5 }}>
-        <Typography variant="h4">{tt("Thống kê số lượng Đơn hàng và Vé", "Statistics of Order and Ticket Quantities")}</Typography>
-        <Grid container spacing={3}>
-          <Grid lg={5} md={5} xs={12} spacing={3}>
-            <Stack spacing={3}>
-              <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
-              {selectedSchedule &&
-                <TicketCategories show={selectedSchedule} onCategoriesSelect={(categoryIds: number[]) => handleCategorySelection(categoryIds)} />
-              }
-            </Stack>
-          </Grid>
-        </Grid>
-      </Stack>
+
       <Modal
         open={openCashWithdrawalModal}
         onClose={() => setOpenCashWithdrawalModal(false)}

@@ -1,7 +1,22 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Box, InputAdornment, TextField, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Checkbox, Avatar } from '@mui/material';
+import {
+  Avatar,
+  Box,
+  Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControlLabel,
+  FormGroup,
+  IconButton,
+  InputAdornment,
+  Radio,
+  RadioGroup,
+  TextField,
+} from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -73,6 +88,22 @@ export type EventResponse = {
 };
 type TicketHolderInfo = { title: string; name: string; email: string; phone: string; phoneCountryIso2?: string; avatar?: string };
 
+type CheckoutRuntimeFieldOption = {
+  value: string;
+  label: string;
+  sort_order: number;
+};
+
+type CheckoutRuntimeField = {
+  internal_name: string;
+  label: string;
+  field_type: string;
+  visible: boolean;
+  required: boolean;
+  note?: string | null;
+  options?: CheckoutRuntimeFieldOption[];
+};
+
 const getPaymentMethodLabel = (paymentMethod: string, tt: (vi: string, en: string) => string): string => {
   switch (paymentMethod) {
     case 'cash':
@@ -106,6 +137,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
     dob: null as string | null,
     address: '',
+    idcard_number: '',
     avatar: ''
   });
   const [paymentMethod, setPaymentMethod] = React.useState<string>('napas247');
@@ -120,6 +152,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [requireGuestAvatar, setRequireGuestAvatar] = React.useState<boolean>(false);
   const [pendingCustomerAvatarFile, setPendingCustomerAvatarFile] = React.useState<File | null>(null);
   const [pendingHolderAvatarFiles, setPendingHolderAvatarFiles] = React.useState<Record<string, File>>({});
+
+  const [checkoutFormFields, setCheckoutFormFields] = React.useState<CheckoutRuntimeField[]>([]);
+  const [checkoutCustomAnswers, setCheckoutCustomAnswers] = React.useState<Record<string, any>>({});
 
   const selectedPhoneCountry = React.useMemo(() => {
     return PHONE_COUNTRIES.find((c) => c.iso2 === customer.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
@@ -157,6 +192,34 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       fetchEventDetails();
     }
   }, [params.event_id]);
+
+  // Fetch checkout form runtime configuration
+  React.useEffect(() => {
+    const fetchCheckoutForm = async () => {
+      if (!params.event_id) return;
+      try {
+        const resp: AxiosResponse<{ fields: CheckoutRuntimeField[] }> =
+          await baseHttpServiceInstance.get(
+            `/event-studio/events/${params.event_id}/forms/checkout/runtime`
+          );
+        setCheckoutFormFields(resp.data.fields || []);
+      } catch (error) {
+        // Nếu form chưa cấu hình, bỏ qua, dùng mặc định hiện tại
+        console.error('Failed to load checkout form runtime', error);
+      }
+    };
+    fetchCheckoutForm();
+  }, [params.event_id]);
+
+  const builtinInternalNames = React.useMemo(
+    () => new Set(['name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
+    []
+  );
+
+  const customCheckoutFields = React.useMemo(
+    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internal_name)),
+    [checkoutFormFields, builtinInternalNames]
+  );
 
   // Cleanup blob URLs on unmount to prevent memory leaks
   React.useEffect(() => {
@@ -349,9 +412,69 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const handleCreateClick = () => {
-    if (!customer.name || !customer.email || !customer.phoneNumber || ticketQuantity <= 0) {
+    if (ticketQuantity <= 0) {
       notificationCtx.warning(tt('Vui lòng điền đầy đủ các thông tin bắt buộc', 'Please fill in all required information'));
       return;
+    }
+
+    // Validate required fields based on checkout form configuration
+    for (const field of checkoutFormFields) {
+      if (!field.visible || !field.required) continue;
+
+      // Built-in fields: map vào customer
+      if (field.internal_name === 'name' && !customer.name) {
+        notificationCtx.warning(tt('Vui lòng nhập họ tên người mua', 'Please enter buyer name'));
+        return;
+      }
+      if (field.internal_name === 'email' && !customer.email) {
+        notificationCtx.warning(tt('Vui lòng nhập email người mua', 'Please enter buyer email'));
+        return;
+      }
+      if (field.internal_name === 'phone_number' && !customer.phoneNumber) {
+        notificationCtx.warning(tt('Vui lòng nhập số điện thoại người mua', 'Please enter buyer phone number'));
+        return;
+      }
+      if (field.internal_name === 'address' && !customer.address) {
+        notificationCtx.warning(tt('Vui lòng nhập địa chỉ người mua', 'Please enter buyer address'));
+        return;
+      }
+      if (field.internal_name === 'dob' && !customer.dob) {
+        notificationCtx.warning(tt('Vui lòng nhập ngày sinh người mua', 'Please enter buyer date of birth'));
+        return;
+      }
+      if (field.internal_name === 'idcard_number' && !customer.idcard_number) {
+        notificationCtx.warning(
+          tt(
+            'Vui lòng nhập số Căn cước công dân của người mua',
+            'Please enter buyer ID card number'
+          )
+        );
+        return;
+      }
+
+      // Custom fields
+      if (!builtinInternalNames.has(field.internal_name)) {
+        const value = checkoutCustomAnswers[field.internal_name];
+        if (field.field_type === 'checkbox') {
+          if (!Array.isArray(value) || value.length === 0) {
+            notificationCtx.warning(
+              tt(
+                `Vui lòng chọn ít nhất một lựa chọn cho "${field.label}"`,
+                `Please choose at least one option for "${field.label}"`
+              )
+            );
+            return;
+          }
+        } else if (!value) {
+          notificationCtx.warning(
+            tt(
+              `Vui lòng nhập thông tin cho "${field.label}"`,
+              `Please fill in "${field.label}"`
+            )
+          );
+          return;
+        }
+      }
     }
 
     const totalSelectedCategories = Object.values(selectedCategories).reduce((sum, catMap) => sum + Object.keys(catMap || {}).length, 0);
@@ -573,7 +696,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         })
       ));
 
-      // Prepare customer data, only include avatarUrl if requireGuestAvatar is true
+      // Prepare customer data, only include fields that are visible in checkout form
       const customerData: any = {
         title: customer.title,
         name: customer.name,
@@ -581,15 +704,34 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         phoneNumber: customer.phoneNumber,
         phoneCountry: customer.phoneCountryIso2,
         phoneNationalNumber: customerNSN,
-        dob: customer.dob,
-        address: customer.address,
       };
+
+      const isFieldVisible = (name: string) =>
+        !!checkoutFormFields.find((f) => f.internal_name === name && f.visible);
+
+      if (isFieldVisible('dob')) {
+        customerData.dob = customer.dob;
+      }
+      if (isFieldVisible('address')) {
+        customerData.address = customer.address;
+      }
+      if (isFieldVisible('idcard_number')) {
+        customerData.idcard_number = customer.idcard_number;
+      }
       
       if (requireGuestAvatar && customerAvatarUrl) {
         customerData.avatarUrl = customerAvatarUrl;
       }
 
-      const transactionData = {
+      // Only send answers for visible custom fields
+      const formAnswers: Record<string, any> = {};
+      checkoutFormFields.forEach((field) => {
+        if (!field.visible) return;
+        if (builtinInternalNames.has(field.internal_name)) return;
+        formAnswers[field.internal_name] = checkoutCustomAnswers[field.internal_name];
+      });
+
+      const transactionData: any = {
         customer: customerData,
         tickets,
         qrOption,
@@ -598,6 +740,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         paymentMethod,
         extraFee,
       };
+
+      if (Object.keys(formAnswers).length > 0) {
+        transactionData.formAnswers = formAnswers;
+      }
 
       const response = await baseHttpServiceInstance.post(
         `/event-studio/events/${params.event_id}/transactions`,
@@ -663,7 +809,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
-                  <Grid lg={6} xs={12}>
+                  <Grid lg={4} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel htmlFor="customer-name">{tt("Danh xưng* &emsp; Họ và tên", "Title* &emsp; Full Name")}</InputLabel>
                       <OutlinedInput
@@ -710,7 +856,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </FormControl>
                   </Grid>
 
-                  <Grid md={6} xs={12}>
+                  <Grid md={4} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>{tt("Địa chỉ Email", "Email Address")}</InputLabel>
                       <OutlinedInput
@@ -722,7 +868,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       />
                     </FormControl>
                   </Grid>
-                  <Grid md={6} xs={12}>
+                  <Grid md={4} xs={12}>
                     <FormControl fullWidth required>
                       <InputLabel>{tt("Số điện thoại", "Phone Number")}</InputLabel>
                       <OutlinedInput
@@ -758,36 +904,192 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       />
                     </FormControl>
                   </Grid>
-                  <Grid lg={6} xs={12}>
-                    <TextField
+                  {/* Builtin optional fields controlled by checkout form config */}
+                  {(() => {
+                    const dobCfg = checkoutFormFields.find((f) => f.internal_name === 'dob');
+                    const visible = !!dobCfg && dobCfg.visible;
+                    const required = !!dobCfg?.required;
+                    return (
+                      visible && (
+                        <Grid lg={6} xs={12}>
+                          <TextField
+                            fullWidth
+                            label={tt("Ngày tháng năm sinh", "Date of Birth")}
+                            name="customer_dob"
+                            type="date"
+                            required={required}
+                            value={customer.dob || ""}
+                            onChange={(e) =>
+                              setCustomer({ ...customer, dob: e.target.value })
+                            }
+                            InputLabelProps={{
+                              shrink: true,
+                            }}
+                            inputProps={{
+                              max: new Date().toISOString().slice(0, 10),
+                            }}
+                          />
+                        </Grid>
+                      )
+                    );
+                  })()}
+                  {(() => {
+                    const idCfg = checkoutFormFields.find((f) => f.internal_name === 'idcard_number');
+                    const visible = !!idCfg && idCfg.visible;
+                    const required = !!idCfg?.required;
+                    return (
+                      visible && (
+                        <Grid lg={6} xs={12}>
+                          <FormControl fullWidth required={required}>
+                            <InputLabel>{tt("Số Căn cước công dân", "ID Card Number")}</InputLabel>
+                            <OutlinedInput
+                              label={tt("Số Căn cước công dân", "ID Card Number")}
+                              name="customer_idcard_number"
+                              value={customer.idcard_number}
+                              onChange={(e) => setCustomer({ ...customer, idcard_number: e.target.value })}
+                            />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
 
-                      fullWidth
-                      label={tt("Ngày tháng năm sinh", "Date of Birth")}
-                      name="customer_dob"
-                      type="date"
-                      value={customer.dob || ""}
-                      onChange={(e) =>
-                        setCustomer({ ...customer, dob: e.target.value })
-                      }
-                      InputLabelProps={{
-                        shrink: true,   // bắt buộc để label không bị chồng
-                      }}
-                      inputProps={{
-                        max: new Date().toISOString().slice(0, 10),
-                      }}
-                    />
-                  </Grid>
-                  <Grid md={12} xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel>{tt("Địa chỉ", "Address")}</InputLabel>
-                      <OutlinedInput
-                        label={tt("Địa chỉ", "Address")}
-                        name="customer_address"
-                        value={customer.address}
-                        onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                      />
-                    </FormControl>
-                  </Grid>
+                  {(() => {
+                    const addrCfg = checkoutFormFields.find((f) => f.internal_name === 'address');
+                    const visible = !!addrCfg && addrCfg.visible;
+                    const required = !!addrCfg?.required;
+                    return (
+                      visible && (
+                        <Grid lg={12} xs={12}>
+                          <FormControl fullWidth required={required}>
+                            <InputLabel>{tt("Địa chỉ", "Address")}</InputLabel>
+                            <OutlinedInput
+                              label={tt("Địa chỉ", "Address")}
+                              name="customer_address"
+                              value={customer.address}
+                              onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
+                            />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  
+
+                  {/* Custom checkout fields (ETIK Forms) */}
+                  {customCheckoutFields.map((field) => (
+                    <Grid key={field.internal_name} xs={12}>
+                      <Stack spacing={0.5}>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {field.label}
+                          {field.required && ' *'}
+                        </Typography>
+                        {field.note && (
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {field.note}
+                          </Typography>
+                        )}
+
+                        {['text', 'number'].includes(field.field_type) && (
+                          <TextField
+                            fullWidth
+                            size="small"
+                            type={field.field_type === 'number' ? 'number' : 'text'}
+                            value={checkoutCustomAnswers[field.internal_name] ?? ''}
+                            onChange={(e) =>
+                              setCheckoutCustomAnswers((prev) => ({
+                                ...prev,
+                                [field.internal_name]: e.target.value,
+                              }))
+                            }
+                          />
+                        )}
+
+                        {['date', 'time', 'datetime'].includes(field.field_type) && (
+                          <TextField
+                            fullWidth
+                            size="small"
+                            type={
+                              field.field_type === 'date'
+                                ? 'date'
+                                : field.field_type === 'time'
+                                ? 'time'
+                                : 'datetime-local'
+                            }
+                            InputLabelProps={{ shrink: true }}
+                            value={checkoutCustomAnswers[field.internal_name] ?? ''}
+                            onChange={(e) =>
+                              setCheckoutCustomAnswers((prev) => ({
+                                ...prev,
+                                [field.internal_name]: e.target.value,
+                              }))
+                            }
+                          />
+                        )}
+
+                        {field.field_type === 'radio' && field.options && (
+                          <FormControl component="fieldset" variant="standard">
+                            <RadioGroup
+                              value={checkoutCustomAnswers[field.internal_name] ?? ''}
+                              onChange={(e) =>
+                                setCheckoutCustomAnswers((prev) => ({
+                                  ...prev,
+                                  [field.internal_name]: e.target.value,
+                                }))
+                              }
+                            >
+                              {field.options.map((opt) => (
+                                <FormControlLabel
+                                  key={opt.value}
+                                  value={opt.value}
+                                  control={<Radio size="small" />}
+                                  label={opt.label}
+                                />
+                              ))}
+                            </RadioGroup>
+                          </FormControl>
+                        )}
+
+                        {field.field_type === 'checkbox' && field.options && (
+                          <FormGroup>
+                            {field.options.map((opt) => {
+                              const current: string[] =
+                                checkoutCustomAnswers[field.internal_name] ?? [];
+                              const checked = current.includes(opt.value);
+                              return (
+                                <FormControlLabel
+                                  key={opt.value}
+                                  control={
+                                    <Checkbox
+                                      size="small"
+                                      checked={checked}
+                                      onChange={(e) => {
+                                        setCheckoutCustomAnswers((prev) => {
+                                          const prevArr: string[] = prev[field.internal_name] ?? [];
+                                          let nextArr: string[];
+                                          if (e.target.checked) {
+                                            nextArr = Array.from(new Set([...prevArr, opt.value]));
+                                          } else {
+                                            nextArr = prevArr.filter((v) => v !== opt.value);
+                                          }
+                                          return {
+                                            ...prev,
+                                            [field.internal_name]: nextArr,
+                                          };
+                                        });
+                                      }}
+                                    />
+                                  }
+                                  label={opt.label}
+                                />
+                              );
+                            })}
+                          </FormGroup>
+                        )}
+                      </Stack>
+                    </Grid>
+                  ))}
                 </Grid>
               </CardContent>
             </Card>

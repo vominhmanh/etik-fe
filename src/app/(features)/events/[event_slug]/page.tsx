@@ -1,7 +1,25 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, Checkbox, Container, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormHelperText, IconButton, InputAdornment, Modal } from '@mui/material';
+import {
+  Avatar,
+  Box,
+  Checkbox,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControlLabel,
+  FormHelperText,
+  IconButton,
+  InputAdornment,
+  Modal,
+  TextField,
+  Radio,
+  RadioGroup,
+  FormGroup,
+} from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -102,6 +120,22 @@ const options = {
 };
 type TicketHolderInfo = { title: string; name: string; email: string; phone: string };
 
+type CheckoutRuntimeFieldOption = {
+  value: string;
+  label: string;
+  sort_order: number;
+};
+
+type CheckoutRuntimeField = {
+  internal_name: string;
+  label: string;
+  field_type: string;
+  visible: boolean;
+  required: boolean;
+  note?: string | null;
+  options?: CheckoutRuntimeFieldOption[];
+};
+
 const paymentMethodLabelMap: Record<string, string> = {
   cash: 'Tiền mặt',
   transfer: 'Chuyển khoản',
@@ -141,6 +175,8 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     phoneNumber: '',
     phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
     address: '',
+    dob: '',
+    idcard_number: '',
   });
   const [paymentMethod, setPaymentMethod] = React.useState<string>('napas247');
   const [ticketHolders, setTicketHolders] = React.useState<string[]>(['']);
@@ -158,6 +194,8 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [ticketHoldersByCategory, setTicketHoldersByCategory] = React.useState<Record<string, TicketHolderInfo[]>>({});
   const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
   const [responseTransaction, setResponseTransaction] = React.useState<Transaction | null>(null);
+  const [checkoutFormFields, setCheckoutFormFields] = React.useState<CheckoutRuntimeField[]>([]);
+  const [checkoutCustomAnswers, setCheckoutCustomAnswers] = React.useState<Record<string, any>>({});
 
   // Update customer title default when language changes
   React.useEffect(() => {
@@ -246,6 +284,34 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       fetchEventDetails();
     }
   }, [params.event_slug]);
+
+  // Load checkout form runtime (builtin + custom fields)
+  React.useEffect(() => {
+    const fetchCheckoutForm = async () => {
+      if (!params.event_slug) return;
+      try {
+        const resp: AxiosResponse<{ fields: CheckoutRuntimeField[] }> =
+          await baseHttpServiceInstance.get(
+            `/marketplace/events/${params.event_slug}/forms/checkout/runtime`
+          );
+        setCheckoutFormFields(resp.data.fields || []);
+      } catch (error) {
+        // Nếu chưa có form cấu hình, vẫn dùng các field mặc định hiện tại
+        console.error('Failed to load marketplace checkout form runtime', error);
+      }
+    };
+    fetchCheckoutForm();
+  }, [params.event_slug]);
+
+  const builtinInternalNames = React.useMemo(
+    () => new Set(['name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
+    []
+  );
+
+  const customCheckoutFields = React.useMemo(
+    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internal_name)),
+    [checkoutFormFields, builtinInternalNames]
+  );
   const handleAddToCartQuantity = (showId: number, categoryId: number, quantity: number, holders?: TicketHolderInfo[]) => {
     setSelectedCategories(prev => {
       const forShow = prev[showId] || {};
@@ -327,9 +393,64 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
 
 
   const handleCreateClick = () => {
-    if (!customer.name || !customer.email || !customer.phoneNumber || ticketQuantity <= 0) {
+    if (ticketQuantity <= 0) {
       notificationCtx.warning(tt('Vui lòng điền đầy đủ các thông tin bắt buộc', 'Please fill in all required fields'));
       return;
+    }
+
+    // Validate customer required fields based on checkout form configuration
+    for (const field of checkoutFormFields) {
+      if (!field.visible || !field.required) continue;
+
+      // Built-in fields mapped vào customer
+      if (field.internal_name === 'name' && !customer.name) {
+        notificationCtx.warning(tt('Vui lòng nhập họ tên', 'Please enter your full name'));
+        return;
+      }
+      if (field.internal_name === 'email' && !customer.email) {
+        notificationCtx.warning(tt('Vui lòng nhập email', 'Please enter your email'));
+        return;
+      }
+      if (field.internal_name === 'phone_number' && !customer.phoneNumber) {
+        notificationCtx.warning(tt('Vui lòng nhập số điện thoại', 'Please enter your phone number'));
+        return;
+      }
+      if (field.internal_name === 'address' && !customer.address) {
+        notificationCtx.warning(tt('Vui lòng nhập địa chỉ', 'Please enter your address'));
+        return;
+      }
+      if (field.internal_name === 'dob' && !customer.dob) {
+        notificationCtx.warning(tt('Vui lòng nhập ngày sinh', 'Please enter your date of birth'));
+        return;
+      }
+      if (field.internal_name === 'idcard_number' && !customer.idcard_number) {
+        notificationCtx.warning(tt('Vui lòng nhập số căn cước công dân', 'Please enter your ID card number'));
+        return;
+      }
+
+      // Custom fields
+      if (!builtinInternalNames.has(field.internal_name)) {
+        const value = checkoutCustomAnswers[field.internal_name];
+        if (field.field_type === 'checkbox') {
+          if (!Array.isArray(value) || value.length === 0) {
+            notificationCtx.warning(
+              tt(
+                `Vui lòng chọn ít nhất một lựa chọn cho "${field.label}"`,
+                `Please choose at least one option for "${field.label}"`
+              )
+            );
+            return;
+          }
+        } else if (!value) {
+          notificationCtx.warning(
+            tt(
+              `Vui lòng nhập thông tin cho "${field.label}"`,
+              `Please fill in "${field.label}"`
+            )
+          );
+          return;
+        }
+      }
     }
 
     const totalSelectedCategories = Object.values(selectedCategories).reduce((sum, catMap) => sum + Object.keys(catMap || {}).length, 0);
@@ -337,7 +458,6 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       notificationCtx.warning(tt('Vui lòng chọn ít nhất 1 loại vé', 'Please select at least one ticket type'));
       return;
     }
-
 
     // Validate per-ticket holder info when separate QR is selected
     if (qrOption === 'separate') {
@@ -368,9 +488,64 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   };
 
   const handleSubmit = async () => {
-    if (!customer.name || !customer.email || !customer.address || ticketQuantity <= 0) {
+    if (ticketQuantity <= 0) {
       notificationCtx.warning(tt('Vui lòng điền các trường thông tin bắt buộc', 'Please fill in the required fields'));
       return;
+    }
+
+    // Validate customer required fields based on checkout form configuration
+    for (const field of checkoutFormFields) {
+      if (!field.visible || !field.required) continue;
+
+      // Built-in fields mapped vào customer
+      if (field.internal_name === 'name' && !customer.name) {
+        notificationCtx.warning(tt('Vui lòng nhập họ tên', 'Please enter your full name'));
+        return;
+      }
+      if (field.internal_name === 'email' && !customer.email) {
+        notificationCtx.warning(tt('Vui lòng nhập email', 'Please enter your email'));
+        return;
+      }
+      if (field.internal_name === 'phone_number' && !customer.phoneNumber) {
+        notificationCtx.warning(tt('Vui lòng nhập số điện thoại', 'Please enter your phone number'));
+        return;
+      }
+      if (field.internal_name === 'address' && !customer.address) {
+        notificationCtx.warning(tt('Vui lòng nhập địa chỉ', 'Please enter your address'));
+        return;
+      }
+      if (field.internal_name === 'dob' && !customer.dob) {
+        notificationCtx.warning(tt('Vui lòng nhập ngày sinh', 'Please enter your date of birth'));
+        return;
+      }
+      if (field.internal_name === 'idcard_number' && !customer.idcard_number) {
+        notificationCtx.warning(tt('Vui lòng nhập số căn cước công dân', 'Please enter your ID card number'));
+        return;
+      }
+
+      // Custom fields
+      if (!builtinInternalNames.has(field.internal_name)) {
+        const value = checkoutCustomAnswers[field.internal_name];
+        if (field.field_type === 'checkbox') {
+          if (!Array.isArray(value) || value.length === 0) {
+            notificationCtx.warning(
+              tt(
+                `Vui lòng chọn ít nhất một lựa chọn cho "${field.label}"`,
+                `Please choose at least one option for "${field.label}"`
+              )
+            );
+            return;
+          }
+        } else if (!value) {
+          notificationCtx.warning(
+            tt(
+              `Vui lòng nhập thông tin cho "${field.label}"`,
+              `Please fill in "${field.label}"`
+            )
+          );
+          return;
+        }
+      }
     }
 
     const captchaValue = captchaRef.current?.getValue();
@@ -417,7 +592,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         Object.entries(catMap || {}).map(([categoryIdStr, qty]) => {
           const key = `${showId}-${categoryIdStr}`;
           const holders = ticketHoldersByCategory[key] || [];
-          
+
           // Convert phoneCountryIso2 to phoneCountry and phoneNationalNumber for holders
           const processedHolders = holders.map((h: any) => {
             if (!h.phone) return h;
@@ -430,7 +605,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
               phoneNationalNumber: phoneNSN,
             };
           });
-          
+
           return {
             showId: parseInt(showId),
             ticketCategoryId: parseInt(categoryIdStr),
@@ -444,21 +619,47 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       const digits = customer.phoneNumber.replace(/\D/g, '');
       const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
       const { phoneCountryIso2, ...customerWithoutPhoneCountryIso2 } = customer;
-      const customerData = {
+
+      const customerData: any = {
         ...customerWithoutPhoneCountryIso2,
         phoneCountry: phoneCountryIso2,
         phoneNationalNumber: phoneNSN,
       };
 
-      const transactionData = {
+      const isFieldVisible = (name: string) =>
+        !!checkoutFormFields.find((f) => f.internal_name === name && f.visible);
+
+      if (!isFieldVisible('address')) {
+        delete customerData.address;
+      }
+      if (!isFieldVisible('dob')) {
+        delete customerData.dob;
+      }
+      if (!isFieldVisible('idcard_number')) {
+        delete customerData.idcard_number;
+      }
+
+      // Only send answers for visible custom fields
+      const formAnswers: Record<string, any> = {};
+      checkoutFormFields.forEach((field) => {
+        if (!field.visible) return;
+        if (builtinInternalNames.has(field.internal_name)) return;
+        formAnswers[field.internal_name] = checkoutCustomAnswers[field.internal_name];
+      });
+
+      const transactionData: any = {
         customer: customerData,
         tickets,
         paymentMethod,
         qrOption,
         captchaValue,
-        "latitude": position?.latitude,
-        "longitude": position?.longitude
+        latitude: position?.latitude,
+        longitude: position?.longitude,
       };
+
+      if (Object.keys(formAnswers).length > 0) {
+        transactionData.formAnswers = formAnswers;
+      }
 
       const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.post(
         `/marketplace/events/${params.event_slug}/transactions`,
@@ -649,7 +850,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   <Divider />
                   <CardContent>
                     <Grid container spacing={3}>
-                      <Grid item lg={6} xs={12}>
+                      <Grid item lg={4} xs={12}>
                         <FormControl fullWidth required>
                           <InputLabel htmlFor="customer-name">{tt('Danh xưng*  Họ và tên', 'Title*  Full name')}</InputLabel>
                           <OutlinedInput
@@ -688,7 +889,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                           />
                         </FormControl>
                       </Grid>
-                      <Grid item lg={6} xs={12}>
+                      <Grid item lg={4} xs={12}>
                         <FormControl fullWidth required>
                           <InputLabel>{tt('Địa chỉ Email', 'Email address')}</InputLabel>
                           <OutlinedInput
@@ -700,7 +901,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                           />
                         </FormControl>
                       </Grid>
-                      <Grid item lg={6} xs={12}>
+                      <Grid item lg={4} xs={12}>
                         <FormControl fullWidth required>
                           <InputLabel>{tt('Số điện thoại', 'Phone number')}</InputLabel>
                           <OutlinedInput
@@ -737,17 +938,208 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                         </FormControl>
                       </Grid>
 
-                      <Grid item lg={6} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>{tt('Địa chỉ', 'Address')}</InputLabel>
-                          <OutlinedInput
-                            label={tt('Địa chỉ', 'Address')}
-                            name="customer_address"
-                            value={customer.address}
-                            onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                          />
-                        </FormControl>
-                      </Grid>
+                      {(() => {
+                        const dobCfg = checkoutFormFields.find((f) => f.internal_name === 'dob');
+                        const visible = !!dobCfg && dobCfg.visible;
+                        const required = !!dobCfg?.required;
+                        return (
+                          visible && (
+                            <Grid item lg={6} xs={12}>
+                              <FormControl fullWidth required={required}>
+                                <TextField
+                                  fullWidth
+                                  label={tt('Ngày tháng năm sinh', 'Date of Birth')}
+                                  name="customer_dob"
+                                  type="date"
+                                  required={required}
+                                  value={customer.dob || ''}
+                                  onChange={(e) =>
+                                    setCustomer({ ...customer, dob: e.target.value })
+                                  }
+                                  InputLabelProps={{
+                                    shrink: true,
+                                  }}
+                                  inputProps={{
+                                    max: new Date().toISOString().slice(0, 10),
+                                  }}
+                                />
+                              </FormControl>
+                            </Grid>
+                          )
+                        );
+                      })()}
+
+                      
+{(() => {
+                        const idCfg = checkoutFormFields.find(
+                          (f) => f.internal_name === 'idcard_number'
+                        );
+                        const visible = !!idCfg && idCfg.visible;
+                        const required = !!idCfg?.required;
+                        return (
+                          visible && (
+                            <Grid item lg={6} xs={12}>
+                              <FormControl fullWidth required={required}>
+                                <InputLabel>
+                                  {tt('Số Căn cước công dân', 'ID Card Number')}
+                                </InputLabel>
+                                <OutlinedInput
+                                  label={tt('Số Căn cước công dân', 'ID Card Number')}
+                                  name="customer_idcard_number"
+                                  value={customer.idcard_number}
+                                  onChange={(e) =>
+                                    setCustomer({ ...customer, idcard_number: e.target.value })
+                                  }
+                                />
+                              </FormControl>
+                            </Grid>
+                          )
+                        );
+                      })()}
+
+                      {(() => {
+                        const addrCfg = checkoutFormFields.find(
+                          (f) => f.internal_name === 'address'
+                        );
+                        const visible = !!addrCfg && addrCfg.visible;
+                        const required = !!addrCfg?.required;
+                        return (
+                          visible && (
+                            <Grid item lg={12} xs={12}>
+                              <FormControl fullWidth required={required}>
+                                <InputLabel>{tt('Địa chỉ', 'Address')}</InputLabel>
+                                <OutlinedInput
+                                  label={tt('Địa chỉ', 'Address')}
+                                  name="customer_address"
+                                  value={customer.address}
+                                  onChange={(e) =>
+                                    setCustomer({ ...customer, address: e.target.value })
+                                  }
+                                />
+                              </FormControl>
+                            </Grid>
+                          )
+                        );
+                      })()}
+
+
+
+                      {/* Custom checkout fields (ETIK Forms) */}
+                      {customCheckoutFields.map((field) => (
+                        <Grid key={field.internal_name} item xs={12}>
+                          <Stack spacing={0.5}>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {field.label}
+                              {field.required && ' *'}
+                            </Typography>
+                            {field.note && (
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {field.note}
+                              </Typography>
+                            )}
+
+                            {['text', 'number'].includes(field.field_type) && (
+                              <TextField
+                                fullWidth
+                                size="small"
+                                type={field.field_type === 'number' ? 'number' : 'text'}
+                                value={checkoutCustomAnswers[field.internal_name] ?? ''}
+                                onChange={(e) =>
+                                  setCheckoutCustomAnswers((prev) => ({
+                                    ...prev,
+                                    [field.internal_name]: e.target.value,
+                                  }))
+                                }
+                              />
+                            )}
+
+                            {['date', 'time', 'datetime'].includes(field.field_type) && (
+                              <TextField
+                                fullWidth
+                                size="small"
+                                type={
+                                  field.field_type === 'date'
+                                    ? 'date'
+                                    : field.field_type === 'time'
+                                      ? 'time'
+                                      : 'datetime-local'
+                                }
+                                InputLabelProps={{ shrink: true }}
+                                value={checkoutCustomAnswers[field.internal_name] ?? ''}
+                                onChange={(e) =>
+                                  setCheckoutCustomAnswers((prev) => ({
+                                    ...prev,
+                                    [field.internal_name]: e.target.value,
+                                  }))
+                                }
+                              />
+                            )}
+
+                            {field.field_type === 'radio' && field.options && (
+                              <FormControl component="fieldset" variant="standard">
+                                <RadioGroup
+                                  value={checkoutCustomAnswers[field.internal_name] ?? ''}
+                                  onChange={(e) =>
+                                    setCheckoutCustomAnswers((prev) => ({
+                                      ...prev,
+                                      [field.internal_name]: e.target.value,
+                                    }))
+                                  }
+                                >
+                                  {field.options.map((opt) => (
+                                    <FormControlLabel
+                                      key={opt.value}
+                                      value={opt.value}
+                                      control={<Radio size="small" />}
+                                      label={opt.label}
+                                    />
+                                  ))}
+                                </RadioGroup>
+                              </FormControl>
+                            )}
+
+                            {field.field_type === 'checkbox' && field.options && (
+                              <FormGroup>
+                                {field.options.map((opt) => {
+                                  const current: string[] =
+                                    checkoutCustomAnswers[field.internal_name] ?? [];
+                                  const checked = current.includes(opt.value);
+                                  return (
+                                    <FormControlLabel
+                                      key={opt.value}
+                                      control={
+                                        <Checkbox
+                                          size="small"
+                                          checked={checked}
+                                          onChange={(e) => {
+                                            setCheckoutCustomAnswers((prev) => {
+                                              const prevArr: string[] =
+                                                prev[field.internal_name] ?? [];
+                                              let nextArr: string[];
+                                              if (e.target.checked) {
+                                                nextArr = Array.from(
+                                                  new Set([...prevArr, opt.value])
+                                                );
+                                              } else {
+                                                nextArr = prevArr.filter((v) => v !== opt.value);
+                                              }
+                                              return {
+                                                ...prev,
+                                                [field.internal_name]: nextArr,
+                                              };
+                                            });
+                                          }}
+                                        />
+                                      }
+                                      label={opt.label}
+                                    />
+                                  );
+                                })}
+                              </FormGroup>
+                            )}
+                          </Stack>
+                        </Grid>
+                      ))}
                     </Grid>
                   </CardContent>
                 </Card>
@@ -1039,7 +1431,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
                   <Typography variant="h5">{tt('Đăng ký thành công !', 'Registration successful!')}</Typography>
                   <Typography variant="body2" sx={{ textAlign: 'justify' }}>
-                    {lang === 'vi' 
+                    {lang === 'vi'
                       ? `Cảm ơn ${customer.title} ${customer.name} đã sử dụng ETIK. Hãy kiểm tra Email để xem vé. Nếu ${customer.title} cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ `
                       : `Thank you ${customer.title} ${customer.name} for using ETIK. Please check your email for your tickets. If you need support, submit a request `}
                     <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">{tt('tại đây.', 'here.')}</a>
@@ -1062,18 +1454,18 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                     </Button>
                   )}
                   {event?.useCheckInFace && (
-                  <Button
-                    fullWidth
-                    variant='contained'
-                    size="small"
-                    component="a"
-                    href={`https://ekyc.etik.vn/ekyc-register?event_slug=${params.event_slug}&transaction_id=${responseTransaction?.id}&response_token=${responseTransaction?.customerResponseToken}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    startIcon={<ScanSmileyIcon />}
-                  >
-                    {tt('Đăng ký check-in bằng khuôn mặt', 'Register face check-in')}
-                  </Button>
+                    <Button
+                      fullWidth
+                      variant='contained'
+                      size="small"
+                      component="a"
+                      href={`https://ekyc.etik.vn/ekyc-register?event_slug=${params.event_slug}&transaction_id=${responseTransaction?.id}&response_token=${responseTransaction?.customerResponseToken}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      startIcon={<ScanSmileyIcon />}
+                    >
+                      {tt('Đăng ký check-in bằng khuôn mặt', 'Register face check-in')}
+                    </Button>
                   )}
                   <Button
                     fullWidth

@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, CardActions, Chip, IconButton, InputAdornment, Menu, MenuItem, Modal, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Container, Checkbox } from '@mui/material';
+import { Avatar, Box, CardActions, Chip, IconButton, InputAdornment, Menu, MenuItem, Modal, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Container, Checkbox, FormGroup, FormControlLabel, RadioGroup, Radio, TextField } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -281,7 +281,25 @@ export interface Transaction {
   event: Event;
   qrOption: string;
   eCode?: string;
+  // Dynamic checkout form answers (ETIK Forms)
+  formAnswers?: Record<string, any>;
 }
+
+type CheckoutRuntimeFieldOption = {
+  value: string;
+  label: string;
+  sort_order: number;
+};
+
+type CheckoutRuntimeField = {
+  internal_name: string;
+  label: string;
+  field_type: string;
+  visible: boolean;
+  required: boolean;
+  note?: string | null;
+  options?: CheckoutRuntimeFieldOption[];
+};
 
 
 export default function Page({ params }: { params: { event_id: number; transaction_id: number } }): React.JSX.Element {
@@ -313,6 +331,18 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [pendingHolderAvatarFiles, setPendingHolderAvatarFiles] = useState<Record<number, File>>({});
   const [requireGuestAvatar, setRequireGuestAvatar] = useState<boolean>(false);
   const [printTagModalOpen, setPrintTagModalOpen] = useState<boolean>(false);
+  const [checkoutFormFields, setCheckoutFormFields] = useState<CheckoutRuntimeField[]>([]);
+  const [checkoutCustomAnswers, setCheckoutCustomAnswers] = useState<Record<string, any>>({});
+
+  const builtinInternalNames = React.useMemo(
+    () => new Set(['name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
+    []
+  );
+
+  const customCheckoutFields = React.useMemo(
+    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internal_name)),
+    [checkoutFormFields, builtinInternalNames]
+  );
 
   const router = useRouter(); // Use useRouter from next/navigation
 
@@ -380,27 +410,46 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
   const updateTransaction = async () => {
     try {
+      // Chuẩn bị formAnswers cho custom fields visible
+      const formAnswers: Record<string, any> = {};
+      checkoutFormFields.forEach((field) => {
+        if (!field.visible) return;
+        if (builtinInternalNames.has(field.internal_name)) return;
+        formAnswers[field.internal_name] = checkoutCustomAnswers[field.internal_name];
+      });
+
+      const payload: any = {
+        name: formData.name,
+        phoneNumber: formData.phoneNumber,
+        phoneCountry: formData.phoneCountryIso2,
+        phoneNationalNumber: formData.phoneNumber.replace(/\D/g, '').replace(/^0(?!$)/, ''),
+        dob: formData.dob,
+        title: formData.title,
+        address: formData.address,
+      };
+
+      if (Object.keys(formAnswers).length > 0) {
+        payload.formAnswers = formAnswers;
+      }
+
       const response: AxiosResponse = await baseHttpServiceInstance.patch(
         `/event-studio/events/${params.event_id}/transactions/${params.transaction_id}`,
-        {
-          name: formData.name,
-          phoneNumber: formData.phoneNumber,
-          phoneCountry: formData.phoneCountryIso2,
-          phoneNationalNumber: formData.phoneNumber.replace(/\D/g, '').replace(/^0(?!$)/, ''),
-          dob: formData.dob,
-          title: formData.title,
-          address: formData.address,
-        }
+        payload
       );
 
       if (response.status === 200) {
         notificationCtx.success('Thông tin đơn hàng đã được cập nhật thành công!');
         setTransaction((prev) => prev ? {
-          ...prev, name: formData.name,
+          ...prev,
+          name: formData.name,
           phoneNumber: formData.phoneNumber,
           address: formData.address,
           dob: formData.dob,
           title: formData.title,
+          formAnswers: {
+            ...(prev as any).formAnswers,
+            ...formAnswers,
+          },
         } : prev);
 
       }
@@ -434,6 +483,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
           status: '',
         });
 
+        // Khởi tạo câu trả lời custom fields nếu có
+        setCheckoutCustomAnswers((response.data as any).formAnswers || {});
+
         // Load requireGuestAvatar from transaction data
         setRequireGuestAvatar(response.data?.requireGuestAvatar || false);
       } catch (error) {
@@ -445,6 +497,23 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
     fetchTransactionDetails();
   }, [event_id, transaction_id]);
+
+  // Fetch checkout form runtime configuration (Event Studio)
+  useEffect(() => {
+    const fetchCheckoutForm = async () => {
+      if (!event_id) return;
+      try {
+        const resp: AxiosResponse<{ fields: CheckoutRuntimeField[] }> =
+          await baseHttpServiceInstance.get(
+            `/event-studio/events/${event_id}/forms/checkout/runtime`
+          );
+        setCheckoutFormFields(resp.data.fields || []);
+      } catch (error) {
+        console.error('Failed to load checkout form runtime', error);
+      }
+    };
+    fetchCheckoutForm();
+  }, [event_id]);
 
 
   const handleSetTransactionStatus = async (status: string) => {
@@ -1233,108 +1302,302 @@ export default function Page({ params }: { params: { event_id: number; transacti
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel htmlFor="customer-name">Danh xưng* &emsp; Họ và tên</InputLabel>
-                      <OutlinedInput
-                        id="customer-name"
-                        name="name"
-                        value={formData.name}
-                        onChange={(event) => handleFormChange(event)}
-                        label="Danh xưng* &emsp; Họ và tên"
-                        startAdornment={
-                          <InputAdornment position="start">
-                            <Select
-                              variant="standard"
-                              disableUnderline
-                              value={formData.title || "Bạn"}
-                              onChange={(event) =>
-                                setFormData({ ...formData, title: event.target.value })
+                  {/* Built-in fields driven by checkout runtime config */}
+                  {(() => {
+                    const nameCfg = checkoutFormFields.find((f) => f.internal_name === 'name');
+                    const visible = !!nameCfg && nameCfg.visible;
+                    const label = nameCfg?.label || 'Danh xưng*  Họ và tên';
+                    return (
+                      visible && (
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth required>
+                            <InputLabel htmlFor="customer-name">{label}</InputLabel>
+                            <OutlinedInput
+                              id="customer-name"
+                              name="name"
+                              value={formData.name}
+                              onChange={(event) => handleFormChange(event)}
+                              label={label}
+                              startAdornment={
+                                <InputAdornment position="start">
+                                  <Select
+                                    variant="standard"
+                                    disableUnderline
+                                    value={formData.title || "Bạn"}
+                                    onChange={(event) =>
+                                      setFormData({ ...formData, title: event.target.value })
+                                    }
+                                    sx={{ minWidth: 70 }}
+                                  >
+                                    <MenuItem value="Anh">Anh</MenuItem>
+                                    <MenuItem value="Chị">Chị</MenuItem>
+                                    <MenuItem value="Bạn">Bạn</MenuItem>
+                                    <MenuItem value="Em">Em</MenuItem>
+                                    <MenuItem value="Ông">Ông</MenuItem>
+                                    <MenuItem value="Bà">Bà</MenuItem>
+                                    <MenuItem value="Cô">Cô</MenuItem>
+                                    <MenuItem value="Mr.">Mr.</MenuItem>
+                                    <MenuItem value="Ms.">Ms.</MenuItem>
+                                    <MenuItem value="Miss">Miss</MenuItem>
+                                    <MenuItem value="Thầy">Thầy</MenuItem>
+                                  </Select>
+                                </InputAdornment>
                               }
-                              sx={{ minWidth: 70 }} // cho vừa gọn
-                            >
-                              <MenuItem value="Anh">Anh</MenuItem>
-                              <MenuItem value="Chị">Chị</MenuItem>
-                              <MenuItem value="Bạn">Bạn</MenuItem>
-                              <MenuItem value="Em">Em</MenuItem>
-                              <MenuItem value="Ông">Ông</MenuItem>
-                              <MenuItem value="Bà">Bà</MenuItem>
-                              <MenuItem value="Cô">Cô</MenuItem>
-                              <MenuItem value="Mr.">Mr.</MenuItem>
-                              <MenuItem value="Ms.">Ms.</MenuItem>
-                              <MenuItem value="Miss">Miss</MenuItem>
-                              <MenuItem value="Thầy">Thầy</MenuItem>
-                            </Select>
-                          </InputAdornment>
-                        }
-                      />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Email</InputLabel>
-                      <OutlinedInput value={transaction.email} disabled label="Email" />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel>Số điện thoại</InputLabel>
-                      <OutlinedInput
-                        value={formData.phoneNumber}
-                        onChange={(event: any) => handleFormChange(event)}
-                        name="phoneNumber"
-                        label="Số điện thoại"
-                        startAdornment={
-                          <InputAdornment position="start">
-                            <Select
-                              variant="standard"
-                              disableUnderline
-                              value={formData.phoneCountryIso2}
-                              onChange={(event) =>
-                                setFormData({ ...formData, phoneCountryIso2: event.target.value })
-                              }
-                              sx={{ minWidth: 80 }}
-                              renderValue={(value) => {
-                                const country = PHONE_COUNTRIES.find(c => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
-                                return country.dialCode;
-                              }}
-                            >
-                              {PHONE_COUNTRIES.map((country) => (
-                                <MenuItem key={country.iso2} value={country.iso2}>
-                                  {country.nameVi} ({country.dialCode})
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </InputAdornment>
-                        }
-                      />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel shrink>Ngày tháng năm sinh</InputLabel>
-                      <OutlinedInput
-                        label="Ngày tháng năm sinh"
-                        name="dob"
-                        type='date'
-                        value={formData.dob}
-                        onChange={(event: any) => handleFormChange(event)}
-                        inputProps={{ max: new Date().toISOString().slice(0, 10) }}
+                            />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
 
-                      />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={12} xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel>Địa chỉ</InputLabel>
-                      <OutlinedInput
-                        value={formData.address}
-                        onChange={(event: any) => handleFormChange(event)}
-                        name="address"
-                        label="Địa chỉ"
-                      />
-                    </FormControl>
-                  </Grid>
+                  {(() => {
+                    const emailCfg = checkoutFormFields.find((f) => f.internal_name === 'email');
+                    const visible = !!emailCfg && emailCfg.visible;
+                    const label = emailCfg?.label || 'Email';
+                    return (
+                      visible && (
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth required>
+                            <InputLabel>{label}</InputLabel>
+                            <OutlinedInput value={transaction.email} disabled label={label} />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {(() => {
+                    const phoneCfg = checkoutFormFields.find((f) => f.internal_name === 'phone_number');
+                    const visible = !!phoneCfg && phoneCfg.visible;
+                    const label = phoneCfg?.label || 'Số điện thoại';
+                    return (
+                      visible && (
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>{label}</InputLabel>
+                            <OutlinedInput
+                              value={formData.phoneNumber}
+                              onChange={(event: any) => handleFormChange(event)}
+                              name="phoneNumber"
+                              label={label}
+                              startAdornment={
+                                <InputAdornment position="start">
+                                  <Select
+                                    variant="standard"
+                                    disableUnderline
+                                    value={formData.phoneCountryIso2}
+                                    onChange={(event) =>
+                                      setFormData({ ...formData, phoneCountryIso2: event.target.value })
+                                    }
+                                    sx={{ minWidth: 80 }}
+                                    renderValue={(value) => {
+                                      const country = PHONE_COUNTRIES.find(c => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                      return country.dialCode;
+                                    }}
+                                  >
+                                    {PHONE_COUNTRIES.map((country) => (
+                                      <MenuItem key={country.iso2} value={country.iso2}>
+                                        {country.nameVi} ({country.dialCode})
+                                      </MenuItem>
+                                    ))}
+                                  </Select>
+                                </InputAdornment>
+                              }
+                            />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {(() => {
+                    const dobCfg = checkoutFormFields.find((f) => f.internal_name === 'dob');
+                    const visible = !!dobCfg && dobCfg.visible;
+                    const label = dobCfg?.label || 'Ngày tháng năm sinh';
+                    return (
+                      visible && (
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth required={!!dobCfg?.required}>
+                            <InputLabel shrink>{label}</InputLabel>
+                            <OutlinedInput
+                              label={label}
+                              name="dob"
+                              type="date"
+                              value={formData.dob}
+                              onChange={(event: any) => handleFormChange(event)}
+                              inputProps={{ max: new Date().toISOString().slice(0, 10) }}
+                            />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {(() => {
+                    const addrCfg = checkoutFormFields.find((f) => f.internal_name === 'address');
+                    const visible = !!addrCfg && addrCfg.visible;
+                    const label = addrCfg?.label || 'Địa chỉ';
+                    return (
+                      visible && (
+                        <Grid md={12} xs={12}>
+                          <FormControl fullWidth required={!!addrCfg?.required}>
+                            <InputLabel>{label}</InputLabel>
+                            <OutlinedInput
+                              value={formData.address}
+                              onChange={(event: any) => handleFormChange(event)}
+                              name="address"
+                              label={label}
+                            />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {(() => {
+                    const idCfg = checkoutFormFields.find(
+                      (f) => f.internal_name === 'idcard_number'
+                    );
+                    const visible = !!idCfg && idCfg.visible;
+                    const label = idCfg?.label || 'Căn cước công dân';
+                    return (
+                      visible && (
+                        <Grid md={12} xs={12}>
+                          <FormControl fullWidth required={!!idCfg?.required}>
+                            <InputLabel>{label}</InputLabel>
+                            <OutlinedInput
+                              value={(transaction as any).idcardNumber || ''}
+                              disabled
+                              label={label}
+                            />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {/* Custom checkout fields (visible only, editable in Event Studio) */}
+                  {customCheckoutFields.map((field) => {
+                    const rawValue = checkoutCustomAnswers[field.internal_name];
+
+                    return (
+                      <Grid key={field.internal_name} xs={12}>
+                        <Stack spacing={0.5}>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {field.label}
+                            {field.required && ' *'}
+                          </Typography>
+                          {field.note && (
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {field.note}
+                            </Typography>
+                          )}
+
+                          {['text', 'number'].includes(field.field_type) && (
+                            <TextField
+                              fullWidth
+                              size="small"
+                              type={field.field_type === 'number' ? 'number' : 'text'}
+                              value={rawValue ?? ''}
+                              onChange={(e) =>
+                                setCheckoutCustomAnswers((prev) => ({
+                                  ...prev,
+                                  [field.internal_name]: e.target.value,
+                                }))
+                              }
+                            />
+                          )}
+
+                          {['date', 'time', 'datetime'].includes(field.field_type) && (
+                            <TextField
+                              fullWidth
+                              size="small"
+                              type={
+                                field.field_type === 'date'
+                                  ? 'date'
+                                  : field.field_type === 'time'
+                                  ? 'time'
+                                  : 'datetime-local'
+                              }
+                              InputLabelProps={{ shrink: true }}
+                              value={rawValue ?? ''}
+                              onChange={(e) =>
+                                setCheckoutCustomAnswers((prev) => ({
+                                  ...prev,
+                                  [field.internal_name]: e.target.value,
+                                }))
+                              }
+                            />
+                          )}
+
+                          {field.field_type === 'radio' && field.options && (
+                            <FormGroup>
+                              <RadioGroup
+                                value={rawValue ?? ''}
+                                onChange={(e) =>
+                                  setCheckoutCustomAnswers((prev) => ({
+                                    ...prev,
+                                    [field.internal_name]: e.target.value,
+                                  }))
+                                }
+                              >
+                                {field.options.map((opt) => (
+                                  <FormControlLabel
+                                    key={opt.value}
+                                    value={opt.value}
+                                    control={<Radio size="small" />}
+                                    label={opt.label}
+                                  />
+                                ))}
+                              </RadioGroup>
+                            </FormGroup>
+                          )}
+
+                          {field.field_type === 'checkbox' && field.options && (
+                            <FormGroup>
+                              {field.options.map((opt) => {
+                                const current: string[] = Array.isArray(rawValue) ? rawValue : [];
+                                const checked = current.includes(opt.value);
+                                return (
+                                  <FormControlLabel
+                                    key={opt.value}
+                                    control={
+                                      <Checkbox
+                                        size="small"
+                                        checked={checked}
+                                        onChange={(e) => {
+                                          setCheckoutCustomAnswers((prev) => {
+                                            const prevArr: string[] = prev[field.internal_name] ?? [];
+                                            let nextArr: string[];
+                                            if (e.target.checked) {
+                                              nextArr = Array.from(new Set([...prevArr, opt.value]));
+                                            } else {
+                                              nextArr = prevArr.filter((v) => v !== opt.value);
+                                            }
+                                            return {
+                                              ...prev,
+                                              [field.internal_name]: nextArr,
+                                            };
+                                          });
+                                        }}
+                                      />
+                                    }
+                                    label={opt.label}
+                                  />
+                                );
+                              })}
+                            </FormGroup>
+                          )}
+
+                          {!['text', 'number', 'date', 'time', 'datetime', 'radio', 'checkbox'].includes(
+                            field.field_type
+                          ) && (
+                            <Typography variant="body2">{rawValue ?? '—'}</Typography>
+                          )}
+                        </Stack>
+                      </Grid>
+                    );
+                  })}
                 </Grid>
               </CardContent>
               <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>

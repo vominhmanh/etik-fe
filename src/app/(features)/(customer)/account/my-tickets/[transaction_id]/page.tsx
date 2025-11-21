@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, InputAdornment, Stack, Tooltip, Checkbox } from '@mui/material';
+import { Avatar, Box, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, InputAdornment, Stack, Tooltip, Checkbox, FormGroup, FormControlLabel, RadioGroup, Radio } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -206,7 +206,25 @@ export interface Transaction {
   event: Event
   qrOption: string
   requireGuestAvatar: boolean
+  // Dynamic checkout form answers (ETIK Forms)
+  formAnswers?: Record<string, any>
 }
+
+type CheckoutRuntimeFieldOption = {
+  value: string;
+  label: string;
+  sort_order: number;
+};
+
+type CheckoutRuntimeField = {
+  internal_name: string;
+  label: string;
+  field_type: string;
+  visible: boolean;
+  required: boolean;
+  note?: string | null;
+  options?: CheckoutRuntimeFieldOption[];
+};
 
 
 export interface ECodeResponse {
@@ -276,6 +294,36 @@ export default function Page({ params }: { params: { transaction_id: number } })
 
     fetchTransactionDetails();
   }, [transaction_id]);
+
+  // Fetch checkout form runtime configuration (Marketplace)
+  const [checkoutFormFields, setCheckoutFormFields] = useState<CheckoutRuntimeField[]>([]);
+
+  const builtinInternalNames = React.useMemo(
+    () => new Set(['name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
+    []
+  );
+
+  const customCheckoutFields = React.useMemo(
+    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internal_name)),
+    [checkoutFormFields, builtinInternalNames]
+  );
+
+  useEffect(() => {
+    const fetchCheckoutForm = async () => {
+      if (!transaction?.event?.slug) return;
+      try {
+        const resp: AxiosResponse<{ fields: CheckoutRuntimeField[] }> =
+          await baseHttpServiceInstance.get(
+            `/marketplace/events/${transaction.event.slug}/forms/checkout/runtime`
+          );
+        setCheckoutFormFields(resp.data.fields || []);
+      } catch (error) {
+        // Nếu form chưa cấu hình hoặc lỗi, bỏ qua, tiếp tục dùng layout mặc định tối thiểu
+        console.error('Failed to load checkout form runtime', error);
+      }
+    };
+    fetchCheckoutForm();
+  }, [transaction?.event?.slug]);
 
   useEffect(() => {
     const fetchCheckInECode = async () => {
@@ -546,42 +594,211 @@ export default function Page({ params }: { params: { transaction_id: number } })
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
+                  {/* Built-in fields driven by checkout runtime config */}
+                  {(() => {
+                    const nameCfg = checkoutFormFields.find((f) => f.internal_name === 'name');
+                    const visible = !!nameCfg && nameCfg.visible;
+                    const label = nameCfg?.label || tt('Danh xưng * - Họ và tên', 'Title * - Full Name');
+                    return (
+                      visible && (
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth required>
+                            <InputLabel htmlFor="customer-name">{label}</InputLabel>
+                            <OutlinedInput
+                              id="customer-name"
+                              name="name"
+                              value={transaction.name}
+                              disabled
+                              label={label}
+                              startAdornment={
+                                <InputAdornment position="start">
+                                  <Typography sx={{ width: 50 }}>{transaction.title}</Typography>
+                                </InputAdornment>
+                              }
+                            />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
 
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel htmlFor="customer-name">{tt('Danh xưng * - Họ và tên', 'Title * - Full Name')}</InputLabel>
-                      <OutlinedInput
-                        id="customer-name"
-                        name="name"
-                        value={transaction.name}
-                        disabled
-                        label={tt('Danh xưng * - Họ và tên', 'Title * - Full Name')}
-                        startAdornment={
-                          <InputAdornment position="start">
-                            <Typography sx={{ width: 50 }}>{transaction.title}</Typography>
-                          </InputAdornment>
-                        }
-                      />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Email</InputLabel>
-                      <OutlinedInput value={transaction.email} disabled label="Email" />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel>{tt('Số điện thoại', 'Phone Number')}</InputLabel>
-                      <OutlinedInput value={transaction.phoneNumber} disabled label={tt('Số điện thoại', 'Phone Number')} />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={6} xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel>{tt('Địa chỉ', 'Address')}</InputLabel>
-                      <OutlinedInput value={transaction.address} disabled label={tt('Địa chỉ', 'Address')} />
-                    </FormControl>
-                  </Grid>
+                  {(() => {
+                    const emailCfg = checkoutFormFields.find((f) => f.internal_name === 'email');
+                    const visible = !!emailCfg && emailCfg.visible;
+                    const label = emailCfg?.label || 'Email';
+                    return (
+                      visible && (
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth required>
+                            <InputLabel>{label}</InputLabel>
+                            <OutlinedInput value={transaction.email} disabled label={label} />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {(() => {
+                    const phoneCfg = checkoutFormFields.find((f) => f.internal_name === 'phone_number');
+                    const visible = !!phoneCfg && phoneCfg.visible;
+                    const label =
+                      phoneCfg?.label || tt('Số điện thoại', 'Phone Number');
+                    return (
+                      visible && (
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>{label}</InputLabel>
+                            <OutlinedInput value={transaction.phoneNumber} disabled label={label} />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {(() => {
+                    const addrCfg = checkoutFormFields.find((f) => f.internal_name === 'address');
+                    const visible = !!addrCfg && addrCfg.visible;
+                    const label = addrCfg?.label || tt('Địa chỉ', 'Address');
+                    return (
+                      visible && (
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>{label}</InputLabel>
+                            <OutlinedInput value={transaction.address} disabled label={label} />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {(() => {
+                    const dobCfg = checkoutFormFields.find((f) => f.internal_name === 'dob');
+                    const visible = !!dobCfg && dobCfg.visible;
+                    const label =
+                      dobCfg?.label || tt('Ngày tháng năm sinh', 'Date of Birth');
+                    return (
+                      visible && (
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel shrink>{label}</InputLabel>
+                            <OutlinedInput
+                              label={label}
+                              value={transaction.dob || ''}
+                              disabled
+                            />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {(() => {
+                    const idCfg = checkoutFormFields.find(
+                      (f) => f.internal_name === 'idcard_number'
+                    );
+                    const visible = !!idCfg && idCfg.visible;
+                    const label =
+                      idCfg?.label || tt('Căn cước công dân', 'ID Card Number');
+                    return (
+                      visible && (
+                        <Grid md={6} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>{label}</InputLabel>
+                            <OutlinedInput
+                              label={label}
+                              value={(transaction as any).idcardNumber || ''}
+                              disabled
+                            />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {/* Custom checkout fields (visible only, rendered as disabled form controls) */}
+                  {customCheckoutFields.map((field) => {
+                    const rawValue = transaction.formAnswers?.[field.internal_name];
+                    const disabled = true;
+
+                    return (
+                      <Grid key={field.internal_name} xs={12}>
+                        <Stack spacing={0.5}>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {field.label}
+                          </Typography>
+                          {field.note && (
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {field.note}
+                            </Typography>
+                          )}
+
+                          {['text', 'number'].includes(field.field_type) && (
+                            <OutlinedInput
+                              fullWidth
+                              size="small"
+                              type={field.field_type === 'number' ? 'number' : 'text'}
+                              value={rawValue ?? ''}
+                              disabled={disabled}
+                            />
+                          )}
+
+                          {['date', 'time', 'datetime'].includes(field.field_type) && (
+                            <OutlinedInput
+                              fullWidth
+                              size="small"
+                              type={
+                                field.field_type === 'date'
+                                  ? 'date'
+                                  : field.field_type === 'time'
+                                  ? 'time'
+                                  : 'datetime-local'
+                              }
+                              value={rawValue ?? ''}
+                              disabled={disabled}
+                              inputProps={{}}
+                            />
+                          )}
+
+                          {field.field_type === 'radio' && field.options && (
+                            <FormGroup>
+                              <RadioGroup value={rawValue ?? ''}>
+                                {field.options.map((opt) => (
+                                  <FormControlLabel
+                                    key={opt.value}
+                                    value={opt.value}
+                                    control={<Radio size="small" disabled />}
+                                    label={opt.label}
+                                  />
+                                ))}
+                              </RadioGroup>
+                            </FormGroup>
+                          )}
+
+                          {field.field_type === 'checkbox' && field.options && (
+                            <FormGroup>
+                              {field.options.map((opt) => {
+                                const current: string[] = Array.isArray(rawValue) ? rawValue : [];
+                                const checked = current.includes(opt.value);
+                                return (
+                                  <FormControlLabel
+                                    key={opt.value}
+                                    control={<Checkbox size="small" checked={checked} disabled />}
+                                    label={opt.label}
+                                  />
+                                );
+                              })}
+                            </FormGroup>
+                          )}
+
+                          {!['text', 'number', 'date', 'time', 'datetime', 'radio', 'checkbox'].includes(
+                            field.field_type
+                          ) && (
+                            <Typography variant="body2">{rawValue ?? '—'}</Typography>
+                          )}
+                        </Stack>
+                      </Grid>
+                    );
+                  })}
                 </Grid>
               </CardContent>
             </Card>

@@ -158,6 +158,22 @@ export interface Transaction {
   creator: Creator | null;          // Related creator of the transaction, nullable
 }
 
+type CheckoutRuntimeFieldOption = {
+  value: string;
+  label: string;
+  sort_order: number;
+};
+
+type CheckoutRuntimeField = {
+  internal_name: string;
+  label: string;
+  field_type: string;
+  visible: boolean;
+  required: boolean;
+  note?: string | null;
+  options?: CheckoutRuntimeFieldOption[];
+};
+
 
 export interface ECodeResponse {
   eCode: string;
@@ -247,6 +263,34 @@ export default function Page(): React.JSX.Element {
 
     fetchTransactionDetails();
   }, [transactionId, token]);
+
+  // Runtime checkout fields for Mixi Cup (use static slug)
+  const [checkoutFormFields, setCheckoutFormFields] = useState<CheckoutRuntimeField[]>([]);
+
+  const builtinInternalNames = React.useMemo(
+    () => new Set(['name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
+    []
+  );
+
+  const customCheckoutFields = React.useMemo(
+    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internal_name)),
+    [checkoutFormFields, builtinInternalNames]
+  );
+
+  useEffect(() => {
+    const fetchCheckoutForm = async () => {
+      try {
+        const resp: AxiosResponse<{ fields: CheckoutRuntimeField[] }> =
+          await baseHttpServiceInstance.get(
+            `/marketplace/events/mixi-cup/forms/checkout/runtime`
+          );
+        setCheckoutFormFields(resp.data.fields || []);
+      } catch (error) {
+        console.error('Failed to load checkout form runtime for Mixi Cup', error);
+      }
+    };
+    fetchCheckoutForm();
+  }, []);
 
   const paymentMethodDetails = React.useMemo(() => getPaymentMethodDetails(transaction?.paymentMethod || ''), [transaction]);
   const paymentStatusDetails = React.useMemo(() => getPaymentStatusDetails(transaction?.paymentStatus || ''), [transaction]);
@@ -353,32 +397,102 @@ export default function Page(): React.JSX.Element {
                       <CardHeader title="Thông tin người mua vé" />
                       <Divider />
                       <CardContent>
-                        <Grid container spacing={3}>
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth required>
-                              <InputLabel>Tên người mua</InputLabel>
-                              <OutlinedInput value={transaction.name} disabled label="Tên người mua" />
-                            </FormControl>
-                          </Grid>
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth required>
-                              <InputLabel>Email</InputLabel>
-                              <OutlinedInput value={transaction.email} disabled label="Email" />
-                            </FormControl>
-                          </Grid>
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth>
-                              <InputLabel>Số điện thoại</InputLabel>
-                              <OutlinedInput value={transaction.phoneNumber} disabled label="Số điện thoại" />
-                            </FormControl>
-                          </Grid>
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth>
-                              <InputLabel>Địa chỉ</InputLabel>
-                              <OutlinedInput value={transaction.address} disabled label="Địa chỉ" />
-                            </FormControl>
-                          </Grid>
-                        </Grid>
+                      <Grid container spacing={3}>
+                        {(() => {
+                          const nameCfg = checkoutFormFields.find((f) => f.internal_name === 'name');
+                          const visible = !!nameCfg && nameCfg.visible;
+                          const label = nameCfg?.label || 'Tên người mua';
+                          return (
+                            visible && (
+                              <Grid md={6} xs={12}>
+                                <FormControl fullWidth required>
+                                  <InputLabel>{label}</InputLabel>
+                                  <OutlinedInput value={transaction.name} disabled label={label} />
+                                </FormControl>
+                              </Grid>
+                            )
+                          );
+                        })()}
+
+                        {(() => {
+                          const emailCfg = checkoutFormFields.find((f) => f.internal_name === 'email');
+                          const visible = !!emailCfg && emailCfg.visible;
+                          const label = emailCfg?.label || 'Email';
+                          return (
+                            visible && (
+                              <Grid md={6} xs={12}>
+                                <FormControl fullWidth required>
+                                  <InputLabel>{label}</InputLabel>
+                                  <OutlinedInput value={transaction.email} disabled label={label} />
+                                </FormControl>
+                              </Grid>
+                            )
+                          );
+                        })()}
+
+                        {(() => {
+                          const phoneCfg = checkoutFormFields.find((f) => f.internal_name === 'phone_number');
+                          const visible = !!phoneCfg && phoneCfg.visible;
+                          const label = phoneCfg?.label || 'Số điện thoại';
+                          return (
+                            visible && (
+                              <Grid md={6} xs={12}>
+                                <FormControl fullWidth>
+                                  <InputLabel>{label}</InputLabel>
+                                  <OutlinedInput value={transaction.phoneNumber} disabled label={label} />
+                                </FormControl>
+                              </Grid>
+                            )
+                          );
+                        })()}
+
+                        {(() => {
+                          const addrCfg = checkoutFormFields.find((f) => f.internal_name === 'address');
+                          const visible = !!addrCfg && addrCfg.visible;
+                          const label = addrCfg?.label || 'Địa chỉ';
+                          return (
+                            visible && (
+                              <Grid md={6} xs={12}>
+                                <FormControl fullWidth>
+                                  <InputLabel>{label}</InputLabel>
+                                  <OutlinedInput value={transaction.address} disabled label={label} />
+                                </FormControl>
+                              </Grid>
+                            )
+                          );
+                        })()}
+
+                        {/* Custom checkout fields (visible only) */}
+                        {customCheckoutFields.map((field) => {
+                          const rawValue = (transaction as any).formAnswers?.[field.internal_name];
+                          let displayValue: string = '';
+                          if (field.field_type === 'checkbox') {
+                            displayValue = Array.isArray(rawValue)
+                              ? rawValue.join(', ')
+                              : '';
+                          } else if (rawValue != null) {
+                            displayValue = String(rawValue);
+                          }
+                          if (!displayValue) {
+                            return null;
+                          }
+                          return (
+                            <Grid key={field.internal_name} xs={12}>
+                              <Stack spacing={0.5}>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                  {field.label}
+                                </Typography>
+                                {field.note && (
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    {field.note}
+                                  </Typography>
+                                )}
+                                <Typography variant="body2">{displayValue}</Typography>
+                              </Stack>
+                            </Grid>
+                          );
+                        })}
+                      </Grid>
                       </CardContent>
                     </Card>
                     <Card>
