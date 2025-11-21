@@ -32,7 +32,7 @@ import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
 
 import { getNavItems } from './config';
-import { CurrencyCircleDollar, DiceSix, ImageSquare, Mailbox, Sliders, SpinnerBall, SquaresFour, StackPlus, StarHalf, Tag, UserList } from '@phosphor-icons/react/dist/ssr';
+import { CurrencyCircleDollar, DiceSix, FileText, ImageSquare, Mailbox, Sliders, SpinnerBall, SquaresFour, StackPlus, StarHalf, Tag, UserList } from '@phosphor-icons/react/dist/ssr';
 import NotificationContext from '@/contexts/notification-context';
 import { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
@@ -189,6 +189,14 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               title={tt("Doanh thu & Phí dịch vụ", "Revenue & Service Fee")}
               href={`/event-studio/events/${dynamicId}/revenue-and-fee`}
               icon={CurrencyCircleDollar}
+              onClose={onClose}
+            />
+            <NavItemCollapseChildItem
+              pathname={pathname}
+              key="etik-forms"
+              title={tt("ETIK Forms", "ETIK Forms")}
+              href={`/event-studio/events/${dynamicId}/etik-forms`}
+              icon={FileText}
               onClose={onClose}
             />
             <NavItemCollapseChildItem

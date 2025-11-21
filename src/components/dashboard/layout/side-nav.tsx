@@ -12,7 +12,7 @@ import Collapse from '@mui/material/Collapse';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { SpinnerBall } from '@phosphor-icons/react';
+import { FileText, SpinnerBall } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
 import {
   ArrowLeft,
@@ -227,6 +227,13 @@ export function SideNav(): React.JSX.Element {
                 title={tt("Doanh thu & Phí dịch vụ", "Revenue & Service Fee")}
                 href={`/event-studio/events/${dynamicId}/revenue-and-fee`}
                 icon={CurrencyCircleDollar}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="etik-forms"
+                title={tt("ETIK Forms", "ETIK Forms")}
+                href={`/event-studio/events/${dynamicId}/etik-forms`}
+                icon={FileText}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}

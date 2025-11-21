@@ -19,7 +19,7 @@ import Card from '@mui/material/Card';
 import CircularProgress from '@mui/material/CircularProgress';
 import InputAdornment from '@mui/material/InputAdornment';
 import OutlinedInput from '@mui/material/OutlinedInput';
-import { CaretDown, Empty } from '@phosphor-icons/react';
+import { CaretDown, Empty, MicrosoftExcelLogo } from '@phosphor-icons/react';
 import { ArrowCounterClockwise, ArrowSquareIn, X } from '@phosphor-icons/react/dist/ssr';
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { debounce } from 'lodash';
@@ -105,6 +105,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [isAutoReloading, setIsAutoReloading] = React.useState<boolean>(false);
   const [bulkErrorMessage, setBulkErrorMessage] = React.useState<string>('');
   const [bulkErrorDetails, setBulkErrorDetails] = React.useState<BulkErrorDetail[]>([]);
+  const [spreadsheetId, setSpreadsheetId] = React.useState<string | null>(null);
+  const [isGsheetSyncEnabled, setIsGsheetSyncEnabled] = React.useState<boolean | null>(null);
 
   const transactionIds = React.useMemo(() => {
     return transactions.map((transaction) => transaction.id);
@@ -222,6 +224,26 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   }, [params.event_id, notificationCtx, tt]);
 
+  const fetchEventInfo = React.useCallback(async () => {
+    try {
+      const response: AxiosResponse<{ gsheetSpreadsheetId?: string | null; gsheetSyncEnabled?: boolean }> =
+        await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}`);
+      const sheetId = response.data.gsheetSpreadsheetId ?? null;
+      setSpreadsheetId(sheetId);
+      // Nếu backend chưa trả về cờ, mặc định true khi đã có sheet, null khi chưa có
+      if (sheetId) {
+        setIsGsheetSyncEnabled(
+          typeof response.data.gsheetSyncEnabled === 'boolean' ? response.data.gsheetSyncEnabled : true
+        );
+      } else {
+        setIsGsheetSyncEnabled(null);
+      }
+    } catch (error) {
+      // Ignore error; event info is only needed for Google Sheets link
+      console.error(error);
+    }
+  }, [params.event_id]);
+
   const handleExportExcel = async () => {
     try {
       setIsLoading(true);
@@ -260,7 +282,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   // Fetch transactions for the event
   React.useEffect(() => {
     fetchTransactions();
-  }, [params.event_id]);
+    fetchEventInfo();
+  }, [params.event_id, fetchTransactions, fetchEventInfo]);
 
   // Save auto reload state to localStorage
   React.useEffect(() => {
@@ -705,7 +728,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           </Button>
         </div>
       </Stack>
-      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
             <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={() => fetchTransactions()}>
               {tt("Tải lại", "Reload")}
             </Button>
@@ -730,6 +753,136 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />} onClick={handleExportExcel}>
               {tt("Xuất file excel", "Export Excel")}
             </Button>
+            {spreadsheetId ? (
+              <>
+                
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={!!isGsheetSyncEnabled}
+                      onChange={async (e) => {
+                        const next = e.target.checked;
+                        if (!next) {
+                          const confirmed = window.confirm(
+                            tt(
+                              "Dừng đồng bộ sẽ khiến các giao dịch mới/được chỉnh sửa sau này không được cập nhật sang Google Sheets nữa. Bạn có chắc chắn?",
+                              "Stopping sync means new or updated transactions will no longer be pushed to Google Sheets. Are you sure?"
+                            )
+                          );
+                          if (!confirmed) {
+                            return;
+                          }
+                        }
+                        try {
+                          setIsLoading(true);
+                          if (next) {
+                            await baseHttpServiceInstance.post(
+                              `/event-studio/events/${params.event_id}/google-sheet-sync/enable`
+                            );
+                            setIsGsheetSyncEnabled(true);
+                            notificationCtx.success(
+                              tt("Đã bật đồng bộ với Google Sheets", "Resumed syncing with Google Sheets")
+                            );
+                          } else {
+                            await baseHttpServiceInstance.post(
+                              `/event-studio/events/${params.event_id}/google-sheet-sync/disable`
+                            );
+                            setIsGsheetSyncEnabled(false);
+                            notificationCtx.success(
+                              tt("Đã dừng đồng bộ với Google Sheets", "Stopped syncing with Google Sheets")
+                            );
+                          }
+                        } catch (error) {
+                          notificationCtx.error(
+                            next
+                              ? tt("Bật đồng bộ Google Sheets thất bại:", "Enable Google Sheets sync failed:")
+                              : tt("Dừng đồng bộ Google Sheets thất bại:", "Disable Google Sheets sync failed:"),
+                            error
+                          );
+                        } finally {
+                          setIsLoading(false);
+                        }
+                      }}
+                      size="small"
+                    />
+                  }
+                  label={tt("Đồng bộ Google Sheets", "Syncing to Google Sheets")}
+                  sx={{ ml: 1 }}
+                />
+                <IconButton
+                  color="inherit"
+                  component="a"
+                  href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={tt("Mở Google Sheets", "Open Google Sheets")}
+                >
+                  <MicrosoftExcelLogo fontSize="var(--icon-fontSize-md)" />
+                </IconButton>
+                <IconButton
+                  color="error"
+                  onClick={async () => {
+                    const confirmed = window.confirm(
+                      tt(
+                        "Đồng bộ lại sẽ ghi đè toàn bộ dữ liệu hiện có trên Google Sheets. Bạn có chắc chắn muốn tiếp tục?",
+                        "Resync will overwrite all existing data on Google Sheets. Are you sure you want to continue?"
+                      )
+                    );
+                    if (!confirmed) return;
+                    try {
+                      setIsLoading(true);
+                      await baseHttpServiceInstance.post(
+                        `/event-studio/events/${params.event_id}/google-sheet-sync`
+                      );
+                      // BE nên tự bật lại cờ sync nếu đang tắt
+                      setIsGsheetSyncEnabled(true);
+                      notificationCtx.success(
+                        tt("Đã bắt đầu đồng bộ lại dữ liệu", "Started resyncing data to Google Sheets")
+                      );
+                    } catch (error) {
+                      notificationCtx.error(
+                        tt("Đồng bộ lại Google Sheets thất bại:", "Resync Google Sheets failed:"),
+                        error
+                      );
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  aria-label={tt("Đồng bộ lại dữ liệu Google Sheets", "Resync Google Sheets data")}
+                >
+                  <ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />
+                </IconButton>
+              </>
+            ) : (
+              <Button
+                color="inherit"
+                startIcon={<MicrosoftExcelLogo fontSize="var(--icon-fontSize-md)" />}
+                onClick={async () => {
+                  try {
+                    setIsLoading(true);
+                    const response: AxiosResponse<{ spreadsheet_id?: string }> =
+                      await baseHttpServiceInstance.post(
+                        `/event-studio/events/${params.event_id}/google-sheet-sync`
+                      );
+                    if (response.data.spreadsheet_id) {
+                      setSpreadsheetId(response.data.spreadsheet_id);
+                    }
+                    notificationCtx.success(
+                      tt("Đã bắt đầu đồng bộ Google Sheets", "Started syncing to Google Sheets")
+                    );
+                  } catch (error) {
+                    notificationCtx.error(
+                      tt("Đồng bộ Google Sheets thất bại:", "Sync Google Sheets failed:"),
+                      error
+                    );
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+              >
+                {tt("Đồng bộ Google Sheets", "Sync Google Sheets")}
+              </Button>
+            )}
           </Stack>
       <Card sx={{ p: 2 }}>
         <Grid container spacing={3} direction={'row'} sx={{ alignItems: 'center' }}>
