@@ -1,6 +1,7 @@
 'use client';
 
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { Avatar, Box, CardMedia, Checkbox, Container, FormControlLabel, FormGroup, FormHelperText, IconButton, InputAdornment, MenuItem, Modal, Radio, Select, Stack, TableBody, Table, TextField, TableHead, TableCell, TableRow } from '@mui/material';
 import { PencilSimple, Trash } from '@phosphor-icons/react/dist/ssr';
@@ -90,9 +91,11 @@ export interface CheckInFaceConfig {
 import PrinterModal, { TicketTagPrinter } from './printer-modal';
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  const { tt } = useTranslation();
+  
   React.useEffect(() => {
-    document.title = "Cài đặt nâng cao | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Cài đặt nâng cao | ETIK - Vé điện tử & Quản lý sự kiện", "Advanced Settings | ETIK - Electronic Tickets & Event Management");
+  }, [tt]);
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
   const event_id = params.event_id;
@@ -163,25 +166,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         if (smtpRes.status === 'fulfilled' && smtpRes.value) {
           setSmtpFormValues(smtpRes.value);
         } else if (smtpRes.status === 'rejected') {
-          notificationCtx.warning('Không tải được cài đặt SMTP');
+          notificationCtx.warning(tt('Không tải được cài đặt SMTP', 'Failed to load SMTP settings'));
         }
 
         if (emailTplRes.status === 'fulfilled' && emailTplRes.value) {
           setEmailTemplateFormValues(emailTplRes.value);
         } else if (emailTplRes.status === 'rejected') {
-          notificationCtx.warning('Không tải được cài đặt template email');
+          notificationCtx.warning(tt('Không tải được cài đặt template email', 'Failed to load email template settings'));
         }
 
         if (sendMethodsRes.status === 'fulfilled' && sendMethodsRes.value) {
           setSendTicketMethods(sendMethodsRes.value);
         } else if (sendMethodsRes.status === 'rejected') {
-          notificationCtx.warning('Không tải được phương thức gửi vé');
+          notificationCtx.warning(tt('Không tải được phương thức gửi vé', 'Failed to load ticket sending methods'));
         }
 
         if (faceCfgRes.status === 'fulfilled' && faceCfgRes.value) {
           setCheckInFaceConfig(faceCfgRes.value);
         } else if (faceCfgRes.status === 'rejected') {
-          notificationCtx.warning('Không tải được cài đặt Check-in bằng khuôn mặt');
+          notificationCtx.warning(tt('Không tải được cài đặt Check-in bằng khuôn mặt', 'Failed to load face check-in settings'));
         }
 
         if (eventRes.status === 'fulfilled' && eventRes.value) {
@@ -204,7 +207,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       );
       setPrinters(response.data);
     } catch (error: any) {
-      notificationCtx.error(error.response?.data?.detail || 'Không tải được danh sách máy in');
+      notificationCtx.error(error.response?.data?.detail || tt('Không tải được danh sách máy in', 'Failed to load printer list'));
     }
   };
 
@@ -239,7 +242,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       // Handle success response
       if (response.status === 200) {
-        notificationCtx.success("Yêu cầu nâng cấp thành Sự kiện Được xác thực đã được gửi thành công!");
+        notificationCtx.success(tt("Yêu cầu nâng cấp thành Sự kiện Được xác thực đã được gửi thành công!", "Request to upgrade to Verified Event has been sent successfully!"));
         setEventAgencyRegistrationAndEventApprovalRequest(eventAgencyRegistrationAndEventApprovalRequest ? ({
           ...eventAgencyRegistrationAndEventApprovalRequest,
           eventApprovalRequest: 'waiting_for_acceptance'
@@ -273,7 +276,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     try {
       setIsSmtpLoading(true);
       await saveSMTPSettings(event_id, smtpFormValues);
-      notificationCtx.success("Cấu hình SMTP đã được lưu thành công!");
+      notificationCtx.success(tt("Cấu hình SMTP đã được lưu thành công!", "SMTP configuration has been saved successfully!"));
     } catch (error) {
       notificationCtx.error(error);
     } finally {
@@ -298,7 +301,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     try {
       setIsSendTicketMethodsLoading(true);
       await saveSendTicketMethods(event_id, sendTicketMethods);
-      notificationCtx.success('Cập nhật thành công');
+      notificationCtx.success(tt('Cập nhật thành công', 'Updated successfully'));
     } catch (error) {
       notificationCtx.error(error);
     } finally {
@@ -314,7 +317,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     try {
       setIsCheckInFaceLoading(true);
       await baseHttpServiceInstance.post(`/event-studio/events/${event_id}/check-in-face-settings`, checkInFaceConfig);
-      notificationCtx.success('Cập nhật thành công');
+      notificationCtx.success(tt('Cập nhật thành công', 'Updated successfully'));
     } catch (error) {
       notificationCtx.error(error);
     } finally {
@@ -335,7 +338,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           setFormValues(response.data);
           setDescription(response.data.description || '');
         } catch (error) {
-          notificationCtx.error('Lỗi:', error);
+          notificationCtx.error(tt('Lỗi:', 'Error:'), error);
         } finally {
           setIsLoading(false);
         }
@@ -375,7 +378,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             range && quill.getEditor().insertEmbed(range.index, 'image', imageUrl);
           }
         } catch (error) {
-          notificationCtx.error('Lỗi:', error);
+          notificationCtx.error(tt('Lỗi:', 'Error:'), error);
         } finally {
           setIsLoading(false);
         }
@@ -457,13 +460,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         const nameTxn = emailTemplateFormValues.templateOtherNameTransaction?.trim();
         const nameTicket = emailTemplateFormValues.templateOtherNameTicket?.trim();
         if (!nameTxn || !nameTicket) {
-          notificationCtx.warning('Vui lòng nhập tên template tùy chỉnh cho cả giao dịch và vé.');
+          notificationCtx.warning(tt('Vui lòng nhập tên template tùy chỉnh cho cả giao dịch và vé.', 'Please enter custom template names for both transaction and ticket.'));
           return;
         }
       }
       setIsEmailTemplateLoading(true);
       await saveEmailTemplateSettings(event_id, emailTemplateFormValues);
-      notificationCtx.success('Cấu hình template email đã được lưu thành công!');
+      notificationCtx.success(tt('Cấu hình template email đã được lưu thành công!', 'Email template configuration has been saved successfully!'));
     } catch (error) {
       notificationCtx.error(error);
     } finally {
@@ -512,9 +515,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         `/event-studio/events/${event_id}/ticket-tag-printers/select`,
         { ticketTagPrinterId: selectedPrinterId }
       );
-      notificationCtx.success('Cài đặt máy in đã được lưu thành công!');
+      notificationCtx.success(tt('Cài đặt máy in đã được lưu thành công!', 'Printer settings have been saved successfully!'));
     } catch (error: any) {
-      notificationCtx.error(error.response?.data?.detail || 'Có lỗi xảy ra khi lưu cài đặt');
+      notificationCtx.error(error.response?.data?.detail || tt('Có lỗi xảy ra khi lưu cài đặt', 'An error occurred while saving settings'));
     } finally {
       setIsPrinterLoading(false);
     }
@@ -531,7 +534,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const handleDeletePrinter = async (printerId: number) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa máy in này?')) {
+    if (!confirm(tt('Bạn có chắc chắn muốn xóa máy in này?', 'Are you sure you want to delete this printer?'))) {
       return;
     }
 
@@ -539,14 +542,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       await baseHttpServiceInstance.delete(
         `/event-studio/events/${event_id}/ticket-tag-printers/${printerId}`
       );
-      notificationCtx.success('Xóa máy in thành công!');
+      notificationCtx.success(tt('Xóa máy in thành công!', 'Printer deleted successfully!'));
       fetchPrinters();
       // If deleted printer was selected, reset to system printer
       if (selectedPrinterId === printerId) {
         setSelectedPrinterId(null);
       }
     } catch (error: any) {
-      notificationCtx.error(error.response?.data?.detail || 'Có lỗi xảy ra khi xóa máy in');
+      notificationCtx.error(error.response?.data?.detail || tt('Có lỗi xảy ra khi xóa máy in', 'An error occurred while deleting printer'));
     }
   };
 
@@ -557,7 +560,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
 
   if (!event || !formValues) {
-    return <Typography>Loading...</Typography>;
+    return <Typography>{tt('Loading...', 'Loading...')}</Typography>;
   }
 
   return (
@@ -575,54 +578,54 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Backdrop>
 
         <div>
-          <Typography variant="h4">Cài đặt nâng cao</Typography>
+          <Typography variant="h4">{tt('Cài đặt nâng cao', 'Advanced Settings')}</Typography>
         </div>
         <Grid container spacing={3}>
           <Grid lg={4} md={6} xs={12}>
             <Stack spacing={3}>
               <Card>
-                <CardHeader title="Phương thức gửi vé điện tử" />
+                <CardHeader title={tt("Phương thức gửi vé điện tử", "Electronic Ticket Sending Methods")} />
                 <Divider />
                 <CardContent>
                   <Grid container spacing={6} wrap="wrap">
                     <Grid md={12} sm={12} xs={12}>
                       <Stack spacing={1}>
-                        <Typography variant="h6">Email</Typography>
+                        <Typography variant="h6">{tt("Email", "Email")}</Typography>
                         <FormGroup>
                           <FormControlLabel
                             control={<Checkbox checked={sendTicketMethods.useEmailMethod}
                               onChange={(_e, checked) => handleSendTicketMethodsChange('useEmailMethod', checked)} />}
-                            label="Sử dụng phương thức này"
+                            label={tt("Sử dụng phương thức này", "Use this method")}
                           />
                           <FormControlLabel
                             control={<Checkbox checked={sendTicketMethods.useEmailMethodAsDefault}
                               onChange={(_e, checked) => handleSendTicketMethodsChange('useEmailMethodAsDefault', checked)}
                               disabled={!sendTicketMethods.useEmailMethod}
                             />}
-                            label="Tự động sử dụng khi tạo đơn hàng"
+                            label={tt("Tự động sử dụng khi tạo đơn hàng", "Automatically use when creating orders")}
                           />
                         </FormGroup>
                       </Stack>
                     </Grid>
                     <Grid md={12} sm={12} xs={12}>
                       <Stack spacing={1}>
-                        <Typography variant="h6">Zalo</Typography>
+                        <Typography variant="h6">{tt("Zalo", "Zalo")}</Typography>
                         <FormGroup>
                           <FormControlLabel
                             control={<Checkbox checked={sendTicketMethods.useZaloMethod}
                               onChange={(_e, checked) => handleSendTicketMethodsChange('useZaloMethod', checked)} />}
-                            label="Sử dụng phương thức này"
+                            label={tt("Sử dụng phương thức này", "Use this method")}
                           />
                           <FormControlLabel
                             control={<Checkbox checked={sendTicketMethods.useZaloMethodAsDefault}
                               onChange={(_e, checked) => handleSendTicketMethodsChange('useZaloMethodAsDefault', checked)}
                               disabled={!sendTicketMethods.useZaloMethod}
                             />}
-                            label="Tự động sử dụng khi tạo đơn hàng"
+                            label={tt("Tự động sử dụng khi tạo đơn hàng", "Automatically use when creating orders")}
                           />
                           <FormHelperText>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              Phương thức này chỉ khả dụng với một số sự kiện. Vui lòng liên hệ ETIK để biết thêm chi tiết.
+                              {tt("Phương thức này chỉ khả dụng với một số sự kiện. Vui lòng liên hệ ETIK để biết thêm chi tiết.", "This method is only available for some events. Please contact ETIK for more details.")}
                             </Typography>
                           </FormHelperText>
                         </FormGroup>
@@ -633,12 +636,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Divider />
                 <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button variant="contained" color="primary" onClick={handleSaveSendTicketMethods} disabled={isSendTicketMethodsLoading}>
-                    {isSendTicketMethodsLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
+                    {isSendTicketMethodsLoading ? <CircularProgress size={24} /> : tt("Lưu cài đặt", "Save Settings")}
                   </Button>
                 </CardActions>
               </Card>
               <Card>
-                <CardHeader title="Check-in bằng khuôn mặt" />
+                <CardHeader title={tt("Check-in bằng khuôn mặt", "Face Check-in")} />
                 <Divider />
                 <CardContent>
                   <Grid container spacing={6} wrap="wrap">
@@ -648,11 +651,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           <FormControlLabel
                             control={<Checkbox checked={checkInFaceConfig.useCheckInFace}
                               onChange={handleCheckInFaceChange} />}
-                            label="Sử dụng Check-in bằng khuôn mặt"
+                            label={tt("Sử dụng Check-in bằng khuôn mặt", "Use Face Check-in")}
                           />
                           <FormHelperText>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              Khách hàng sẽ nhận được lời mời đăng ký khuôn mặt khi mua vé thành công
+                              {tt("Khách hàng sẽ nhận được lời mời đăng ký khuôn mặt khi mua vé thành công", "Customers will receive a face registration invitation when they successfully purchase tickets")}
                             </Typography>
                           </FormHelperText>
                         </FormGroup>
@@ -664,7 +667,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Divider />
                 <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button variant="contained" color="primary" onClick={handleSaveCheckInFaceConfig} startIcon={<ScanSmileyIcon />} disabled={isCheckInFaceLoading}>
-                    {isCheckInFaceLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
+                    {isCheckInFaceLoading ? <CircularProgress size={24} /> : tt("Lưu cài đặt", "Save Settings")}
                   </Button>
                 </CardActions>
               </Card>
@@ -674,22 +677,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <Stack spacing={3}>
 
               <Card>
-                <CardHeader title="Cấu hình gửi Email SMTP" />
+                <CardHeader title={tt("Cấu hình gửi Email SMTP", "Email SMTP Configuration")} />
                 <Divider />
                 <CardContent>
                   <Grid container spacing={3}>
                     {/* SMTP Provider Selection */}
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth required>
-                        <InputLabel>Dịch vụ mail</InputLabel>
+                        <InputLabel>{tt("Dịch vụ mail", "Mail Service")}</InputLabel>
                         <Select
-                          label="Dịch vụ mail"
+                          label={tt("Dịch vụ mail", "Mail Service")}
                           name="smtpProvider"
                           value={smtpFormValues.smtpProvider}
                           onChange={(event: any) => handleSmtpInputChange(event)}
                         >
-                          <MenuItem value={'use_etik_smtp'}>Sử dụng ETIK SMTP</MenuItem>
-                          <MenuItem value={'use_custom_smtp'}>Tùy chỉnh SMTP server</MenuItem>
+                          <MenuItem value={'use_etik_smtp'}>{tt("Sử dụng ETIK SMTP", "Use ETIK SMTP")}</MenuItem>
+                          <MenuItem value={'use_custom_smtp'}>{tt("Tùy chỉnh SMTP server", "Custom SMTP Server")}</MenuItem>
                         </Select>
                       </FormControl>
                     </Grid>
@@ -749,9 +752,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
                         <Grid md={6} xs={12}>
                           <FormControl fullWidth>
-                            <InputLabel>Email gửi</InputLabel>
+                            <InputLabel>{tt("Email gửi", "Sender Email")}</InputLabel>
                             <OutlinedInput
-                              label='Email gửi'
+                              label={tt('Email gửi', 'Sender Email')}
 
                               name="smtpSenderEmail"
                               value={smtpFormValues.smtpSenderEmail}
@@ -766,28 +769,28 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Divider />
                 <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button variant="contained" color="primary" onClick={handleSaveSmtpSettings} disabled={isLoading}>
-                    {isSmtpLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
+                    {isSmtpLoading ? <CircularProgress size={24} /> : tt("Lưu cài đặt", "Save Settings")}
                   </Button>
                 </CardActions>
               </Card>
               <Card>
-                <CardHeader title="Cấu hình template Email vé" />
+                <CardHeader title={tt("Cấu hình template Email vé", "Email Ticket Template Configuration")} />
                 <Divider />
                 <CardContent>
                   <Grid container spacing={3}>
                     {/* Template selection */}
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth required>
-                        <InputLabel>Template</InputLabel>
+                        <InputLabel>{tt("Template", "Template")}</InputLabel>
                         <Select
-                          label="Template"
+                          label={tt("Template", "Template")}
                           name="type"
                           value={emailTemplateFormValues.type}
                           onChange={(event: any) => handleEmailTemplateInputChange(event)}
                         >
-                          <MenuItem value={'template_default'}>Template mặc định</MenuItem>
-                          <MenuItem value={'template_english'}>Template English</MenuItem>
-                          <MenuItem value={'template_other'}>Template tùy chỉnh</MenuItem>
+                          <MenuItem value={'template_default'}>{tt("Template mặc định", "Default Template")}</MenuItem>
+                          <MenuItem value={'template_english'}>{tt("Template English", "English Template")}</MenuItem>
+                          <MenuItem value={'template_other'}>{tt("Template tùy chỉnh", "Custom Template")}</MenuItem>
                         </Select>
                       </FormControl>
                     </Grid>
@@ -795,9 +798,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       <>
                         <Grid md={6} xs={12}>
                           <FormControl fullWidth required>
-                            <InputLabel>Tên template (Email giao dịch)</InputLabel>
+                            <InputLabel>{tt("Tên template (Email giao dịch)", "Template Name (Transaction Email)")}</InputLabel>
                             <OutlinedInput
-                              label="Tên template (Email giao dịch)"
+                              label={tt("Tên template (Email giao dịch)", "Template Name (Transaction Email)")}
                               name="templateOtherNameTransaction"
                               value={emailTemplateFormValues.templateOtherNameTransaction || ''}
                               onChange={handleEmailTemplateInputChange}
@@ -806,9 +809,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         </Grid>
                         <Grid md={6} xs={12}>
                           <FormControl fullWidth required>
-                            <InputLabel>Tên template (Email vé)</InputLabel>
+                            <InputLabel>{tt("Tên template (Email vé)", "Template Name (Ticket Email)")}</InputLabel>
                             <OutlinedInput
-                              label="Tên template (Email vé)"
+                              label={tt("Tên template (Email vé)", "Template Name (Ticket Email)")}
                               name="templateOtherNameTicket"
                               value={emailTemplateFormValues.templateOtherNameTicket || ''}
                               onChange={handleEmailTemplateInputChange}
@@ -822,16 +825,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Divider />
                 <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button variant="contained" color="primary" onClick={handleSaveEmailTemplateConfig} disabled={isEmailTemplateLoading}>
-                    {isEmailTemplateLoading ? <CircularProgress size={24} /> : "Lưu cài đặt"}
+                    {isEmailTemplateLoading ? <CircularProgress size={24} /> : tt("Lưu cài đặt", "Save Settings")}
                   </Button>
                 </CardActions>
               </Card>
               <Card>
                 <CardHeader
-                  title="Cài đặt máy in vé"
+                  title={tt("Cài đặt máy in vé", "Ticket Printer Settings")}
                   action={
                     <Button variant="contained" color="primary" onClick={handleAddPrinter}>
-                      Thêm máy in
+                      {tt("Thêm máy in", "Add Printer")}
                     </Button>
                   }
                 />
@@ -840,10 +843,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <Table size="small" sx={{ width: '100%' }}>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ padding: '8px 16px' }}>Radio</TableCell>
-                        <TableCell sx={{ padding: '8px 16px' }}>Tên máy in</TableCell>
-                        <TableCell sx={{ minWidth: '200px', padding: '8px 16px' }}>IP máy in</TableCell>
-                        <TableCell sx={{ padding: '8px 16px' }}>Thao tác</TableCell>
+                        <TableCell sx={{ padding: '8px 16px' }}>{tt("Radio", "Radio")}</TableCell>
+                        <TableCell sx={{ padding: '8px 16px' }}>{tt("Tên máy in", "Printer Name")}</TableCell>
+                        <TableCell sx={{ minWidth: '200px', padding: '8px 16px' }}>{tt("IP máy in", "Printer IP")}</TableCell>
+                        <TableCell sx={{ padding: '8px 16px' }}>{tt("Thao tác", "Actions")}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -857,8 +860,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             size="small"
                           />
                         </TableCell>
-                        <TableCell sx={{ padding: '8px 16px' }}>Sử dụng máy in hệ thống</TableCell>
-                        <TableCell sx={{ minWidth: '200px', padding: '8px 16px' }}>không có</TableCell>
+                        <TableCell sx={{ padding: '8px 16px' }}>{tt("Sử dụng máy in hệ thống", "Use System Printer")}</TableCell>
+                        <TableCell sx={{ minWidth: '200px', padding: '8px 16px' }}>{tt("không có", "N/A")}</TableCell>
                         <TableCell sx={{ padding: '8px 16px' }}>
                           {/* No actions for system printer */}
                         </TableCell>
@@ -902,7 +905,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Divider />
                 <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button variant="contained" color="primary" onClick={handleSavePrinterSettings} disabled={isPrinterLoading}>
-                    {isPrinterLoading ? <CircularProgress size={24} /> : "Lưu lựa chọn"}
+                    {isPrinterLoading ? <CircularProgress size={24} /> : tt("Lưu lựa chọn", "Save Selection")}
                   </Button>
                 </CardActions>
               </Card>
@@ -939,35 +942,35 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               boxShadow: 24,
             }}
           >
-            <CardHeader title='Quy định chung' />
+            <CardHeader title={tt('Quy định chung', 'General Regulations')} />
             <Divider />
             <CardContent>
               <Stack spacing={1} textAlign={'justify'}>
                 <Typography variant="body2">
-                  <b>Để sự kiện được nâng cấp thành Sự kiện Được xác thực, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:</b>
+                  <b>{tt('Để sự kiện được nâng cấp thành Sự kiện Được xác thực, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:', 'To upgrade the event to a Verified Event, event organizers must comply with the following regulations before submitting the request:')}</b>
                 </Typography>
                 <Typography variant="body2">
-                  - Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.
+                  - {tt('Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.', 'The event has complete information about name, description, organizer, banner image, and avatar image.')}
                 </Typography>
                 <Typography variant="body2">
-                  - Thời gian và địa điểm rõ ràng, chính xác. Hạn chế thay đổi thông tin về thời gian, địa điểm và phải thông báo cho ETIK trước khi thay đổi.
+                  - {tt('Thời gian và địa điểm rõ ràng, chính xác. Hạn chế thay đổi thông tin về thời gian, địa điểm và phải thông báo cho ETIK trước khi thay đổi.', 'Clear and accurate time and location. Limit changes to time and location information and must notify ETIK before making changes.')}
                 </Typography>
                 <Typography variant="body2">
-                  - Chính sách Giá vé, chính sách hoàn trả, hủy vé rõ ràng, minh bạch.
+                  - {tt('Chính sách Giá vé, chính sách hoàn trả, hủy vé rõ ràng, minh bạch.', 'Clear and transparent Ticket Price policy, Refund policy, and Cancellation policy.')}
                 </Typography>
                 <Typography variant="body2">
-                  - Sự kiện tuân thủ quy định của pháp luật Việt Nam, phù hợp chuẩn mực đạo đức, thuần phong mỹ tục.
+                  - {tt('Sự kiện tuân thủ quy định của pháp luật Việt Nam, phù hợp chuẩn mực đạo đức, thuần phong mỹ tục.', 'The event complies with Vietnamese law and conforms to ethical standards and traditional customs.')}
                 </Typography>
                 <Typography variant="body2">
-                  - Cung cấp cho ETIK các thông tin, giấy tờ để xác minh khi được yêu cầu.
+                  - {tt('Cung cấp cho ETIK các thông tin, giấy tờ để xác minh khi được yêu cầu.', 'Provide ETIK with information and documents for verification when requested.')}
                 </Typography>
                 <Typography variant="body2">
-                  Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH <b>0333.247.242</b> hoặc email <b>tienphongsmart@gmail.com</b>
+                  {tt('Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH', 'If you need support, please contact Customer Service Hotline')} <b>0333.247.242</b> {tt('hoặc email', 'or email')} <b>tienphongsmart@gmail.com</b>
                 </Typography>
               </Stack>
               <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
                 <Button variant="contained" color="primary" onClick={handleSendRequestEventApproval} disabled={isLoading}>
-                  Gửi yêu cầu
+                  {tt('Gửi yêu cầu', 'Submit Request')}
                 </Button>
               </Grid>
             </CardContent>

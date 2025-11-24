@@ -720,17 +720,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               },
             }}>
               <FormControl sx={{ minWidth: '200px' }}>
-                <InputLabel>Suất diễn</InputLabel>
+                <InputLabel>{tt('Suất diễn', 'Show')}</InputLabel>
                 <Select
                   multiple
                   value={filters.show}
-                  label="Suất diễn"
+                  label={tt('Suất diễn', 'Show')}
                   name="show"
                   onChange={(e) => {
                     const value = e.target.value;
                     handleFilterChange('show', typeof value === 'string' ? value.split(',').map(Number) : (value as number[]));
                   }}
-                  renderValue={(selected) => (selected as number[]).length === 0 ? 'Tất cả' : `${(selected as number[]).length} đã chọn`}
+                  renderValue={(selected) => (selected as number[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as number[]).length} đã chọn`, `${(selected as number[]).length} selected`)}
                   MenuProps={{
                     PaperProps: {
                       style: {
@@ -748,17 +748,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
-                <InputLabel>Loại vé</InputLabel>
+                <InputLabel>{tt('Loại vé', 'Ticket Type')}</InputLabel>
                 <Select
                   multiple
                   value={filters.ticketCategory}
-                  label="Loại vé"
+                  label={tt('Loại vé', 'Ticket Type')}
                   name="ticketCategory"
                   onChange={(e) => {
                     const value = e.target.value;
                     handleFilterChange('ticketCategory', typeof value === 'string' ? value.split(',').map(Number) : (value as number[]));
                   }}
-                  renderValue={(selected) => (selected as number[]).length === 0 ? 'Tất cả' : `${(selected as number[]).length} đã chọn`}
+                  renderValue={(selected) => (selected as number[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as number[]).length} đã chọn`, `${(selected as number[]).length} selected`)}
                   MenuProps={{
                     PaperProps: {
                       style: {
@@ -781,14 +781,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
-                <InputLabel>Trạng thái đơn hàng</InputLabel>
+                <InputLabel>{tt('Trạng thái đơn hàng', 'Order Status')}</InputLabel>
                 <Select
                   multiple
                   value={filters.status}
-                  label="Trạng thái đơn hàng"
+                  label={tt('Trạng thái đơn hàng', 'Order Status')}
                   name="status"
                   onChange={(e) => handleFilterChange('status', e.target.value as string[])}
-                  renderValue={(selected) => (selected as string[]).length === 0 ? 'Tất cả' : `${(selected as string[]).length} đã chọn`}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as string[]).length} đã chọn`, `${(selected as string[]).length} selected`)}
                   MenuProps={{
                     PaperProps: {
                       style: {
@@ -799,31 +799,31 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 >
                   <MenuItem value="normal">
                     <Checkbox checked={filters.status.includes('normal')} />
-                    <ListItemText primary="Bình thường" />
+                    <ListItemText primary={tt('Bình thường', 'Normal')} />
                   </MenuItem>
                   <MenuItem value="wait_for_response">
                     <Checkbox checked={filters.status.includes('wait_for_response')} />
-                    <ListItemText primary="Đang chờ" />
+                    <ListItemText primary={tt('Đang chờ', 'Pending')} />
                   </MenuItem>
                   <MenuItem value="staff_locked">
                     <Checkbox checked={filters.status.includes('staff_locked')} />
-                    <ListItemText primary="Khoá bởi NV" />
+                    <ListItemText primary={tt('Khoá bởi NV', 'Locked by Staff')} />
                   </MenuItem>
                   <MenuItem value="customer_cancelled">
                     <Checkbox checked={filters.status.includes('customer_cancelled')} />
-                    <ListItemText primary="Huỷ bởi KH" />
+                    <ListItemText primary={tt('Huỷ bởi KH', 'Cancelled by Customer')} />
                   </MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '230px' }}>
-                <InputLabel>Trạng thái thanh toán</InputLabel>
+                <InputLabel>{tt('Trạng thái thanh toán', 'Payment Status')}</InputLabel>
                 <Select
                   multiple
                   value={filters.paymentStatus}
-                  label="Trạng thái thanh toán"
+                  label={tt('Trạng thái thanh toán', 'Payment Status')}
                   name="payment_status"
                   onChange={(e) => handleFilterChange('paymentStatus', e.target.value as string[])}
-                  renderValue={(selected) => (selected as string[]).length === 0 ? 'Tất cả' : `${(selected as string[]).length} đã chọn`}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as string[]).length} đã chọn`, `${(selected as string[]).length} selected`)}
                   MenuProps={{
                     PaperProps: {
                       style: {
@@ -834,27 +834,27 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 >
                   <MenuItem value="waiting_for_payment">
                     <Checkbox checked={filters.paymentStatus.includes('waiting_for_payment')} />
-                    <ListItemText primary="Chờ thanh toán" />
+                    <ListItemText primary={tt('Chờ thanh toán', 'Waiting for Payment')} />
                   </MenuItem>
                   <MenuItem value="paid">
                     <Checkbox checked={filters.paymentStatus.includes('paid')} />
-                    <ListItemText primary="Đã thanh toán" />
+                    <ListItemText primary={tt('Đã thanh toán', 'Paid')} />
                   </MenuItem>
                   <MenuItem value="refund">
                     <Checkbox checked={filters.paymentStatus.includes('refund')} />
-                    <ListItemText primary="Đã hoàn tiền" />
+                    <ListItemText primary={tt('Đã hoàn tiền', 'Refunded')} />
                   </MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
-                <InputLabel>Trạng thái xuất vé</InputLabel>
+                <InputLabel>{tt('Trạng thái xuất vé', 'Ticket Issued Status')}</InputLabel>
                 <Select
                   multiple
                   value={filters.sentTicketEmailStatus}
-                  label="Trạng thái xuất vé"
+                  label={tt('Trạng thái xuất vé', 'Ticket Issued Status')}
                   name="sentTicketEmailStatus"
                   onChange={(e) => handleFilterChange('sentTicketEmailStatus', e.target.value as string[])}
-                  renderValue={(selected) => (selected as string[]).length === 0 ? 'Tất cả' : `${(selected as string[]).length} đã chọn`}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as string[]).length} đã chọn`, `${(selected as string[]).length} selected`)}
                   MenuProps={{
                     PaperProps: {
                       style: {
@@ -865,23 +865,23 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 >
                   <MenuItem value="not_sent">
                     <Checkbox checked={filters.sentTicketEmailStatus.includes('not_sent')} />
-                    <ListItemText primary="Chưa xuất vé" />
+                    <ListItemText primary={tt('Chưa xuất vé', 'Not Issued')} />
                   </MenuItem>
                   <MenuItem value="sent">
                     <Checkbox checked={filters.sentTicketEmailStatus.includes('sent')} />
-                    <ListItemText primary="Đã xuất vé" />
+                    <ListItemText primary={tt('Đã xuất vé', 'Issued')} />
                   </MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
-                <InputLabel>Trạng thái check-in</InputLabel>
+                <InputLabel>{tt('Trạng thái check-in', 'Check-in Status')}</InputLabel>
                 <Select
                   multiple
                   value={filters.checkInStatus}
-                  label="Trạng thái check-in"
+                  label={tt('Trạng thái check-in', 'Check-in Status')}
                   name="checkInStatus"
                   onChange={(e) => handleFilterChange('checkInStatus', e.target.value as string[])}
-                  renderValue={(selected) => (selected as string[]).length === 0 ? 'Tất cả' : `${(selected as string[]).length} đã chọn`}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as string[]).length} đã chọn`, `${(selected as string[]).length} selected`)}
                   MenuProps={{
                     PaperProps: {
                       style: {
@@ -892,23 +892,23 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 >
                   <MenuItem value="not_checked">
                     <Checkbox checked={filters.checkInStatus.includes('not_checked')} />
-                    <ListItemText primary="Chưa check-in" />
+                    <ListItemText primary={tt('Chưa check-in', 'Not Checked In')} />
                   </MenuItem>
                   <MenuItem value="checked">
                     <Checkbox checked={filters.checkInStatus.includes('checked')} />
-                    <ListItemText primary="Đã check-in" />
+                    <ListItemText primary={tt('Đã check-in', 'Checked In')} />
                   </MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
-                <InputLabel>Trạng thái yêu cầu hủy</InputLabel>
+                <InputLabel>{tt('Trạng thái yêu cầu hủy', 'Cancellation Request Status')}</InputLabel>
                 <Select
                   multiple
                   value={filters.cancelRequestStatus}
-                  label="Trạng thái yêu cầu hủy"
+                  label={tt('Trạng thái yêu cầu hủy', 'Cancellation Request Status')}
                   name="cancelRequestStatus"
                   onChange={(e) => handleFilterChange('cancelRequestStatus', e.target.value as string[])}
-                  renderValue={(selected) => (selected as string[]).length === 0 ? 'Tất cả' : `${(selected as string[]).length} đã chọn`}
+                  renderValue={(selected) => (selected as string[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as string[]).length} đã chọn`, `${(selected as string[]).length} selected`)}
                   MenuProps={{
                     PaperProps: {
                       style: {
@@ -919,11 +919,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 >
                   <MenuItem value="pending">
                     <Checkbox checked={filters.cancelRequestStatus.includes('pending')} />
-                    <ListItemText primary="Đang yêu cầu hủy" />
+                    <ListItemText primary={tt('Đang yêu cầu hủy', 'Pending Cancellation')} />
                   </MenuItem>
                   <MenuItem value="no_request">
                     <Checkbox checked={filters.cancelRequestStatus.includes('no_request')} />
-                    <ListItemText primary="Không có yêu cầu hủy" />
+                    <ListItemText primary={tt('Không có yêu cầu hủy', 'No Cancellation Request')} />
                   </MenuItem>
                 </Select>
               </FormControl>

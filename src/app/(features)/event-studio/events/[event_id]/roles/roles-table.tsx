@@ -19,32 +19,33 @@ import IconButton from '@mui/material/IconButton';
 import { X } from '@phosphor-icons/react/dist/ssr';
 import dayjs from 'dayjs';
 import { Role } from './page';
+import { useTranslation } from '@/contexts/locale-context';
 
 
 // Function to map payment statuses to corresponding labels and colors
-const getRoleTags = (role: string) => {
+const getRoleTags = (role: string, tt: (vi: string, en: string) => string) => {
   switch (role) {
     case 'owner':
-      return { label: 'Quản trị viên', color: 'success' };
+      return { label: tt('Quản trị viên', 'Administrator'), color: 'success' };
     case 'member':
-      return { label: 'Thành viên', color: 'default' };
+      return { label: tt('Thành viên', 'Member'), color: 'default' };
     case 'supporter':
-      return { label: 'Cộng tác viên', color: 'default' };
+      return { label: tt('Cộng tác viên', 'Supporter'), color: 'default' };
     default:
-      return { label: 'Unknown', color: 'default' };
+      return { label: tt('Unknown', 'Unknown'), color: 'default' };
   }
 };
 
-const getDetailText = (role: string) => {
+const getDetailText = (role: string, tt: (vi: string, en: string) => string) => {
   switch (role) {
     case 'isCreator':
-      return { label: 'Người tạo', color: 'success' };
+      return { label: tt('Người tạo', 'Creator'), color: 'success' };
     case 'allowCheckIn':
-      return { label: 'Soát vé', color: 'default' };
+      return { label: tt('Soát vé', 'Check-in'), color: 'default' };
     case 'allowSellTicket':
-      return { label: 'Bán vé', color: 'default' };
+      return { label: tt('Bán vé', 'Sell tickets'), color: 'default' };
     default:
-      return { label: 'Unknown', color: 'default' };
+      return { label: tt('Unknown', 'Unknown'), color: 'default' };
   }
 };
 
@@ -113,6 +114,7 @@ export function RolesTable({
   onRowsPerPageChange,
   onDeleteMember,
 }: CustomersTableProps): React.JSX.Element {
+  const { tt } = useTranslation();
 
   const handleChangePage = (event: unknown, newPage: number) => {
     onPageChange(newPage);
@@ -132,11 +134,11 @@ export function RolesTable({
         <Table sx={{ minWidth: '800px' }}>
           <TableHead>
             <TableRow>
-              <TableCell>Email</TableCell>
-              <TableCell>Tên gợi nhớ</TableCell>
-              <TableCell>Quyền</TableCell>
-              <TableCell>Chi tiết</TableCell>
-              <TableCell>Thời gian tạo</TableCell>
+              <TableCell>{tt("Email", "Email")}</TableCell>
+              <TableCell>{tt("Tên gợi nhớ", "Alias")}</TableCell>
+              <TableCell>{tt("Quyền", "Role")}</TableCell>
+              <TableCell>{tt("Chi tiết", "Details")}</TableCell>
+              <TableCell>{tt("Thời gian tạo", "Created At")}</TableCell>
               <TableCell></TableCell>
             </TableRow>
           </TableHead>
@@ -153,16 +155,16 @@ export function RolesTable({
                   <TableCell>{row.alias}</TableCell>
                   <TableCell>
                     <Chip
-                      color={getRoleTags(row.role).color}
-                      label={getRoleTags(row.role).label}
+                      color={getRoleTags(row.role, tt).color}
+                      label={getRoleTags(row.role, tt).label}
                       size="small"
                     />
                   </TableCell>
                   <TableCell>
                     <Stack spacing={1} direction={'row'}>
-                      <Typography variant='caption' sx={{textWrap: 'nowrap'}}>{row.isCreator && getDetailText('isCreator').label}</Typography>
-                      <Typography variant='caption' sx={{textWrap: 'nowrap'}}>{row.role === 'supporter' && row.allowCheckIn && getDetailText('allowCheckIn').label}</Typography>
-                      <Typography variant='caption' sx={{textWrap: 'nowrap'}}>{row.role === 'supporter' && row.allowSellTicket && getDetailText('allowSellTicket').label}</Typography>
+                      <Typography variant='caption' sx={{textWrap: 'nowrap'}}>{row.isCreator && getDetailText('isCreator', tt).label}</Typography>
+                      <Typography variant='caption' sx={{textWrap: 'nowrap'}}>{row.role === 'supporter' && row.allowCheckIn && getDetailText('allowCheckIn', tt).label}</Typography>
+                      <Typography variant='caption' sx={{textWrap: 'nowrap'}}>{row.role === 'supporter' && row.allowSellTicket && getDetailText('allowSellTicket', tt).label}</Typography>
 
                     </Stack>
                   </TableCell>

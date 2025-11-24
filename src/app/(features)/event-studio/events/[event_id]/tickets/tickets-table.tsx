@@ -26,62 +26,63 @@ import { Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr/Light
 import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
 import dayjs from 'dayjs';
 import { LocalizedLink } from '@/components/localized-link';
+import { useTranslation } from '@/contexts/locale-context';
 
 import { Ticket } from './page';
 
 
 // Function to map payment methods to corresponding labels and icons
-const getPaymentMethodDetails = (paymentMethod: string) => {
+const getPaymentMethodDetails = (paymentMethod: string, tt: (vi: string, en: string) => string) => {
   switch (paymentMethod) {
     case 'cash':
-      return { label: 'Tiền mặt', icon: <MoneyIcon /> };
+      return { label: tt('Tiền mặt', 'Cash'), icon: <MoneyIcon /> };
     case 'transfer':
-      return { label: 'Chuyển khoản', icon: <BankIcon /> };
+      return { label: tt('Chuyển khoản', 'Bank Transfer'), icon: <BankIcon /> };
     case 'napas247':
-      return { label: 'Napas 247', icon: <LightningIcon /> };
+      return { label: tt('Napas 247', 'Napas 247'), icon: <LightningIcon /> };
     default:
-      return { label: 'Unknown', icon: null };
+      return { label: tt('Không xác định', 'Unknown'), icon: null };
   }
 };
 
 // Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (paymentStatus: string) => {
+const getPaymentStatusDetails = (paymentStatus: string, tt: (vi: string, en: string) => string) => {
   switch (paymentStatus) {
     case 'waiting_for_payment':
-      return { label: 'Chờ thanh toán', color: 'default' };
+      return { label: tt('Chờ thanh toán', 'Waiting for Payment'), color: 'default' };
     case 'paid':
-      return { label: 'Đã thanh toán', color: 'success' };
+      return { label: tt('Đã thanh toán', 'Paid'), color: 'success' };
     case 'refund':
-      return { label: 'Đã hoàn tiền', color: 'secondary' };
+      return { label: tt('Đã hoàn tiền', 'Refunded'), color: 'secondary' };
     default:
-      return { label: 'Unknown', color: 'default' };
+      return { label: tt('Không xác định', 'Unknown'), color: 'default' };
   }
 };
 
 // Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+const getRowStatusDetails = (status: string, tt: (vi: string, en: string) => string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'normal':
-      return { label: 'Bình thường', color: 'success' };
+      return { label: tt('Bình thường', 'Normal'), color: 'success' };
     case 'wait_for_response':
-      return { label: 'Đang chờ', color: 'warning' };
+      return { label: tt('Đang chờ', 'Pending'), color: 'warning' };
     case 'customer_cancelled':
-      return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
+      return { label: tt('Huỷ bởi KH', 'Cancelled by Customer'), color: 'error' };
     case 'staff_locked':
-      return { label: 'Khoá bởi NV', color: 'error' };
+      return { label: tt('Khoá bởi NV', 'Locked by Staff'), color: 'error' };
     default:
-      return { label: 'Unknown', color: 'default' };
+      return { label: tt('Không xác định', 'Unknown'), color: 'default' };
   }
 };
 
-const getSentEmailTicketStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+const getSentEmailTicketStatusDetails = (status: string, tt: (vi: string, en: string) => string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'sent':
-      return { label: 'Đã xuất', color: 'success' };
+      return { label: tt('Đã xuất', 'Issued'), color: 'success' };
     case 'not_sent':
-      return { label: 'Chưa xuất', color: 'default' }; // error for danger
+      return { label: tt('Chưa xuất', 'Not Issued'), color: 'default' };
     default:
-      return { label: 'Unknown', color: 'default' };
+      return { label: tt('Không xác định', 'Unknown'), color: 'default' };
   }
 };
 
@@ -157,6 +158,7 @@ export function TicketsTable({
   onSelectOne,
   onDeselectOne,
 }: CustomersTableProps): React.JSX.Element {
+  const { tt } = useTranslation();
   const handleRequestSort = (property: string) => {
     const isAsc = orderBy === property && order === 'asc';
     const newOrder = isAsc ? 'desc' : 'asc';
@@ -201,19 +203,19 @@ export function TicketsTable({
                   }}
                 />
               </TableCell>
-              <TableCell sx={{ minWidth: '200px' }}>Họ tên</TableCell>
-              <TableCell sx={{ minWidth: '150px' }}>Suất diễn</TableCell>
-              <TableCell sx={{ minWidth: '80px' }}>Loại vé</TableCell>
-              <TableCell>Trạng thái</TableCell>
-              <TableCell>Thanh toán</TableCell>
-              <TableCell>Xuất vé</TableCell>
+              <TableCell sx={{ minWidth: '200px' }}>{tt('Họ tên', 'Full Name')}</TableCell>
+              <TableCell sx={{ minWidth: '150px' }}>{tt('Suất diễn', 'Show')}</TableCell>
+              <TableCell sx={{ minWidth: '80px' }}>{tt('Loại vé', 'Ticket Type')}</TableCell>
+              <TableCell>{tt('Trạng thái', 'Status')}</TableCell>
+              <TableCell>{tt('Thanh toán', 'Payment')}</TableCell>
+              <TableCell>{tt('Xuất vé', 'Ticket Issued')}</TableCell>
               <TableCell>
                 <TableSortLabel
                   active={orderBy === 'createdAt'}
                   direction={orderBy === 'createdAt' ? order : 'asc'}
                   onClick={() => handleRequestSort('createdAt')}
                 >
-                  Thời gian tạo
+                  {tt('Thời gian tạo', 'Created At')}
                 </TableSortLabel>
               </TableCell>
               <TableCell>
@@ -222,7 +224,7 @@ export function TicketsTable({
                   direction={orderBy === 'checkInAt' ? order : 'asc'}
                   onClick={() => handleRequestSort('checkInAt')}
                 >
-                  Thời gian check-in
+                  {tt('Thời gian check-in', 'Check-in Time')}
                 </TableSortLabel>
               </TableCell>
               <TableCell> </TableCell>
@@ -251,20 +253,20 @@ export function TicketsTable({
                     <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
                       <Tooltip title={
                         <Stack spacing={1}>
-                          <Typography>ID đơn hàng: {row.transactionId} - ID vé: {row.id}</Typography>
-                          <Typography>Tên người mua: {row.transactionTicketCategory.transaction.name}</Typography>
-                          <Typography>Email: {row.transactionTicketCategory.transaction.email}</Typography>
-                          <Typography>SĐT: {row.transactionTicketCategory.transaction.phoneNumber}</Typography>
+                          <Typography>{tt('ID đơn hàng:', 'Order ID:')} {row.transactionId} - {tt('ID vé:', 'Ticket ID:')} {row.id}</Typography>
+                          <Typography>{tt('Tên người mua:', 'Buyer Name:')} {row.transactionTicketCategory.transaction.name}</Typography>
+                          <Typography>{tt('Email:', 'Email:')} {row.transactionTicketCategory.transaction.email}</Typography>
+                          <Typography>{tt('SĐT:', 'Phone:')} {row.transactionTicketCategory.transaction.phoneNumber}</Typography>
                         </Stack>
                       }>
                         <Avatar {...stringAvatar(row.holderName)} />
                       </Tooltip>
                       <Tooltip title={
                         <Stack spacing={1}>
-                          <Typography>ID đơn hàng: {row.transactionId} - ID vé: {row.id}</Typography>
-                          <Typography>Tên người mua: {row.transactionTicketCategory.transaction.name}</Typography>
-                          <Typography>Email: {row.transactionTicketCategory.transaction.email}</Typography>
-                          <Typography>SĐT: {row.transactionTicketCategory.transaction.phoneNumber}</Typography>
+                          <Typography>{tt('ID đơn hàng:', 'Order ID:')} {row.transactionId} - {tt('ID vé:', 'Ticket ID:')} {row.id}</Typography>
+                          <Typography>{tt('Tên người mua:', 'Buyer Name:')} {row.transactionTicketCategory.transaction.name}</Typography>
+                          <Typography>{tt('Email:', 'Email:')} {row.transactionTicketCategory.transaction.email}</Typography>
+                          <Typography>{tt('SĐT:', 'Phone:')} {row.transactionTicketCategory.transaction.phoneNumber}</Typography>
                         </Stack>
                       }>
                         <Typography variant="subtitle2">{row.holderName}</Typography>
@@ -277,13 +279,13 @@ export function TicketsTable({
                   <TableCell>
                     <Stack spacing={0} direction={'row'}>
                       <Chip
-                        color={getRowStatusDetails(row.transactionTicketCategory.transaction.status).color}
-                        label={getRowStatusDetails(row.transactionTicketCategory.transaction.status).label}
+                        color={getRowStatusDetails(row.transactionTicketCategory.transaction.status, tt).color}
+                        label={getRowStatusDetails(row.transactionTicketCategory.transaction.status, tt).label}
                         size="small"
                       />
                       {row.transactionTicketCategory.transaction.cancelRequestStatus == 'pending' &&
                         <Tooltip title={
-                          <Typography>Khách hàng yêu cầu hủy</Typography>
+                          <Typography>{tt('Khách hàng yêu cầu hủy', 'Customer requested cancellation')}</Typography>
                         }>
                           <Chip size="small" color={'error'} label={<WarningCircle size={16} />} />
                         </Tooltip>
@@ -293,17 +295,17 @@ export function TicketsTable({
                   </TableCell>
                   <TableCell>
                     <Chip
-                      color={getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus).color as ChipProps['color']}
+                      color={getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus, tt).color as ChipProps['color']}
                       label={
-                        getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus).label
+                        getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus, tt).label
                       }
                       size="small"
                     />
                   </TableCell>
                   <TableCell>
                     <Chip
-                      color={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent').color as ChipProps['color']}
-                      label={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent').label}
+                      color={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent', tt).color as ChipProps['color']}
+                      label={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent', tt).label}
                       size="small"
                     />
                   </TableCell>

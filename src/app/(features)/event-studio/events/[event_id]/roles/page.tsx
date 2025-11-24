@@ -9,6 +9,7 @@ import { AxiosResponse } from 'axios';
 import * as React from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 import {
   CardContent,
   CardHeader,
@@ -48,9 +49,11 @@ export interface Role {
 type RoleOption = 'owner' | 'member' | 'supporter'
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  const { tt } = useTranslation();
+  
   React.useEffect(() => {
-    document.title = 'Phân quyền | ETIK - Vé điện tử & Quản lý sự kiện';
-  }, []);
+    document.title = tt('Phân quyền | ETIK - Vé điện tử & Quản lý sự kiện', 'Permissions | ETIK - Electronic Tickets & Event Management');
+  }, [tt]);
 
   const [roles, setRoles] = React.useState<Role[]>([]);
   const [page, setPage] = React.useState(0);
@@ -83,7 +86,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       );
       setRoles(response.data);
     } catch (error) {
-      notificationCtx.error('Lỗi:', error);
+      notificationCtx.error(tt('Lỗi:', 'Error:'), error);
     } finally {
       setIsLoading(false);
     }
@@ -96,12 +99,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   
   const handleAddMember = async () => {
     if (!email.trim()) {
-      notificationCtx.error('Vui lòng nhập email')
+      notificationCtx.error(tt('Vui lòng nhập email', 'Please enter email'))
       return
     }
 
     if (role === 'supporter' && !allowCheckIn && !allowSellTicket) {
-      notificationCtx.error('Vui lòng chọn ít nhất một tùy chọn cho Cộng tác viên')
+      notificationCtx.error(tt('Vui lòng chọn ít nhất một tùy chọn cho Cộng tác viên', 'Please select at least one option for Supporter'))
       return
     }
 
@@ -125,9 +128,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       setRole('member')
       setAllowCheckIn(false)
       setAllowSellTicket(false)
-      notificationCtx.success('Thêm người dùng thành công.')
+      notificationCtx.success(tt('Thêm người dùng thành công.', 'User added successfully.'))
     } catch (error) {
-      notificationCtx.error('Lỗi:', error)
+      notificationCtx.error(tt('Lỗi:', 'Error:'), error)
     } finally {
       setIsLoading(false)
     }
@@ -137,7 +140,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     const roleToDelete = roles.find(role => role.userId === userId)
     if (!roleToDelete) return
 
-    if (!confirm(`Bạn có chắc chắn muốn xoá ${roleToDelete.user?.email}?`)) return;
+    if (!confirm(tt(`Bạn có chắc chắn muốn xoá ${roleToDelete.user?.email}?`, `Are you sure you want to delete ${roleToDelete.user?.email}?`))) return;
 
     try {
       setIsLoading(true);
@@ -146,9 +149,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         { data: { userId } }
       );
       fetchTransactions();
-      notificationCtx.success('Xoá người dùng thành công.');
+      notificationCtx.success(tt('Xoá người dùng thành công.', 'User deleted successfully.'));
     } catch (error) {
-      notificationCtx.error('Lỗi:', error);
+      notificationCtx.error(tt('Lỗi:', 'Error:'), error);
     } finally {
       setIsLoading(false);
     }
@@ -171,7 +174,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Backdrop>{' '}
         <Stack direction="row" spacing={3}>
           <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-            <Typography variant="h4">Phân quyền</Typography>
+            <Typography variant="h4">{tt('Phân quyền', 'Permissions')}</Typography>
           </Stack>
           <div>
             <Button
@@ -179,7 +182,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               variant="contained"
               onClick={() => setAddMemberModalOpen(true)}
             >
-              Thêm
+              {tt('Thêm', 'Add')}
             </Button>
           </div>
         </Stack>
@@ -213,13 +216,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               boxShadow: 24,
             }}
           >
-            <CardHeader title="Thêm thành viên" />
+            <CardHeader title={tt("Thêm thành viên", "Add Member")} />
             <Divider />
             <CardContent>
               <Stack spacing={3} alignItems="flex-start">
                 {/* Email */}
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <InputLabel htmlFor="email">Email:</InputLabel>
+                  <InputLabel htmlFor="email">{tt("Email:", "Email:")}</InputLabel>
                   <OutlinedInput
                     id="email"
                     required
@@ -233,7 +236,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
                 {/* Alias */}
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <InputLabel htmlFor="alias">Tên gợi nhớ:</InputLabel>
+                  <InputLabel htmlFor="alias">{tt("Tên gợi nhớ:", "Alias:")}</InputLabel>
                   <OutlinedInput
                     id="alias"
                     size="small"
@@ -245,16 +248,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
                 {/* ▶️ Select Role */}
                 <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <InputLabel id="role-select-label">Quyền</InputLabel>
+                  <InputLabel id="role-select-label">{tt("Quyền", "Role")}</InputLabel>
                   <Select
                     labelId="role-select-label"
                     value={role}
-                    label="Quyền"
+                    label={tt("Quyền", "Role")}
                     onChange={e => setRole(e.target.value as RoleOption)}
                   >
-                    <MenuItem value="owner">Quản trị viên</MenuItem>
-                    <MenuItem value="member">Thành viên</MenuItem>
-                    <MenuItem value="supporter">Cộng tác viên</MenuItem>
+                    <MenuItem value="owner">{tt("Quản trị viên", "Administrator")}</MenuItem>
+                    <MenuItem value="member">{tt("Thành viên", "Member")}</MenuItem>
+                    <MenuItem value="supporter">{tt("Cộng tác viên", "Supporter")}</MenuItem>
                   </Select>
                 </FormControl>
 
@@ -268,7 +271,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           onChange={e => setAllowCheckIn(e.target.checked)}
                         />
                       }
-                      label="Chỉ soát vé"
+                      label={tt("Chỉ soát vé", "Check-in only")}
                     />
                     <FormControlLabel
                       control={
@@ -277,14 +280,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           onChange={e => setAllowSellTicket(e.target.checked)}
                         />
                       }
-                      label="Chỉ bán vé"
+                      label={tt("Chỉ bán vé", "Sell tickets only")}
                     />
                   </Stack>
                 )}
                 <Stack spacing={1}>
-                  <Typography variant='caption'><b>Quản trị viên:</b> cho phép toàn bộ thao tác + chỉnh sửa sự kiện, giá vé, phân quyền</Typography>
-                  <Typography variant='caption'><b>Thành viên:</b> cho phép toàn bộ thao tác</Typography>
-                  <Typography variant='caption'><b>Cộng tác viên:</b> cho phép xem và thao tác hạn chế.</Typography>
+                  <Typography variant='caption'><b>{tt("Quản trị viên:", "Administrator:")}</b> {tt("cho phép toàn bộ thao tác + chỉnh sửa sự kiện, giá vé, phân quyền", "allows all operations + edit events, ticket prices, permissions")}</Typography>
+                  <Typography variant='caption'><b>{tt("Thành viên:", "Member:")}</b> {tt("cho phép toàn bộ thao tác", "allows all operations")}</Typography>
+                  <Typography variant='caption'><b>{tt("Cộng tác viên:", "Supporter:")}</b> {tt("cho phép xem và thao tác hạn chế.", "allows limited viewing and operations.")}</Typography>
                 </Stack>
               </Stack>
             </CardContent>
@@ -295,7 +298,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 size="small"
                 onClick={() => setAddMemberModalOpen(false)}
               >
-                Hủy
+                {tt("Hủy", "Cancel")}
               </Button>
               <Button
                 variant="contained"
@@ -303,7 +306,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 endIcon={<ArrowRight />}
                 onClick={handleAddMember}
               >
-                Lưu
+                {tt("Lưu", "Save")}
               </Button>
             </Stack>
           </Card>
