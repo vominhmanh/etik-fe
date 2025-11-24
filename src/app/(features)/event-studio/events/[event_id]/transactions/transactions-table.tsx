@@ -275,8 +275,8 @@ export function TransactionsTable({
                   <TableCell>
                     <Stack spacing={0} direction={'row'}>
                       <Chip
-                        color={getRowStatusDetails(row.status).color}
-                        label={getRowStatusDetails(row.status).label}
+                        color={getRowStatusDetails(row.status, tt).color}
+                        label={getRowStatusDetails(row.status, tt).label}
                         size="small"
                       />
                       {row.cancelRequestStatus == 'pending' &&
