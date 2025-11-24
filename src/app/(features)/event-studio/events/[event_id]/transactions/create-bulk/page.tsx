@@ -2,7 +2,7 @@
 
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Box, CardActions, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, InputLabel, styled, Table, TableBody, TableCell, TableHead, TableRow, Checkbox } from '@mui/material';
+import { Box, CardActions, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, InputLabel, styled, Table, TableBody, TableCell, TableHead, TableRow, Checkbox, FormControlLabel, Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -26,9 +26,11 @@ import * as XLSX from 'xlsx';
 
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
-import { Download, Pencil, Plus, Upload, X } from '@phosphor-icons/react/dist/ssr';
+import { Download, Pencil, Plus, Upload, X, Question } from '@phosphor-icons/react/dist/ssr';
+import { PHONE_COUNTRIES } from '@/config/phone-countries';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
+import { useTranslation } from '@/contexts/locale-context';
 
 export type TicketCategory = {
   id: number;
@@ -69,21 +71,24 @@ export type EventResponse = {
   shows: Show[];
 };
 
-// Define the Customer type
-type Customer = {
-  title: string;
-  name: string;
-  email: string;
-  phoneNumber: string;
-  address: string;
+// Form field config type
+type FormFieldConfig = {
+  id: number;
+  kind: string;
+  builtin_key: string | null;
+  internal_name: string;
+  label: string;
+  field_type: string;
+  visible: boolean;
+  required: boolean;
+  note: string | null;
+  sort_order: number;
+  options?: Array<{ value: string; label: string }>;
 };
-type CustomerExcelInput = {
-  'Danh xưng': string;
-  'Họ tên': string;
-  'Email': string;
-  'Số điện thoại': string;
-  'Địa chỉ': string;
-};
+
+// Define the Customer type dynamically based on form fields
+type Customer = Record<string, string>;
+type CustomerExcelInput = Record<string, string>;
 type CustomerValidationError = { lineId: number; field: string; input: string; msg: string };
 const VisuallyHiddenInput = styled('input')({
   clip: 'rect(0 0 0 0)',
@@ -99,25 +104,80 @@ const VisuallyHiddenInput = styled('input')({
 type TicketHolderInfo = { title: string; name: string; email: string; phone: string };
 
 
-const paymentMethodLabelMap: Record<string, string> = {
-  cash: 'Tiền mặt',
-  transfer: 'Chuyển khoản',
-  napas247: 'Napas 247',
+// Helper function to get payment method label (will be converted with tt in component)
+const getPaymentMethodLabel = (method: string, tt: (vi: string, en: string) => string): string => {
+  const map: Record<string, { vi: string; en: string }> = {
+    cash: { vi: 'Tiền mặt', en: 'Cash' },
+    transfer: { vi: 'Chuyển khoản', en: 'Bank Transfer' },
+    napas247: { vi: 'Napas 247', en: 'Napas 247' },
+  };
+  return map[method] ? tt(map[method].vi, map[method].en) : method;
 };
-const customerFieldLabelMap: Record<string, string> = {
-  name: 'Họ tên',
-  email: 'Email',
-  phoneNumber: 'Số điện thoại',
-  address: 'Địa chỉ',
-  title: 'Danh xưng',
+// customerFieldLabelMap will be built dynamically from form fields
+const getCustomerFieldLabelMap = (fields: FormFieldConfig[], tt: (vi: string, en: string) => string): Record<string, string> => {
+  const map: Record<string, string> = { title: tt('Danh xưng', 'Title') };
+  fields.forEach(field => {
+    const key = field.builtin_key || field.internal_name;
+    const normalizedKey = field.builtin_key === 'phone_number' ? 'phoneNumber' :
+      field.builtin_key === 'idcard_number' ? 'idcardNumber' : key;
+    map[normalizedKey] = field.label;
+  });
+  return map;
 };
 const normalizeFieldKey = (field: string): string =>
   field.replace(/[-_\s]+(.)?/g, (_match, group) => (group ? group.toUpperCase() : '')).trim();
 
+// Helper function to get builtin key label in bilingual
+const getBuiltinKeyLabel = (builtinKey: string | null, tt: (vi: string, en: string) => string): string | null => {
+  if (!builtinKey) return null;
+  const labelMap: Record<string, { vi: string; en: string }> = {
+    'name': { vi: 'Tên', en: 'Name' },
+    'email': { vi: 'Email', en: 'Email' },
+    'phone_number': { vi: 'Số điện thoại', en: 'Phone Number' },
+    'address': { vi: 'Địa chỉ', en: 'Address' },
+    'dob': { vi: 'Ngày sinh', en: 'Date of Birth' },
+    'idcard_number': { vi: 'Số CMND/CCCD', en: 'ID Card Number' },
+  };
+  const mapped = labelMap[builtinKey];
+  return mapped ? tt(mapped.vi, mapped.en) : null;
+};
+
+// Helper function to get field type label
+const getFieldTypeLabel = (field: FormFieldConfig, tt: (vi: string, en: string) => string): string => {
+  const typeMap: Record<string, { vi: string; en: string }> = {
+    'text': { vi: 'Text', en: 'Text' },
+    'number': { vi: 'Số', en: 'Number' },
+    'date': { vi: 'Ngày', en: 'Date' },
+    'datetime': { vi: 'Ngày giờ', en: 'Date Time' },
+    'time': { vi: 'Giờ', en: 'Time' },
+    'radio': { vi: 'Chọn một', en: 'Single Choice' },
+    'checkbox': { vi: 'Chọn nhiều', en: 'Multiple Choice' },
+  };
+  const mapped = typeMap[field.field_type];
+  return mapped ? tt(mapped.vi, mapped.en) : field.field_type;
+};
+
+// Helper function to get format hint text for a field
+const getFormatHint = (field: FormFieldConfig): string => {
+  if (field.field_type === 'date') {
+    return 'DD/MM/YYYY';
+  } else if (field.field_type === 'datetime') {
+    return 'DD/MM/YYYY HH:mm:ss';
+  } else if (field.field_type === 'time') {
+    return 'HH:mm:ss';
+  } else if (field.field_type === 'radio' && field.options && field.options.length > 0) {
+    return field.options.map(opt => opt.label).join(' | ');
+  } else if (field.field_type === 'checkbox' && field.options && field.options.length > 0) {
+    return `[${field.options.map(opt => opt.label).join(', ')}]`;
+  }
+  return '';
+};
+
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  const { tt, locale } = useTranslation();
   React.useEffect(() => {
-    document.title = "Tạo đơn hàng theo lô | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Tạo đơn hàng theo lô | ETIK - Vé điện tử & Quản lý sự kiện", "Create Bulk Orders | ETIK - E-tickets & Event Management");
+  }, [tt]);
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
   const [extraFee, setExtraFee] = React.useState<number>(0);
@@ -132,10 +192,99 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [requestedCategoryModalId, setRequestedCategoryModalId] = React.useState<number | null>(null);
   const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
   const [customerValidationErrors, setCustomerValidationErrors] = React.useState<CustomerValidationError[]>([]);
+  const [formFields, setFormFields] = React.useState<FormFieldConfig[]>([]);
 
-  const [customers, setCustomers] = React.useState<Customer[]>([
-    { title: 'Bạn', name: '', email: '', phoneNumber: '', address: '' },
-  ]);
+  // Get visible fields sorted by sort_order
+  const visibleFields = React.useMemo(() => {
+    return formFields
+      .filter(f => f.visible)
+      .sort((a, b) => a.sort_order - b.sort_order);
+  }, [formFields]);
+
+  // Get default title based on locale
+  const getDefaultTitle = React.useCallback((): string => {
+    return locale === 'en' ? 'Mx.' : tt('Bạn', 'You');
+  }, [locale, tt]);
+
+  // Create initial customer object based on visible fields
+  const createEmptyCustomer = React.useCallback((): Customer => {
+    const customer: Customer = { title: getDefaultTitle() };
+    visibleFields.forEach(field => {
+      const key = field.builtin_key || field.internal_name;
+      // Map builtin keys to customer object keys
+      if (field.builtin_key === 'name') {
+        customer.name = '';
+      } else if (field.builtin_key === 'email') {
+        customer.email = '';
+      } else if (field.builtin_key === 'phone_number') {
+        customer.phoneNumber = '';
+        customer.phoneCountryCode = '+84'; // Default country code
+      } else if (field.builtin_key === 'address') {
+        customer.address = '';
+      } else if (field.builtin_key === 'dob') {
+        customer.dob = '';
+      } else if (field.builtin_key === 'idcard_number') {
+        customer.idcardNumber = '';
+      } else {
+        // Custom field
+        customer[field.internal_name] = '';
+      }
+    });
+    return customer;
+  }, [visibleFields, getDefaultTitle]);
+
+  const [customers, setCustomers] = React.useState<Customer[]>(() => [{ title: getDefaultTitle() }]);
+
+  // Update default title when locale changes for existing customers that still have old default
+  React.useEffect(() => {
+    const currentDefault = getDefaultTitle();
+    setCustomers(prev => prev.map(customer => {
+      // If customer has old default title or empty title, update to new default based on locale
+      const oldDefaults = locale === 'en' ? ['You', tt('Bạn', 'You')] : ['Mx.', 'You'];
+      if (!customer.title || oldDefaults.includes(customer.title)) {
+        return { ...customer, title: currentDefault };
+      }
+      return customer;
+    }));
+  }, [locale, getDefaultTitle, tt]);
+
+  // Update customers when form fields are loaded
+  React.useEffect(() => {
+    if (visibleFields.length > 0 && customers.length > 0) {
+      // Update existing customers to include new fields
+      const updatedCustomers = customers.map(customer => {
+        const updated = { ...customer };
+        visibleFields.forEach(field => {
+          const key = field.builtin_key || field.internal_name;
+          if (field.builtin_key === 'name' && !('name' in updated)) {
+            updated.name = '';
+          } else if (field.builtin_key === 'email' && !('email' in updated)) {
+            updated.email = '';
+          } else if (field.builtin_key === 'phone_number') {
+            if (!('phoneNumber' in updated)) {
+              updated.phoneNumber = '';
+            }
+            if (!('phoneCountryCode' in updated)) {
+              updated.phoneCountryCode = '+84';
+            }
+          } else if (field.builtin_key === 'address' && !('address' in updated)) {
+            updated.address = '';
+          } else if (field.builtin_key === 'dob' && !('dob' in updated)) {
+            updated.dob = '';
+          } else if (field.builtin_key === 'idcard_number' && !('idcardNumber' in updated)) {
+            updated.idcardNumber = '';
+          } else if (!field.builtin_key && !(field.internal_name in updated)) {
+            updated[field.internal_name] = '';
+          }
+        });
+        return updated;
+      });
+      setCustomers(updatedCustomers);
+    } else if (visibleFields.length > 0 && customers.length === 0) {
+      // Initialize with one empty customer if none exist
+      setCustomers([createEmptyCustomer()]);
+    }
+  }, [visibleFields.length, createEmptyCustomer]);
 
   const customerErrorsMap = React.useMemo<Record<number, Record<string, CustomerValidationError[]>>>(() => {
     return customerValidationErrors.reduce((acc, error) => {
@@ -159,18 +308,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   }, [customerValidationErrors]);
 
   // Handle change in customer fields
-  const handleCustomerChange = (index: number, field: keyof Customer, value: string) => {
+  const handleCustomerChange = (index: number, fieldKey: string, value: string) => {
     const updatedCustomers = [...customers];
-    updatedCustomers[index][field] = value;
+    updatedCustomers[index][fieldKey] = value;
     setCustomers(updatedCustomers);
     setCustomerValidationErrors(prev =>
-      prev.filter(err => !(err.lineId === index + 1 && normalizeFieldKey(err.field) === field))
+      prev.filter(err => !(err.lineId === index + 1 && normalizeFieldKey(err.field) === fieldKey))
     );
   };
 
   // Add a new customer
   const addCustomer = () => {
-    setCustomers([...customers, { title: 'Bạn', name: '', email: '', phoneNumber: '', address: '' }]);
+    setCustomers([...customers, createEmptyCustomer()]);
   };
 
   // Remove a customer
@@ -178,6 +327,61 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     const updatedCustomers = customers.filter((_, i) => i !== index);
     setCustomers(updatedCustomers);
   };
+
+  // Fetch form config
+  React.useEffect(() => {
+    if (params.event_id) {
+      const fetchFormConfig = async () => {
+        try {
+          const response: AxiosResponse<{ fields: FormFieldConfig[] }> = await baseHttpServiceInstance.get(
+            `/event-studio/events/${params.event_id}/forms/checkout/config`
+          );
+          if (response.data?.fields) {
+            setFormFields(response.data.fields);
+          }
+        } catch (error) {
+          // If form config doesn't exist, use default fields
+          console.error('Failed to load form config', error);
+        }
+      };
+      fetchFormConfig();
+    }
+  }, [params.event_id]);
+
+  // Update customers when form fields change
+  React.useEffect(() => {
+    if (visibleFields.length > 0 && customers.length > 0) {
+      // Update existing customers to include new fields
+      const updatedCustomers = customers.map(customer => {
+        const updated = { ...customer };
+        visibleFields.forEach(field => {
+          const key = field.builtin_key || field.internal_name;
+          if (field.builtin_key === 'name' && !('name' in updated)) {
+            updated.name = '';
+          } else if (field.builtin_key === 'email' && !('email' in updated)) {
+            updated.email = '';
+          } else if (field.builtin_key === 'phone_number') {
+            if (!('phoneNumber' in updated)) {
+              updated.phoneNumber = '';
+            }
+            if (!('phoneCountryCode' in updated)) {
+              updated.phoneCountryCode = '+84';
+            }
+          } else if (field.builtin_key === 'address' && !('address' in updated)) {
+            updated.address = '';
+          } else if (field.builtin_key === 'dob' && !('dob' in updated)) {
+            updated.dob = '';
+          } else if (field.builtin_key === 'idcard_number' && !('idcardNumber' in updated)) {
+            updated.idcardNumber = '';
+          } else if (!field.builtin_key && !(field.internal_name in updated)) {
+            updated[field.internal_name] = '';
+          }
+        });
+        return updated;
+      });
+      setCustomers(updatedCustomers);
+    }
+  }, [visibleFields.length, tt]);
 
   // Fetch event details on component mount
   React.useEffect(() => {
@@ -245,7 +449,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       }
       // ensure existing array is sized to quantity
       const existing = prev[key] || [];
-      const sized = Array.from({ length: quantity }, (_, i) => existing[i] || { title: 'Bạn', name: '', email: '', phone: '' });
+      const defaultTitle = locale === 'en' ? 'Mx.' : tt('Bạn', 'You');
+      const sized = Array.from({ length: quantity }, (_, i) => existing[i] || { title: defaultTitle, name: '', email: '', phone: '' });
       return { ...prev, [key]: sized };
     });
   };
@@ -270,27 +475,148 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const handleCreateClick = () => {
-    // Validate all customers
+    // Validate all customers based on required fields
     for (let i = 0; i < customers.length; i++) {
       const customer = customers[i];
-      if (!customer.name || !customer.email || !customer.phoneNumber) {
-        notificationCtx.warning(`Vui lòng điền đầy đủ các thông tin bắt buộc cho khách hàng ${i + 1}`);
+      const missingFields: string[] = [];
+
+      visibleFields.forEach(field => {
+        if (field.required) {
+          const key = field.builtin_key || field.internal_name;
+          let value = '';
+          if (field.builtin_key === 'name') {
+            value = customer.name || '';
+          } else if (field.builtin_key === 'email') {
+            value = customer.email || '';
+          } else if (field.builtin_key === 'phone_number') {
+            value = customer.phoneNumber || '';
+          } else if (field.builtin_key === 'address') {
+            value = customer.address || '';
+          } else if (field.builtin_key === 'dob') {
+            value = customer.dob || '';
+          } else if (field.builtin_key === 'idcard_number') {
+            value = customer.idcardNumber || '';
+          } else {
+            value = customer[field.internal_name] || '';
+          }
+
+          if (!value || value.trim() === '') {
+            missingFields.push(field.label);
+          }
+        }
+      });
+
+      if (missingFields.length > 0) {
+        notificationCtx.warning(tt(`Vui lòng điền đầy đủ các thông tin bắt buộc cho khách hàng ${i + 1}: ${missingFields.join(', ')}`, `Please fill in all required information for customer ${i + 1}: ${missingFields.join(', ')}`));
         return;
       }
     }
 
     if (ticketQuantity <= 0) {
-      notificationCtx.warning('Vui lòng điền đầy đủ các thông tin bắt buộc');
+      notificationCtx.warning(tt('Vui lòng điền đầy đủ các thông tin bắt buộc', 'Please fill in all required information'));
       return;
     }
 
     const totalSelectedCategories = Object.values(selectedCategories).reduce((sum, catMap) => sum + Object.keys(catMap || {}).length, 0);
     if (totalSelectedCategories === 0) {
-      notificationCtx.warning('Vui lòng chọn ít nhất 1 loại vé');
+      notificationCtx.warning(tt('Vui lòng chọn ít nhất 1 loại vé', 'Please select at least 1 ticket type'));
       return;
     }
 
     setConfirmOpen(true);
+  };
+
+  // Generate Excel template with dynamic headers and example rows
+  const handleDownloadTemplate = () => {
+    if (visibleFields.length === 0) {
+      notificationCtx.warning(tt('Vui lòng đợi form config được tải xong', 'Please wait for form config to finish loading'));
+      return;
+    }
+
+    // Create headers: Title + all visible field labels
+    // For phone_number, add 2 columns: "Country Code" and the field label
+    const titleHeader = tt('Danh xưng', 'Title');
+    const countryCodeHeader = tt('Mã quốc gia', 'Country Code');
+    const headers: string[] = [titleHeader];
+    visibleFields.forEach(field => {
+      if (field.builtin_key === 'phone_number') {
+        // Use bilingual label for builtin_key
+        const builtinLabel = getBuiltinKeyLabel(field.builtin_key, tt) || field.label;
+        headers.push(countryCodeHeader, builtinLabel);
+      } else {
+        // Use bilingual label for builtin_key, otherwise use field.label from backend
+        const builtinLabel = getBuiltinKeyLabel(field.builtin_key, tt);
+        headers.push(builtinLabel || field.label);
+      }
+    });
+
+    // Generate 3 example rows with proper format
+    const exampleRows: any[] = [];
+    for (let i = 0; i < 3; i++) {
+      const row: any = { 
+        [titleHeader]: locale === 'en' 
+          ? (i === 0 ? 'Mr.' : i === 1 ? 'Ms.' : 'Mx.') 
+          : (i === 0 ? tt('Anh', 'Mr.') : i === 1 ? tt('Chị', 'Ms.') : tt('Bạn', 'You')) 
+      };
+      
+      visibleFields.forEach(field => {
+        let exampleValue = '';
+        
+        if (field.builtin_key === 'name') {
+          exampleValue = i === 0 ? 'Nguyễn Văn A' : i === 1 ? 'Trần Thị B' : 'Lê Văn C';
+        } else if (field.builtin_key === 'email') {
+          exampleValue = i === 0 ? 'nguyenvana@example.com' : i === 1 ? 'tranthib@example.com' : 'levanc@example.com';
+        } else if (field.builtin_key === 'phone_number') {
+          // Phone number will be handled separately with country code
+          // Skip here, will add to row separately
+        } else if (field.builtin_key === 'address') {
+          exampleValue = i === 0 ? '123 Đường ABC, Quận 1, TP.HCM' : i === 1 ? '456 Đường XYZ, Quận 2, TP.HCM' : '789 Đường DEF, Quận 3, TP.HCM';
+        } else if (field.builtin_key === 'dob') {
+          exampleValue = i === 0 ? '15/03/1990' : i === 1 ? '20/07/1995' : '10/11/2000';
+        } else if (field.builtin_key === 'idcard_number') {
+          exampleValue = i === 0 ? '123456789012' : i === 1 ? '234567890123' : '345678901234';
+        } else if (field.field_type === 'date') {
+          exampleValue = i === 0 ? '25/12/2024' : i === 1 ? '26/12/2024' : '27/12/2024';
+        } else if (field.field_type === 'datetime') {
+          exampleValue = i === 0 ? '25/12/2024 14:30:00' : i === 1 ? '26/12/2024 15:45:00' : '27/12/2024 16:00:00';
+        } else if (field.field_type === 'time') {
+          exampleValue = i === 0 ? '14:30:00' : i === 1 ? '15:45:00' : '16:00:00';
+        } else if (field.field_type === 'radio' && field.options && field.options.length > 0) {
+          // Use first option as example
+          exampleValue = field.options[0].label;
+        } else if (field.field_type === 'checkbox' && field.options && field.options.length > 0) {
+          // Use first 2 options as example, separated by comma
+          const selectedOptions = field.options.slice(0, Math.min(2, field.options.length));
+          exampleValue = selectedOptions.map(opt => opt.label).join(', ');
+        } else if (field.field_type === 'number') {
+          exampleValue = i === 0 ? '100' : i === 1 ? '200' : '300';
+        } else {
+          // Text field
+          exampleValue = i === 0 ? `${tt('Ví dụ', 'Example')} ${field.label} 1` : i === 1 ? `${tt('Ví dụ', 'Example')} ${field.label} 2` : `${tt('Ví dụ', 'Example')} ${field.label} 3`;
+        }
+        
+        // Handle phone_number separately with country code
+        if (field.builtin_key === 'phone_number') {
+          const builtinLabel = getBuiltinKeyLabel(field.builtin_key, tt) || field.label;
+          row[countryCodeHeader] = i === 0 ? '+84' : i === 1 ? '+84' : '+84';
+          row[builtinLabel] = i === 0 ? '0901234567' : i === 1 ? '0912345678' : '0923456789';
+        } else {
+          // Use bilingual label for builtin_key, otherwise use field.label from backend
+          const builtinLabel = getBuiltinKeyLabel(field.builtin_key, tt);
+          row[builtinLabel || field.label] = exampleValue;
+        }
+      });
+      
+      exampleRows.push(row);
+    }
+
+    // Create workbook
+    const worksheet = XLSX.utils.json_to_sheet(exampleRows, { header: headers });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, tt('Thông tin người mua', 'Customer Information'));
+
+    // Download file
+    XLSX.writeFile(workbook, tt('template-thong-tin-nguoi-mua.xlsx', 'template-customer-information.xlsx'));
   };
 
   // Handle file upload and parse the Excel file
@@ -304,9 +630,44 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const parsedData = XLSX.utils.sheet_to_json<CustomerExcelInput>(sheet);
-        const formattedData: Customer[] = parsedData.map(d => ({
-          title: d['Danh xưng'], name: d['Họ tên'], email: d['Email'], phoneNumber: d['Số điện thoại'], address: d['Địa chỉ']
-        }))
+        
+        // Map Excel columns to customer fields based on form config (using column labels)
+        const titleHeaderKey = tt('Danh xưng', 'Title');
+        const countryCodeHeaderKey = tt('Mã quốc gia', 'Country Code');
+        const defaultTitle = locale === 'en' ? 'Mx.' : tt('Bạn', 'You');
+        const formattedData: Customer[] = parsedData.map(d => {
+          const customer: Customer = { title: d[titleHeaderKey] || defaultTitle };
+          visibleFields.forEach(field => {
+            // Try to match both bilingual label and backend label for builtin_key
+            const builtinLabel = getBuiltinKeyLabel(field.builtin_key, tt);
+            const excelKey = builtinLabel || field.label; // Use bilingual label if available, otherwise use field.label
+            // Try to find value using either bilingual label or backend label
+            const excelValue = d[excelKey] || d[field.label] || '';
+            
+            // Map to customer object keys
+            if (field.builtin_key === 'name') {
+              customer.name = String(excelValue);
+            } else if (field.builtin_key === 'email') {
+              customer.email = String(excelValue);
+            } else if (field.builtin_key === 'phone_number') {
+              // Get country code from "Country Code" column, default to +84
+              const countryCode = d[countryCodeHeaderKey] || '+84';
+              customer.phoneCountryCode = String(countryCode);
+              customer.phoneNumber = String(excelValue);
+            } else if (field.builtin_key === 'address') {
+              customer.address = String(excelValue);
+            } else if (field.builtin_key === 'dob') {
+              customer.dob = String(excelValue);
+            } else if (field.builtin_key === 'idcard_number') {
+              customer.idcardNumber = String(excelValue);
+            } else {
+              // Custom field - try both bilingual label and backend label
+              const customValue = d[excelKey] || d[field.label] || '';
+              customer[field.internal_name] = String(customValue);
+            }
+          });
+          return customer;
+        });
         setCustomers(formattedData);
         event.target.value = ''
       };
@@ -327,14 +688,46 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const handleSubmit = async () => {
     setConfirmOpen(false);
 
-    const invalidCustomers = customers.filter(customer => (!customer.name || !customer.email))
+    // Validate required fields dynamically
+    const invalidCustomers: number[] = [];
+    customers.forEach((customer, index) => {
+      visibleFields.forEach(field => {
+        if (field.required) {
+          const key = field.builtin_key || field.internal_name;
+          let value = '';
+          if (field.builtin_key === 'name') {
+            value = customer.name || '';
+          } else if (field.builtin_key === 'email') {
+            value = customer.email || '';
+          } else if (field.builtin_key === 'phone_number') {
+            value = customer.phoneNumber || '';
+          } else if (field.builtin_key === 'address') {
+            value = customer.address || '';
+          } else if (field.builtin_key === 'dob') {
+            value = customer.dob || '';
+          } else if (field.builtin_key === 'idcard_number') {
+            value = customer.idcardNumber || '';
+          } else {
+            value = customer[field.internal_name] || '';
+          }
+
+          if (!value || value.trim() === '') {
+            if (!invalidCustomers.includes(index)) {
+              invalidCustomers.push(index);
+            }
+          }
+        }
+      });
+    });
+
     if (invalidCustomers.length > 0) {
-      notificationCtx.warning('Vui lòng điền "Họ tên", "Email" và "Số điện thoại" của tất cả người mua');
+      const requiredFields = visibleFields.filter(f => f.required).map(f => f.label).join(', ');
+      notificationCtx.warning(tt(`Vui lòng điền đầy đủ các thông tin bắt buộc: ${requiredFields}`, `Please fill in all required information: ${requiredFields}`));
       return;
     }
 
     if (Object.keys(selectedCategories).length == 0) {
-      notificationCtx.warning('Vui lòng chọn ít nhất 1 loại vé');
+      notificationCtx.warning(tt('Vui lòng chọn ít nhất 1 loại vé', 'Please select at least 1 ticket type'));
       return;
     }
 
@@ -342,7 +735,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     const emptyTicketShowIds = Object.entries(selectedCategories).filter(([showId, ticketCategoryId]) => (ticketCategoryId == null)).map(([showId, ticketCategoryId]) => (Number.parseInt(showId)));
     if (emptyTicketShowIds.length > 0) {
       const emptyTicketNames = event?.shows.filter(show => emptyTicketShowIds.includes(show.id)).map(show => show.name)
-      notificationCtx.warning(`Vui lòng chọn loại vé cho ${emptyTicketNames?.join(', ')}`);
+      notificationCtx.warning(tt(`Vui lòng chọn loại vé cho ${emptyTicketNames?.join(', ')}`, `Please select ticket type for ${emptyTicketNames?.join(', ')}`));
       return;
     }
     try {
@@ -361,8 +754,60 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         })
       ));
 
+      // Prepare customers with form_answers separated from builtin fields
+      const builtinKeys = ['name', 'email', 'phoneNumber', 'phoneCountryCode', 'address', 'dob', 'idcardNumber', 'title'];
+      const defaultTitle = locale === 'en' ? 'Mx.' : tt('Bạn', 'You');
+      const customersWithFormAnswers = customers.map(customer => {
+        const customerData: any = {
+          name: customer.name || '',
+          email: customer.email || '',
+          phoneNumber: customer.phoneNumber || '',
+          phoneCountryCode: customer.phoneCountryCode || '+84',
+          title: customer.title || defaultTitle,
+        };
+        
+        // Add optional builtin fields if they exist
+        if (customer.address) customerData.address = customer.address;
+        if (customer.dob) customerData.dob = customer.dob;
+        if (customer.idcardNumber) customerData.idcardNumber = customer.idcardNumber;
+
+        // Collect custom fields into form_answers
+        const formAnswers: Record<string, any> = {};
+        visibleFields.forEach(field => {
+          if (!field.builtin_key) {
+            // This is a custom field
+            const fieldValue = customer[field.internal_name];
+            if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+              if (field.field_type === 'checkbox') {
+                // For checkbox, fieldValue should already be an array
+                if (Array.isArray(fieldValue)) {
+                  formAnswers[field.internal_name] = fieldValue;
+                } else if (typeof fieldValue === 'string') {
+                  // If it's a string, try to parse it (comma-separated values)
+                  formAnswers[field.internal_name] = fieldValue.split(',').map(v => v.trim()).filter(v => v);
+                }
+              } else {
+                formAnswers[field.internal_name] = fieldValue;
+              }
+            }
+          } else if (field.builtin_key === 'idcard_number') {
+            // idcard_number might be in form_answers if not in customer object
+            const idcardValue = customer.idcardNumber || customer[field.internal_name];
+            if (idcardValue) {
+              formAnswers[field.internal_name] = idcardValue;
+            }
+          }
+        });
+
+        if (Object.keys(formAnswers).length > 0) {
+          customerData.formAnswers = formAnswers; // Backend uses alias_generator=to_camel, so this will map to form_answers
+        }
+
+        return customerData;
+      });
+
       const transactionData = {
-        customers,
+        customers: customersWithFormAnswers,
         tickets,
         qrOption: "shared",
         paymentMethod,
@@ -376,27 +821,27 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const newTransaction = response.data;
       setConfirmOpen(false);
       router.push(`/event-studio/events/${params.event_id}/transactions`); // Navigate to a different page on success
-      notificationCtx.success('Tạo giao dịch thành công');
+      notificationCtx.success(tt('Tạo giao dịch thành công', 'Transaction created successfully'));
     } catch (error) {
       const err: any = error as any;
       if ((axios.isAxiosError && axios.isAxiosError(err) && err.response?.status === 422) || err?.response?.status === 422) {
         const detail = err?.response?.data?.detail || [];
         const items: CustomerValidationError[] = Array.isArray(detail)
           ? detail.reduce((acc: CustomerValidationError[], d: any) => {
-              const loc = d?.loc || [];
-              const idx = typeof loc[2] === 'number' ? loc[2] : null;
-              const field = String(loc[3] ?? '');
-              if (idx == null) {
-                return acc;
-              }
-              acc.push({
-                lineId: idx + 1,
-                field,
-                input: String(d?.input ?? ''),
-                msg: String(d?.msg ?? ''),
-              });
+            const loc = d?.loc || [];
+            const idx = typeof loc[2] === 'number' ? loc[2] : null;
+            const field = String(loc[3] ?? '');
+            if (idx == null) {
               return acc;
-            }, [])
+            }
+            acc.push({
+              lineId: idx + 1,
+              field,
+              input: String(d?.input ?? ''),
+              msg: String(d?.msg ?? ''),
+            });
+            return acc;
+          }, [])
           : [];
         setCustomerValidationErrors(items);
         setConfirmOpen(false);
@@ -430,10 +875,527 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Tạo đơn hàng theo lô</Typography>
+          <Typography variant="h4">{tt("Tạo đơn hàng theo lô", "Create Bulk Orders")}</Typography>
         </Stack>
       </Stack>
       <Grid container spacing={3}>
+        <Grid lg={12} md={12} xs={12}>
+          <Stack spacing={3}>
+            {/* Customer Information Card */}
+            <Card>
+              <CardHeader
+                subheader={tt("Mỗi đơn hàng 1 dòng.", "One order per row.")}
+                title={tt("Thông tin người mua", "Customer Information")}
+                action={
+                  <Button color="inherit" component="label" role={undefined} size="small" startIcon={<Upload fontSize="var(--icon-fontSize-md)" />}>
+                    {tt("Upload excel", "Upload Excel")}
+                    <VisuallyHiddenInput
+                      type="file"
+                      accept=".xlsx, .xls"
+                      onInput={handleFileUpload}
+                    />
+                  </Button>
+                }
+              />
+              <Divider />
+              <CardContent sx={{ padding: 0, position: 'relative', overflow: 'visible' }}>
+                <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}>
+                  <Tooltip
+                    title={
+                      <Box>
+                        <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 'bold' }}>{tt("Hướng dẫn nhập liệu:", "Data Input Guide:")}</Typography>
+                        <Typography variant="caption" component="div">{tt("• Ngày: DD/MM/YYYY (ví dụ: 25/12/2024)", "• Date: DD/MM/YYYY (example: 25/12/2024)")}</Typography>
+                        <Typography variant="caption" component="div">{tt("• Ngày giờ: DD/MM/YYYY HH:mm:ss (ví dụ: 25/12/2024 14:30:00)", "• Date Time: DD/MM/YYYY HH:mm:ss (example: 25/12/2024 14:30:00)")}</Typography>
+                        <Typography variant="caption" component="div">{tt("• Giờ: HH:mm:ss (ví dụ: 14:30:00)", "• Time: HH:mm:ss (example: 14:30:00)")}</Typography>
+                        <Typography variant="caption" component="div">{tt("• Chọn một: Chọn chính xác một trong các tùy chọn", "• Single Choice: Select exactly one option")}</Typography>
+                        <Typography variant="caption" component="div">{tt("• Chọn nhiều: Có thể chọn nhiều tùy chọn, cách nhau bằng dấu phẩy", "• Multiple Choice: Can select multiple options, separated by commas")}</Typography>
+                      </Box>
+                    }
+                    arrow
+                    placement="left"
+                  >
+                    <IconButton size="small" sx={{ color: 'text.secondary' }}>
+                      <Question size={16} />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                <Box sx={{ overflowX: 'auto', width: '100%', maxHeight: 400 }}>
+                  <Table sx={{ minWidth: '800px', width: 'max-content' }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ width: '20px', py: 1 }}></TableCell>
+                        {visibleFields.map((field) => (
+                          <TableCell
+                            key={field.id}
+                            sx={{
+                              py: 0,
+                              ...(field.builtin_key === 'name' ? { minWidth: '200px', width: 'auto' } : 
+                                  field.builtin_key === 'email' ? { width: '200px' } : 
+                                  field.builtin_key === 'phone_number' ? { width: '200px' } : 
+                                  field.builtin_key === 'address' ? { width: '250px' } : 
+                                  field.builtin_key === 'dob' ? { width: '150px' } : 
+                                  !field.builtin_key ? { width: '200px' } : {})
+                            }}
+                          >
+                          <Stack spacing={0}>
+                            <Typography variant="body2">
+                              {(() => {
+                                // Use bilingual label for builtin_key, otherwise use field.label from backend
+                                const builtinLabel = getBuiltinKeyLabel(field.builtin_key, tt);
+                                return builtinLabel || field.label;
+                              })()}{field.required ? ' *' : ''}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '10px', fontStyle: 'italic' }}>
+                              {getFieldTypeLabel(field, tt)}
+                            </Typography>
+                          </Stack>
+                        </TableCell>
+                        ))}
+                        <TableCell sx={{ py: 1 }}></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                    {customers.map((customer, index) => {
+                      const rowErrors = customerErrorsMap[index] || {};
+                      return (
+                        <TableRow
+                          hover
+                          key={index}
+                          sx={
+                            rowErrors && Object.keys(rowErrors).length > 0
+                              ? { backgroundColor: 'rgba(255, 152, 0, 0.08)' }
+                              : undefined
+                          }
+                        >
+                          <TableCell>{index + 1}</TableCell>
+                          {visibleFields.map((field) => {
+                            const fieldKey = field.builtin_key || field.internal_name;
+                            const normalizedKey = normalizeFieldKey(fieldKey);
+                            const fieldErrors = rowErrors[normalizedKey] || [];
+
+                            // Get value from customer object
+                            let value = '';
+                            if (field.builtin_key === 'name') {
+                              value = customer.name || '';
+                            } else if (field.builtin_key === 'email') {
+                              value = customer.email || '';
+                            } else if (field.builtin_key === 'phone_number') {
+                              value = customer.phoneNumber || '';
+                            } else if (field.builtin_key === 'address') {
+                              value = customer.address || '';
+                            } else if (field.builtin_key === 'dob') {
+                              value = customer.dob || '';
+                            } else if (field.builtin_key === 'idcard_number') {
+                              value = customer.idcardNumber || '';
+                            } else {
+                              value = customer[field.internal_name] || '';
+                            }
+
+                            // Determine the field key for onChange
+                            let onChangeKey = fieldKey;
+                            if (field.builtin_key === 'phone_number') {
+                              onChangeKey = 'phoneNumber';
+                            } else if (field.builtin_key === 'idcard_number') {
+                              onChangeKey = 'idcardNumber';
+                            }
+
+                            return (
+                              <TableCell key={field.id}>
+                                {field.builtin_key === 'name' ? (
+                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                    <OutlinedInput
+                                      name={`customer_${fieldKey}_${index}`}
+                                      value={value}
+                                      onChange={(e) =>
+                                        handleCustomerChange(index, 'name', e.target.value)
+                                      }
+                                      size="small"
+                                      sx={{ fontSize: '11px' }}
+                                      startAdornment={
+                                        <InputAdornment position="start">
+                                          <Select
+                                            variant="standard"
+                                            sx={{ fontSize: '11px' }}
+                                            disableUnderline
+                                            value={customer.title || getDefaultTitle()}
+                                            onChange={(e) =>
+                                              handleCustomerChange(index, 'title', e.target.value)
+                                            }
+                                          >
+                                            {locale === 'en' ? (
+                                              // English: Only Mr., Ms., Mx.
+                                              ['Mr.', 'Ms.', 'Mx.'].map((title) => (
+                                                <MenuItem key={title} value={title}>{title}</MenuItem>
+                                              ))
+                                            ) : (
+                                              // Vietnamese: All Vietnamese titles + English titles
+                                              [
+                                                { value: tt("Anh", "Mr."), label: tt("Anh", "Mr.") },
+                                                { value: tt("Chị", "Ms."), label: tt("Chị", "Ms.") },
+                                                { value: tt("Bạn", "You"), label: tt("Bạn", "You") },
+                                                { value: tt("Em", "Younger"), label: tt("Em", "Younger") },
+                                                { value: tt("Ông", "Sir"), label: tt("Ông", "Sir") },
+                                                { value: tt("Bà", "Madam"), label: tt("Bà", "Madam") },
+                                                { value: tt("Cô", "Miss"), label: tt("Cô", "Miss") },
+                                                { value: tt("Thầy", "Teacher"), label: tt("Thầy", "Teacher") },
+                                                { value: "Mr.", label: "Mr." },
+                                                { value: "Ms.", label: "Ms." },
+                                                { value: "Mx.", label: "Mx." },
+                                              ].map((title) => (
+                                                <MenuItem key={title.value} value={title.value}>{title.label}</MenuItem>
+                                              ))
+                                            )}
+                                          </Select>
+                                        </InputAdornment>
+                                      }
+                                    />
+                                    {fieldErrors.map((err, errIdx) => (
+                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                        {`${err.msg}`}
+                                      </FormHelperText>
+                                    ))}
+                                  </FormControl>
+                                ) : field.field_type === 'radio' && field.options ? (
+                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                    <Select
+                                      value={value}
+                                      onChange={(e) =>
+                                        handleCustomerChange(index, onChangeKey, e.target.value)
+                                      }
+                                      size="small"
+                                      sx={{ fontSize: '11px' }}
+                                    >
+                                      {field.options.map((opt) => (
+                                        <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '11px' }}>
+                                          {opt.label}
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                    {fieldErrors.map((err, errIdx) => (
+                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                        {`${err.msg}`}
+                                      </FormHelperText>
+                                    ))}
+                                  </FormControl>
+                                ) : field.field_type === 'checkbox' && field.options ? (
+                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                                      {field.options.map((opt) => {
+                                        const checked = value.split(',').includes(opt.value);
+                                        return (
+                                          <FormControlLabel
+                                            key={opt.value}
+                                            control={
+                                              <Checkbox
+                                                checked={checked}
+                                                onChange={(e) => {
+                                                  const currentValues = value ? value.split(',').filter(v => v.trim()) : [];
+                                                  let newValue = '';
+                                                  if (e.target.checked) {
+                                                    newValue = [...currentValues, opt.value].join(',');
+                                                  } else {
+                                                    newValue = currentValues.filter(v => v !== opt.value).join(',');
+                                                  }
+                                                  handleCustomerChange(index, onChangeKey, newValue);
+                                                }}
+                                                size="small"
+                                                sx={{ '& .MuiSvgIcon-root': { fontSize: '16px' } }}
+                                              />
+                                            }
+                                            label={<Typography sx={{ fontSize: '11px' }}>{opt.label}</Typography>}
+                                            sx={{ fontSize: '11px', margin: 0 }}
+                                          />
+                                        );
+                                      })}
+                                    </Stack>
+                                    {fieldErrors.map((err, errIdx) => (
+                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                        {`${err.msg}`}
+                                      </FormHelperText>
+                                    ))}
+                                  </FormControl>
+                                ) : field.field_type === 'date' ? (
+                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                    <OutlinedInput
+                                      name={`customer_${fieldKey}_${index}`}
+                                      placeholder={tt("DD/MM/YYYY", "DD/MM/YYYY")}
+                                      value={value}
+                                      onChange={(e) => {
+                                        // Allow user to type DD/MM/YYYY format
+                                        let input = e.target.value;
+                                        // Remove non-digit characters except /
+                                        input = input.replace(/[^\d/]/g, '');
+                                        // Auto-format: DD/MM/YYYY
+                                        if (input.length <= 2) {
+                                          // DD
+                                          handleCustomerChange(index, onChangeKey, input);
+                                        } else if (input.length <= 5) {
+                                          // DD/MM
+                                          if (input.length === 3 && !input.includes('/')) {
+                                            input = input.slice(0, 2) + '/' + input.slice(2);
+                                          }
+                                          handleCustomerChange(index, onChangeKey, input);
+                                        } else if (input.length <= 10) {
+                                          // DD/MM/YYYY
+                                          if (input.length === 6 && input.split('/').length === 2) {
+                                            input = input + '/';
+                                          }
+                                          handleCustomerChange(index, onChangeKey, input.slice(0, 10));
+                                        }
+                                      }}
+                                      size="small"
+                                      sx={{ fontSize: '11px' }}
+                                    />
+                                    {fieldErrors.map((err, errIdx) => (
+                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                        {`${err.msg}`}
+                                      </FormHelperText>
+                                    ))}
+                                  </FormControl>
+                                ) : field.field_type === 'datetime' ? (
+                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                    <OutlinedInput
+                                      name={`customer_${fieldKey}_${index}`}
+                                      placeholder={tt("DD/MM/YYYY HH:mm:ss", "DD/MM/YYYY HH:mm:ss")}
+                                      value={value}
+                                      onChange={(e) => {
+                                        let input = e.target.value;
+                                        // Remove non-digit characters except /, :, and space
+                                        input = input.replace(/[^\d/: ]/g, '');
+                                        // Auto-format: DD/MM/YYYY HH:mm:ss
+                                        if (input.length <= 10) {
+                                          // Handle date part (DD/MM/YYYY)
+                                          if (input.length === 3 && !input.includes('/')) {
+                                            input = input.slice(0, 2) + '/' + input.slice(2);
+                                          } else if (input.length === 6 && input.split('/').length === 2) {
+                                            input = input + '/';
+                                          }
+                                          handleCustomerChange(index, onChangeKey, input.slice(0, 10));
+                                        } else if (input.length <= 19) {
+                                          // Handle datetime part
+                                          if (input.length === 11 && !input.includes(' ')) {
+                                            input = input.slice(0, 10) + ' ' + input.slice(10);
+                                          } else if (input.length === 14 && input.split(':').length === 1) {
+                                            input = input.slice(0, 13) + ':' + input.slice(13);
+                                          } else if (input.length === 17 && input.split(':').length === 2) {
+                                            input = input.slice(0, 16) + ':' + input.slice(16);
+                                          }
+                                          handleCustomerChange(index, onChangeKey, input.slice(0, 19));
+                                        }
+                                      }}
+                                      size="small"
+                                      sx={{ fontSize: '11px' }}
+                                    />
+                                    {fieldErrors.map((err, errIdx) => (
+                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                        {`${err.msg}`}
+                                      </FormHelperText>
+                                    ))}
+                                  </FormControl>
+                                ) : field.field_type === 'time' ? (
+                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                    <OutlinedInput
+                                      name={`customer_${fieldKey}_${index}`}
+                                      placeholder={tt("HH:mm:ss", "HH:mm:ss")}
+                                      value={value}
+                                      onChange={(e) => {
+                                        let input = e.target.value;
+                                        // Remove non-digit characters except :
+                                        input = input.replace(/[^\d:]/g, '');
+                                        // Auto-format: HH:mm:ss
+                                        if (input.length <= 2) {
+                                          // HH
+                                          handleCustomerChange(index, onChangeKey, input);
+                                        } else if (input.length <= 5) {
+                                          // HH:mm
+                                          if (input.length === 3 && !input.includes(':')) {
+                                            input = input.slice(0, 2) + ':' + input.slice(2);
+                                          }
+                                          handleCustomerChange(index, onChangeKey, input);
+                                        } else if (input.length <= 8) {
+                                          // HH:mm:ss
+                                          if (input.length === 6 && input.split(':').length === 2) {
+                                            input = input + ':';
+                                          }
+                                          handleCustomerChange(index, onChangeKey, input.slice(0, 8));
+                                        }
+                                      }}
+                                      size="small"
+                                      sx={{ fontSize: '11px' }}
+                                    />
+                                    {fieldErrors.map((err, errIdx) => (
+                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                        {`${err.msg}`}
+                                      </FormHelperText>
+                                    ))}
+                                  </FormControl>
+                                ) : field.builtin_key === 'phone_number' ? (
+                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                    <OutlinedInput
+                                      name={`customer_${fieldKey}_${index}`}
+                                      type="tel"
+                                      value={value}
+                                      onChange={(e) =>
+                                        handleCustomerChange(index, onChangeKey, e.target.value)
+                                      }
+                                      size="small"
+                                      sx={{ fontSize: '11px' }}
+                                      startAdornment={
+                                        <InputAdornment position="start">
+                                          <Select
+                                            variant="standard"
+                                            sx={{ fontSize: '11px', minWidth: 40 }}
+                                            disableUnderline
+                                            value={customer.phoneCountryCode || '+84'}
+                                            onChange={(e) =>
+                                              handleCustomerChange(index, 'phoneCountryCode', e.target.value)
+                                            }
+                                            renderValue={(value) => {
+                                              const country = PHONE_COUNTRIES.find(c => c.dialCode === value);
+                                              return country ? country.dialCode : value;
+                                            }}
+                                          >
+                                            {PHONE_COUNTRIES.map((country) => (
+                                              <MenuItem key={country.iso2} value={country.dialCode}>
+                                                {country.nameVi} ({country.dialCode})
+                                              </MenuItem>
+                                            ))}
+                                          </Select>
+                                        </InputAdornment>
+                                      }
+                                    />
+                                    {fieldErrors.map((err, errIdx) => (
+                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                        {`${err.msg}`}
+                                      </FormHelperText>
+                                    ))}
+                                  </FormControl>
+                                ) : field.builtin_key === 'address' ? (
+                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                    <OutlinedInput
+                                      name={`customer_${fieldKey}_${index}`}
+                                      type="text"
+                                      value={value}
+                                      onChange={(e) =>
+                                        handleCustomerChange(index, onChangeKey, e.target.value)
+                                      }
+                                      size="small"
+                                      sx={{ fontSize: '11px' }}
+                                      multiline
+                                      minRows={2}
+                                      maxRows={4}
+                                    />
+                                    {fieldErrors.map((err, errIdx) => (
+                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                        {`${err.msg}`}
+                                      </FormHelperText>
+                                    ))}
+                                  </FormControl>
+                                ) : !field.builtin_key && field.field_type === 'text' ? (
+                                  // Custom text fields - allow multiline
+                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                    <OutlinedInput
+                                      name={`customer_${fieldKey}_${index}`}
+                                      type="text"
+                                      value={value}
+                                      onChange={(e) =>
+                                        handleCustomerChange(index, onChangeKey, e.target.value)
+                                      }
+                                      size="small"
+                                      sx={{ fontSize: '11px' }}
+                                      multiline
+                                      minRows={1}
+                                      maxRows={4}
+                                    />
+                                    {fieldErrors.map((err, errIdx) => (
+                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                        {`${err.msg}`}
+                                      </FormHelperText>
+                                    ))}
+                                  </FormControl>
+                                ) : (
+                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                    <OutlinedInput
+                                      name={`customer_${fieldKey}_${index}`}
+                                      type={field.builtin_key === 'email' ? 'email' : field.field_type === 'number' ? 'number' : 'text'}
+                                      value={value}
+                                      onChange={(e) =>
+                                        handleCustomerChange(index, onChangeKey, e.target.value)
+                                      }
+                                      size="small"
+                                      sx={{ fontSize: '11px' }}
+                                    />
+                                    {fieldErrors.map((err, errIdx) => (
+                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                        {`${err.msg}`}
+                                      </FormHelperText>
+                                    ))}
+                                  </FormControl>
+                                )}
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell>
+                            <IconButton onClick={() => removeCustomer(index)}>
+                              <X />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      );
+                      })}
+                    </TableBody>
+                  </Table>
+                </Box>
+              </CardContent>
+              <Divider />
+              <CardActions sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Button startIcon={<Plus />} size='small' onClick={addCustomer}>
+                  {tt("Thêm hàng", "Add Row")}
+                </Button>
+                <Button startIcon={<Download />} size='small' onClick={handleDownloadTemplate}>
+                  {tt("Tải file excel mẫu", "Download Excel Template")}
+                </Button>
+              </CardActions>
+            </Card>
+            {customerValidationErrors.length > 0 && (
+              <Card sx={{ backgroundColor: '#FFF9ED' }}>
+                <CardHeader
+                  titleTypographyProps={{ variant: 'subtitle2', sx: { fontWeight: 600 } }}
+                  subheader={tt("Vui lòng sửa các lỗi bên dưới", "Please fix the errors below")}
+                  subheaderTypographyProps={{ variant: 'caption', sx: { color: 'warning.dark' } }}
+                  sx={{ py: 1 }}
+                />
+                <Divider />
+                <CardContent sx={{ py: 1, px: 2 }}>
+                  <Stack spacing={0.5}>
+                    {sortedValidationErrors.map((e, i) => {
+                      const fieldKey = normalizeFieldKey(e.field);
+                      const fieldLabelMap = getCustomerFieldLabelMap(formFields, tt);
+                      const fieldLabel = fieldLabelMap[fieldKey] || e.field;
+                      const displayValue = e.input ? e.input : tt('Trống', 'Empty');
+                      return (
+                        <Typography key={`${e.lineId}-${fieldKey}-${i}`} variant="caption" sx={{ lineHeight: 1.4 }}>
+                          <Box component="span" sx={{ fontWeight: 600 }}>{tt(`Dòng ${e.lineId}`, `Line ${e.lineId}`)}</Box>
+                          {` • ${fieldLabel}: `}
+                          <Box component="span" sx={{ fontFamily: 'monospace' }}>{`"${displayValue}"`}</Box>
+                          {` — ${e.msg}`}
+                        </Typography>
+                      );
+                    })}
+                  </Stack>
+                </CardContent>
+              </Card>
+            )}
+          </Stack>
+        </Grid>
+      </Grid>
+      <Stack direction="row" spacing={3}>
+        <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
+          <Typography variant="h5">{tt("Thông tin của từng đơn hàng", "Information for Each Order")}</Typography>
+        </Stack>
+      </Stack>
+      <Grid container spacing={3}>
+        {/* Schedules and Ticket Categories - Moved below */}
         <Grid lg={4} md={6} xs={12}>
           <Stack spacing={3}>
             <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
@@ -452,273 +1414,71 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Grid>
         <Grid lg={8} md={6} xs={12}>
           <Stack spacing={3}>
-            {/* Customer Information Card */}
-            <Card>
-              <CardHeader
-                subheader="Mỗi đơn hàng 1 dòng."
-                title="Thông tin người mua"
-                action={
-                  <Button color="inherit" component="label" role={undefined} size="small" startIcon={<Upload fontSize="var(--icon-fontSize-md)" />}>
-                    Upload excel
-                    <VisuallyHiddenInput
-                      type="file"
-                      accept=".xlsx, .xls"
-                      onInput={handleFileUpload}
-                    />
-                  </Button>
-                }
-              />
-              <Divider />
-              <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 400 }}>
-                <Table sx={{ minWidth: '800px' }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ width: '20px' }}></TableCell>
-                      <TableCell>Họ tên *</TableCell>
-                      <TableCell sx={{ width: '200px' }}>Email *</TableCell>
-                      <TableCell sx={{ width: '135px' }}>Số điện thoại *</TableCell>
-                      <TableCell>Địa chỉ</TableCell>
-                      <TableCell></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {customers.map((customer, index) => (
-                      <TableRow
-                        hover
-                        key={index}
-                        sx={
-                          customerErrorsMap[index] && Object.keys(customerErrorsMap[index]).length > 0
-                            ? { backgroundColor: 'rgba(255, 152, 0, 0.08)' }
-                            : undefined
-                        }
-                      >
-                        {(() => {
-                          const rowErrors = customerErrorsMap[index] || {};
-                          const nameErrors = rowErrors['name'] || [];
-                          const emailErrors = rowErrors['email'] || [];
-                          const phoneErrors = rowErrors['phoneNumber'] || [];
-                          const addressErrors = rowErrors['address'] || [];
-                          return (
-                            <>
-                        <TableCell>{index + 1}</TableCell>
-                        <TableCell>
-                          <FormControl fullWidth required error={nameErrors.length > 0}>
-                            <OutlinedInput
-                              name={`customer_name_${index}`}
-                              value={customer.name}
-                              onChange={(e) =>
-                                handleCustomerChange(index, 'name', e.target.value)
-                              }
-                              size="small"
-                              sx={{ fontSize: '11px' }}
-                              startAdornment={
-                                <InputAdornment position="start">
-                                  <Select
-                                    variant="standard"
-                                    sx={{ fontSize: '11px' }}
-                                    disableUnderline
-                                    value={customer.title || "Bạn"}
-                                    onChange={(e) =>
-                                      handleCustomerChange(index, 'title', e.target.value)
-                                    }
-                                  >
-                                    <MenuItem value="Anh">Anh</MenuItem>
-                                    <MenuItem value="Chị">Chị</MenuItem>
-                                    <MenuItem value="Bạn">Bạn</MenuItem>
-                                    <MenuItem value="Em">Em</MenuItem>
-                                    <MenuItem value="Ông">Ông</MenuItem>
-                                    <MenuItem value="Bà">Bà</MenuItem>
-                                    <MenuItem value="Cô">Cô</MenuItem>
-                                    <MenuItem value="Mr.">Mr.</MenuItem>
-                                    <MenuItem value="Ms.">Ms.</MenuItem>
-                                    <MenuItem value="Miss">Miss</MenuItem>
-                                    <MenuItem value="Thầy">Thầy</MenuItem>
-                                  </Select>
-                                </InputAdornment>
-                              }
-                            />
-                            {nameErrors.map((err, errIdx) => (
-                              <FormHelperText key={`name-error-${index}-${errIdx}`}>
-                                {`${err.msg}`}
-                              </FormHelperText>
-                            ))}
-                          </FormControl>
-                        </TableCell>
-                        <TableCell>
-                          <FormControl fullWidth required error={emailErrors.length > 0}>
-                            <OutlinedInput
-                              name={`customer_email_${index}`}
-                              type="email"
-                              value={customer.email}
-                              onChange={(e) =>
-                                handleCustomerChange(index, 'email', e.target.value)
-                              }
-                              size="small"
-                              sx={{ fontSize: '11px' }}
-                            />
-                            {emailErrors.map((err, errIdx) => (
-                              <FormHelperText key={`email-error-${index}-${errIdx}`}>
-                                {`${err.msg}`}
-                              </FormHelperText>
-                            ))}
-                          </FormControl>
-                        </TableCell>
-                        <TableCell>
-                          <FormControl fullWidth required error={phoneErrors.length > 0}>
-                            <OutlinedInput
-                              name={`customer_phone_number_${index}`}
-                              type="tel"
-                              value={customer.phoneNumber}
-                              onChange={(e) =>
-                                handleCustomerChange(index, 'phoneNumber', e.target.value)
-                              }
-                              size="small"
-                              sx={{ fontSize: '11px' }}
-                            />
-                            {phoneErrors.map((err, errIdx) => (
-                              <FormHelperText key={`phone-error-${index}-${errIdx}`}>
-                                {`${err.msg}`}
-                              </FormHelperText>
-                            ))}
-                          </FormControl>
-                        </TableCell>
-                        <TableCell>
-                          <FormControl fullWidth error={addressErrors.length > 0}>
-                            <OutlinedInput
-                              name={`customer_address_${index}`}
-                              value={customer.address}
-                              onChange={(e) =>
-                                handleCustomerChange(index, 'address', e.target.value)
-                              }
-                              size="small"
-                              sx={{ fontSize: '11px' }}
-                            />
-                            {addressErrors.map((err, errIdx) => (
-                              <FormHelperText key={`address-error-${index}-${errIdx}`}>
-                                {`${err.msg}`}
-                              </FormHelperText>
-                            ))}
-                          </FormControl>
-                        </TableCell>
-                        <TableCell>
-                          <IconButton onClick={() => removeCustomer(index)}>
-                            <X />
-                          </IconButton>
-                        </TableCell>
-                            </>
-                          );
-                        })()}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-              <Divider />
-              <CardActions sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Button startIcon={<Plus />} size='small' onClick={addCustomer}>
-                  Thêm hàng
-                </Button>
-                <Button startIcon={<Download />} size='small' component={LocalizedLink}
-                  href='/assets/create-bulk-transactions-template.xlsx' download={true}>
-                  Tải file excel mẫu
-                </Button>
-              </CardActions>
-            </Card>
-            {customerValidationErrors.length > 0 && (
-            <Card sx={{ backgroundColor: '#FFF9ED' }}>
-              <CardHeader
-                titleTypographyProps={{ variant: 'subtitle2', sx: { fontWeight: 600 } }}
-                subheader="Vui lòng sửa các lỗi bên dưới"
-                subheaderTypographyProps={{ variant: 'caption', sx: { color: 'warning.dark' } }}
-                sx={{ py: 1 }}
-              />
-              <Divider />
-              <CardContent sx={{ py: 1, px: 2 }}>
-                <Stack spacing={0.5}>
-                  {sortedValidationErrors.map((e, i) => {
-                    const fieldKey = normalizeFieldKey(e.field);
-                    const fieldLabel = customerFieldLabelMap[fieldKey] || e.field;
-                    const displayValue = e.input ? e.input : 'Trống';
-                    return (
-                      <Typography key={`${e.lineId}-${fieldKey}-${i}`} variant="caption" sx={{ lineHeight: 1.4 }}>
-                        <Box component="span" sx={{ fontWeight: 600 }}>{`Dòng ${e.lineId}`}</Box>
-                        {` • ${fieldLabel}: `}
-                        <Box component="span" sx={{ fontFamily: 'monospace' }}>{`"${displayValue}"`}</Box>
-                        {` — ${e.msg}`}
-                      </Typography>
-                    );
-                  })}
-                </Stack>
-              </CardContent>
-            </Card>
-            )}
-
-
             {/* Ticket Quantity and Ticket Holders */}
             {totalSelectedTickets > 0 && (
-            <Card>
-              <CardHeader
-                title="Danh sách vé"
-              />
-              <Divider />
-              <CardContent>
-                <Stack spacing={3}>
-                  {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
-                    const show = event?.shows.find((show) => show.id === parseInt(showId));
-                    return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
-                      const categoryId = parseInt(categoryIdStr);
-                      const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
-                      const quantity = qty || 0;
-                      return (
-                        <Stack spacing={3} key={`${showId}-${categoryId}`}>
-                          <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                              <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
-                              <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => setRequestedCategoryModalId(categoryId)}><Pencil /></IconButton>
+              <Card>
+                <CardHeader
+                  title={tt("Danh sách vé", "Ticket List")}
+                />
+                <Divider />
+                <CardContent>
+                  <Stack spacing={3}>
+                    {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
+                      const show = event?.shows.find((show) => show.id === parseInt(showId));
+                      return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
+                        const categoryId = parseInt(categoryIdStr);
+                        const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
+                        const quantity = qty || 0;
+                        return (
+                          <Stack spacing={3} key={`${showId}-${categoryId}`}>
+                            <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                                <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{show?.name || tt('Chưa xác định', 'Not specified')} - {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket type')}</Typography>
+                                <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => setRequestedCategoryModalId(categoryId)}><Pencil /></IconButton>
+                              </Stack>
+                              <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                                <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
+                                <Typography variant="caption">x {quantity}</Typography>
+                                <Typography variant="caption">
+                                  = {formatPrice((ticketCategory?.price || 0) * quantity)}
+                                </Typography>
+                              </Stack>
                             </Stack>
-                            <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                              <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
-                              <Typography variant="caption">x {quantity}</Typography>
-                              <Typography variant="caption">
-                                = {formatPrice((ticketCategory?.price || 0) * quantity)}
-                              </Typography>
-                            </Stack>
-                          </Stack>
-                        </Stack >
-                      );
-                    });
-                  })}
-                </Stack>
-              </CardContent>
-            </Card>
+                          </Stack >
+                        );
+                      });
+                    })}
+                  </Stack>
+                </CardContent>
+              </Card>
             )}
 
             {/* Additional options (read-only) */}
             {totalSelectedTickets > 1 && (
-            <Card>
-              <CardHeader title="Tùy chọn bổ sung" />
-              <Divider />
-              <CardContent>
-                <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                  <Stack>
-                    <Typography variant="body2">Sử dụng mã QR riêng cho từng vé</Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                      Bạn cần nhập email cho từng vé.
-                    </Typography>
+              <Card>
+                <CardHeader title={tt("Tùy chọn bổ sung", "Additional Options")} />
+                <Divider />
+                <CardContent>
+                  <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                    <Stack>
+                      <Typography variant="body2">{tt("Sử dụng mã QR riêng cho từng vé", "Use separate QR code for each ticket")}</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {tt("Bạn cần nhập email cho từng vé.", "You need to enter email for each ticket.")}
+                      </Typography>
+                    </Stack>
+                    <Checkbox checked={false} disabled />
                   </Stack>
-                  <Checkbox checked={false} disabled />
-                </Stack>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
             )}
 
 
             {/* Extra Fee */}
             <Card>
               <CardHeader
-                title="Phụ phí"
-                subheader="(nếu có)"
+                title={tt("Phụ phí", "Extra Fee")}
+                subheader={tt("(nếu có)", "(if any)")}
                 action={
                   <OutlinedInput
                     name="extraFee"
@@ -735,7 +1495,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng:</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{tt("Tổng cộng:", "Total:")}</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
                       {formatPrice(
                         Object.entries(selectedCategories).reduce((total, [showId, categories]) => {
@@ -756,7 +1516,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             {/* Payment Method */}
             <Card>
               <CardHeader
-                title="Phương thức thanh toán"
+                title={tt("Phương thức thanh toán", "Payment Method")}
                 action={
                   <FormControl sx={{ maxWidth: 180, minWidth: 180 }}>
                     <Select
@@ -765,9 +1525,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       onChange={(e) => setPaymentMethod(e.target.value)}
                     >
                       <MenuItem value=""></MenuItem>
-                      <MenuItem value="cash">Tiền mặt</MenuItem>
-                      <MenuItem value="transfer">Chuyển khoản</MenuItem>
-                      <MenuItem value="napas247">Napas 247</MenuItem>
+                      <MenuItem value="cash">{tt("Tiền mặt", "Cash")}</MenuItem>
+                      <MenuItem value="transfer">{tt("Chuyển khoản", "Bank Transfer")}</MenuItem>
+                      <MenuItem value="napas247">{tt("Napas 247", "Napas 247")}</MenuItem>
                     </Select>
                   </FormControl>
                 }
@@ -778,11 +1538,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             {/* Submit Button */}
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
               <Button variant="contained" onClick={handleCreateClick}>
-                Tạo
+                {tt("Tạo", "Create")}
               </Button>
             </Grid>
             <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} fullWidth maxWidth="md">
-              <DialogTitle sx={{ color: "primary.main" }}>Xác nhận tạo {customers.length} đơn hàng</DialogTitle>
+              <DialogTitle sx={{ color: "primary.main" }}>{tt(`Xác nhận tạo ${customers.length} đơn hàng`, `Confirm creating ${customers.length} orders`)}</DialogTitle>
               <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
                 <Stack spacing={2} sx={{ mt: 1 }}>
                   {/* <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Thông tin người mua mỗi đơn hàng</Typography> */}
@@ -790,26 +1550,45 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     {customers.map((customer, index) => (
                       <Box key={index} sx={{ mb: 2, p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
                         <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                          Người mua {index + 1}
+                          {tt(`Người mua ${index + 1}`, `Customer ${index + 1}`)}
                         </Typography>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                          <Typography variant="body2">Họ và tên</Typography>
-                          <Typography variant="body2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                          <Typography variant="body2">Email</Typography>
-                          <Typography variant="body2">{customer.email}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="body2">Số điện thoại</Typography>
-                          <Typography variant="body2">{customer.phoneNumber}</Typography>
-                        </Box>
+                        {visibleFields.map((field) => {
+                          const fieldKey = field.builtin_key || field.internal_name;
+                          let value = '';
+                          if (field.builtin_key === 'name') {
+                            value = customer.name || '';
+                          } else if (field.builtin_key === 'email') {
+                            value = customer.email || '';
+                          } else if (field.builtin_key === 'phone_number') {
+                            value = customer.phoneNumber || '';
+                          } else if (field.builtin_key === 'address') {
+                            value = customer.address || '';
+                          } else if (field.builtin_key === 'dob') {
+                            value = customer.dob || '';
+                          } else if (field.builtin_key === 'idcard_number') {
+                            value = customer.idcardNumber || '';
+                          } else {
+                            value = customer[field.internal_name] || '';
+                          }
+
+                          // Format name field with title
+                          if (field.builtin_key === 'name') {
+                            value = customer.title ? `${customer.title} ${value}` : value;
+                          }
+
+                          return (
+                            <Box key={field.id} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                              <Typography variant="body2">{field.label}</Typography>
+                              <Typography variant="body2">{value || '-'}</Typography>
+                            </Box>
+                          );
+                        })}
                       </Box>
                     ))}
                   </Box>
                   <Divider />
 
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Danh sách vé mỗi đơn hàng</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt("Danh sách vé mỗi đơn hàng", "Ticket list for each order")}</Typography>
                   <Stack spacing={1}>
                     {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
                       const show = event?.shows.find((show) => show.id === parseInt(showId));
@@ -822,7 +1601,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                               <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                                 <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{show?.name || 'Chưa xác định'} - {ticketCategory?.name || 'Chưa rõ loại vé'}</Typography>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{show?.name || tt('Chưa xác định', 'Not specified')} - {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket type')}</Typography>
                               </Stack>
                               <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
                                 <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
@@ -840,15 +1619,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <Divider />
 
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">Phương thức thanh toán</Typography>
-                    <Typography variant="body2">{paymentMethodLabelMap[paymentMethod] || paymentMethod}</Typography>
+                    <Typography variant="body2">{tt("Phương thức thanh toán", "Payment Method")}</Typography>
+                    <Typography variant="body2">{getPaymentMethodLabel(paymentMethod, tt)}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">Phụ phí</Typography>
+                    <Typography variant="body2">{tt("Phụ phí", "Extra Fee")}</Typography>
                     <Typography variant="body2">{formatPrice(extraFee)}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tổng cộng</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{tt("Tổng cộng", "Total")}</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
                       {formatPrice(
                         Object.entries(selectedCategories).reduce((total, [showId, categories]) => {
@@ -866,8 +1645,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Stack>
               </DialogContent>
               <DialogActions>
-                <Button onClick={() => setConfirmOpen(false)}>Quay lại</Button>
-                <Button variant="contained" onClick={handleSubmit} disabled={isLoading}>Xác nhận</Button>
+                <Button onClick={() => setConfirmOpen(false)}>{tt("Quay lại", "Back")}</Button>
+                <Button variant="contained" onClick={handleSubmit} disabled={isLoading}>{tt("Xác nhận", "Confirm")}</Button>
               </DialogActions>
             </Dialog>
           </Stack>

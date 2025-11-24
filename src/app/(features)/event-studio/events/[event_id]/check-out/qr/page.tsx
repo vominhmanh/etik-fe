@@ -74,6 +74,13 @@ export interface TransactionTicketCategory {
 }
 
 // TransactionResponse.ts
+export interface FormFieldAnswer {
+  label: string;
+  value: string;
+  fieldType: string;
+  builtinKey?: string | null;
+}
+
 export interface Transaction {
   id: number;
   email: string;
@@ -92,6 +99,7 @@ export interface Transaction {
   status: string;
   createdAt: Date;
   exportedTicketAt: string | null;
+  formFieldsAnswers?: FormFieldAnswer[];
 }
 
 export type Show = {
@@ -130,6 +138,51 @@ type MyDynamicObject = {
   [key: string]: boolean; // key is a string, and value is also a string
 };
 
+// Component for displaying form fields with max height and "see more" button
+function FormFieldsSection({ formFieldsAnswers, tt }: { formFieldsAnswers: FormFieldAnswer[], tt: (vi: string, en: string) => string }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const MAX_HEIGHT = 200; // Max height in pixels before showing "see more"
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const [needsExpansion, setNeedsExpansion] = React.useState(false);
+
+  React.useEffect(() => {
+    if (contentRef.current) {
+      const height = contentRef.current.scrollHeight;
+      setNeedsExpansion(height > MAX_HEIGHT);
+    }
+  }, [formFieldsAnswers]);
+
+  return (
+    <Box>
+      <Box
+        ref={contentRef}
+        sx={{
+          maxHeight: expanded ? 'none' : `${MAX_HEIGHT}px`,
+          overflow: 'hidden',
+          transition: 'max-height 0.3s ease',
+        }}
+      >
+        <Stack spacing={1}>
+          {formFieldsAnswers.map((item, index) => (
+            <Grid container justifyContent="space-between" key={index}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>{item.label}:</Typography>
+              <Typography variant="body2" sx={{ textAlign: 'right', maxWidth: '60%', wordBreak: 'break-word' }}>{item.value || '-'}</Typography>
+            </Grid>
+          ))}
+        </Stack>
+      </Box>
+      {needsExpansion && (
+        <Button
+          size="small"
+          onClick={() => setExpanded(!expanded)}
+          sx={{ mt: 1, textTransform: 'none' }}
+        >
+          {expanded ? tt('Thu gọn', 'Show less') : tt('Xem thêm', 'See more')}
+        </Button>
+      )}
+    </Box>
+  );
+}
 
 // These helper functions will be moved inside the component to use tt
 
@@ -766,27 +819,38 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     <IconButton size='small' target='_blank' component={LocalizedLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}?checkInCode=${eCode}`}><ArrowSquareIn /></IconButton>
                   </Grid>
 
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">{tt('Họ tên:', 'Full Name:')}</Typography>
-                    <Typography variant="body1">{trxn?.title} {trxn?.name}</Typography>
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">{tt('Ngày sinh:', 'Date of Birth:')}</Typography>
-                    <Typography variant="body1">{trxn?.dob ? dayjs(trxn?.dob || 0).format('DD/MM/YYYY') : `__/__/____`}</Typography>
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">{tt('Email:', 'Email:')}</Typography>
-                    <Typography variant="body1">{trxn?.email}</Typography>
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">{tt('Số điện thoại:', 'Phone Number:')}</Typography>
-                    <Typography variant="body1">{trxn?.phoneNumber}</Typography>
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">{tt('Địa chỉ:', 'Address:')}</Typography>
-                    <Typography variant="body1">{trxn?.address && trxn?.address.length > 30 ? trxn?.address.substring(0, 30) + '...' : trxn?.address}</Typography>
-                  </Grid>
+                  {/* Builtin Fields (name, email, phone, dob, address, idnumber) - only if visible */}
+                  {(() => {
+                    const builtinOrder = ['name', 'email', 'phone_number', 'dob', 'address', 'idcard_number'];
+                    const builtinFields = trxn?.formFieldsAnswers?.filter(f => f.builtinKey && builtinOrder.includes(f.builtinKey)) || [];
+                    const builtinFieldsMap = new Map(builtinFields.map(f => [f.builtinKey, f]));
+                    
+                    return builtinOrder.map(builtinKey => {
+                      const field = builtinFieldsMap.get(builtinKey);
+                      if (!field) return null;
+                      
+                      return (
+                        <Grid container justifyContent="space-between" key={builtinKey}>
+                          <Typography variant="body1">{field.label}:</Typography>
+                          <Typography variant="body1" sx={{ maxWidth: '60%', wordBreak: 'break-word', textAlign: 'right' }}>
+                            {field.value || '-'}
+                          </Typography>
+                        </Grid>
+                      );
+                    }).filter(Boolean);
+                  })()}
                   <Divider />
+                  {/* Custom Form Fields and Answers */}
+                  {(() => {
+                    const customFields = trxn?.formFieldsAnswers?.filter(f => !f.builtinKey) || [];
+                    if (customFields.length === 0) return null;
+                    return (
+                      <>
+                        <FormFieldsSection formFieldsAnswers={customFields} tt={tt} />
+                        <Divider />
+                      </>
+                    );
+                  })()}
                   <Grid container justifyContent="space-between">
                     <Typography variant="body1" fontWeight="bold">{tt('Danh sách vé đang có:', 'Current Tickets:')}</Typography>
                     <Typography variant="body1">{trxn?.ticketQuantity}</Typography>

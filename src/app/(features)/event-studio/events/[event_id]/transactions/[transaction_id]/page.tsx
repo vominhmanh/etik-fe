@@ -35,100 +35,101 @@ import NotificationContext from '@/contexts/notification-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PrintTagModal from './print-tag-modal';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone, formatToE164 } from '@/config/phone-countries';
+import { useTranslation } from '@/contexts/locale-context';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
 };
 
 // Function to map payment methods to corresponding labels and icons
-const getPaymentMethodDetails = (paymentMethod: string): { label: string, icon: any } => {
+const getPaymentMethodDetails = (paymentMethod: string, tt: (vi: string, en: string) => string): { label: string, icon: any } => {
   switch (paymentMethod) {
     case 'cash':
-      return { label: 'Tiền mặt', icon: <MoneyIcon /> };
+      return { label: tt('Tiền mặt', 'Cash'), icon: <MoneyIcon /> };
     case 'transfer':
-      return { label: 'Chuyển khoản', icon: <BankIcon /> };
+      return { label: tt('Chuyển khoản', 'Bank Transfer'), icon: <BankIcon /> };
     case 'napas247':
-      return { label: 'Napas 247', icon: <LightningIcon /> };
+      return { label: tt('Napas 247', 'Napas 247'), icon: <LightningIcon /> };
     default:
-      return { label: 'Unknown', icon: null };
+      return { label: tt('Không xác định', 'Unknown'), icon: null };
   }
 };
 
 // Function to map created source to label
-const getCreatedSource = (paymentMethod: string): { label: string } => {
+const getCreatedSource = (paymentMethod: string, tt: (vi: string, en: string) => string): { label: string } => {
   switch (paymentMethod) {
     case 'event_studio':
-      return { label: 'Event Studio' };
+      return { label: tt('Event Studio', 'Event Studio') };
     case 'marketplace':
-      return { label: 'Marketplace' };
+      return { label: tt('Marketplace', 'Marketplace') };
     case 'api':
-      return { label: 'API' };
+      return { label: tt('API', 'API') };
     default:
-      return { label: 'Unknown' };
+      return { label: tt('Không xác định', 'Unknown') };
   }
 };
 
 // Function to map payment statuses to corresponding labels and colors
-const getPaymentStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+const getPaymentStatusDetails = (status: string, tt: (vi: string, en: string) => string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'waiting_for_payment':
-      return { label: 'Chờ thanh toán', color: 'warning' };
+      return { label: tt('Chờ thanh toán', 'Waiting for Payment'), color: 'warning' };
     case 'paid':
-      return { label: 'Đã thanh toán', color: 'success' };
+      return { label: tt('Đã thanh toán', 'Paid'), color: 'success' };
     case 'refund':
-      return { label: 'Đã hoàn tiền', color: 'secondary' };
+      return { label: tt('Đã hoàn tiền', 'Refunded'), color: 'secondary' };
     default:
-      return { label: 'Unknown', color: 'default' };
+      return { label: tt('Không xác định', 'Unknown'), color: 'default' };
   }
 };
 
 // Function to map row statuses to corresponding labels and colors
-const getRowStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+const getRowStatusDetails = (status: string, tt: (vi: string, en: string) => string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'normal':
-      return { label: 'Bình thường', color: 'success' };
+      return { label: tt('Bình thường', 'Normal'), color: 'success' };
     case 'wait_for_response':
-      return { label: 'Đang chờ', color: 'warning' };
+      return { label: tt('Đang chờ', 'Pending'), color: 'warning' };
     case 'customer_cancelled':
-      return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
+      return { label: tt('Huỷ bởi KH', 'Cancelled by Customer'), color: 'error' };
     case 'staff_locked':
-      return { label: 'Khoá bởi NV', color: 'error' };
+      return { label: tt('Khoá bởi NV', 'Locked by Staff'), color: 'error' };
     default:
-      return { label: 'Unknown', color: 'default' };
+      return { label: tt('Không xác định', 'Unknown'), color: 'default' };
   }
 };
 
-const getSentEmailTicketStatusDetails = (status: string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
+const getSentEmailTicketStatusDetails = (status: string, tt: (vi: string, en: string) => string): { label: string, color: "success" | "error" | "warning" | "info" | "secondary" | "default" | "primary" } => {
   switch (status) {
     case 'sent':
-      return { label: 'Đã xuất', color: 'success' };
+      return { label: tt('Đã xuất', 'Issued'), color: 'success' };
     case 'not_sent':
-      return { label: 'Chưa xuất', color: 'default' }; // error for danger
+      return { label: tt('Chưa xuất', 'Not Issued'), color: 'default' };
     default:
-      return { label: 'Unknown', color: 'default' };
+      return { label: tt('Không xác định', 'Unknown'), color: 'default' };
   }
 };
 
 
-const getHistorySendingTypeDetails = (type: SendingType) => {
+const getHistorySendingTypeDetails = (type: SendingType, tt: (vi: string, en: string) => string) => {
   switch (type) {
     case SendingType.TICKET:
-      return 'Gửi vé điện tử';
+      return tt('Gửi vé điện tử', 'Send E-ticket');
     case SendingType.PAYMENT_INSTRUCTION:
-      return 'Gửi hướng dẫn thanh toán';
+      return tt('Gửi hướng dẫn thanh toán', 'Send Payment Instruction');
     case SendingType.CANCEL_TICKET:
-      return 'Gửi thư huỷ vé';
+      return tt('Gửi thư huỷ vé', 'Send Cancellation Notice');
     case SendingType.EMAIL_MARKETING:
-      return 'Gửi email marketing';
+      return tt('Gửi email marketing', 'Send Marketing Email');
   }
 };
 
-const getHistorySendingChannelDetails = (channel: SendingChannel) => {
+const getHistorySendingChannelDetails = (channel: SendingChannel, tt: (vi: string, en: string) => string) => {
   switch (channel) {
     case SendingChannel.EMAIL:
-      return 'Email';
+      return tt('Email', 'Email');
     case SendingChannel.ZALO:
-      return 'Zalo';
+      return tt('Zalo', 'Zalo');
   }
 };
 
@@ -303,9 +304,10 @@ type CheckoutRuntimeField = {
 
 
 export default function Page({ params }: { params: { event_id: number; transaction_id: number } }): React.JSX.Element {
+  const { tt, locale } = useTranslation();
   React.useEffect(() => {
-    document.title = "Chi tiết đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Chi tiết đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện", "Order Details | ETIK - E-tickets & Event Management");
+  }, [tt]);
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const notificationCtx = React.useContext(NotificationContext);
   const { event_id, transaction_id } = params;
@@ -438,7 +440,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
       );
 
       if (response.status === 200) {
-        notificationCtx.success('Thông tin đơn hàng đã được cập nhật thành công!');
+        notificationCtx.success(tt('Thông tin đơn hàng đã được cập nhật thành công!', 'Order information has been updated successfully!'));
         setTransaction((prev) => prev ? {
           ...prev,
           name: formData.name,
@@ -454,7 +456,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
       }
     } catch (error) {
-      notificationCtx.error('Lỗi:', error);
+      notificationCtx.error(tt('Lỗi:', 'Error:'), error);
     }
   };
 
@@ -473,8 +475,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
         
         // Parse E.164 phone number to extract country and national number
         const parsedPhone = parseE164Phone(response.data?.phoneNumber);
+        const defaultTitle = locale === 'en' ? 'Mx.' : 'Bạn';
         setFormData({
-          title: response.data?.title || 'Bạn',
+          title: response.data?.title || defaultTitle,
           name: response.data?.name || '',
           phoneNumber: parsedPhone?.nationalNumber || '',
           phoneCountryIso2: parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2,
@@ -489,14 +492,14 @@ export default function Page({ params }: { params: { event_id: number; transacti
         // Load requireGuestAvatar from transaction data
         setRequireGuestAvatar(response.data?.requireGuestAvatar || false);
       } catch (error) {
-        notificationCtx.error('Lỗi:', error);
+        notificationCtx.error(tt('Lỗi:', 'Error:'), error);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchTransactionDetails();
-  }, [event_id, transaction_id]);
+  }, [event_id, transaction_id, locale, tt]);
 
   // Fetch checkout form runtime configuration (Event Studio)
   useEffect(() => {
@@ -605,7 +608,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
       // Optionally handle response
       if (response.status === 200) {
-        notificationCtx.success('Hướng dẫn thanh toán đã được gửi thành công!');
+        notificationCtx.success(tt('Hướng dẫn thanh toán đã được gửi thành công!', 'Payment instruction has been sent successfully!'));
       }
     } catch (error) {
       notificationCtx.error(error);
@@ -622,7 +625,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
       );
 
       if (response.status === 200) {
-        notificationCtx.success(response.data?.message || 'Check-in tất cả vé thành công!');
+        notificationCtx.success(response.data?.message || tt('Check-in tất cả vé thành công!', 'Check-in all tickets successfully!'));
         // Refetch transaction to get updated historyCheckIns
         const refreshResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
           `/event-studio/events/${event_id}/transactions/${transaction_id}`,
@@ -647,7 +650,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
       );
 
       if (response.status === 200) {
-        notificationCtx.success(response.data?.message || 'Check-out tất cả vé thành công!');
+        notificationCtx.success(response.data?.message || tt('Check-out tất cả vé thành công!', 'Check-out all tickets successfully!'));
         // Refetch transaction to get updated historyCheckIns
         const refreshResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
           `/event-studio/events/${event_id}/transactions/${transaction_id}`,
@@ -669,8 +672,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
     const infos = category.tickets.map((t) => {
       // Parse E.164 phone number to extract country and national number
       const parsedPhone = parseE164Phone(t.holderPhone);
+      const defaultTitle = locale === 'en' ? 'Mx.' : 'Bạn';
       return {
-        title: t.holderTitle || 'Bạn',
+        title: t.holderTitle || defaultTitle,
         name: t.holderName || '',
         email: t.holderEmail || '',
         phone: parsedPhone?.nationalNumber || '',
@@ -710,7 +714,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
       );
 
       if (response.status === 200) {
-        notificationCtx.success(response.data?.message || 'Check-in thành công!');
+        notificationCtx.success(response.data?.message || tt('Check-in thành công!', 'Check-in successful!'));
         // Refetch transaction to get updated historyCheckIns
         const refreshResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
           `/event-studio/events/${event_id}/transactions/${transaction_id}`,
@@ -741,7 +745,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
       );
 
       if (response.status === 200) {
-        notificationCtx.success(response.data?.message || 'Check-out thành công!');
+        notificationCtx.success(response.data?.message || tt('Check-out thành công!', 'Check-out successful!'));
         // Refetch transaction to get updated historyCheckIns
         const refreshResponse: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
           `/event-studio/events/${event_id}/transactions/${transaction_id}`,
@@ -763,7 +767,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
     if (!editingCategory) return;
     const hasInvalid = editingHolderInfos.some((h) => !h.title || !h.name);
     if (hasInvalid) {
-      notificationCtx.warning('Vui lòng điền đủ Danh xưng, Họ tên và SĐT cho mỗi vé.');
+      notificationCtx.warning(tt('Vui lòng điền đủ Danh xưng, Họ tên và SĐT cho mỗi vé.', 'Please fill in Title, Full Name, and Phone Number for each ticket.'));
       return;
     }
     try {
@@ -831,7 +835,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         return { ...prev, transactionTicketCategories: updatedCategories };
       });
       
-      notificationCtx.success('Cập nhật thông tin vé thành công!');
+      notificationCtx.success(tt('Cập nhật thông tin vé thành công!', 'Ticket information updated successfully!'));
       setEditCategoryModalOpen(false);
       setPendingHolderAvatarFiles({});
     } catch (error) {
@@ -848,7 +852,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
       );
 
       if (response.status === 200) {
-        notificationCtx.success('Trạng thái đơn hàng đã được chuyển sang "Đã thanh toán" thành công!');
+        notificationCtx.success(tt('Trạng thái đơn hàng đã được chuyển sang "Đã thanh toán" thành công!', 'Transaction status has been changed to "Paid" successfully!'));
         setTransaction((prev) => prev ? { ...prev, paymentStatus: 'paid' } : prev);
       }
     } catch (error) {
@@ -864,11 +868,11 @@ export default function Page({ params }: { params: { event_id: number; transacti
       );
 
       if (response.status === 200) {
-        notificationCtx.success('Trạng thái đơn hàng đã được chuyển sang "Đã hoàn tiền" thành công!');
+        notificationCtx.success(tt('Trạng thái đơn hàng đã được chuyển sang "Đã hoàn tiền" thành công!', 'Transaction status has been changed to "Refunded" successfully!'));
         setTransaction((prev) => prev ? { ...prev, paymentStatus: 'refund' } : prev);
       }
     } catch (error) {
-      notificationCtx.error('Có lỗi xảy ra khi cập nhật trạng thái hoàn tiền:', error);
+      notificationCtx.error(tt('Có lỗi xảy ra khi cập nhật trạng thái hoàn tiền:', 'An error occurred while updating refund status:'), error);
     }
   };
 
@@ -884,17 +888,17 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
       // Notify success
       if (decision === 'accept') {
-        notificationCtx.success('Đã chấp nhận yêu cầu hủy đơn hàng.');
+        notificationCtx.success(tt('Đã chấp nhận yêu cầu hủy đơn hàng.', 'Cancel request has been accepted.'));
         setTransaction(transaction ? { ...transaction, cancelRequestStatus: 'accepted', status: 'customer_cancelled' } : transaction)
 
       } else {
-        notificationCtx.success('Đã từ chối yêu cầu hủy đơn hàng.');
+        notificationCtx.success(tt('Đã từ chối yêu cầu hủy đơn hàng.', 'Cancel request has been rejected.'));
         setTransaction(transaction ? { ...transaction, cancelRequestStatus: 'rejected' } : transaction)
 
       }
     } catch (error) {
       // Handle error
-      notificationCtx.error(error || 'Đã xảy ra lỗi, vui lòng thử lại.');
+      notificationCtx.error(error || tt('Đã xảy ra lỗi, vui lòng thử lại.', 'An error occurred, please try again.'));
     } finally {
       setIsLoading(false);
     }
@@ -905,13 +909,13 @@ export default function Page({ params }: { params: { event_id: number; transacti
   }, [formData.phoneCountryIso2]);
 
   if (!transaction) {
-    return <Typography>Loading...</Typography>;
+    return <Typography>{tt('Đang tải...', 'Loading...')}</Typography>;
   }
 
-  const paymentMethodDetails = getPaymentMethodDetails(transaction.paymentMethod);
-  const paymentStatusDetails = getPaymentStatusDetails(transaction.paymentStatus);
-  const statusDetails = getRowStatusDetails(transaction.status);
-  const createdSource = getCreatedSource(transaction.createdSource);
+  const paymentMethodDetails = getPaymentMethodDetails(transaction.paymentMethod, tt);
+  const paymentStatusDetails = getPaymentStatusDetails(transaction.paymentStatus, tt);
+  const statusDetails = getRowStatusDetails(transaction.status, tt);
+  const createdSource = getCreatedSource(transaction.createdSource, tt);
 
   return (
     <>
@@ -927,7 +931,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         <CircularProgress color="inherit" />
       </Backdrop>
       <div>
-        <Typography variant="h4">Chi tiết đơn hàng của {transaction.name}</Typography>
+        <Typography variant="h4">{tt('Chi tiết đơn hàng của', 'Order Details for')} {transaction.name}</Typography>
       </div>
       <Grid container spacing={3}>
         <Grid lg={5} md={5} xs={12} spacing={3}>
@@ -954,7 +958,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   <Stack direction="row" spacing={1}>
                     <HouseLine fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      Đơn vị tổ chức: {transaction.event.organizer}
+                      {tt('Đơn vị tổ chức:', 'Organizer:')} {transaction.event.organizer}
                     </Typography>
                   </Stack>
                   <Stack direction="row" spacing={1}>
@@ -962,31 +966,31 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {transaction.event.startDateTime && transaction.event.endDateTime
                         ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : 'Chưa xác định'} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
+                        : tt('Chưa xác định', 'Not specified')} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
                     </Typography>
                   </Stack>
 
                   <Stack direction="row" spacing={1}>
                     <MapPin fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
-                      {transaction.event.place ? transaction.event.place : 'Chưa xác định'} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
+                      {transaction.event.place ? transaction.event.place : tt('Chưa xác định', 'Not specified')} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
                     </Typography>
                   </Stack>
                 </Stack>
               </CardContent>
             </Card>
             <Card>
-              <CardHeader title="Thanh toán" />
+              <CardHeader title={tt('Thanh toán', 'Payment')} />
               <Divider />
               <CardContent>
                 <Stack spacing={2}>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái đơn:</Typography>
+                    <Typography variant="body1">{tt('Trạng thái đơn:', 'Order Status:')}</Typography>
                     <Stack spacing={0} direction={'row'}>
                       <Chip color={statusDetails.color} label={statusDetails.label} />
                       {transaction.cancelRequestStatus == 'pending' &&
                         <Tooltip title={
-                          <Typography>Khách hàng yêu cầu hủy</Typography>
+                          <Typography>{tt('Khách hàng yêu cầu hủy', 'Customer requested cancellation')}</Typography>
                         }>
                           <Chip color={'error'} label={<WarningCircle size={16} />} />
                         </Tooltip>
@@ -995,22 +999,22 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Phương thức thanh toán:</Typography>
+                    <Typography variant="body1">{tt('Phương thức thanh toán:', 'Payment Method:')}</Typography>
                     <Chip icon={paymentMethodDetails.icon} label={paymentMethodDetails.label} />
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái thanh toán:</Typography>
+                    <Typography variant="body1">{tt('Trạng thái thanh toán:', 'Payment Status:')}</Typography>
                     <Chip label={paymentStatusDetails.label} color={paymentStatusDetails.color} />
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Trạng thái xuất vé:</Typography>
+                    <Typography variant="body1">{tt('Trạng thái xuất vé:', 'Ticket Issued Status:')}</Typography>
                     <Chip
-                      color={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent').color}
-                      label={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent').label}
+                      color={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent', tt).color}
+                      label={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent', tt).label}
                     />
                   </Grid>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1">Tổng số tiền:</Typography>
+                    <Typography variant="body1">{tt('Tổng số tiền:', 'Total Amount:')}</Typography>
                     <Chip
                       icon={<MoneyIcon />}
                       label={`${transaction.totalAmount.toLocaleString()} VND`}
@@ -1021,21 +1025,21 @@ export default function Page({ params }: { params: { event_id: number; transacti
               </CardContent>
             </Card>
             <Card>
-              <CardHeader title="Hành động" />
+              <CardHeader title={tt('Hành động', 'Actions')} />
               <Divider />
               <CardContent>
                 <Stack spacing={3}>
                   {transaction.cancelRequestStatus === 'pending' &&
                     <>
                       <Typography variant='body2' color={'error'} sx={{ fontWeight: 'bold' }}>
-                        Khách hàng yêu cầu hủy đơn hàng:
+                        {tt('Khách hàng yêu cầu hủy đơn hàng:', 'Customer requested order cancellation:')}
                       </Typography>
                       <Stack spacing={2} direction={'row'}>
                         <Button
                           onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'reject')}
                           size="small"
                         >
-                          Từ chối hủy
+                          {tt('Từ chối hủy', 'Reject Cancellation')}
                         </Button>
                         <Button
                           onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'accept')}
@@ -1043,7 +1047,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           color='error'
                           startIcon={<Check />}
                         >
-                          Chấp nhận hủy
+                          {tt('Chấp nhận hủy', 'Accept Cancellation')}
                         </Button>
                       </Stack>
                       <Divider />
@@ -1053,10 +1057,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   {transaction.status === 'wait_for_response' &&
                     <Stack spacing={2} direction={'row'}>
                       <Button onClick={() => handleSetTransactionStatus('normal')} size="small" startIcon={<Check />}>
-                        Phê duyệt đơn hàng
+                        {tt('Phê duyệt đơn hàng', 'Approve Order')}
                       </Button>
                       <Button onClick={() => handleSetTransactionStatus('staff_locked')} size="small" startIcon={<X />}>
-                        Từ chối đơn hàng
+                        {tt('Từ chối đơn hàng', 'Reject Order')}
                       </Button>
                     </Stack>
                   }
@@ -1064,7 +1068,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     <>
                       <Stack spacing={1} direction={'row'} flexWrap={'wrap'}>
                         <Button onClick={() => exportTicket()} size="small" startIcon={<TicketIcon />}>
-                          Xuất vé
+                          {tt('Xuất vé', 'Export Tickets')}
                         </Button>
                       </Stack>
                     </>
@@ -1075,23 +1079,23 @@ export default function Page({ params }: { params: { event_id: number; transacti
                         {transaction.qrOption === 'shared' && (
                           <>
                             <Button onClick={() => sendTransaction('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                              Gửi Email đơn hàng
+                              {tt('Gửi Email đơn hàng', 'Send Order Email')}
                             </Button>
                             <Button onClick={() => sendTransaction('zalo')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                              Gửi Zalo đơn hàng
+                              {tt('Gửi Zalo đơn hàng', 'Send Order via Zalo')}
                             </Button>
                           </>
                         )}
                         {transaction.qrOption === 'separate' && (
                           <>
                             <Button onClick={() => sendTransaction('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                              Gửi Email cho người đại diện (ng.mua)
+                              {tt('Gửi Email cho người đại diện (ng.mua)', 'Send Email to Representative (Buyer)')}
                             </Button>
                             <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                              Gửi Email cho từng người sở hữu
+                              {tt('Gửi Email cho từng người sở hữu', 'Send Email to Each Ticket Holder')}
                             </Button>
                             <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                              Gửi Zalo cho từng người sở hữu
+                              {tt('Gửi Zalo cho từng người sở hữu', 'Send Zalo to Each Ticket Holder')}
                             </Button>
                           </>
                         )}
@@ -1101,14 +1105,14 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           size="small"
                           startIcon={<ImageSquare />} // Icon for document-like invitation letter
                         >
-                          Xem ảnh thư mời
+                          {tt('Xem ảnh thư mời', 'View Invitation Letter')}
                         </Button>
                         <Button
                           onClick={() => setPrintTagModalOpen(true)}
                           size="small"
                           startIcon={<Printer />}
                         >
-                          In tag vé
+                          {tt('In tag vé', 'Print Ticket Tags')}
                         </Button>
                       </Stack>
                     </>
@@ -1116,10 +1120,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
                     <Stack spacing={2} direction={'row'}>
                       <Button size="small" startIcon={<SignIn />} onClick={checkInAllTickets}>
-                        Check-in tất cả vé
+                        {tt('Check-in tất cả vé', 'Check-in All Tickets')}
                       </Button>
                       <Button size="small" startIcon={<SignOut />} onClick={checkOutAllTickets}>
-                        Check-out tất cả vé
+                        {tt('Check-out tất cả vé', 'Check-out All Tickets')}
                       </Button>
                     </Stack>
                   )}
@@ -1133,13 +1137,13 @@ export default function Page({ params }: { params: { event_id: number; transacti
                             size="small"
                             startIcon={<EnvelopeSimpleIcon />}
                           >
-                            Gửi Hướng dẫn thanh toán qua Email
+                            {tt('Gửi Hướng dẫn thanh toán qua Email', 'Send Payment Instruction via Email')}
                           </Button>
                           <Button onClick={resendInstructionNapas247Email}
                             size="small"
                             startIcon={<EnvelopeSimpleIcon />}
                           >
-                            Gửi Hướng dẫn thanh toán qua Zalo
+                            {tt('Gửi Hướng dẫn thanh toán qua Zalo', 'Send Payment Instruction via Zalo')}
                           </Button>
                         </>
                       )}
@@ -1151,7 +1155,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           size="small"
                           startIcon={<EnvelopeSimpleIcon />}
                         >
-                          Chuyển trạng thái "Đã thanh toán"
+                          {tt('Chuyển trạng thái "Đã thanh toán"', 'Change Status to "Paid"')}
                         </Button>
                       )}
 
@@ -1162,25 +1166,25 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           size="small"
                           startIcon={<EnvelopeSimpleIcon />}
                         >
-                          Hoàn tiền đơn hàng
+                          {tt('Hoàn tiền đơn hàng', 'Refund Order')}
                         </Button>
                       )}
                   </Stack>
                   <Grid container spacing={3}>
                     <Grid md={10} xs={9}>
                       <FormControl size='small' fullWidth>
-                        <InputLabel>Hủy đơn hàng</InputLabel>
+                        <InputLabel>{tt('Hủy đơn hàng', 'Cancel Order')}</InputLabel>
                         <Select
-                          label="Hủy đơn hàng"
+                          label={tt('Hủy đơn hàng', 'Cancel Order')}
                           name="status"
                           value={selectedStatus}
                           onChange={(event) => setSelectedStatus(event.target.value)}
                         >
                           {transaction.status === 'wait_for_response' && (
-                            <MenuItem value="normal">Phê duyệt đơn hàng</MenuItem>
+                            <MenuItem value="normal">{tt('Phê duyệt đơn hàng', 'Approve Order')}</MenuItem>
                           )}
-                          <MenuItem value="customer_cancelled">Huỷ bởi Khách hàng</MenuItem>
-                          <MenuItem value="staff_locked">Khoá bởi Nhân viên</MenuItem>
+                          <MenuItem value="customer_cancelled">{tt('Huỷ bởi Khách hàng', 'Cancelled by Customer')}</MenuItem>
+                          <MenuItem value="staff_locked">{tt('Khoá bởi Nhân viên', 'Locked by Staff')}</MenuItem>
                         </Select>
                       </FormControl>
                     </Grid>
@@ -1191,7 +1195,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                         onClick={() => handleSetTransactionStatus(selectedStatus)}
                         disabled={!selectedStatus} // Disable if no status is selected
                       >
-                        Lưu
+                        {tt('Lưu', 'Save')}
                       </Button>
                     </Grid>
                   </Grid>
@@ -1201,24 +1205,24 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
             {transaction.paymentMethod === 'napas247' && (
               <Card>
-                <CardHeader title="Chi tiết thanh toán Napas 247" />
+                <CardHeader title={tt('Chi tiết thanh toán Napas 247', 'Napas 247 Payment Details')} />
                 <Divider />
                 <CardContent>
                   <Stack spacing={2}>
                     <Grid container justifyContent="space-between">
-                      <Typography variant="body1">Payment order code:</Typography>
+                      <Typography variant="body1">{tt('Payment order code:', 'Payment order code:')}</Typography>
                       <Typography variant="body1">{transaction.paymentOrderCode}</Typography>
                     </Grid>
                     {transaction.paymentStatus === 'waiting_for_payment' && (
                       <>
                         <Grid container justifyContent="space-between">
-                          <Typography variant="body1">Hạn thanh toán:</Typography>
+                          <Typography variant="body1">{tt('Hạn thanh toán:', 'Payment Deadline:')}</Typography>
                           <Typography variant="body1">
                             {dayjs(transaction.paymentDueDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}
                           </Typography>
                         </Grid>
                         <Grid container justifyContent="space-between">
-                          <Typography variant="body1">Trang thanh toán:</Typography>
+                          <Typography variant="body1">{tt('Trang thanh toán:', 'Payment Page:')}</Typography>
                           <Typography variant="body1">
                             <Button
                               component={LocalizedLink}
@@ -1226,7 +1230,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                               size="small"
                               startIcon={<LightningIcon />}
                             >
-                              Đến trang thanh toán
+                              {tt('Đến trang thanh toán', 'Go to Payment Page')}
                             </Button>
                           </Typography>
                         </Grid>
@@ -1234,7 +1238,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     )}
                     {transaction.paymentStatus === 'paid' && (
                       <Grid container justifyContent="space-between">
-                        <Typography variant="body1">Thời gian thanh toán:</Typography>
+                        <Typography variant="body1">{tt('Thời gian thanh toán:', 'Payment Time:')}</Typography>
                         <Typography variant="body1">
                           {dayjs(transaction.paymentTransactionDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}
                         </Typography>
@@ -1245,14 +1249,14 @@ export default function Page({ params }: { params: { event_id: number; transacti
               </Card>
             )}
             <Card>
-              <CardHeader title="Thông tin khác" />
+              <CardHeader title={tt('Thông tin khác', 'Other Information')} />
               <Divider />
               <CardContent>
                 <Stack spacing={0}>
                   {/* createdAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Thời gian khởi tạo:</Typography>
+                      <Typography variant="body1">{tt('Thời gian khởi tạo:', 'Created At:')}</Typography>
                     </Stack>
                     <Typography variant="body1">
                       {dayjs(transaction.createdAt).format('HH:mm:ss DD/MM/YYYY')}
@@ -1261,33 +1265,33 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   {/* Created source */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Người khởi tạo:</Typography>
+                      <Typography variant="body1">{tt('Người khởi tạo:', 'Created By:')}</Typography>
                     </Stack>
-                    <Typography variant="body1">{transaction.creator?.fullName || 'Không có thông tin'}</Typography>
+                    <Typography variant="body1">{transaction.creator?.fullName || tt('Không có thông tin', 'No information')}</Typography>
                   </Grid>
                   {/* Created source */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Nguồn khởi tạo:</Typography>
+                      <Typography variant="body1">{tt('Nguồn khởi tạo:', 'Created Source:')}</Typography>
                     </Stack>
-                    <Typography variant="body1">{createdSource.label || 'Chưa xác định'}</Typography>
+                    <Typography variant="body1">{createdSource.label || tt('Chưa xác định', 'Not specified')}</Typography>
                   </Grid>
                   {/* sentPaymentInstructionAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Thời gian gửi hướng dẫn t.toán:</Typography>
+                      <Typography variant="body1">{tt('Thời gian gửi hướng dẫn t.toán:', 'Payment Instruction Sent At:')}</Typography>
                     </Stack>
                     <Typography variant="body1">
-                      {transaction.sentPaymentInstructionAt ? dayjs(transaction.sentPaymentInstructionAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
+                      {transaction.sentPaymentInstructionAt ? dayjs(transaction.sentPaymentInstructionAt).format('HH:mm:ss DD/MM/YYYY') : tt("Chưa gửi", "Not sent")}
                     </Typography>
                   </Grid>
                   {/* createdAt */}
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">Thời gian xuất vé:</Typography>
+                      <Typography variant="body1">{tt('Thời gian xuất vé:', 'Tickets Exported At:')}</Typography>
                     </Stack>
                     <Typography variant="body1">
-                      {transaction.exportedTicketAt ? dayjs(transaction.exportedTicketAt).format('HH:mm:ss DD/MM/YYYY') : "Chưa gửi"}
+                      {transaction.exportedTicketAt ? dayjs(transaction.exportedTicketAt).format('HH:mm:ss DD/MM/YYYY') : tt("Chưa gửi", "Not sent")}
                     </Typography>
                   </Grid>
                 </Stack>
@@ -1298,7 +1302,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         <Grid lg={7} md={7} xs={12} spacing={3}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader title="Thông tin người mua vé" />
+              <CardHeader title={tt('Thông tin người mua vé', 'Buyer Information')} />
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
@@ -1306,7 +1310,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   {(() => {
                     const nameCfg = checkoutFormFields.find((f) => f.internal_name === 'name');
                     const visible = !!nameCfg && nameCfg.visible;
-                    const label = nameCfg?.label || 'Danh xưng*  Họ và tên';
+                    const label = nameCfg?.label || tt('Danh xưng*  Họ và tên', 'Title* Full Name');
                     return (
                       visible && (
                         <Grid md={6} xs={12}>
@@ -1323,23 +1327,31 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                   <Select
                                     variant="standard"
                                     disableUnderline
-                                    value={formData.title || "Bạn"}
+                                    value={formData.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
                                     onChange={(event) =>
                                       setFormData({ ...formData, title: event.target.value })
                                     }
                                     sx={{ minWidth: 70 }}
                                   >
-                                    <MenuItem value="Anh">Anh</MenuItem>
-                                    <MenuItem value="Chị">Chị</MenuItem>
-                                    <MenuItem value="Bạn">Bạn</MenuItem>
-                                    <MenuItem value="Em">Em</MenuItem>
-                                    <MenuItem value="Ông">Ông</MenuItem>
-                                    <MenuItem value="Bà">Bà</MenuItem>
-                                    <MenuItem value="Cô">Cô</MenuItem>
-                                    <MenuItem value="Mr.">Mr.</MenuItem>
-                                    <MenuItem value="Ms.">Ms.</MenuItem>
-                                    <MenuItem value="Miss">Miss</MenuItem>
-                                    <MenuItem value="Thầy">Thầy</MenuItem>
+                                    {locale === 'en' ? (
+                                      ['Mr.', 'Ms.', 'Mx.'].map((title) => (
+                                        <MenuItem key={title} value={title}>{title}</MenuItem>
+                                      ))
+                                    ) : (
+                                      <>
+                                        <MenuItem value="Anh">Anh</MenuItem>
+                                        <MenuItem value="Chị">Chị</MenuItem>
+                                        <MenuItem value="Bạn">Bạn</MenuItem>
+                                        <MenuItem value="Em">Em</MenuItem>
+                                        <MenuItem value="Ông">Ông</MenuItem>
+                                        <MenuItem value="Bà">Bà</MenuItem>
+                                        <MenuItem value="Cô">Cô</MenuItem>
+                                        <MenuItem value="Thầy">Thầy</MenuItem>
+                                        <MenuItem value="Mr.">Mr.</MenuItem>
+                                        <MenuItem value="Ms.">Ms.</MenuItem>
+                                        <MenuItem value="Mx.">Mx.</MenuItem>
+                                      </>
+                                    )}
                                   </Select>
                                 </InputAdornment>
                               }
@@ -1353,7 +1365,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   {(() => {
                     const emailCfg = checkoutFormFields.find((f) => f.internal_name === 'email');
                     const visible = !!emailCfg && emailCfg.visible;
-                    const label = emailCfg?.label || 'Email';
+                    const label = emailCfg?.label || tt('Email', 'Email');
                     return (
                       visible && (
                         <Grid md={6} xs={12}>
@@ -1369,7 +1381,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   {(() => {
                     const phoneCfg = checkoutFormFields.find((f) => f.internal_name === 'phone_number');
                     const visible = !!phoneCfg && phoneCfg.visible;
-                    const label = phoneCfg?.label || 'Số điện thoại';
+                    const label = phoneCfg?.label || tt('Số điện thoại', 'Phone Number');
                     return (
                       visible && (
                         <Grid md={6} xs={12}>
@@ -1413,7 +1425,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   {(() => {
                     const dobCfg = checkoutFormFields.find((f) => f.internal_name === 'dob');
                     const visible = !!dobCfg && dobCfg.visible;
-                    const label = dobCfg?.label || 'Ngày tháng năm sinh';
+                    const label = dobCfg?.label || tt('Ngày tháng năm sinh', 'Date of Birth');
                     return (
                       visible && (
                         <Grid md={6} xs={12}>
@@ -1436,7 +1448,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   {(() => {
                     const addrCfg = checkoutFormFields.find((f) => f.internal_name === 'address');
                     const visible = !!addrCfg && addrCfg.visible;
-                    const label = addrCfg?.label || 'Địa chỉ';
+                    const label = addrCfg?.label || tt('Địa chỉ', 'Address');
                     return (
                       visible && (
                         <Grid md={12} xs={12}>
@@ -1459,7 +1471,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                       (f) => f.internal_name === 'idcard_number'
                     );
                     const visible = !!idCfg && idCfg.visible;
-                    const label = idCfg?.label || 'Căn cước công dân';
+                    const label = idCfg?.label || tt('Căn cước công dân', 'ID Card Number');
                     return (
                       visible && (
                         <Grid md={12} xs={12}>
@@ -1605,15 +1617,15 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   type="submit"
                   variant="contained"
                   onClick={updateTransaction}
-                >
-                  Lưu
+                  >
+                  {tt('Lưu', 'Save')}
                 </Button>
               </CardActions>
             </Card>
 
             <Card>
               <CardHeader
-                title={`Danh sách vé: ${transaction.ticketQuantity} vé`}
+                title={tt(`Danh sách vé: ${transaction.ticketQuantity} vé`, `Ticket List: ${transaction.ticketQuantity} tickets`)}
                 action={
                   transaction.qrOption === 'shared' && requireGuestAvatar && (
                     <Avatar src={transaction.avatar || ''} sx={{ width: 36, height: 36 }} />
@@ -1648,14 +1660,14 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                     <Stack direction="row" spacing={1} alignItems="center">
                                       <div>
                                         <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
-                                          {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : 'Chưa có thông tin'}
+                                          {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : tt('Chưa có thông tin', 'No information')}
                                         </Typography>
                                         {transaction.qrOption === 'separate' && (
                                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                           {(() => {
-                                            const email = ticket.holderEmail || 'Chưa có email';
+                                            const email = ticket.holderEmail || tt('Chưa có email', 'No email');
                                             if (!ticket.holderPhone) {
-                                              return `${email} - Chưa có SĐT`;
+                                              return `${email} - ${tt('Chưa có SĐT', 'No phone number')}`;
                                             }
                                             // Parse E.164 phone to get country code and national number
                                             const parsedPhone = parseE164Phone(ticket.holderPhone);
@@ -1671,7 +1683,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                     </Stack>
                                   </>
                                 <div>
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>TID-{ticket.id} {ticket.checkInAt ? `Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : 'Chưa check-in'}</Typography>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>TID-{ticket.id} {ticket.checkInAt ? tt(`Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}`, `Checked in at ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}`) : tt('Chưa check-in', 'Not checked in')}</Typography>
                                   <IconButton size="small" sx={{ ml: 2 }} onClick={(e) => handleOpenTicketMenu(e.currentTarget, categoryIndex, ticketIndex)}>
                                     <DotsThreeOutline />
                                   </IconButton>
@@ -1722,7 +1734,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <StackPlusIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">Phụ phí:</Typography>
+                      <Typography variant="body1">{tt('Phụ phí:', 'Extra Fee:')}</Typography>
                     </Stack>
                     <Typography variant="body1">{formatPrice(transaction.extraFee || 0)}</Typography>
                   </Grid>
@@ -1730,7 +1742,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">Giảm giá:</Typography>
+                      <Typography variant="body1">{tt('Giảm giá:', 'Discount:')}</Typography>
                     </Stack>
                     <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
                   </Grid>
@@ -1738,7 +1750,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <CoinsIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">Thành tiền:</Typography>
+                      <Typography variant="body1">{tt('Thành tiền:', 'Total Amount:')}</Typography>
                     </Stack>
                     <Typography variant="body1">{formatPrice(transaction.totalAmount || 0)}</Typography>
                   </Grid>
@@ -1747,15 +1759,15 @@ export default function Page({ params }: { params: { event_id: number; transacti
             </Card>
 
             <Card>
-              <CardHeader title="Tùy chọn bổ sung" />
+              <CardHeader title={tt('Tùy chọn bổ sung', 'Additional Options')} />
               <Divider />
               <CardContent>
                 <Stack spacing={2}>
                   <Grid container spacing={1} alignItems="center">
                     <Grid xs>
-                      <Typography variant="body2">Ảnh đại diện cho khách mời</Typography>
+                      <Typography variant="body2">{tt('Ảnh đại diện cho khách mời', 'Guest Avatar')}</Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        Bạn cần tải lên ảnh đại diện cho khách mời.
+                        {tt('Bạn cần tải lên ảnh đại diện cho khách mời.', 'You need to upload an avatar for guests.')}
                       </Typography>
                     </Grid>
                     <Grid>
@@ -1772,17 +1784,17 @@ export default function Page({ params }: { params: { event_id: number; transacti
               </CardContent>
             </Card>
             <Card>
-              <CardHeader title="Lịch sử gửi" subheader='Lịch sử gửi email và gửi Zalo đến khách hàng' />
+              <CardHeader title={tt('Lịch sử gửi', 'Sending History')} subheader={tt('Lịch sử gửi email và gửi Zalo đến khách hàng', 'History of sending emails and Zalo messages to customers')} />
               <Divider />
               <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 300 }}>
                 <Table>
                   <TableHead>
                     <TableRow>
                       {/* <TableCell sx={{ width: '20px' }}></TableCell> */}
-                      <TableCell>Thời gian</TableCell>
-                      <TableCell sx={{ minWidth: '200px' }}>Nội dung</TableCell>
-                      <TableCell>Kênh</TableCell>
-                      <TableCell>Người thực hiện</TableCell>
+                      <TableCell>{tt('Thời gian', 'Time')}</TableCell>
+                      <TableCell sx={{ minWidth: '200px' }}>{tt('Nội dung', 'Content')}</TableCell>
+                      <TableCell>{tt('Kênh', 'Channel')}</TableCell>
+                      <TableCell>{tt('Người thực hiện', 'Performed By')}</TableCell>
                       {/* <TableCell>Địa chỉ</TableCell>
                       <TableCell></TableCell> */}
                     </TableRow>
@@ -1794,10 +1806,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           {dayjs(historySending.createdAt || 0).format('HH:mm:ss DD/MM/YYYY')}
                         </TableCell>
                         <TableCell>
-                          {getHistorySendingTypeDetails(historySending.type)}
+                          {getHistorySendingTypeDetails(historySending.type, tt)}
                         </TableCell>
                         <TableCell>
-                          {getHistorySendingChannelDetails(historySending.channel)}
+                          {getHistorySendingChannelDetails(historySending.channel, tt)}
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">{historySending.creator?.fullName}</Typography>
@@ -1810,16 +1822,16 @@ export default function Page({ params }: { params: { event_id: number; transacti
               </CardContent>
             </Card>
             <Card>
-              <CardHeader title="Lịch sử thao tác" />
+              <CardHeader title={tt('Lịch sử thao tác', 'Action History')} />
               <Divider />
               <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 300 }}>
                 <Table>
                   <TableHead>
                     <TableRow>
                       {/* <TableCell sx={{ width: '20px' }}></TableCell> */}
-                      <TableCell>Thời gian</TableCell>
-                      <TableCell sx={{ minWidth: '240px' }}>Nội dung</TableCell>
-                      <TableCell>Người thực hiện</TableCell>
+                      <TableCell>{tt('Thời gian', 'Time')}</TableCell>
+                      <TableCell sx={{ minWidth: '240px' }}>{tt('Nội dung', 'Content')}</TableCell>
+                      <TableCell>{tt('Người thực hiện', 'Performed By')}</TableCell>
                       {/* <TableCell>Địa chỉ</TableCell>
                       <TableCell></TableCell> */}
                     </TableRow>
@@ -1845,18 +1857,18 @@ export default function Page({ params }: { params: { event_id: number; transacti
             </Card>
             <Card>
               <CardHeader
-                title="Lịch sử check-in"
-                subheader='Lịch sử check-in của khách hàng'
+                title={tt('Lịch sử check-in', 'Check-in History')}
+                subheader={tt('Lịch sử check-in của khách hàng', 'Customer check-in history')}
               />
               <Divider />
               <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 600 }}>
                 <Table sx={{ width: '100%' }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Thời gian</TableCell>
-                      <TableCell sx={{ minWidth: '200px' }}>Nội dung</TableCell>
-                      <TableCell>Ảnh</TableCell>
-                      <TableCell>Người thực hiện</TableCell>
+                      <TableCell>{tt('Thời gian', 'Time')}</TableCell>
+                      <TableCell sx={{ minWidth: '200px' }}>{tt('Nội dung', 'Content')}</TableCell>
+                      <TableCell>{tt('Ảnh', 'Image')}</TableCell>
+                      <TableCell>{tt('Người thực hiện', 'Performed By')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1868,7 +1880,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                             <TableRow>
                               <TableCell colSpan={4} sx={{ backgroundColor: 'action.hover', fontWeight: 'bold', py: 1.5 }}>
                                 <Typography variant="body2" sx={{ fontWeight: 'bold', m: 0 }}>
-                                  Lịch sử check-in của TID-{ticket.id} {ticket.holderTitle} {ticket.holderName}
+                                  {tt('Lịch sử check-in của TID-', 'Check-in history for TID-')}{ticket.id} {ticket.holderTitle} {ticket.holderName}
                                 </Typography>
                               </TableCell>
                             </TableRow>
@@ -1879,7 +1891,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                     {dayjs(history.createdAt || 0).format('HH:mm:ss DD/MM/YYYY')}
                                   </TableCell>
                                   <TableCell>
-                                    {history.type === 'check-in' ? 'Check-in thành công' : 'Check-out thành công'}
+                                    {history.type === 'check-in' ? tt('Check-in thành công', 'Check-in successful') : tt('Check-out thành công', 'Check-out successful')}
                                   </TableCell>
                                   <TableCell>
                                     {history.imageUrl ? (
@@ -1898,7 +1910,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                       />
                                     ) : (
                                       <Typography variant="body2" color="text.secondary">
-                                        Không có ảnh
+                                        {tt('Không có ảnh', 'No image')}
                                       </Typography>
                                     )}
                                   </TableCell>
@@ -1912,7 +1924,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                               <TableRow>
                                 <TableCell colSpan={4} align="center">
                                   <Typography variant="body2" color="text.secondary">
-                                    Chưa có lịch sử check-in
+                                    {tt('Chưa có lịch sử check-in', 'No check-in history')}
                                   </Typography>
                                 </TableCell>
                               </TableRow>
@@ -1931,7 +1943,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     <CardHeader title={`${editingCategory?.ticketCategory.show.name} - ${editingCategory?.ticketCategory.name}`} action={<IconButton onClick={() => setEditCategoryModalOpen(false)}><X /></IconButton>} />
                     <CardContent sx={{ pt: 0, maxHeight: '70vh', overflowY: 'auto' }}>
                       <Stack spacing={2}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Thông tin người tham dự</Typography>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt('Thông tin người tham dự', 'Participant Information')}</Typography>
                         <Grid container spacing={2}>
                           {editingHolderInfos.map((holder, index) => (
                             <React.Fragment key={`holder-${index}`}>
@@ -1964,9 +1976,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                     />
                                   </Box>
                                   <FormControl fullWidth size="small" required>
-                                    <InputLabel>Danh xưng* &emsp; Họ và tên vé {index + 1}</InputLabel>
+                                    <InputLabel>{tt('Danh xưng* &emsp; Họ và tên vé', 'Title* Full Name Ticket')} {index + 1}</InputLabel>
                                     <OutlinedInput
-                                      label={`Danh xưng* &emsp; Họ và tên vé ${index + 1}`}
+                                      label={`${tt('Danh xưng* &emsp; Họ và tên vé', 'Title* Full Name Ticket')} ${index + 1}`}
                                       value={holder.name}
                                       onChange={(e) => {
                                         setEditingHolderInfos((prev) => {
@@ -1979,7 +1991,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                         <Select
                                           variant="standard"
                                           disableUnderline
-                                          value={holder.title || 'Bạn'}
+                                          value={holder.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
                                           onChange={(e) => {
                                             setEditingHolderInfos((prev) => {
                                               const next = [...prev];
@@ -1989,17 +2001,25 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                           }}
                                           sx={{ minWidth: 65 }}
                                         >
-                                          <MenuItem value="Anh">Anh</MenuItem>
-                                          <MenuItem value="Chị">Chị</MenuItem>
-                                          <MenuItem value="Bạn">Bạn</MenuItem>
-                                          <MenuItem value="Em">Em</MenuItem>
-                                          <MenuItem value="Ông">Ông</MenuItem>
-                                          <MenuItem value="Bà">Bà</MenuItem>
-                                          <MenuItem value="Cô">Cô</MenuItem>
-                                          <MenuItem value="Mr.">Mr.</MenuItem>
-                                          <MenuItem value="Ms.">Ms.</MenuItem>
-                                          <MenuItem value="Miss">Miss</MenuItem>
-                                          <MenuItem value="Thầy">Thầy</MenuItem>
+                                          {locale === 'en' ? (
+                                            ['Mr.', 'Ms.', 'Mx.'].map((title) => (
+                                              <MenuItem key={title} value={title}>{title}</MenuItem>
+                                            ))
+                                          ) : (
+                                            <>
+                                              <MenuItem value="Anh">Anh</MenuItem>
+                                              <MenuItem value="Chị">Chị</MenuItem>
+                                              <MenuItem value="Bạn">Bạn</MenuItem>
+                                              <MenuItem value="Em">Em</MenuItem>
+                                              <MenuItem value="Ông">Ông</MenuItem>
+                                              <MenuItem value="Bà">Bà</MenuItem>
+                                              <MenuItem value="Cô">Cô</MenuItem>
+                                              <MenuItem value="Thầy">Thầy</MenuItem>
+                                              <MenuItem value="Mr.">Mr.</MenuItem>
+                                              <MenuItem value="Ms.">Ms.</MenuItem>
+                                              <MenuItem value="Mx.">Mx.</MenuItem>
+                                            </>
+                                          )}
                                         </Select>
                                       </InputAdornment>}
                                     />
@@ -2008,9 +2028,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
                               </Grid>
                               <Grid md={3} xs={12}>
                                 <FormControl fullWidth size="small">
-                                  <InputLabel>Email vé {index + 1}</InputLabel>
+                                  <InputLabel>{tt('Email vé', 'Email Ticket')} {index + 1}</InputLabel>
                                   <OutlinedInput
-                                    label={`Email vé ${index + 1}`}
+                                    label={`${tt('Email vé', 'Email Ticket')} ${index + 1}`}
                                     type="email"
                                     value={holder.email}
                                     disabled
@@ -2019,9 +2039,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
                               </Grid>
                               <Grid md={3} xs={12}>
                                 <FormControl fullWidth size="small">
-                                  <InputLabel>SĐT vé {index + 1}</InputLabel>
+                                  <InputLabel>{tt('SĐT vé', 'Phone Ticket')} {index + 1}</InputLabel>
                                   <OutlinedInput
-                                    label={`SĐT vé ${index + 1}`}
+                                    label={`${tt('SĐT vé', 'Phone Ticket')} ${index + 1}`}
                                     type="tel"
                                     value={holder.phone}
                                     onChange={(e) => {
@@ -2067,7 +2087,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                       </Stack>
                     </CardContent>
                     <CardActions sx={{ justifyContent: 'flex-end' }}>
-                      <Button size="small" variant="contained" onClick={handleSaveTicketHolders}>Lưu</Button>
+                      <Button size="small" variant="contained" onClick={handleSaveTicketHolders}>{tt('Lưu', 'Save')}</Button>
                     </CardActions>
                   </Card>
                 </Container>

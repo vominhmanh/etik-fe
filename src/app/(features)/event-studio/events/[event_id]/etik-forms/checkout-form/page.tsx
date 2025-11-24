@@ -43,6 +43,8 @@ interface FieldDefinition {
   visible: boolean;
   required: boolean;
   note: string;
+  showInTransactionHistory: boolean;
+  showInTicketEmail: boolean;
   locked: boolean; // không cho chỉnh sửa (3 trường đầu)
   nonDeletable: boolean; // không cho xoá (6 trường đầu)
   options?: string[]; // cho radio / checkbox
@@ -54,6 +56,8 @@ interface NewFieldState {
   visible: boolean;
   required: boolean;
   note: string;
+  showInTransactionHistory: boolean;
+  showInTicketEmail: boolean;
   options: string[];
 }
 
@@ -66,6 +70,8 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     visible: true,
     required: true,
     note: '',
+    showInTransactionHistory: true, // luôn true, không cho edit (core field)
+    showInTicketEmail: true, // luôn true, không cho edit (core field)
     locked: true,
     nonDeletable: true,
   },
@@ -77,6 +83,8 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     visible: true,
     required: true,
     note: '',
+    showInTransactionHistory: true, // luôn true, không cho edit (core field)
+    showInTicketEmail: true, // luôn true, không cho edit (core field)
     locked: true,
     nonDeletable: true,
   },
@@ -88,6 +96,8 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     visible: true,
     required: true,
     note: '',
+    showInTransactionHistory: true, // luôn true, không cho edit (core field)
+    showInTicketEmail: true, // luôn true, không cho edit (core field)
     locked: true,
     nonDeletable: true,
   },
@@ -99,6 +109,8 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     visible: false,
     required: false,
     note: '',
+    showInTransactionHistory: false, // mặc định false, có thể edit
+    showInTicketEmail: false, // mặc định false, có thể edit
     locked: false,
     nonDeletable: true,
   },
@@ -110,6 +122,8 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     visible: false,
     required: false,
     note: '',
+    showInTransactionHistory: false, // mặc định false, có thể edit
+    showInTicketEmail: false, // mặc định false, có thể edit
     locked: false,
     nonDeletable: true,
   },
@@ -121,6 +135,8 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     visible: false,
     required: false,
     note: '',
+    showInTransactionHistory: false, // mặc định false, có thể edit
+    showInTicketEmail: false, // mặc định false, có thể edit
     locked: false,
     nonDeletable: true,
   },
@@ -140,6 +156,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     visible: true,
     required: false,
     note: '',
+    showInTransactionHistory: false, // mặc định false, có thể edit
+    showInTicketEmail: false, // mặc định false, có thể edit
     options: [''],
   });
 
@@ -177,6 +195,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               ? (f.options as any[]).map((opt) => opt.label as string)
               : undefined;
 
+          // Chỉ 3 trường core (name, email, phone_number) luôn true, các trường khác dùng giá trị từ API
+          const isCoreField = builtinKey === 'name' || builtinKey === 'email' || builtinKey === 'phone_number';
+          
           return {
             id: f.id,
             name: f.internal_name,
@@ -185,6 +206,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             visible: f.visible,
             required: f.required,
             note: f.note || '',
+            showInTransactionHistory: isCoreField ? true : (f.show_in_transaction_history || false),
+            showInTicketEmail: isCoreField ? true : (f.show_in_ticket_email || false),
             locked,
             nonDeletable,
             options,
@@ -212,6 +235,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       visible: true,
       required: false,
       note: '',
+      showInTransactionHistory: false, // mặc định false, có thể edit
+      showInTicketEmail: false, // mặc định false, có thể edit
       options: [''],
     });
     setFieldModalOpen(true);
@@ -225,6 +250,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       visible: field.visible,
       required: field.required,
       note: field.note,
+      showInTransactionHistory: field.showInTransactionHistory,
+      showInTicketEmail: field.showInTicketEmail,
       options: field.options && field.options.length > 0 ? field.options : [''],
     });
     setFieldModalOpen(true);
@@ -275,6 +302,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         visible: newField.visible,
         required: newField.required,
         note: newField.note,
+        showInTransactionHistory: newField.showInTransactionHistory,
+        showInTicketEmail: newField.showInTicketEmail,
         locked: false,
         nonDeletable: false,
         options: cleanedOptions && cleanedOptions.length > 0 ? cleanedOptions : undefined,
@@ -289,6 +318,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           const canEditType = !(field.locked || field.nonDeletable);
           const canEditVisibilityAndRequired = !field.locked;
 
+          // Chỉ 3 trường core (name, email, phone_number) luôn true, các trường khác cho phép edit
+          const isCoreField = field.name === 'name' || field.name === 'email' || field.name === 'phone_number';
+          
           return {
             ...field,
             label: canEditLabel ? newField.label.trim() : field.label,
@@ -296,6 +328,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             visible: canEditVisibilityAndRequired ? newField.visible : field.visible,
             required: canEditVisibilityAndRequired ? newField.required : field.required,
             note: newField.note,
+            showInTransactionHistory: isCoreField ? true : newField.showInTransactionHistory,
+            showInTicketEmail: isCoreField ? true : newField.showInTicketEmail,
             options:
               (newField.type === 'radio' || newField.type === 'checkbox') &&
               cleanedOptions &&
@@ -374,6 +408,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           visible: field.visible,
           required: field.required,
           note: field.note || null,
+          show_in_transaction_history: field.showInTransactionHistory,
+          show_in_ticket_email: field.showInTicketEmail,
           sort_order,
           options,
         };
@@ -434,6 +470,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <TableCell>Hiển thị</TableCell>
                     <TableCell>Bắt buộc</TableCell>
                     <TableCell>Ghi chú cho khách</TableCell>
+                    <TableCell>Cho phép Khách xem lại</TableCell>
+                    <TableCell>Hiển thị trong email vé</TableCell>
                     <TableCell align="right"></TableCell>
                   </TableRow>
                 </TableHead>
@@ -476,6 +514,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           {field.note || '—'}
                         </Typography>
                     </TableCell>
+                    <TableCell sx={{ minWidth: 80 }}>
+                      <Checkbox
+                        checked={field.showInTransactionHistory}
+                        disabled
+                      />
+                    </TableCell>
+                    <TableCell sx={{ minWidth: 80 }}>
+                      <Checkbox
+                        checked={field.showInTicketEmail}
+                        disabled
+                      />
+                    </TableCell>
                     <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
                           {!field.locked && (
@@ -493,7 +543,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 ))}
 
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={8}>
                     <Button
                       startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
                       onClick={handleOpenAddFieldModal}
@@ -609,6 +659,39 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   onChange={(e) =>
                     setNewField((prev) => ({ ...prev, note: e.target.value }))
                   }
+                />
+
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={newField.showInTransactionHistory}
+                      onChange={(e) =>
+                        setNewField((prev) => ({ ...prev, showInTransactionHistory: e.target.checked }))
+                      }
+                      disabled={!!editingField && (editingField.name === 'name' || editingField.name === 'email' || editingField.name === 'phone_number')}
+                    />
+                  }
+                  label={
+                    <Stack spacing={0}>
+                      <Typography variant="body2">Cho phép khách hàng xem lại trong lịch sử giao dịch</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        khách hàng sẽ nhìn thấy trường thông tin này ở lịch sử giao dịch
+                      </Typography>
+                    </Stack>
+                  }
+                />
+
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={newField.showInTicketEmail}
+                      onChange={(e) =>
+                        setNewField((prev) => ({ ...prev, showInTicketEmail: e.target.checked }))
+                      }
+                      disabled={!!editingField && (editingField.name === 'name' || editingField.name === 'email' || editingField.name === 'phone_number')}
+                    />
+                  }
+                  label="Hiển thị trong email vé"
                 />
 
                 {(newField.type === 'radio' || newField.type === 'checkbox') && (
