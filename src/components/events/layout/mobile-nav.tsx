@@ -6,6 +6,7 @@ import { LocalizedLink } from '@/components/localized-link';
 
 import { usePathname } from 'next/navigation';
 import logoImage from '@/images/etik-logo-transparent-dark.png';
+import logoImageEn from '@/images/etik-logo-transparent-dark-en.png';
 import { Stack } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -31,9 +32,10 @@ export interface MobileNavProps {
 
 export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element {
   const pathname = usePathname();
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
 
   const navItems = React.useMemo(() => getNavItems(tt), [tt]);
+  const logo = locale === 'en' ? logoImageEn : logoImage;
   const { key: firstKey, ...firstItem } = navItems[0];
   const { key: secondKey, ...secondItem } = navItems[1];
 
@@ -66,9 +68,9 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
       open={open}
     >
       <Stack spacing={2} sx={{ p: 3 }}>
-        <LocalizedLink href={paths.home} style={{ display: 'inline-flex' }}>
+        <LocalizedLink href={paths.dashboard.overview} style={{ display: 'inline-flex' }}>
           <Image
-            src={logoImage}
+            src={logo}
             alt="Left Logo"
             height={40}
             className="mr-2" // Khoảng cách giữa hai logo

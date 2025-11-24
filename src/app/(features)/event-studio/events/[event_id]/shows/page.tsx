@@ -22,6 +22,7 @@ import * as React from 'react';
 
 import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 import { Accordion, AccordionDetails, AccordionSummary, CardHeader, Container, FormControlLabel, InputLabel, Modal, OutlinedInput, Switch } from '@mui/material';
 import { ArrowRight } from '@phosphor-icons/react';
 import { Pencil } from '@phosphor-icons/react/dist/ssr';
@@ -53,17 +54,17 @@ interface Show {
   ticketCategories: TicketCategory[];
 }
 
-const statusMap = {
-  not_opened_for_sale: { label: 'Trạng thái: Chưa mở bán', color: 'secondary' },
-  on_sale: { label: 'Trạng thái: Đang mở bán', color: 'success' },
-  // out_of_stock: { label: 'Trạng thái: Đã hết', color: 'secondary' },
-  temporarily_locked: { label: 'Trạng thái: Đang tạm khoá', color: 'warning' },
-};
+const getStatusMap = (tt: (vi: string, en: string) => string) => ({
+  not_opened_for_sale: { label: tt('Trạng thái: Chưa mở bán', 'Status: Not Open for Sale'), color: 'secondary' as const },
+  on_sale: { label: tt('Trạng thái: Đang mở bán', 'Status: On Sale'), color: 'success' as const },
+  // out_of_stock: { label: tt('Trạng thái: Đã hết', 'Status: Out of Stock'), color: 'secondary' },
+  temporarily_locked: { label: tt('Trạng thái: Đang tạm khoá', 'Status: Temporarily Locked'), color: 'warning' as const },
+});
 
-const typeMap = {
-  private: { label: 'Nội bộ', color: 'warning' },
-  public: { label: 'Công khai', color: 'primary' },
-};
+const getTypeMap = (tt: (vi: string, en: string) => string) => ({
+  private: { label: tt('Nội bộ', 'Private'), color: 'warning' as const },
+  public: { label: tt('Công khai', 'Public'), color: 'primary' as const },
+});
 
 type ColorMap = {
   [key: number]: string
@@ -80,9 +81,10 @@ const colorMap: ColorMap = {
   7: deepPurple[300],
 };
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+  const { tt, locale } = useTranslation();
   React.useEffect(() => {
-    document.title = "Hạng mục vé | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Hạng mục vé | ETIK - Vé điện tử & Quản lý sự kiện", "Ticket Categories | ETIK - E-tickets & Event Management");
+  }, [tt]);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [shows, setShows] = React.useState<Show[]>([]);
@@ -115,9 +117,9 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
       // Assume response includes updated shows data
       window.location.reload()
-      notificationCtx.success("Chỉnh sửa thành công");
+      notificationCtx.success(tt("Chỉnh sửa thành công", "Edit successful"));
     } catch (error) {
-      notificationCtx.error('Lỗi:', error);
+      notificationCtx.error(tt('Lỗi:', 'Error:'), error);
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +134,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         );
         setShows(response.data);
       } catch (error) {
-        notificationCtx.error('Lỗi:', error);
+        notificationCtx.error(tt('Lỗi:', 'Error:'), error);
       } finally {
         setIsLoading(false);
       }
@@ -156,7 +158,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         </Backdrop>
         <Stack direction="row" spacing={3}>
           <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-            <Typography variant="h4">Hạng mục vé</Typography>
+            <Typography variant="h4">{tt("Hạng mục vé", "Ticket Categories")}</Typography>
           </Stack>
 
         </Stack>
@@ -169,8 +171,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   <Typography variant="h6">{show.name}</Typography>
                   <Typography variant="body2">
                     {show.startDateTime && show.endDateTime ?
-                      `Bắt đầu: ${dayjs(show.startDateTime).format('HH:mm:ss DD/MM/YYYY')} - Kết thúc: ${dayjs(show.endDateTime).format('HH:mm:ss DD/MM/YYYY')}`
-                      : 'Thời gian: Chưa xác định'
+                      `${tt('Bắt đầu:', 'Start:')} ${dayjs(show.startDateTime).format('HH:mm:ss DD/MM/YYYY')} - ${tt('Kết thúc:', 'End:')} ${dayjs(show.endDateTime).format('HH:mm:ss DD/MM/YYYY')}`
+                      : tt('Thời gian: Chưa xác định', 'Time: Not specified')
                     }
                   </Typography>
                   <Button
@@ -180,7 +182,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     onClick={(event) => event.stopPropagation()}
                     href={`shows/${show.id}/ticket-categories/create`}
                   >
-                    Thêm loại vé
+                    {tt("Thêm loại vé", "Add Ticket Category")}
                   </Button>
                 </Stack>
               </AccordionSummary>
@@ -218,22 +220,32 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                 </Stack>
                               </Stack>
                               <Typography align="left" variant="body2">
-                                Còn {ticketCategory.quantity - ticketCategory.sold}/{ticketCategory.quantity} vé
+                                {tt('Còn', 'Remaining')} {ticketCategory.quantity - ticketCategory.sold}/{ticketCategory.quantity} {tt('vé', 'tickets')}
                               </Typography>
                               <Stack sx={{ alignItems: 'center', flexWrap: 'wrap' }} direction="row" spacing={1}>
-                                <Chip
-                                  label={statusMap[ticketCategory.status]?.label}
-                                  color={statusMap[ticketCategory.status]?.color}
-                                  size="small"
-                                />
-                                <Chip
-                                  label={typeMap[ticketCategory.type]?.label}
-                                  color={typeMap[ticketCategory.type]?.color}
-                                  size="small"
-                                />
+                                {(() => {
+                                  const statusMap = getStatusMap(tt);
+                                  return (
+                                    <Chip
+                                      label={statusMap[ticketCategory.status as keyof typeof statusMap]?.label}
+                                      color={statusMap[ticketCategory.status as keyof typeof statusMap]?.color}
+                                      size="small"
+                                    />
+                                  );
+                                })()}
+                                {(() => {
+                                  const typeMap = getTypeMap(tt);
+                                  return (
+                                    <Chip
+                                      label={typeMap[ticketCategory.type as keyof typeof typeMap]?.label}
+                                      color={typeMap[ticketCategory.type as keyof typeof typeMap]?.color}
+                                      size="small"
+                                    />
+                                  );
+                                })()}
                                 {ticketCategory.disabled === true &&
                                   <Chip
-                                    label={'Đang khóa bởi hệ thống'}
+                                    label={tt('Đang khóa bởi hệ thống', 'Locked by System')}
                                     color={'secondary'}
                                     size="small"
                                   />}
@@ -253,14 +265,14 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                               />
                             ) : (
                               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Chưa có mô tả
+                                {tt('Chưa có mô tả', 'No description')}
                               </Typography>
                             )}
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                              Số vé tối đa mỗi đơn hàng: {ticketCategory.limitPerTransaction || "Không giới hạn"}
+                              {tt('Số vé tối đa mỗi đơn hàng:', 'Maximum tickets per order:')} {ticketCategory.limitPerTransaction || tt("Không giới hạn", "Unlimited")}
                             </Typography>
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                              Số vé tối đa mỗi khách hàng: {ticketCategory.limitPerCustomer || "Không giới hạn"}
+                              {tt('Số vé tối đa mỗi khách hàng:', 'Maximum tickets per customer:')} {ticketCategory.limitPerCustomer || tt("Không giới hạn", "Unlimited")}
                             </Typography>
                           </CardContent>
                           <Divider />
@@ -275,7 +287,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                 size="small"
                                 startIcon={<Pencil />}
                               >
-                                Chỉnh sửa
+                                {tt("Chỉnh sửa", "Edit")}
                               </Button>
                             </Stack>
                           </Stack>
@@ -309,14 +321,14 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
             }}
           >
             <CardHeader
-              title="Chỉnh sửa"
+              title={tt("Chỉnh sửa", "Edit")}
               subheader={selectedShow ? `${selectedShow?.name} - ${selectedTicketCategory?.name}` : ''}
             />
             <Divider />
             <CardContent>
               <Stack spacing={3} sx={{ display: 'flex', alignItems: 'flex-start' }}>
                 <Stack direction="row" spacing={3} sx={{ display: 'flex', alignItems: 'center' }}>
-                  <InputLabel htmlFor="quantity" sx={{ display: 'inline' }}>Số lượng vé</InputLabel>
+                  <InputLabel htmlFor="quantity" sx={{ display: 'inline' }}>{tt("Số lượng vé", "Ticket Quantity")}</InputLabel>
                   <OutlinedInput
                     id="quantity"
                     sx={{ maxWidth: 130 }}
@@ -324,12 +336,12 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     size="small"
                     value={formDataQuantity}
                     onChange={(e) => {
-                      setFormDataQuantity(e.target.value)
+                      setFormDataQuantity(Number(e.target.value))
                     }}
                   />
                 </Stack>
                 <Stack direction="row" spacing={3} sx={{ display: 'flex', alignItems: 'center' }}>
-                  <InputLabel htmlFor="status" sx={{ display: 'inline' }}>Trạng thái riêng</InputLabel>
+                  <InputLabel htmlFor="status" sx={{ display: 'inline' }}>{tt("Trạng thái riêng", "Special Status")}</InputLabel>
                   <FormControlLabel
                     control={
                       <Switch
@@ -341,7 +353,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                         color="primary"
                       />
                     }
-                    label={formDataDisabled ? 'Khoá' : 'Mở'}
+                    label={formDataDisabled ? tt('Khoá', 'Locked') : tt('Mở', 'Open')}
                     labelPlacement="end"
                   />
                 </Stack>
@@ -355,7 +367,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 size="small"
                 endIcon={<ArrowRight />}
               >
-                Lưu
+                {tt("Lưu", "Save")}
               </Button>
             </Stack>
           </Card>

@@ -118,7 +118,7 @@ const getPaymentMethodLabel = (paymentMethod: string, tt: (vi: string, en: strin
 };
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
   React.useEffect(() => {
     document.title = tt("Tạo đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện", "Create Order | ETIK - E-tickets & Event Management");
   }, [tt]);
@@ -750,7 +750,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         transactionData
       );
       const newTransaction = response.data;
-      router.push(`/event-studio/events/${params.event_id}/transactions/${newTransaction.id}`); // Navigate to a different page on success
+      const path = `/event-studio/events/${params.event_id}/transactions/${newTransaction.id}`;
+      router.push(locale === 'en' ? `/en${path}` : path); // Navigate to a different page on success
       notificationCtx.success(tt("Tạo đơn hàng thành công!", "Order created successfully!"));
     } catch (error) {
       notificationCtx.error(error);
@@ -895,7 +896,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             >
                               {PHONE_COUNTRIES.map((country) => (
                                 <MenuItem key={country.iso2} value={country.iso2}>
-                                  {country.nameVi} ({country.dialCode})
+                                  {tt(country.nameVi, country.nameEn)} ({country.dialCode})
                                 </MenuItem>
                               ))}
                             </Select>
@@ -1375,20 +1376,82 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
                 <Stack spacing={2} sx={{ mt: 1 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt("Thông tin người mua", "Buyer Information")}</Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">{tt("Họ và tên", "Full Name")}</Typography>
-                    <Typography variant="body2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">{tt("Email", "Email")}</Typography>
-                    <Typography variant="body2">{customer.email}</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">{tt("Số điện thoại", "Phone Number")}</Typography>
-                    <Typography variant="body2">
-                      {formattedCustomerPhone || customer.phoneNumber}
-                    </Typography>
-                  </Box>
+                  {checkoutFormFields.filter(f => f.visible).map((field) => {
+                    if (builtinInternalNames.has(field.internal_name)) {
+                      // Built-in fields
+                      if (field.internal_name === 'name') {
+                        return (
+                          <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="body2">{field.label}</Typography>
+                            <Typography variant="body2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
+                          </Box>
+                        );
+                      }
+                      if (field.internal_name === 'email') {
+                        return (
+                          <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="body2">{field.label}</Typography>
+                            <Typography variant="body2">{customer.email}</Typography>
+                          </Box>
+                        );
+                      }
+                      if (field.internal_name === 'phone_number') {
+                        return (
+                          <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="body2">{field.label}</Typography>
+                            <Typography variant="body2">
+                              {formattedCustomerPhone || customer.phoneNumber}
+                            </Typography>
+                          </Box>
+                        );
+                      }
+                      if (field.internal_name === 'address') {
+                        return (
+                          <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="body2">{field.label}</Typography>
+                            <Typography variant="body2">{customer.address || '-'}</Typography>
+                          </Box>
+                        );
+                      }
+                      if (field.internal_name === 'dob') {
+                        return (
+                          <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="body2">{field.label}</Typography>
+                            <Typography variant="body2">{customer.dob || '-'}</Typography>
+                          </Box>
+                        );
+                      }
+                      if (field.internal_name === 'idcard_number') {
+                        return (
+                          <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="body2">{field.label}</Typography>
+                            <Typography variant="body2">{customer.idcard_number || '-'}</Typography>
+                          </Box>
+                        );
+                      }
+                      return null;
+                    } else {
+                      // Custom fields
+                      const answer = checkoutCustomAnswers[field.internal_name];
+                      let displayValue = '-';
+                      if (answer !== undefined && answer !== null && answer !== '') {
+                        if (field.field_type === 'checkbox' && Array.isArray(answer)) {
+                          displayValue = answer.join(', ');
+                        } else if (field.field_type === 'radio' && field.options) {
+                          const option = field.options.find(opt => opt.value === answer);
+                          displayValue = option ? option.label : answer;
+                        } else {
+                          displayValue = String(answer);
+                        }
+                      }
+                      return (
+                        <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="body2">{field.label}</Typography>
+                          <Typography variant="body2">{displayValue}</Typography>
+                        </Box>
+                      );
+                    }
+                  })}
                   <Divider />
 
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>

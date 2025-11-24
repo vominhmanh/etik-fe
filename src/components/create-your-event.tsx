@@ -22,7 +22,7 @@ type EventCreatedResponse = {
 };
 
 export default function CreateYourEvent() {
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
   const notificationCtx = React.useContext(NotificationContext);
   const router = useRouter(); // Use useRouter from next/navigation
   const [formData, setFormData] = useState({
@@ -152,7 +152,8 @@ export default function CreateYourEvent() {
       );
 
       if (response.data) {
-        router.push('/event-studio/events/'); // Điều hướng đến trang khác nếu thành công
+        const path = '/event-studio/events/';
+        router.push(locale === 'en' ? `/en${path}` : path); // Điều hướng đến trang khác nếu thành công
       } else {
         setError(response.statusText || tt('Có lỗi không xác định xảy ra', 'An unknown error occurred'));
       }

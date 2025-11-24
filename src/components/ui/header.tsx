@@ -1,11 +1,11 @@
 "use client"; // If using Next.js App Router
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import Logo from "./logo";
 import { Avatar, Box, Typography, Select, MenuItem, SelectChangeEvent } from "@mui/material";
 import { useTranslation, useLocale } from '@/contexts/locale-context';
 import { useRouter, usePathname } from 'next/navigation';
+import { LocalizedLink } from '@/components/localized-link';
 
 // Small down-arrow icon for language select
 const LanguageSelectIcon = (props: any) => (
@@ -67,17 +67,17 @@ export default function Header() {
 
             {isLoading ? (
               <li>
-                <Link
+                <LocalizedLink
                   href="/auth/login"
                   className="btn-sm bg-white text-gray-800 shadow hover:bg-gray-50"
                   style={{ display: 'flex', alignItems: 'center' }}
                 >
                   <Typography variant="body2">{tt("Đang tải...", "Loading...")}</Typography>
-                </Link>
+                </LocalizedLink>
               </li>
             ) : user ? (
               <li>
-                <Link
+                <LocalizedLink
                   href="/dashboard"
                   className="btn-sm bg-white text-gray-800 shadow hover:bg-gray-50"
                   style={{ display: 'flex', alignItems: 'center' }}
@@ -101,25 +101,25 @@ export default function Header() {
                   >
                     {user.fullName || tt("Người dùng", "User")}
                   </Typography>
-                </Link>
+                </LocalizedLink>
               </li>
             ) : (
               <>
                 <li>
-                  <Link
+                  <LocalizedLink
                     href="/auth/login"
                     className="btn-sm bg-white text-gray-800 shadow hover:bg-gray-50"
                   >
                     {tt("Đăng nhập", "Login")}
-                  </Link>
+                  </LocalizedLink>
                 </li>
                 <li>
-                  <Link
+                  <LocalizedLink
                     href="/auth/sign-up"
                     className="btn-sm bg-gray-800 text-gray-200 shadow hover:bg-gray-900"
                   >
                     {tt("Đăng ký", "Sign Up")}
-                  </Link>
+                  </LocalizedLink>
                 </li>
               </>
             )}

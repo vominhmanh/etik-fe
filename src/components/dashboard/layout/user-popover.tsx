@@ -29,7 +29,7 @@ export interface UserPopoverProps {
 }
 
 export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): React.JSX.Element {
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
   const { checkSession, user, setUser } = useUser();
   const [authUser, setAuthUser] = React.useState<User | null>(null);
 
@@ -44,6 +44,17 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
 
   const router = useRouter();
 
+  // Helper to make path locale-aware
+  const getLocalizedPath = React.useCallback((path: string): string => {
+    if (locale === 'en' && !path.startsWith('/en')) {
+      return `/en${path}`;
+    }
+    if (locale === 'vi' && path.startsWith('/en')) {
+      return path.substring(3) || '/';
+    }
+    return path;
+  }, [locale]);
+
   const handleSignOut = React.useCallback(async (): Promise<void> => {
     try {
       const { error } = await authClient.signOut();
@@ -55,12 +66,13 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
 
       // Clear user from context immediately to avoid guard loops, then navigate
       setUser(null);
-      router.push(paths.auth.signIn);
+      const localizedSignInPath = getLocalizedPath(paths.auth.signIn);
+      router.push(localizedSignInPath);
       // After refresh, AuthGuard will handle the redirect
     } catch (err) {
       logger.error('Sign out error', err);
     }
-  }, [router]);
+  }, [router, locale, getLocalizedPath, setUser]);
 
   return (
     <Popover

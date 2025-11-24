@@ -13,6 +13,7 @@ import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
 import logoImage from "@/images/etik-logo-transparent-dark.png";
+import logoImageEn from "@/images/etik-logo-transparent-dark-en.png";
 import Image from "next/image";
 import { useTranslation } from '@/contexts/locale-context';
 
@@ -20,11 +21,12 @@ import { getNavItems } from './config';
 import Stack from "@mui/material/Stack";
 
 export function SideNav(): React.JSX.Element {
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
   const pathname = usePathname();
   const navItems = React.useMemo(() => getNavItems(tt), [tt]);
   const { key: firstKey, ...firstItem } = navItems[0];
   const { key: secondKey, ...secondItem } = navItems[1];
+  const logo = locale === 'en' ? logoImageEn : logoImage;
 
   return (
     <Box
@@ -56,9 +58,9 @@ export function SideNav(): React.JSX.Element {
     >
       <Stack sx={{position: 'sticky', top: 0}}>
         <Stack spacing={2} sx={{ p: 2 }}>
-        <Box component={LocalizedLink} href={paths.home} sx={{ display: 'inline-flex' }}>
+        <Box component={LocalizedLink} href={paths.dashboard.overview} sx={{ display: 'inline-flex' }}>
             <Image
-                src={logoImage}
+                src={logo}
                 alt="Left Logo"
                 height={40}
                 className="mr-2" // Khoảng cách giữa hai logo
@@ -75,22 +77,6 @@ export function SideNav(): React.JSX.Element {
       </Box>
       </Stack>
     </Box>
-  );
-}
-
-function renderNavItems({ items = [], pathname }: { items?: NavItemConfig[]; pathname: string }): React.JSX.Element {
-  const children = items.reduce((acc: React.ReactNode[], curr: NavItemConfig): React.ReactNode[] => {
-    const { key, ...item } = curr;
-
-    acc.push(<NavItem key={key} pathname={pathname} {...item} />);
-
-    return acc;
-  }, []);
-
-  return (
-    <Stack component="ul" spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }}>
-      {children}
-    </Stack>
   );
 }
 

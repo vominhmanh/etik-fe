@@ -13,8 +13,9 @@ import Typography from '@mui/material/Typography';
 import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
 
-import { authClient } from '@/lib/auth/client';
 import { useTranslation } from '@/contexts/locale-context';
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
+import { AxiosResponse } from 'axios';
 
 type Values = {
   email: string;
@@ -41,19 +42,18 @@ export function OTPVerification(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { error } = await authClient.resetPassword(values);
-
-      if (error) {
-        setError('root', { type: 'server', message: error });
+      try {
+        const res: AxiosResponse = await baseHttpServiceInstance.post('/auth/send-otp-to-reset-password', {
+          email: values.email,
+        });
+        // Success - OTP sent (component doesn't handle next step, just sends OTP)
         setIsPending(false);
-        return;
+      } catch (error: any) {
+        setError('root', { type: 'server', message: error?.response?.data?.message || error?.message || tt('Có lỗi xảy ra', 'An error occurred') });
+        setIsPending(false);
       }
-
-      setIsPending(false);
-
-      // Redirect to confirm password reset
     },
-    [setError]
+    [setError, tt]
   );
 
   return (

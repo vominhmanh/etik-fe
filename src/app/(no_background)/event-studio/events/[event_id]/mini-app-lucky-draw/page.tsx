@@ -5,6 +5,7 @@ import { AxiosResponse } from "axios";
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import dayjs from "dayjs";
 import NotificationContext from "@/contexts/notification-context";
+import { useTranslation } from '@/contexts/locale-context';
 import React from "react";
 import { RandomReveal } from "react-random-reveal";
 import { Box, Button } from "@mui/material";
@@ -42,6 +43,7 @@ export interface LuckyNumberAppConfig {
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const { event_id } = params;
+  const { tt, locale } = useTranslation();
   const notificationCtx = useContext(NotificationContext);
   const [initials, setInitials] = useState([true, true, true, true, true, true, true, true, true, true]);
   const [data, setData] = useState<TransactionECodeResponse | null>(null);
@@ -93,7 +95,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     <>
       {isLoading ? (
         <div className="absolute text-white text-lg bg-black/60 px-4 py-2 rounded-md">
-          Loading...
+          {tt("Đang tải...", "Loading...")}
         </div>
       ) : (
         <div
@@ -133,11 +135,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               fontWeight: 'bold',
             }}
           >
-            Chọn giao diện Quay số may mắn
+            {tt("Chọn giao diện Quay số may mắn", "Choose Lucky Draw Interface")}
           </div>
           {/* Absolute squared div (like an app icon button) */}
           <div
-            onClick={() => { router.push(`/event-studio/events/${event_id}/mini-app-lucky-draw/ghost-legend-2025`); }} // Use Next.js router for navigation
+            onClick={() => { 
+              const path = `/event-studio/events/${event_id}/mini-app-lucky-draw/ghost-legend-2025`;
+              router.push(locale === 'en' ? `/en${path}` : path);
+            }} // Use Next.js router for navigation
             style={{
               position: 'absolute',
               top: '30%',  // Adjust vertical position
@@ -175,7 +180,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           </div>
 
           <div
-            onClick={() => { router.push(`/event-studio/events/${event_id}/mini-app-lucky-draw/ghost-legend-2025-20`); }} // Use Next.js router for navigation
+            onClick={() => { 
+              const path = `/event-studio/events/${event_id}/mini-app-lucky-draw/ghost-legend-2025-20`;
+              router.push(locale === 'en' ? `/en${path}` : path);
+            }} // Use Next.js router for navigation
             style={{
               position: 'absolute',
               top: '30%',  // Adjust vertical position
@@ -213,7 +221,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           </div>
 
           <div
-            onClick={() => { router.push(`/event-studio/events/${event_id}/mini-app-lucky-draw/ghost-legend-2025-5`); }} // Use Next.js router for navigation
+            onClick={() => { 
+              const path = `/event-studio/events/${event_id}/mini-app-lucky-draw/ghost-legend-2025-5`;
+              router.push(locale === 'en' ? `/en${path}` : path);
+            }} // Use Next.js router for navigation
             style={{
               position: 'absolute',
               top: '30%',  // Adjust vertical position

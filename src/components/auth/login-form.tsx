@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { LocalizedLink } from '@/components/localized-link';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -33,7 +33,7 @@ type Values = zod.infer<typeof schema>;
 const defaultValues = { email: '', password: '' } satisfies Values;
 
 export function SignInForm(): React.JSX.Element {
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
   const router = useRouter();
   const [popupContent, setPopupContent] = React.useState<{
     type?: 'error' | 'success' | 'info' | 'warning';
@@ -44,9 +44,38 @@ export function SignInForm(): React.JSX.Element {
   const [showPassword, setShowPassword] = React.useState<boolean>();
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const searchParams = useSearchParams();
-  const returnUrl = React.useMemo(() => getDecodedReturnUrl(searchParams.get('returnUrl'), '/dashboard'), [searchParams]);
+  const pathname = usePathname();
   const errorParam = useSearchParams().get('error');
   const notificationCtx = React.useContext(NotificationContext);
+  
+  // Get returnUrl and preserve its locale if it has one
+  const returnUrl = React.useMemo(() => {
+    const decoded = getDecodedReturnUrl(searchParams.get('returnUrl'), '/dashboard');
+    // If returnUrl already has locale (starts with /en), preserve it
+    // Otherwise, apply current locale
+    if (decoded.startsWith('/en')) {
+      return decoded; // Already has locale
+    }
+    // Apply current locale based on pathname (not the locale hook which might be based on current page)
+    const currentLocale = pathname?.startsWith('/en') ? 'en' : 'vi';
+    if (currentLocale === 'en' && !decoded.startsWith('/en')) {
+      return `/en${decoded}`;
+    }
+    return decoded;
+  }, [searchParams, pathname]);
+  
+  // Helper to make path locale-aware based on current locale selection
+  const getLocalizedPath = React.useCallback((path: string): string => {
+    // If path already has locale, preserve it
+    if (path.startsWith('/en')) {
+      return path;
+    }
+    // Apply current locale
+    if (locale === 'en' && !path.startsWith('/en')) {
+      return `/en${path}`;
+    }
+    return path;
+  }, [locale]);
   
   const schema = React.useMemo(() => zod.object({
     email: zod.string().min(1, { message: tt('Email là bắt buộc', 'Email is required') }).email({ message: tt('Email không hợp lệ', 'Invalid email') }),
@@ -71,6 +100,7 @@ export function SignInForm(): React.JSX.Element {
         });
 
         await checkSession();
+        // returnUrl already has correct locale preserved, use it directly
         router.push(returnUrl);
       } catch (error: any) {
         setPopupContent({
@@ -80,7 +110,7 @@ export function SignInForm(): React.JSX.Element {
         setIsPending(false);
       }
     },
-    [router, setError, returnUrl]
+    [router, setError, returnUrl, checkSession, tt]
   );
 
 
@@ -202,7 +232,8 @@ export function SignInForm(): React.JSX.Element {
             </svg>
           }
           onClick={() => {
-            // Redirect to Google OAuth endpoint
+            // Redirect to Google OAuth endpoint with locale-aware returnUrl
+            // returnUrl already has correct locale preserved
             window.location.href = process.env.NEXT_PUBLIC_BASE_URL + '/auth/login/google?returnUrl=' + encodeURIComponent(returnUrl);
           }}
           sx={{ textTransform: 'none', fontWeight: 500 }}

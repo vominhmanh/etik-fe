@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -29,12 +30,25 @@ type Values = {
 const defaultValues = { email: '', password: '12A@1223a@', otp: '123456' } satisfies Values;
 
 export function ResetPasswordForm(): React.JSX.Element {
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
+  const router = useRouter();
+  const pathname = usePathname();
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const [isOtpModalOpen, setIsOtpModalOpen] = React.useState<boolean>(false);
   const [showPasswordInput, setShowPasswordInput] = React.useState<boolean>(false);
 
   const notificationCtx = React.useContext(NotificationContext);
+  
+  // Helper to make path locale-aware
+  const getLocalizedPath = React.useCallback((path: string): string => {
+    if (locale === 'en' && !path.startsWith('/en')) {
+      return `/en${path}`;
+    }
+    if (locale === 'vi' && path.startsWith('/en')) {
+      return path.substring(3) || '/';
+    }
+    return path;
+  }, [locale]);
 
   const schema = React.useMemo(() => zod.object({
     email: zod.string().email({ message: tt('Email không hợp lệ', 'Invalid email') }),
@@ -83,8 +97,9 @@ export function ResetPasswordForm(): React.JSX.Element {
         password: values.password
       });
       notificationCtx.success(tt('Đổi mật khẩu thành công.', 'Password changed successfully.'));
-      // Redirect to login page
-      window.location.href = '/auth/login';
+      // Redirect to login page with locale-aware path
+      const localizedLoginPath = getLocalizedPath('/auth/login');
+      router.push(localizedLoginPath);
     } catch (error: any) {
       setError('otp', { type: 'manual', message: error.message || tt('Xác thực OTP không thành công', 'OTP verification failed') });
     } finally {

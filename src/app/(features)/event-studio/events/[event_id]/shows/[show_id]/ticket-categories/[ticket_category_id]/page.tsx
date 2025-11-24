@@ -24,6 +24,7 @@ import { useEffect, useState } from 'react';
 import ReactQuill from 'react-quill'; // Import ReactQuill
 
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 import 'react-quill/dist/quill.snow.css'; // Import Quill styles
 
 type TicketcategoryFormData = {
@@ -42,9 +43,10 @@ export default function Page({
 }: {
   params: { event_id: number; show_id: number; ticket_category_id: number };
 }): React.JSX.Element {
+  const { tt, locale } = useTranslation();
   React.useEffect(() => {
-    document.title = "Chi tiết loại vé | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Chi tiết loại vé | ETIK - Vé điện tử & Quản lý sự kiện", "Ticket Category Details | ETIK - E-tickets & Event Management");
+  }, [tt]);
   const eventId = params.event_id;
   const showId = params.show_id;
   const ticketCategoryId = params.ticket_category_id;
@@ -144,25 +146,25 @@ export default function Page({
   // Save the edited ticket category
   const handleSave = async () => {
     if (!formData.name) {
-      notificationCtx.warning('Tên loại vé không được để trống.');
+      notificationCtx.warning(tt('Tên loại vé không được để trống.', 'Ticket category name cannot be empty.'));
       return
     }
     if (formData.limitPerTransaction && formData.limitPerCustomer) {
       if (formData.limitPerTransaction > formData.quantity) {
-        notificationCtx.warning('Số vé tối đa mỗi giao dịch phải nhỏ hơn hoặc bằng Tổng số vé.');
+        notificationCtx.warning(tt('Số vé tối đa mỗi giao dịch phải nhỏ hơn hoặc bằng Tổng số vé.', 'Maximum tickets per transaction must be less than or equal to total tickets.'));
         return
       }
       if (formData.limitPerTransaction && formData.limitPerCustomer && formData.limitPerCustomer > formData.quantity) {
-        notificationCtx.warning('Số vé tối đa mỗi khách hàng phải nhỏ hơn hoặc bằng Tổng số vé.');
+        notificationCtx.warning(tt('Số vé tối đa mỗi khách hàng phải nhỏ hơn hoặc bằng Tổng số vé.', 'Maximum tickets per customer must be less than or equal to total tickets.'));
         return
       }
       if (formData.limitPerTransaction > formData.limitPerCustomer) {
-        notificationCtx.warning('Số vé tối đa mỗi giao dịch phải nhỏ hơn hoặc bằng số vé tối đa mỗi khách hàng.');
+        notificationCtx.warning(tt('Số vé tối đa mỗi giao dịch phải nhỏ hơn hoặc bằng số vé tối đa mỗi khách hàng.', 'Maximum tickets per transaction must be less than or equal to maximum tickets per customer.'));
         return
       }
     }
     if (!formData.limitPerTransaction && formData.limitPerCustomer) {
-      notificationCtx.warning('Số vé tối đa mỗi giao dịch phải nhỏ hơn hoặc bằng số vé tối đa mỗi khách hàng.');
+      notificationCtx.warning(tt('Số vé tối đa mỗi giao dịch phải nhỏ hơn hoặc bằng số vé tối đa mỗi khách hàng.', 'Maximum tickets per transaction must be less than or equal to maximum tickets per customer.'));
       return
     }
     try {
@@ -185,19 +187,15 @@ export default function Page({
       if (formData.price > 0) {
         setOpenNotifModal(true)
       } else {
-        router.push(`/event-studio/events/${eventId}/shows`);
+        const path = `/event-studio/events/${eventId}/shows`;
+        router.push(locale === 'en' ? `/en${path}` : path);
       }
     } catch (error) {
-      notificationCtx.error('Lỗi:', error);
+      notificationCtx.error(tt('Lỗi:', 'Error:'), error);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleCloseNotifModal = () => {
-    setOpenNotifModal(false)
-    router.push(`/event-studio/events/${eventId}/shows`);
-  }
 
 
   return (
@@ -215,48 +213,48 @@ export default function Page({
         </Backdrop>
         <Stack direction="row" spacing={3}>
           <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-            <Typography variant="h4">Xem chi tiết loại vé "{formData.name}"</Typography>
-            <Typography variant="body2">Suất diễn "{showName}"</Typography>
+            <Typography variant="h4">{tt('Xem chi tiết loại vé', 'View Ticket Category Details')} "{formData.name}"</Typography>
+            <Typography variant="body2">{tt('Suất diễn', 'Show')} "{showName}"</Typography>
           </Stack>
         </Stack>
         <Grid container spacing={3}>
           <Grid lg={12} md={12} xs={12}>
             <Stack spacing={3}>
               <Card>
-                <CardHeader subheader="Vui lòng điền các trường thông tin phía dưới." title="Thông tin vé" />
+                <CardHeader subheader={tt("Vui lòng điền các trường thông tin phía dưới.", "Please fill in the information fields below.")} title={tt("Thông tin vé", "Ticket Information")} />
                 <Divider />
                 <CardContent>
                   <Grid container spacing={3}>
                     <Grid md={4} xs={12}>
                       <FormControl fullWidth required>
-                        <InputLabel>Tên loại vé</InputLabel>
-                        <OutlinedInput label="Tên loại vé" name="name" value={formData.name} onChange={handleChange} />
+                        <InputLabel>{tt("Tên loại vé", "Ticket Category Name")}</InputLabel>
+                        <OutlinedInput label={tt("Tên loại vé", "Ticket Category Name")} name="name" value={formData.name} onChange={handleChange} />
                       </FormControl>
                     </Grid>
                     <Grid md={4} xs={12}>
                       <FormControl fullWidth required>
-                        <InputLabel>Phân loại</InputLabel>
+                        <InputLabel>{tt("Phân loại", "Category")}</InputLabel>
                         <Select
-                          label="Phân loại"
+                          label={tt("Phân loại", "Category")}
                           name="type"
                           value={formData.type}
                           onChange={(event: any) => handleChange(event)}
                         >
-                          <MenuItem value="private">Nội bộ</MenuItem>
-                          <MenuItem value="public">Công khai</MenuItem>
+                          <MenuItem value="private">{tt("Nội bộ", "Private")}</MenuItem>
+                          <MenuItem value="public">{tt("Công khai", "Public")}</MenuItem>
                         </Select>
-                        <FormHelperText>Chế độ công khai: Cho phép Người mua nhìn thấy và mua vé này</FormHelperText>
+                        <FormHelperText>{tt("Chế độ công khai: Cho phép Người mua nhìn thấy và mua vé này", "Public mode: Allows buyers to see and purchase this ticket")}</FormHelperText>
                       </FormControl>
                     </Grid>
                     {formData.type === 'public' && (
                       <Grid md={4} xs={12}>
                         <FormControl fullWidth required>
-                          <InputLabel>Cách phê duyệt đơn hàng</InputLabel>
-                          <Select label="Cách phê duyệt yêu cầu mua vé của khách hàng" name="approvalMethod" value={formData.approvalMethod} onChange={(event: any) => handleChange(event)}>
-                            <MenuItem value="auto">Tự động phê duyệt</MenuItem>
-                            <MenuItem value="manual">Phê duyệt thủ công</MenuItem>
+                          <InputLabel>{tt("Cách phê duyệt đơn hàng", "Order Approval Method")}</InputLabel>
+                          <Select label={tt("Cách phê duyệt yêu cầu mua vé của khách hàng", "How to approve customer ticket purchase requests")} name="approvalMethod" value={formData.approvalMethod} onChange={(event: any) => handleChange(event)}>
+                            <MenuItem value="auto">{tt("Tự động phê duyệt", "Auto Approve")}</MenuItem>
+                            <MenuItem value="manual">{tt("Phê duyệt thủ công", "Manual Approval")}</MenuItem>
                           </Select>
-                          <FormHelperText>Phê duyệt thủ công: bạn phải kiểm tra và xuất vé cho khách hàng</FormHelperText>
+                          <FormHelperText>{tt("Phê duyệt thủ công: bạn phải kiểm tra và xuất vé cho khách hàng", "Manual approval: you must check and issue tickets to customers")}</FormHelperText>
                         </FormControl>
                       </Grid>
                     )}
@@ -265,7 +263,7 @@ export default function Page({
                         <ReactQuill
                           value={formData.description}
                           onChange={(value) => setFormData((prev) => ({ ...prev, description: value }))}
-                          placeholder="Nhập mô tả sự kiện..."
+                          placeholder={tt("Nhập mô tả sự kiện...", "Enter event description...")}
                         />
                       </FormControl>
                     </Grid>
@@ -277,16 +275,16 @@ export default function Page({
                   <Grid container spacing={3}>
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth required>
-                        <InputLabel>Trạng thái</InputLabel>
+                        <InputLabel>{tt("Trạng thái", "Status")}</InputLabel>
                         <Select
-                          label="Trạng thái"
+                          label={tt("Trạng thái", "Status")}
                           name="status"
                           value={formData.status}
                           onChange={handleChange as (event: SelectChangeEvent<string>, child: React.ReactNode) => void}
                         >
-                          <MenuItem value="on_sale">Đang mở bán</MenuItem>
-                          <MenuItem value="not_opened_for_sale">Chưa mở bán</MenuItem>
-                          <MenuItem value="temporarily_locked">Đang tạm khoá</MenuItem>
+                          <MenuItem value="on_sale">{tt("Đang mở bán", "On Sale")}</MenuItem>
+                          <MenuItem value="not_opened_for_sale">{tt("Chưa mở bán", "Not Open for Sale")}</MenuItem>
+                          <MenuItem value="temporarily_locked">{tt("Đang tạm khoá", "Temporarily Locked")}</MenuItem>
                         </Select>
                       </FormControl>
                     </Grid>
@@ -295,7 +293,7 @@ export default function Page({
               </Card>
               <Card>
                 <CardHeader
-                  title="Số lượng vé"
+                  title={tt("Số lượng vé", "Ticket Quantity")}
                   action={
                     <OutlinedInput
                       sx={{ maxWidth: { xs: 70, sm: 180 } }}
@@ -312,7 +310,7 @@ export default function Page({
                   }
                 />
                 <CardHeader
-                  title="Giá vé"
+                  title={tt("Giá vé", "Ticket Price")}
                   action={
                     <OutlinedInput
                       sx={{ maxWidth: { xs: 70, sm: 180 } }}
@@ -331,12 +329,12 @@ export default function Page({
                   }
                 />
                 <CardHeader
-                  title="Số vé tối đa mỗi đơn hàng"
+                  title={tt("Số vé tối đa mỗi đơn hàng", "Maximum Tickets Per Order")}
                   subheader={
                     <Box display="flex" alignItems="center">
                       <FormControlLabel
                         control={<Checkbox checked={isTransactionLimitUnlimited} onChange={handleTransactionLimitCheckboxChange} />}
-                        label={<Typography variant="body2">Không giới hạn</Typography>}
+                        label={<Typography variant="body2">{tt("Không giới hạn", "Unlimited")}</Typography>}
                       />
                     </Box>
                   }
@@ -351,12 +349,12 @@ export default function Page({
                   }
                 />
                 <CardHeader
-                  title="Số vé tối đa mỗi khách hàng"
+                  title={tt("Số vé tối đa mỗi khách hàng", "Maximum Tickets Per Customer")}
                   subheader={
                     <Box display="flex" alignItems="center">
                       <FormControlLabel
                         control={<Checkbox checked={isCustomerLimitUnlimited} onChange={handleCustomerLimitCheckboxChange} />}
-                        label={<Typography variant="body2">Không giới hạn</Typography>}
+                        label={<Typography variant="body2">{tt("Không giới hạn", "Unlimited")}</Typography>}
                       />
                     </Box>
                   }
@@ -373,7 +371,7 @@ export default function Page({
               </Card>
               <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
                 <Button variant="contained" onClick={handleSave}>
-                  Lưu
+                  {tt("Lưu", "Save")}
                 </Button>
               </Grid>
             </Stack>

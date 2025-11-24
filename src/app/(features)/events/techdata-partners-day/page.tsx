@@ -142,7 +142,8 @@ const paymentMethodLabelMap: Record<string, string> = {
   napas247: 'Napas 247',
 };
 
-export default function Page({ params }: { params: { event_slug: string } }): React.JSX.Element {
+export default function Page(): React.JSX.Element {
+  const params = { event_slug: 'techdata-partners-day' }
   const searchParams = useSearchParams();
   const { tt, locale: lang } = useTranslation();
   const [event, setEvent] = React.useState<EventResponse | null>(null);
@@ -1233,44 +1234,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   </Card>
                 )}
 
-                {/* Payment Method */}
-                {totalAmount > 0 &&
-                  <Card>
-                    <CardHeader
-                      title={tt('Phương thức thanh toán', 'Payment method')}
-                    />
-                    <Divider />
-                    <CardContent>
-                      <FormControl fullWidth>
-                        <Select
-                          name="payment_method"
-                          value={paymentMethod}
-                          onChange={(e) => setPaymentMethod(e.target.value)}
-                        >
-                          <MenuItem value="napas247" selected={true}>
-                            {tt('Chuyển khoản nhanh Napas 247', 'Napas 247 instant transfer')}
-                          </MenuItem>
-                        </Select>
-                        <FormHelperText>{tt('Tự động xuất vé khi thanh toán thành công', 'Tickets will be issued automatically after successful payment')}</FormHelperText>
-                      </FormControl>
-                    </CardContent>
-                  </Card>
-                }
-                {/* Payment Summary */}
-                {Object.values(selectedCategories).some((catMap) => Object.keys(catMap || {}).length > 0) && (
-                  <Card>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{tt('Tổng cộng:', 'Total:')}</Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                          {formatPrice(
-                            totalAmount
-                          )}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                )}
+                
                 {/* Submit Button */}
                 <Grid spacing={3} container sx={{ alignItems: 'center', mt: '3' }}>
                   <Grid item sm={9} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
@@ -1298,7 +1262,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         <DialogTitle sx={{ color: "primary.main" }}>{tt('Xác nhận tạo đơn hàng', 'Confirm order creation')}</DialogTitle>
         <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt('Thông tin người mua', 'Buyer information')}</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt('Thông tin đăng ký', 'Registration information')}</Typography>
             {checkoutFormFields.filter(f => f.visible).map((field) => {
               if (builtinInternalNames.has(field.internal_name)) {
                 // Built-in fields
@@ -1398,11 +1362,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                           <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{show?.name || tt('Chưa xác định', 'Unknown')} - {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket type')}</Typography>
                         </Stack>
                         <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                          <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
-                          <Typography variant="caption">x {quantity}</Typography>
-                          <Typography variant="caption">
-                            = {formatPrice((ticketCategory?.price || 0) * quantity)}
-                          </Typography>
+                          <Typography variant="caption">{quantity}</Typography>
                         </Stack>
                       </Stack>
 
@@ -1431,19 +1391,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 });
               })}
             </Stack>
-            <Divider />
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body2">{tt('Phương thức thanh toán', 'Payment method')}</Typography>
-              <Typography variant="body2">{tt(paymentMethodLabelMap[paymentMethod] || paymentMethod, paymentMethod === 'napas247' ? 'Napas 247 instant transfer' : paymentMethod)}</Typography>
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{tt('Tổng cộng', 'Total')}</Typography>
-              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                {formatPrice(totalAmount)}
-              </Typography>
-            </Box>
           </Stack>
         </DialogContent>
         <DialogActions>

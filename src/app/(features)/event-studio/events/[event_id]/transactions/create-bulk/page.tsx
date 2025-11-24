@@ -820,7 +820,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       );
       const newTransaction = response.data;
       setConfirmOpen(false);
-      router.push(`/event-studio/events/${params.event_id}/transactions`); // Navigate to a different page on success
+      const path = `/event-studio/events/${params.event_id}/transactions`;
+      router.push(locale === 'en' ? `/en${path}` : path); // Navigate to a different page on success
       notificationCtx.success(tt('Tạo giao dịch thành công', 'Transaction created successfully'));
     } catch (error) {
       const err: any = error as any;

@@ -10,7 +10,7 @@ const nextConfig = {
       },
       {
         // English: /en/:slug → /en/events/:slug
-        source: '/en/:slug((?!account|share|account-event-agency|marketplace|transaction-checkout|auth|errors|event-studio|events|sso)[^/]+)',
+        source: '/en/:slug((?!dashboard|account|share|account-event-agency|marketplace|transaction-checkout|auth|errors|event-studio|events|sso)[^/]+)',
         destination: '/en/events/:slug',
         permanent: false,
       },

@@ -12,6 +12,7 @@ import * as React from 'react';
 import { useLocale, useTranslation } from '@/contexts/locale-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { LocalizedLink } from '@/components/localized-link';
+import { paths } from '@/paths';
 
 const pages = ['Sự kiện mới', 'Event Studio'];
 
@@ -98,7 +99,7 @@ export function ResponsiveAppBar() {
             </Button> */}
             <Button
               component={LocalizedLink}
-              href='/dashboard'
+              href={paths.home}
               scroll={false}
               onClick={handleCloseNavMenu}
               sx={{ my: 0, color: 'white', display: 'block', py: 0, fontSize: { xs: '11px', md: '13px' }, p:0 }}

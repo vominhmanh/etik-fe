@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { LocalizedLink } from '@/components/localized-link';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -46,13 +46,14 @@ type Values = {
 const defaultValues = { fullName: '', phoneNumber: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2, email: '', password: '', terms: false, otp: '' } satisfies Values;
 
 export function SignUpForm(): React.JSX.Element {
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
   const router = useRouter();
   const { checkSession, user } = useUser();
   const [popupContent, setPopupContent] = React.useState<{ type?: 'error' | 'success' | 'info' | 'warning'; message: string; }>({ type: undefined, message: '' });
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const [isOtpModalOpen, setIsOtpModalOpen] = React.useState<boolean>(false); // State to manage OTP modal visibility
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   
   const schema = React.useMemo(() => zod.object({
     fullName: zod.string().min(1, { message: tt('Tên đầy đủ là bắt buộc', 'Full name is required') }),
@@ -70,7 +71,22 @@ export function SignUpForm(): React.JSX.Element {
   }), [tt]);
   
   const { control, handleSubmit, setError, formState: { errors } } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
-  const returnUrl = searchParams.get('returnUrl') || '/dashboard';
+  
+  // Get returnUrl and preserve its locale if it has one, otherwise apply current locale
+  const returnUrl = React.useMemo(() => {
+    const rawReturnUrl = searchParams.get('returnUrl') || '/dashboard';
+    const decoded = rawReturnUrl.startsWith('/') ? rawReturnUrl : decodeURIComponent(rawReturnUrl);
+    // If returnUrl already has locale (starts with /en), preserve it
+    if (decoded.startsWith('/en')) {
+      return decoded;
+    }
+    // Apply current locale based on pathname
+    const currentLocale = pathname?.startsWith('/en') ? 'en' : 'vi';
+    if (currentLocale === 'en' && !decoded.startsWith('/en')) {
+      return `/en${decoded}`;
+    }
+    return decoded;
+  }, [searchParams, pathname]);
 
   const onSubmit =
     async (values: Values): Promise<void> => {
@@ -113,8 +129,9 @@ export function SignUpForm(): React.JSX.Element {
       const res: AuthRes = await authClient.verifyOtp(values.email, values.otp || ""); // Call verify API
       localStorage.setItem('accessToken', res.access_token);
 
-      const authUser = user
-      router.push(`${returnUrl}`)
+      await checkSession();
+      // returnUrl already has correct locale preserved
+      router.push(returnUrl)
     } catch (error: any) {
       setError("otp", { type: "manual", message: error.message || tt('Xác thực OTP không thành công', 'OTP verification failed') });
     } finally {

@@ -23,13 +23,15 @@ import * as React from 'react';
 import { useState } from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 
 import 'react-quill/dist/quill.snow.css'; // Import styles for ReactQuill
 
 export default function Page({ params }: { params: { event_id: number; show_id: number } }): React.JSX.Element {
+  const { tt, locale } = useTranslation();
   React.useEffect(() => {
-    document.title = "Thêm suất diễn mới | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Thêm suất diễn mới | ETIK - Vé điện tử & Quản lý sự kiện", "Add New Show | ETIK - E-tickets & Event Management");
+  }, [tt]);
   const eventId = params.event_id;
   const showId = params.show_id;
   const [formData, setFormData] = useState({
@@ -60,19 +62,19 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
   const handleSubmit = async () => {
     try {
       if (!formData.name) {
-        notificationCtx.warning('Tên suất diễn không được để trống.');
+        notificationCtx.warning(tt('Tên suất diễn không được để trống.', 'Show name cannot be empty.'));
         return
       }
       if (!formData.type) {
-        notificationCtx.warning('Bạn phải chọn phân loại suất diễn.');
+        notificationCtx.warning(tt('Bạn phải chọn phân loại suất diễn.', 'You must select a show category.'));
         return
       }
       if (!formData.startDateTime || !formData.endDateTime) {
-        notificationCtx.warning('Thời gian suất diễn không được để trống.');
+        notificationCtx.warning(tt('Thời gian suất diễn không được để trống.', 'Show time cannot be empty.'));
         return
       }
       if (new Date(formData.startDateTime) > new Date(formData.endDateTime)) {
-        notificationCtx.warning('Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc');
+        notificationCtx.warning(tt('Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc', 'Start time must be less than end time'));
         return
       }
       setIsLoading(true);
@@ -85,10 +87,11 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
           endDateTime: formData.endDateTime,
         }
       );
-      notificationCtx.success('Thêm suất diễn thành công');
-      router.push(`/event-studio/events/${eventId}/schedules`);
+      notificationCtx.success(tt('Thêm suất diễn thành công', 'Show added successfully'));
+      const path = `/event-studio/events/${eventId}/schedules`;
+      router.push(locale === 'en' ? `/en${path}` : path);
     } catch (error) {
-      notificationCtx.error('Lỗi', error);
+      notificationCtx.error(tt('Lỗi', 'Error'), error);
     } finally {
       setIsLoading(false);
     }
@@ -108,42 +111,42 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
       </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Suất diễn mới</Typography>
+          <Typography variant="h4">{tt("Suất diễn mới", "New Show")}</Typography>
         </Stack>
       </Stack>
       <Grid container spacing={3}>
         <Grid lg={12} md={12} xs={12}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader subheader="Vui lòng điền các trường thông tin phía dưới." title="Thông tin suất diễn" />
+              <CardHeader subheader={tt("Vui lòng điền các trường thông tin phía dưới.", "Please fill in the information fields below.")} title={tt("Thông tin suất diễn", "Show Information")} />
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel>Tên suất diễn</InputLabel>
-                      <OutlinedInput label="Tên suất diễn" name="name" value={formData.name} onChange={handleChange} />
+                      <InputLabel>{tt("Tên suất diễn", "Show Name")}</InputLabel>
+                      <OutlinedInput label={tt("Tên suất diễn", "Show Name")} name="name" value={formData.name} onChange={handleChange} />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel>Phân loại</InputLabel>
+                      <InputLabel>{tt("Phân loại", "Category")}</InputLabel>
                       <Select
-                        label="Phân loại"
+                        label={tt("Phân loại", "Category")}
                         name="type"
                         value={formData.type}
                         onChange={(event: any) => handleChange(event)}
                       >
-                        <MenuItem value="private">Nội bộ</MenuItem>
-                        <MenuItem value="public">Công khai</MenuItem>
+                        <MenuItem value="private">{tt("Nội bộ", "Private")}</MenuItem>
+                        <MenuItem value="public">{tt("Công khai", "Public")}</MenuItem>
                       </Select>
-                      <FormHelperText>Chế độ công khai: Cho phép Người mua nhìn thấy.</FormHelperText>
+                      <FormHelperText>{tt("Chế độ công khai: Cho phép Người mua nhìn thấy.", "Public mode: Allows buyers to see.")}</FormHelperText>
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <TextField
-                        label="Thời gian bắt đầu"
+                        label={tt("Thời gian bắt đầu", "Start Time")}
                         type="datetime-local"
                         name="startDateTime"
                         value={formData.startDateTime || ''}
@@ -155,7 +158,7 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth required>
                       <TextField
-                        label="Thời gian kết thúc"
+                        label={tt("Thời gian kết thúc", "End Time")}
                         type="datetime-local"
                         name="endDateTime"
                         value={formData.endDateTime || ''}
@@ -170,7 +173,7 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
 
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
               <Button variant="contained" onClick={handleSubmit}>
-                Tạo
+                {tt("Tạo", "Create")}
               </Button>
             </Grid>
           </Stack>

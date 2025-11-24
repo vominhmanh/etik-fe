@@ -37,6 +37,7 @@ import NotificationContext from '@/contexts/notification-context';
 import { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import logoImage from "@/images/etik-logo-transparent-dark.png";
+import logoImageEn from "@/images/etik-logo-transparent-dark-en.png";
 import Image from "next/image";
 import { useTranslation } from '@/contexts/locale-context';
 
@@ -62,8 +63,9 @@ export type EventResponse = {
 };
 
 export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element {
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
   const pathname = usePathname();
+  const logo = locale === 'en' ? logoImageEn : logoImage;
   const [dynamicId, setDynamicId] = React.useState<string | null>(null);
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const notificationCtx = React.useContext(NotificationContext);
@@ -124,9 +126,9 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
           <IconButton sx={{ color: "var(--mui-palette-neutral-400)" }} component={LocalizedLink} href="/event-studio/events/">
             <CaretLeftIcon />
           </IconButton>
-          <LocalizedLink href={paths.home} style={{ display: 'inline-flex' }}>
+          <LocalizedLink href={paths.dashboard.eventStudio} style={{ display: 'inline-flex' }}>
             <Image
-              src={logoImage}
+              src={logo}
               alt="Left Logo"
               height={40}
               className="mr-2" // Khoảng cách giữa hai logo

@@ -23,17 +23,33 @@ import { Container } from '@mui/material';
 import { useTranslation } from '@/contexts/locale-context';
 
 export function MainNav(): React.JSX.Element {
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
   const userPopover = usePopover<HTMLDivElement>();
 
   const { user } = useUser();
 
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  
+  // Helper to make path locale-aware
+  const getLocalizedPath = React.useCallback((path: string): string => {
+    if (locale === 'en' && !path.startsWith('/en')) {
+      return `/en${path}`;
+    }
+    if (locale === 'vi' && path.startsWith('/en')) {
+      return path.substring(3) || '/';
+    }
+    return path;
+  }, [locale]);
+  
   const encodedReturnUrl = React.useMemo(() => {
+    // Ensure pathname includes locale if needed for returnUrl
+    const pathForReturnUrl = locale === 'en' && !pathname?.startsWith('/en') 
+      ? `/en${pathname || '/'}` 
+      : (pathname || '/');
     const search = searchParams?.toString() ? `?${searchParams.toString()}` : '';
-    return buildReturnUrl(pathname || '/', search);
-  }, [pathname, searchParams]);
+    return buildReturnUrl(pathForReturnUrl, search);
+  }, [pathname, searchParams, locale]);
 
 
   return (

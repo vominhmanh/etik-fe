@@ -44,6 +44,7 @@ import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import { AxiosResponse } from 'axios';
 import logoImage from "@/images/etik-logo-transparent-dark.png";
+import logoImageEn from "@/images/etik-logo-transparent-dark-en.png";
 import Image from "next/image";
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
@@ -70,12 +71,13 @@ export type EventResponse = {
 };
 
 export function SideNav(): React.JSX.Element {
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
   const pathname = usePathname();
   const [dynamicId, setDynamicId] = React.useState<string | null>(null);
   const notificationCtx = React.useContext(NotificationContext);
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const navItems = React.useMemo(() => getNavItems(tt), [tt]);
+  const logo = locale === 'en' ? logoImageEn : logoImage;
   React.useEffect(() => {
     const storedEventId = localStorage.getItem('event_id');
     setDynamicId(storedEventId);
@@ -140,9 +142,9 @@ export function SideNav(): React.JSX.Element {
             >
               <CaretLeftIcon />
             </IconButton>
-            <Box component={LocalizedLink} href={paths.home} sx={{ display: 'inline-flex' }}>
+            <Box component={LocalizedLink} href={paths.dashboard.eventStudio} sx={{ display: 'inline-flex' }}>
               <Image
-                src={logoImage}
+                src={logo}
                 alt="Left Logo"
                 height={40}
                 className="mr-2" // Khoảng cách giữa hai logo

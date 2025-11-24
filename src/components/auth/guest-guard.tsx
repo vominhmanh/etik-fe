@@ -1,13 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Alert from '@mui/material/Alert';
 
 import { paths } from '@/paths';
 import { getDecodedReturnUrl } from '@/lib/auth/urls';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
+import { useTranslation } from '@/contexts/locale-context';
 
 export interface GuestGuardProps {
   children: React.ReactNode;
@@ -16,9 +17,24 @@ export interface GuestGuardProps {
 export function GuestGuard({ children }: GuestGuardProps): React.JSX.Element | null {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { error, isLoading, user, checkSession } = useUser();
+  const { locale } = useTranslation();
   const [isChecking, setIsChecking] = React.useState<boolean>(true);
   const didTryHydrateRef = React.useRef<boolean>(false);
+
+  // Helper to make path locale-aware
+  const getLocalizedPath = React.useCallback((path: string): string => {
+    // If path already has locale, preserve it
+    if (path.startsWith('/en')) {
+      return path;
+    }
+    // Apply current locale
+    if (locale === 'en' && !path.startsWith('/en')) {
+      return `/en${path}`;
+    }
+    return path;
+  }, [locale]);
 
   const checkPermissions = async (): Promise<void> => {
 
@@ -40,7 +56,16 @@ export function GuestGuard({ children }: GuestGuardProps): React.JSX.Element | n
     }
 
     if (user) {
-      const target: string = getDecodedReturnUrl(searchParams?.get('returnUrl'), paths.dashboard.overview);
+      const rawTarget = getDecodedReturnUrl(searchParams?.get('returnUrl'), paths.dashboard.overview);
+      // Preserve locale from returnUrl if it has one, otherwise apply current locale
+      let target = rawTarget;
+      if (!rawTarget.startsWith('/en')) {
+        // Apply current locale based on pathname
+        const currentLocale = pathname?.startsWith('/en') ? 'en' : 'vi';
+        if (currentLocale === 'en') {
+          target = `/en${rawTarget}`;
+        }
+      }
       logger.debug('[GuestGuard]: User is logged in, redirecting', { target });
       router.replace(target);
       return;
@@ -54,7 +79,7 @@ export function GuestGuard({ children }: GuestGuardProps): React.JSX.Element | n
       // noop
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Expected
-  }, [error, isLoading]);
+  }, [error, isLoading, locale, pathname]);
 
   if (isChecking) {
     return null;
