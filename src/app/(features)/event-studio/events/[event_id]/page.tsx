@@ -154,6 +154,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       setSelectedSchedule(event.shows[0]);
     }
   }, [event, selectedSchedule]);
+
+  // Update selectedSchedule when shows are updated (for auto reload)
+  React.useEffect(() => {
+    if (selectedSchedule && event?.shows) {
+      const updatedShow = event.shows.find(s => s.id === selectedSchedule.id);
+      if (updatedShow) {
+        setSelectedSchedule(updatedShow);
+      }
+    }
+  }, [event?.shows]);
   React.useEffect(() => {
     document.title = `${event?.name || ''} | ETIK - Vé điện tử & Quản lý sự kiện`;
   }, [event]);
@@ -190,10 +200,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const response: AxiosResponse<{ shows: Show[] }> = await baseHttpServiceInstance.get(
         `/event-studio/events/${eventId}/shows-with-ticket-categories`
       );
-      setEvent((prev) => ({
-        ...(prev || ({} as EventResponse)),
-        shows: response.data.shows,
-      }));
+      setEvent((prev) => {
+        // Create a new object to ensure React detects the change
+        return {
+          ...(prev || ({} as EventResponse)),
+          shows: [...response.data.shows], // Create new array reference
+        };
+      });
     } catch (error) {
       notificationCtx.error(error);
     }
