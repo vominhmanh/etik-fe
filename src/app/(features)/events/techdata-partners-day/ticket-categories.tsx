@@ -183,8 +183,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
       return '';
     }
     if (ticketCategory.sold >= ticketCategory.quantity) return `| ${tt('Đã hết', 'Sold out')}`;
-    const left = (ticketCategory.quantity - ticketCategory.sold);
-    return `| ${tt(`Còn ${left} vé`, `${left}/${ticketCategory.quantity} tickets left`)}`;
+    return ``;
   };
 
   return (
@@ -248,7 +247,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                 onClick={() => handleOpenDescriptionModal(ticketCategory)}
                 primary={ticketCategory.name}
                 primaryTypographyProps={{ variant: "subtitle2" }}
-                secondary={`${formatPrice(ticketCategory.price)} ${getAvailabilityLabel(ticketCategory)}`}
+                secondary={`${getAvailabilityLabel(ticketCategory)}`}
                 secondaryTypographyProps={{ variant: "caption" }}
               />
               {cartQuantities[ticketCategory.id] ? (
@@ -423,6 +422,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                                       <MenuItem value="Cô">Cô</MenuItem>
                                       <MenuItem value="Mr.">Mr.</MenuItem>
                                       <MenuItem value="Ms.">Ms.</MenuItem>
+                                      <MenuItem value="Mx.">Mx.</MenuItem>
                                       <MenuItem value="Miss">Miss</MenuItem>
                                       <MenuItem value="Thầy">Thầy</MenuItem>
                                     </Select>

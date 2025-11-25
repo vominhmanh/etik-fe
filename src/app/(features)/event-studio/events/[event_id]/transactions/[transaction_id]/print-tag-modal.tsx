@@ -27,6 +27,7 @@ import {
 
 import { useReactToPrint } from 'react-to-print';
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { LocalizedLink } from '@/components/localized-link';
 
@@ -98,24 +99,25 @@ const LABEL_SIZE_MAP: Record<string, { width: number; height: number }> = {
   '50x30mm': { width: 50, height: 30 },
   '50x40mm': { width: 50, height: 40 },
   '50x50mm': { width: 50, height: 50 },
+  '81x64mm': { width: 81, height: 64 },
 };
 
 const DEFAULT_TEMPLATE_SIZE = '50x50mm';
 const DEFAULT_LABEL_SIZE = LABEL_SIZE_MAP[DEFAULT_TEMPLATE_SIZE];
 
-const DEFAULT_COMPONENT_LABELS: Record<string, string> = {
-  eventName: 'Tên sự kiện',
-  customerName: 'Tên khách mời',
-  customerAddress: 'Địa chỉ khách mời',
-  customerPhone: 'Điện thoại khách mời',
-  customerEmail: 'Email Khách mời',
-  ticketsList: 'Danh sách vé',
-  eCode: 'Mã Check-in',
-  eCodeQr: 'Ảnh QR',
-  startDateTime: 'Thời gian bắt đầu',
-  endDateTime: 'Thời gian kết thúc',
-  place: 'Địa điểm',
-};
+const getDefaultComponentLabels = (tt: (vi: string, en: string) => string): Record<string, string> => ({
+  eventName: tt('Tên sự kiện', 'Event Name'),
+  customerName: tt('Tên khách mời', 'Customer Name'),
+  customerAddress: tt('Địa chỉ khách mời', 'Customer Address'),
+  customerPhone: tt('Điện thoại khách mời', 'Customer Phone'),
+  customerEmail: tt('Email Khách mời', 'Customer Email'),
+  ticketsList: tt('Danh sách vé', 'Tickets List'),
+  eCode: tt('Mã Check-in', 'Check-in Code'),
+  eCodeQr: tt('Ảnh QR', 'QR Image'),
+  startDateTime: tt('Thời gian bắt đầu', 'Start Date Time'),
+  endDateTime: tt('Thời gian kết thúc', 'End Date Time'),
+  place: tt('Địa điểm', 'Place'),
+});
 
 const DEFAULT_TEMPLATES: Record<
   string,
@@ -175,6 +177,7 @@ const LABEL_OPTIONS = [
   { value: '50x30mm', label: '50 x 30 mm' },
   { value: '50x40mm', label: '50 x 40 mm' },
   { value: '50x50mm', label: '50 x 50 mm' },
+  { value: '81x64mm', label: '81 x 64 mm' },
 ];
 
 const parseLabelSize = (size?: string | null) => {
@@ -190,13 +193,14 @@ const parseLabelSize = (size?: string | null) => {
   return DEFAULT_LABEL_SIZE;
 };
 
-const createDefaultSettings = (size: string): TicketTagSettings => {
+const createDefaultSettings = (size: string, tt: (vi: string, en: string) => string): TicketTagSettings => {
   const template = DEFAULT_TEMPLATES[size] || DEFAULT_TEMPLATES[DEFAULT_TEMPLATE_SIZE];
+  const labels = getDefaultComponentLabels(tt);
   return {
     size,
     selectedComponents: template.selectedComponents.map(key => ({
       key,
-      label: DEFAULT_COMPONENT_LABELS[key] || key,
+      label: labels[key] || key,
     })),
     componentSettings: Object.fromEntries(
       Object.entries(template.componentSettings).map(([key, value]) => [key, { ...value }])
@@ -205,6 +209,7 @@ const createDefaultSettings = (size: string): TicketTagSettings => {
 };
 
 const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transaction, eventId }) => {
+  const { tt } = useTranslation();
   const notificationCtx = React.useContext(NotificationContext);
 
   const ticketRows = React.useMemo<TicketRow[]>(() => {
@@ -273,26 +278,27 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
         const incomingComponents = payload.selectedComponents ?? [];
         const incomingSettings = payload.componentSettings ?? {};
         if (incomingComponents.length === 0 || Object.keys(incomingSettings).length === 0) {
-          const defaults = createDefaultSettings(size);
+          const defaults = createDefaultSettings(size, tt);
           setSettings(defaults);
           setSelectedSize(size);
           return;
         }
+        const labels = getDefaultComponentLabels(tt);
         setSettings({
           size,
           selectedComponents: incomingComponents.map(component => ({
             key: component.key,
-            label: component.label || DEFAULT_COMPONENT_LABELS[component.key] || component.key,
+            label: component.label || labels[component.key] || component.key,
           })),
           componentSettings: normalizeComponentSettings(incomingSettings),
         });
         setSelectedSize(size);
       } catch (error) {
         if (isMounted) {
-          const defaults = createDefaultSettings(DEFAULT_TEMPLATE_SIZE);
+          const defaults = createDefaultSettings(DEFAULT_TEMPLATE_SIZE, tt);
           setSettings(defaults);
           setSelectedSize(DEFAULT_TEMPLATE_SIZE);
-          notificationCtx.warning('Chưa có cấu hình tem nhãn, sử dụng thiết kế mặc định.');
+          notificationCtx.warning(tt('Chưa có cấu hình tem nhãn, sử dụng thiết kế mặc định.', 'No tag configuration found, using default design.'));
         }
       } finally {
         if (isMounted) {
@@ -306,7 +312,7 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
     return () => {
       isMounted = false;
     };
-  }, [open, eventId, notificationCtx]);
+  }, [open, eventId, notificationCtx, tt]);
 
   React.useEffect(() => {
     if (!open) {
@@ -419,16 +425,16 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
 
   const handlePrint = () => {
     if (!transaction) {
-      notificationCtx.warning('Không tìm thấy thông tin đơn hàng.');
+      notificationCtx.warning(tt('Không tìm thấy thông tin đơn hàng.', 'Order information not found.'));
       return;
     }
     if (!settings || settings.selectedComponents.length === 0) {
-      notificationCtx.warning('Chưa có cấu hình tem nhãn. Vui lòng thiết kế trước khi in.');
+      notificationCtx.warning(tt('Chưa có cấu hình tem nhãn. Vui lòng thiết kế trước khi in.', 'No tag configuration found. Please design before printing.'));
       return;
     }
 
     if (!selectedTicket || !printAreaRef.current) {
-      notificationCtx.warning('Vui lòng chọn vé để in.');
+      notificationCtx.warning(tt('Vui lòng chọn vé để in.', 'Please select a ticket to print.'));
       return;
     }
 
@@ -437,7 +443,7 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
       handleReactPrint(undefined as any);
     } else {
       setIsPreparingPrint(false);
-      notificationCtx.error('Không thể khởi tạo chức năng in.');
+      notificationCtx.error(tt('Không thể khởi tạo chức năng in.', 'Unable to initialize print function.'));
     }
   };
 
@@ -448,30 +454,30 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
       if (prev && prev.size === value) {
         return prev;
       }
-      return createDefaultSettings(value);
+      return createDefaultSettings(value, tt);
     });
   };
 
   return (
     <>
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-        <DialogTitle>In tag vé</DialogTitle>
+        <DialogTitle>{tt("In tag vé", "Print Ticket Tag")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography variant="body2">
-                Chọn vé để in ({selectedTicket ? 1 : 0}/{ticketRows.length})
+                {tt("Chọn vé để in", "Select ticket to print")} ({selectedTicket ? 1 : 0}/{ticketRows.length})
               </Typography>
               {loadingSettings && (
                 <Stack direction="row" spacing={1} alignItems="center">
                   <CircularProgress size={16} />
-                  <Typography variant="caption">Đang tải cấu hình tem nhãn...</Typography>
+                  <Typography variant="caption">{tt("Đang tải cấu hình tem nhãn...", "Loading tag configuration...")}</Typography>
                 </Stack>
               )}
             </Stack>
             <Divider />
             {ticketRows.length === 0 ? (
-              <Typography variant="body2">Không có vé trong đơn hàng này.</Typography>
+              <Typography variant="body2">{tt("Không có vé trong đơn hàng này.", "No tickets in this order.")}</Typography>
             ) : (
               <Box sx={{ maxHeight: 360, overflowY: 'auto' }}>
                 <Table size="small" stickyHeader>
@@ -479,9 +485,9 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
                     <TableRow>
                       <TableCell padding="checkbox"></TableCell>
                       <TableCell>TID</TableCell>
-                      <TableCell>Họ tên</TableCell>
-                      <TableCell>Suất diễn</TableCell>
-                      <TableCell>Loại vé</TableCell>
+                      <TableCell>{tt("Họ tên", "Full Name")}</TableCell>
+                      <TableCell>{tt("Suất diễn", "Show")}</TableCell>
+                      <TableCell>{tt("Loại vé", "Ticket Category")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -496,7 +502,7 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
                           />
                         </TableCell>
                         <TableCell>{`TID-${row.ticketId}`}</TableCell>
-                        <TableCell>{row.holderDisplayName || 'Chưa có tên'}</TableCell>
+                        <TableCell>{row.holderDisplayName || tt('Chưa có tên', 'No name')}</TableCell>
                         <TableCell>{row.showName}</TableCell>
                         <TableCell>{row.categoryName}</TableCell>
                       </TableRow>
@@ -514,9 +520,9 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
               justifyContent="space-between"
             >
               <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel>Kích thước tem</InputLabel>
+                <InputLabel>{tt("Kích thước tem", "Tag Size")}</InputLabel>
                 <Select
-                  label="Kích thước tem"
+                  label={tt("Kích thước tem", "Tag Size")}
                   value={selectedSize}
                   onChange={event => handleSizeChange(event.target.value)}
                 >
@@ -534,10 +540,10 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
                 rel="noopener noreferrer"
                 size="small"
               >
-                Thay đổi thiết kế tem tại đây
+                {tt("Thay đổi thiết kế tem tại đây", "Change tag design here")}
               </Button>
             </Stack>
-            <Typography variant="subtitle2">Xem trước tem</Typography>
+            <Typography variant="subtitle2">{tt("Xem trước tem", "Tag Preview")}</Typography>
             {settings && selectedTicket ? (
               <Box
                 sx={{
@@ -564,18 +570,18 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
                   )}
                 </Box>
                 <Typography variant="caption" color="text.secondary">
-                  Tem được căn theo kích thước {labelSize.width} x {labelSize.height} mm.
+                  {tt("Tem được căn theo kích thước", "Tag is aligned to size")} {labelSize.width} x {labelSize.height} mm.
                 </Typography>
               </Box>
             ) : (
               <Typography variant="body2" color="text.secondary">
-                Vui lòng chọn vé để xem trước.
+                {tt("Vui lòng chọn vé để xem trước.", "Please select a ticket to preview.")}
               </Typography>
             )}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={onClose}>Đóng</Button>
+          <Button onClick={onClose}>{tt("Đóng", "Close")}</Button>
           <Button
             variant="contained"
             onClick={handlePrint}
@@ -587,7 +593,7 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
               isPreparingPrint
             }
           >
-            {isPreparingPrint ? 'Đang chuẩn bị...' : 'In'}
+            {isPreparingPrint ? tt('Đang chuẩn bị...', 'Preparing...') : tt('In', 'Print')}
           </Button>
         </DialogActions>
       </Dialog>

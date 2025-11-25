@@ -1,6 +1,7 @@
 'use client';
 
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { Stack } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
@@ -49,29 +50,35 @@ type GetEmailTemplateResponse = {
 };
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  const { tt } = useTranslation();
   React.useEffect(() => {
-    document.title = "Chỉnh sửa email marketing| ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Chỉnh sửa email marketing | ETIK - Vé điện tử & Quản lý sự kiện", "Edit Email Marketing | ETIK - E-tickets & Event Management");
+  }, [tt]);
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState({
-    title: "Đây là template mẫu.",
+    title: "",
     senderName: "",
   });
   const [template, setTemplate] = useState<GetEmailTemplateResponse | null>(null);
   const { event_id } = params;
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
-  const [description, setDescription] = useState(
-    `<h1>Template mẫu</h1>
-     <p>Hãy chỉnh sửa nội dung template này để gửi đến khách hàng của bạn.</p>
-     <p>Sử dụng cụm {{ customer_name }} nếu bạn muốn đại diện cho tên khách hàng.</p>
-     <p><b>Cảm ơn bạn đã sử dụng ETIK.</b></p>`
-  );
+  
+  const getDefaultDescription = React.useCallback((tt: (vi: string, en: string) => string) => {
+    return `<h1>${tt("Template mẫu", "Sample Template")}</h1>
+     <p>${tt("Hãy chỉnh sửa nội dung template này để gửi đến khách hàng của bạn.", "Please edit this template content to send to your customers.")}</p>
+     <p>${tt("Sử dụng cụm {{ customer_name }} nếu bạn muốn đại diện cho tên khách hàng.", "Use the phrase {{ customer_name }} if you want to represent the customer's name.")}</p>
+     <p><b>${tt("Cảm ơn bạn đã sử dụng ETIK.", "Thank you for using ETIK.")}</b></p>`;
+  }, []);
+  
+  const [description, setDescription] = useState(() => getDefaultDescription(tt));
 
   const reactQuillRef = React.useRef<ReactQuill>(null);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
-  const layout = `
+  
+  const getLayout = React.useCallback((tt: (vi: string, en: string) => string) => {
+    return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -142,15 +149,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             ${description}
           </div>
           <footer>
-            <p>Email được phát hành bởi <a href="https://etik.vn">ETIK</a></p>
-            <small>Bạn nhận được email này vì đã điền biểu mẫu đăng ký. Ngừng nhận thư tại đây: <a href="https://api.etik.vn/unsubscribe-mail">Unsubscribe</a></small>
-            <small>You received this email because you filled out the registration form. Unsubscribe here: <a href="https://api.etik.vn/unsubscribe-mail">Unsubscribe</a></small>
+            <p>${tt("Email được phát hành bởi", "Email published by")} <a href="https://etik.vn">ETIK</a></p>
+            <small>${tt("Bạn nhận được email này vì đã điền biểu mẫu đăng ký. Ngừng nhận thư tại đây:", "You received this email because you filled out the registration form. Unsubscribe here:")} <a href="https://api.etik.vn/unsubscribe-mail">Unsubscribe</a></small>
           </footer>
         </div>
       </div>
     </body>
     </html>
   `;
+  }, [event?.bannerUrl, description, tt]);
+  
+  const layout = getLayout(tt);
   useEffect(() => {
     
   }, [event_id, notificationCtx]);
@@ -214,7 +223,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       try {
         setIsLoading(true);
         await baseHttpServiceInstance.put(`/event-studio/events/${event_id}/templates/email-marketing`, { ...formValues, description });
-        notificationCtx.success('Lưu thành công.');
+        notificationCtx.success(tt('Lưu thành công.', 'Saved successfully.'));
       } catch (error) {
         notificationCtx.error(error);
       } finally {
@@ -255,7 +264,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             range && quill.getEditor().insertEmbed(range.index, 'image', imageUrl);
           }
         } catch (error) {
-          notificationCtx.error('Lỗi:', error);
+          notificationCtx.error(tt('Lỗi:', 'Error:'), error);
         } finally {
           setIsLoading(false);
         }
@@ -300,7 +309,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         insertIndex += 1;
       }
     } catch (error) {
-      notificationCtx.error('Lỗi:', error);
+      notificationCtx.error(tt('Lỗi:', 'Error:'), error);
     } finally {
       setIsLoading(false);
     }
@@ -355,19 +364,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       </Backdrop>
 
       <div>
-        <Typography variant="h4">Chỉnh sửa email marketing</Typography>
+        <Typography variant="h4">{tt("Chỉnh sửa email marketing", "Edit Email Marketing")}</Typography>
       </div>
 
       <Grid container spacing={3}>
         <Grid item lg={12} md={12} xs={12}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader title="Lưu ý" />
+              <CardHeader title={tt("Lưu ý", "Note")} />
               <Divider />
               <CardContent>
                 <ul>
-                  <li style={{ color: 'red' }}>Nghiêm cấm sử dụng Email marketing để phát tán spam, lừa đảo, virus, tuyên truyền chống Nhà nước và các hành vi trái pháp luật khác.</li>
-                  <li>Sử dụng các cụm <code>{'{{ customer_name }}'}</code>, <code>{'{{ customer_email }}'}</code>, <code>{'{{ customer_address }}'}</code>, <code>{'{{ customer_phone_number }}'}</code> để đại diện cho thông tin từng khách hàng nếu cần.</li>
+                  <li style={{ color: 'red' }}>{tt("Nghiêm cấm sử dụng Email marketing để phát tán spam, lừa đảo, virus, tuyên truyền chống Nhà nước và các hành vi trái pháp luật khác.", "It is strictly prohibited to use Email marketing to spread spam, fraud, viruses, anti-state propaganda and other illegal acts.")}</li>
+                  <li>{tt("Sử dụng các cụm", "Use the phrases")} <code>{'{{ customer_name }}'}</code>, <code>{'{{ customer_email }}'}</code>, <code>{'{{ customer_address }}'}</code>, <code>{'{{ customer_phone_number }}'}</code> {tt("để đại diện cho thông tin từng khách hàng nếu cần.", "to represent each customer's information if needed.")}</li>
                 </ul>
               </CardContent>
             </Card>
@@ -376,28 +385,28 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Grid item lg={6} md={6} xs={12}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader title="Soạn nội dung" />
+              <CardHeader title={tt("Soạn nội dung", "Compose Content")} />
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
                   <Grid item md={12} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel>Tiêu đề</InputLabel>
+                      <InputLabel>{tt("Tiêu đề", "Title")}</InputLabel>
                       <OutlinedInput
                         value={formValues.title}
                         onChange={handleInputChange}
-                        label="Tiêu đề"
+                        label={tt("Tiêu đề", "Title")}
                         name="title"
                       />
                     </FormControl>
                   </Grid>
                   <Grid item md={12} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel>Tên người gửi</InputLabel>
+                      <InputLabel>{tt("Tên người gửi", "Sender Name")}</InputLabel>
                       <OutlinedInput
                         value={formValues.senderName}
                         onChange={handleInputChange}
-                        label="Tên người gửi"
+                        label={tt("Tên người gửi", "Sender Name")}
                         name="senderName"
                       />
                     </FormControl>
@@ -414,7 +423,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           ["link", "image"],
                         ],
                       }}
-                      placeholder="Mô tả"
+                      placeholder={tt("Mô tả", "Description")}
                     />
                   </Grid>
                 </Grid>
@@ -427,11 +436,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Grid item lg={6} md={6} xs={12}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader title="Preview" />
+              <CardHeader title={tt("Xem trước", "Preview")} />
               <Divider />
               <CardContent>
                 <h2>{formValues.title}</h2>
-                <p><strong>From:</strong> {formValues.senderName}</p>
+                <p><strong>{tt("Từ:", "From:")}</strong> {formValues.senderName}</p>
                 <iframe
                   srcDoc={layout}
                   style={{
@@ -448,7 +457,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
             <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
               <Button type="submit" variant="contained" onClick={handleFormSubmit}>
-                Lưu
+                {tt("Lưu", "Save")}
               </Button>
             </Grid>
           </Stack>

@@ -23,6 +23,7 @@ import { AxiosResponse } from 'axios';
 import { useReactToPrint } from 'react-to-print';
 
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 
 /** ---------------- Types ---------------- */
 interface SelectedComponent {
@@ -55,36 +56,41 @@ const labelSizes: LabelSize[] = [
   { value: '50x40mm', label: '50 x 40 mm', width: 50, height: 40 },
   { value: '50x50mm', label: '50 x 50 mm', width: 50, height: 50 },
   { value: '50x30mm', label: '50 x 30 mm', width: 50, height: 30 },
+  { value: '81x64mm', label: '81 x 64 mm', width: 81, height: 64 },
 ];
 
 /** ---------------- Components list ---------------- */
-const defaultComponents: { label: string; key: string }[] = [
-  { label: 'Tên sự kiện', key: 'eventName' },
-  { label: 'Tên khách mời', key: 'customerName' },
-  { label: 'Địa chỉ khách mời', key: 'customerAddress' },
-  { label: 'Điện thoại khách mời', key: 'customerPhone' },
-  { label: 'Email Khách mời', key: 'customerEmail' },
-  { label: 'Danh sách vé', key: 'ticketsList' },
-  { label: 'Mã Check-in', key: 'eCode' },
-  { label: 'Ảnh QR', key: 'eCodeQr' },
-  { label: 'Thời gian bắt đầu', key: 'startDateTime' },
-  { label: 'Thời gian kết thúc', key: 'endDateTime' },
-  { label: 'Địa điểm', key: 'place' },
+const getDefaultComponents = (tt: (vi: string, en: string) => string): { label: string; key: string }[] => [
+  { label: tt('Tên sự kiện', 'Event Name'), key: 'eventName' },
+  { label: tt('Danh sách vé', 'Tickets List'), key: 'ticketsList' },
+  { label: tt('Mã Check-in', 'Check-in Code'), key: 'eCode' },
+  { label: tt('Ảnh QR', 'QR Image'), key: 'eCodeQr' },
+  { label: tt('Thời gian bắt đầu', 'Start Date Time'), key: 'startDateTime' },
+  { label: tt('Thời gian kết thúc', 'End Date Time'), key: 'endDateTime' },
+  { label: tt('Địa điểm', 'Place'), key: 'place' },
+  
+  { label: tt('Tên khách mời', 'Customer Name'), key: 'customerName' },
+  { label: tt('Địa chỉ khách mời', 'Customer Address'), key: 'customerAddress' },
+  { label: tt('Điện thoại khách mời', 'Customer Phone'), key: 'customerPhone' },
+  { label: tt('Email Khách mời', 'Customer Email'), key: 'customerEmail' },
 ];
 
-const defaultComponentLabels = defaultComponents.reduce<Record<string, string>>((acc, comp) => {
-  acc[comp.key] = comp.label;
-  return acc;
-}, {});
+const getDefaultComponentLabels = (tt: (vi: string, en: string) => string): Record<string, string> => {
+  return getDefaultComponents(tt).reduce<Record<string, string>>((acc, comp) => {
+    acc[comp.key] = comp.label;
+    return acc;
+  }, {});
+};
 
 const DEFAULT_TEMPLATE_SIZE = '50x50mm';
 
 const cloneComponentSettings = (settings: Record<string, ComponentSettings>) =>
   Object.fromEntries(Object.entries(settings).map(([key, value]) => [key, { ...value }]));
 
-const buildSelectedComponentMap = (keys: string[]) =>
+const buildSelectedComponentMap = (keys: string[], tt: (vi: string, en: string) => string) =>
   keys.reduce<Record<string, SelectedComponent>>((acc, key) => {
-    acc[key] = { key, label: defaultComponentLabels[key] || key };
+    const labels = getDefaultComponentLabels(tt);
+    acc[key] = { key, label: labels[key] || key };
     return acc;
   }, {});
 
@@ -144,16 +150,17 @@ const defaultTemplates: Record<
 
 /** ---------------- Page ---------------- */
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  const { tt } = useTranslation();
   useEffect(() => {
-    document.title = 'Thiết kế tem nhãn | ETIK - Vé điện tử & Quản lý sự kiện';
-  }, []);
+    document.title = tt('Thiết kế tem nhãn | ETIK - Vé điện tử & Quản lý sự kiện', 'Tag Design | ETIK - E-tickets & Event Management');
+  }, [tt]);
   const { event_id } = params;
   const notificationCtx = useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState(false);
 
   const defaultTemplate = defaultTemplates[DEFAULT_TEMPLATE_SIZE];
   const [selectedComponents, setSelectedComponents] = useState<Record<string, SelectedComponent>>(() =>
-    buildSelectedComponentMap(defaultTemplate.selectedComponents)
+    buildSelectedComponentMap(defaultTemplate.selectedComponents, tt)
   );
   const [componentSettings, setComponentSettings] = useState<Record<string, ComponentSettings>>(() =>
     cloneComponentSettings(defaultTemplate.componentSettings)
@@ -185,10 +192,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             Object.keys(apiSettings).length > 0;
 
           if (hasValidApiConfig) {
+            const labels = getDefaultComponentLabels(tt);
             setSelectedSize(effectiveSize);
             setSelectedComponents(
               apiSelected.reduce((acc, c) => {
-                acc[c.key] = { key: c.key, label: c.label || defaultComponentLabels[c.key] || c.key };
+                acc[c.key] = { key: c.key, label: c.label || labels[c.key] || c.key };
                 return acc;
               }, {} as Record<string, SelectedComponent>)
             );
@@ -196,16 +204,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           } else {
             const fallbackTemplate = defaultTemplates[effectiveSize] || defaultTemplates[DEFAULT_TEMPLATE_SIZE];
             setSelectedSize(effectiveSize);
-            setSelectedComponents(buildSelectedComponentMap(fallbackTemplate.selectedComponents));
+            setSelectedComponents(buildSelectedComponentMap(fallbackTemplate.selectedComponents, tt));
             setComponentSettings(cloneComponentSettings(fallbackTemplate.componentSettings));
           }
         }
       } catch (error: any) {
         const fallbackTemplate = defaultTemplates[DEFAULT_TEMPLATE_SIZE];
         setSelectedSize(DEFAULT_TEMPLATE_SIZE);
-        setSelectedComponents(buildSelectedComponentMap(fallbackTemplate.selectedComponents));
+        setSelectedComponents(buildSelectedComponentMap(fallbackTemplate.selectedComponents, tt));
         setComponentSettings(cloneComponentSettings(fallbackTemplate.componentSettings));
-        notificationCtx.warning(`Không thể tải cấu hình, sử dụng mặc định. ${error}`);
+        notificationCtx.warning(tt(`Không thể tải cấu hình, sử dụng mặc định.`, `Unable to load configuration, using default.`) + ` ${error}`);
       } finally {
         if (!isCancelled) setIsLoading(false);
       }
@@ -214,7 +222,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return () => {
       isCancelled = true;
     };
-  }, [event_id, notificationCtx]);
+  }, [event_id, notificationCtx, tt]);
 
   /** ---------- Save settings ---------- */
   const handleSaveTemplateSettings = async () => {
@@ -229,9 +237,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         `/event-studio/events/${event_id}/ticket-tag-settings`,
         payload
       );
-      if (response.status === 200) notificationCtx.success('Cấu hình template đã được lưu thành công!');
+      if (response.status === 200) notificationCtx.success(tt('Cấu hình template đã được lưu thành công!', 'Template configuration saved successfully!'));
     } catch (error: any) {
-      notificationCtx.error(`Lỗi khi lưu cấu hình: ${error.message}`);
+      notificationCtx.error(tt(`Lỗi khi lưu cấu hình:`, `Error saving configuration:`) + ` ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -263,7 +271,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     hasUserEditedRef.current = true;
     const template = defaultTemplates[selectedSize] || defaultTemplates[DEFAULT_TEMPLATE_SIZE];
     if (!template) return;
-    setSelectedComponents(buildSelectedComponentMap(template.selectedComponents));
+    setSelectedComponents(buildSelectedComponentMap(template.selectedComponents, tt));
     setComponentSettings(cloneComponentSettings(template.componentSettings));
     notificationCtx.success('Đã áp dụng thiết kế mặc định!');
   };
@@ -291,8 +299,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   /** ---------- Print & Preview sizes ---------- */
-  const PAPER_WIDTH_MM = 58; // driver POS-58: 58(48) x 210 mm
-  const SAFE_CONTENT_WIDTH_MM = 48;
+  const DEFAULT_PAPER_WIDTH_MM = 58; // driver POS-58: 58(48) x 210 mm
+  const DEFAULT_SAFE_CONTENT_WIDTH_MM = 48;
 
   const currentSize = useMemo(() => labelSizes.find((s) => s.value === selectedSize) || labelSizes[0], [selectedSize]);
 
@@ -310,9 +318,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return Math.max(maxBottom, currentSize.height);
   }, [selectedComponents, componentSettings, currentSize.height]);
 
-  // rộng nội dung: không vượt quá vùng in hữu dụng
-  const contentWidthMm = Math.min(currentSize.width, SAFE_CONTENT_WIDTH_MM);
-  const sideMarginMm = Math.max((PAPER_WIDTH_MM - contentWidthMm) / 2, 0);
+  // rộng nội dung: sử dụng width của label trực tiếp
+  // Nếu label width lớn hơn paper width mặc định, sử dụng label width làm paper width
+  const contentWidthMm = currentSize.width;
+  const paperWidthMm = Math.max(DEFAULT_PAPER_WIDTH_MM, contentWidthMm);
+  const sideMarginMm = Math.max((paperWidthMm - contentWidthMm) / 2, 0);
 
   /** ---------- PREVIEW: scale theo px (không ảnh hưởng in) ---------- */
   const PX_PER_MM = 96 / 25.4; // ~3.7795 px/mm
@@ -322,11 +332,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const previewStageH = contentHeightMm * PX_PER_MM * previewScale;
 
   const printCss = `
-  @page { size: ${PAPER_WIDTH_MM}mm auto; margin: 0; }
+  @page { size: ${contentWidthMm}mm auto; margin: 0; }
 
   @media print {
     html, body {
-      width: ${PAPER_WIDTH_MM}mm;
+      width: ${contentWidthMm}mm;
       margin: 0; padding: 0;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -338,7 +348,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     .print-area {
       position: fixed !important;
       top: 0 !important; left: 0 !important;
-      width: ${PAPER_WIDTH_MM}mm !important;
+      width: ${contentWidthMm}mm !important;
       height: auto !important;
       margin: 0 !important; padding: 0 !important;
       display: block !important;
@@ -348,7 +358,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
     /* căn GIỮA ngang bằng margin:auto; width theo mm thực */
     .print-canvas {
-      width: ${Math.min(contentWidthMm, SAFE_CONTENT_WIDTH_MM)}mm !important;
+      width: ${Math.min(contentWidthMm, contentWidthMm)}mm !important;
       height: ${contentHeightMm}mm !important;
       margin: 0 auto !important;     /* <- CENTER */
       transform: none !important;     /* bỏ zoom preview khi in */
@@ -370,7 +380,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Grid item xs={12} md={3}>
           <Box>
             <Typography variant="body2" sx={{ mb: 1 }}>
-              Chọn kích thước tem nhãn:
+              {tt("Chọn kích thước tem nhãn:", "Select tag size:")}
             </Typography>
             <Select
               value={selectedSize}
@@ -396,7 +406,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 sx={{ fontSize: '0.75rem' }}
                 fullWidth
               >
-                Sử dụng thiết kế mặc định
+                {tt("Sử dụng thiết kế mặc định", "Use default design")}
               </Button>
             </Box>
           </Box>
@@ -496,10 +506,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Grid item xs={12} md={4}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader title="Chọn thành phần" titleTypographyProps={{ variant: 'subtitle2' }} />
+              <CardHeader title={tt("Chọn thành phần", "Select Components")} titleTypographyProps={{ variant: 'subtitle2' }} />
               <Divider />
               <List dense>
-                {defaultComponents.map(({ label, key }) => (
+                {getDefaultComponents(tt).map(({ label, key }) => (
                   <ListItem
                     dense
                     divider
@@ -660,14 +670,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   disabled={isLoading}
                   size="small"
                 >
-                  Quay lại thiết kế
+                  {tt("Quay lại thiết kế", "Back to Design")}
                 </Button>
               )}
               <Button variant="outlined" color="primary" onClick={handleTestPrint} disabled={isLoading}>
-                In thử
+                {tt("In thử", "Test Print")}
               </Button>
               <Button variant="contained" color="primary" onClick={handleSaveTemplateSettings} disabled={isLoading}>
-                {isLoading ? 'Đang lưu...' : 'Lưu thiết kế'}
+                {isLoading ? tt('Đang lưu...', 'Saving...') : tt('Lưu thiết kế', 'Save Design')}
               </Button>
             </div>
           </Stack>

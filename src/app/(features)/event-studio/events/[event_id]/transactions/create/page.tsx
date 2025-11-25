@@ -848,6 +848,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               <MenuItem value="Cô">Cô</MenuItem>
                               <MenuItem value="Mr.">Mr.</MenuItem>
                               <MenuItem value="Ms.">Ms.</MenuItem>
+                              <MenuItem value="Mx.">Mx.</MenuItem>
                               <MenuItem value="Miss">Miss</MenuItem>
                               <MenuItem value="Thầy">Thầy</MenuItem>
                             </Select>
@@ -1382,7 +1383,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       if (field.internal_name === 'name') {
                         return (
                           <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">{field.label}</Typography>
+                            <Typography variant="body2">{tt("Họ và tên", "Full Name")}</Typography>
                             <Typography variant="body2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
                           </Box>
                         );
@@ -1390,7 +1391,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       if (field.internal_name === 'email') {
                         return (
                           <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">{field.label}</Typography>
+                            <Typography variant="body2">{tt("Địa chỉ Email", "Email Address")}</Typography>
                             <Typography variant="body2">{customer.email}</Typography>
                           </Box>
                         );
@@ -1398,7 +1399,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       if (field.internal_name === 'phone_number') {
                         return (
                           <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">{field.label}</Typography>
+                            <Typography variant="body2">{tt("Số điện thoại", "Phone Number")}</Typography>
                             <Typography variant="body2">
                               {formattedCustomerPhone || customer.phoneNumber}
                             </Typography>
@@ -1408,7 +1409,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       if (field.internal_name === 'address') {
                         return (
                           <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">{field.label}</Typography>
+                            <Typography variant="body2">{tt("Địa chỉ", "Address")}</Typography>
                             <Typography variant="body2">{customer.address || '-'}</Typography>
                           </Box>
                         );
@@ -1416,7 +1417,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       if (field.internal_name === 'dob') {
                         return (
                           <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">{field.label}</Typography>
+                            <Typography variant="body2">{tt("Ngày tháng năm sinh", "Date of Birth")}</Typography>
                             <Typography variant="body2">{customer.dob || '-'}</Typography>
                           </Box>
                         );
@@ -1424,7 +1425,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       if (field.internal_name === 'idcard_number') {
                         return (
                           <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">{field.label}</Typography>
+                            <Typography variant="body2">{tt("Số Căn cước công dân", "ID Card Number")}</Typography>
                             <Typography variant="body2">{customer.idcard_number || '-'}</Typography>
                           </Box>
                         );

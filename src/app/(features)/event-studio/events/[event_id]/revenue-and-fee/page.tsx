@@ -1,6 +1,7 @@
 'use client';
 
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { Avatar, Box, CardMedia, Container, FormHelperText, IconButton, InputAdornment, MenuItem, Modal, Select, Stack, TextField } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
@@ -69,9 +70,10 @@ export interface SMTPConfig {
   smtpSenderEmail?: string;
 }
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
+  const { tt } = useTranslation();
   React.useEffect(() => {
-    document.title = "Doanh thu & Phí dịch vụ | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Doanh thu & Phí dịch vụ | ETIK - Vé điện tử & Quản lý sự kiện", "Revenue & Service Fees | ETIK - E-tickets & Event Management");
+  }, [tt]);
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
   const { event_id } = params;
@@ -155,7 +157,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       // Handle success response
       if (response.status === 200) {
-        notificationCtx.success("Yêu cầu nâng cấp thành Sự kiện Được xác thực đã được gửi thành công!");
+        notificationCtx.success(tt("Yêu cầu nâng cấp thành Sự kiện Được xác thực đã được gửi thành công!", "Request to upgrade to Verified Event has been sent successfully!"));
         setEventAgencyRegistrationAndEventApprovalRequest(eventAgencyRegistrationAndEventApprovalRequest ? ({
           ...eventAgencyRegistrationAndEventApprovalRequest,
           eventApprovalRequest: 'waiting_for_acceptance'
@@ -189,7 +191,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     try {
       setIsLoading(true);
       await saveSMTPSettings(event_id, smtpFormValues);
-      notificationCtx.success("Cấu hình SMTP đã được lưu thành công!");
+      notificationCtx.success(tt("Cấu hình SMTP đã được lưu thành công!", "SMTP configuration has been saved successfully!"));
     } catch (error) {
       notificationCtx.error(error);
     } finally {
@@ -237,7 +239,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               ? error
               // 4) Fallback to JSON‐dump of the object
               : JSON.stringify(error);
-      notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
+      notificationCtx.error(tt(`Lỗi tải ảnh:  ${message}`, `Error loading image: ${message}`));
     } finally {
       setIsLoading(false);
     }
@@ -290,7 +292,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               ? error
               // 4) Fallback to JSON‐dump of the object
               : JSON.stringify(error);
-      notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
+      notificationCtx.error(tt(`Lỗi tải ảnh:  ${message}`, `Error loading image: ${message}`));
     } finally {
       setIsLoading(false);
     }
@@ -315,7 +317,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           setFormValues(response.data);
           setDescription(response.data.description || '');
         } catch (error) {
-          notificationCtx.error('Lỗi:', error);
+          notificationCtx.error(tt('Lỗi:', 'Error:'), error);
         } finally {
           setIsLoading(false);
         }
@@ -340,7 +342,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       try {
         setIsLoading(true);
         await baseHttpServiceInstance.put(`/event-studio/events/${event_id}`, { ...formValues, description });
-        notificationCtx.success('Sửa thành công. Sẽ cập nhật lên trang chủ sau 1 phút.');
+        notificationCtx.success(tt('Sửa thành công. Sẽ cập nhật lên trang chủ sau 1 phút.', 'Updated successfully. Will be updated to homepage after 1 minute.'));
       } catch (error) {
         notificationCtx.error(error);
       } finally {
@@ -351,9 +353,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleCopyToClipboard = (data: string) => {
     navigator.clipboard.writeText(data).then(() => {
-      notificationCtx.success("Đã sao chép vào bộ nhớ tạm"); // Show success message
+      notificationCtx.success(tt("Đã sao chép vào bộ nhớ tạm", "Copied to clipboard")); // Show success message
     }).catch(() => {
-      notificationCtx.warning("Không thể sao chép, vui lòng thử lại"); // Handle errors
+      notificationCtx.warning(tt("Không thể sao chép, vui lòng thử lại", "Unable to copy, please try again")); // Handle errors
     });
   };
 
@@ -388,7 +390,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             range && quill.getEditor().insertEmbed(range.index, 'image', imageUrl);
           }
         } catch (error) {
-          notificationCtx.error('Lỗi:', error);
+          notificationCtx.error(tt('Lỗi:', 'Error:'), error);
         } finally {
           setIsLoading(false);
         }
@@ -456,7 +458,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Backdrop>
 
         <div>
-          <Typography variant="h4">Doanh thu & Phí dịch vụ</Typography>
+          <Typography variant="h4">{tt("Doanh thu & Phí dịch vụ", "Revenue & Service Fees")}</Typography>
         </div>
         <Grid container spacing={3}>
           <Grid lg={4} md={6} xs={12}>
@@ -467,7 +469,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
                       <Stack spacing={1}>
                         <Typography color="text.secondary" variant="overline">
-                          Tài khoản Doanh thu Sự kiện
+                          {tt("Tài khoản Doanh thu Sự kiện", "Event Revenue Account")}
                         </Typography>
                         <Typography variant="h4">
                           0 đ
@@ -481,14 +483,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
                         <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
                           <Typography color='var(--mui-palette-primary-main)' variant="body2">
-                            Rút tiền
+                            {tt("Rút tiền", "Withdraw")}
                           </Typography>
                         </Stack>
                       </Stack>
                       <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
                         <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
                           <Typography color='var(--mui-palette-primary-main)' variant="body2">
-                            Lịch sử giao dịch
+                            {tt("Lịch sử giao dịch", "Transaction History")}
                           </Typography>
                         </Stack>
                       </Stack>
@@ -498,14 +500,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader title="Thống kê" />
+                <CardHeader title={tt("Thống kê", "Statistics")} />
                 <Divider />
                 <CardContent>
                   <Stack spacing={0}>
                     {/* createdAt */}
                     <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body1">Tổng doanh thu thuần</Typography>
+                        <Typography variant="body1">{tt("Tổng doanh thu thuần", "Total Net Revenue")}</Typography>
                       </Stack>
                       <Typography variant="body1">
                         0 đ
@@ -513,7 +515,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </Grid>
                     <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body1">Phí dịch vụ</Typography>
+                        <Typography variant="body1">{tt("Phí dịch vụ", "Service Fee")}</Typography>
                       </Stack>
                       <Typography variant="body1">
                         0 đ
@@ -521,7 +523,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </Grid>
                     <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body1">Phí khác</Typography>
+                        <Typography variant="body1">{tt("Phí khác", "Other Fees")}</Typography>
                       </Stack>
                       <Typography variant="body1">
                         0 đ
@@ -537,44 +539,44 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <Grid container spacing={3}>
                 <Grid lg={6} md={6} xs={12}>
                   <Card>
-                    <CardHeader title="Phí dịch vụ" />
+                    <CardHeader title={tt("Phí dịch vụ", "Service Fees")} />
                     <Divider />
                     <CardContent>
                       <Stack spacing={0}>
                         {/* createdAt */}
                         <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Cách tính phí</Typography>
+                            <Typography variant="body1">{tt("Cách tính phí", "Fee Calculation Method")}</Typography>
                           </Stack>
                           <Typography variant="body1">
-                            Tính theo giao dịch
+                            {tt("Tính theo giao dịch", "Per Transaction")}
                           </Typography>
                         </Grid>
                         {/* Created source */}
                         <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Phí cố định</Typography>
+                            <Typography variant="body1">{tt("Phí cố định", "Fixed Fee")}</Typography>
                           </Stack>
-                          <Typography variant="body1">Thỏa thuận</Typography>
+                          <Typography variant="body1">{tt("Thỏa thuận", "Agreement")}</Typography>
                         </Grid>
                         {/* Created source */}
                         <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Phí chia sẻ doanh thu</Typography>
+                            <Typography variant="body1">{tt("Phí chia sẻ doanh thu", "Revenue Share Fee")}</Typography>
                           </Stack>
-                          <Typography variant="body1">Thỏa thuận</Typography>
+                          <Typography variant="body1">{tt("Thỏa thuận", "Agreement")}</Typography>
                         </Grid>
                         <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Phí SMS/Zalo</Typography>
+                            <Typography variant="body1">{tt("Phí SMS/Zalo", "SMS/Zalo Fee")}</Typography>
                           </Stack>
-                          <Typography variant="body1">Thỏa thuận</Typography>
+                          <Typography variant="body1">{tt("Thỏa thuận", "Agreement")}</Typography>
                         </Grid>
                         <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Phí email</Typography>
+                            <Typography variant="body1">{tt("Phí email", "Email Fee")}</Typography>
                           </Stack>
-                          <Typography variant="body1">Thỏa thuận</Typography>
+                          <Typography variant="body1">{tt("Thỏa thuận", "Agreement")}</Typography>
                         </Grid>
                       </Stack>
                     </CardContent>
@@ -582,34 +584,34 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Grid>
                 <Grid lg={6} md={6} xs={12}>
                   <Card>
-                    <CardHeader title="Cách nhận và thanh toán tiền" />
+                    <CardHeader title={tt("Cách nhận và thanh toán tiền", "Payment and Receipt Methods")} />
                     <Divider />
                     <CardContent>
                       <Stack spacing={0}>
                         {/* createdAt */}
                         <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Nhận tiền vé</Typography>
+                            <Typography variant="body1">{tt("Nhận tiền vé", "Ticket Revenue Receipt")}</Typography>
                           </Stack>
                           <Typography variant="body1">
-                            Tài khoản cá nhân
+                            {tt("Tài khoản cá nhân", "Personal Account")}
                           </Typography>
                         </Grid>
                         {/* Created source */}
                         <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Cách thanh toán phí</Typography>
+                            <Typography variant="body1">{tt("Cách thanh toán phí", "Fee Payment Method")}</Typography>
                           </Stack>
                           <Typography variant="body1">
-                            Đối soát
+                            {tt("Đối soát", "Reconciliation")}
                           </Typography>
                         </Grid>
                         {/* Created source */}
                         <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">Phí phát sinh</Typography>
+                            <Typography variant="body1">{tt("Phí phát sinh", "Additional Fees")}</Typography>
                           </Stack>
-                          <Typography variant="body1">Đối soát</Typography>
+                          <Typography variant="body1">{tt("Đối soát", "Reconciliation")}</Typography>
                         </Grid>
                       </Stack>
                     </CardContent>

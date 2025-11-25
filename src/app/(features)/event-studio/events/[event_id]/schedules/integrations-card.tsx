@@ -7,6 +7,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
+import { useTranslation } from '@/contexts/locale-context';
 import dayjs from 'dayjs';
 import * as React from 'react';
 
@@ -24,6 +25,7 @@ export interface IntegrationCardProps {
 }
 
 export function IntegrationCard({ integration }: IntegrationCardProps): React.JSX.Element {
+  const { tt } = useTranslation();
   return (
     <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <CardContent sx={{ flex: '1 1 auto' }}>
@@ -46,13 +48,13 @@ export function IntegrationCard({ integration }: IntegrationCardProps): React.JS
         <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
           <ClockIcon fontSize="var(--icon-fontSize-sm)" />
           <Typography color="text.secondary" display="inline" variant="body2">
-            Updated {dayjs(integration.updatedAt).format('MMM D, YYYY')}
+            {tt('Cập nhật', 'Updated')} {dayjs(integration.updatedAt).format('MMM D, YYYY')}
           </Typography>
         </Stack>
         <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
           <DownloadIcon fontSize="var(--icon-fontSize-sm)" />
           <Typography color="text.secondary" display="inline" variant="body2">
-            {integration.installs} installs
+            {integration.installs} {tt('lượt cài đặt', 'installs')}
           </Typography>
         </Stack>
       </Stack>

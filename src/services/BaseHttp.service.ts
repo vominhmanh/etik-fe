@@ -170,7 +170,7 @@ export default class BaseHttpService {
       if (localeCookie) {
         const locale = localeCookie.split('=')[1];
         // TODO: Send locale to backend via Accept-Language header (standard HTTP header)
-        // options.headers['Accept-Language'] = locale;
+        options.headers['Accept-Language'] = locale;
       }
     }
 

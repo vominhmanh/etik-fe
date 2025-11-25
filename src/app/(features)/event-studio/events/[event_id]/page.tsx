@@ -870,9 +870,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                   {tt('Tổng vé xuất', 'Total exported tickets')}
                                 </Typography>
                                 <Typography variant="h5">{totals.totalSold}</Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                  {formatPercentOfSold(totals.totalSold)}
-                                </Typography>
                               </Paper>
                             </Grid>
                             <Grid xs={6} md={6}>

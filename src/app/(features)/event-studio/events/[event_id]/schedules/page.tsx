@@ -23,6 +23,7 @@ import { useState } from 'react';
 
 import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
 import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 import { Pencil } from '@phosphor-icons/react/dist/ssr';
 
 const colorMap: ColorMap = {
@@ -47,17 +48,20 @@ export type Show = {
   endDateTime: Date | null;
 };
 
-const statusMap = {
-  not_opened_for_sale: { label: 'Trạng thái: Chưa mở bán', color: 'secondary' },
-  on_sale: { label: 'Trạng thái: Đang mở bán', color: 'success' },
-  out_of_stock: { label: 'Trạng thái: Đã hết', color: 'secondary' },
-  temporarily_locked: { label: 'Trạng thái: Đang tạm khoá', color: 'warning' },
-};
+type StatusKey = 'not_opened_for_sale' | 'on_sale' | 'out_of_stock' | 'temporarily_locked';
+type TypeKey = 'private' | 'public';
 
-const typeMap = {
-  private: { label: 'Nội bộ', color: 'warning' },
-  public: { label: 'Công khai', color: 'primary' },
-};
+const getStatusMap = (tt: (vi: string, en: string) => string) => ({
+  not_opened_for_sale: { label: tt('Trạng thái: Chưa mở bán', 'Status: Not opened for sale'), color: 'secondary' as const },
+  on_sale: { label: tt('Trạng thái: Đang mở bán', 'Status: On sale'), color: 'success' as const },
+  out_of_stock: { label: tt('Trạng thái: Đã hết', 'Status: Out of stock'), color: 'secondary' as const },
+  temporarily_locked: { label: tt('Trạng thái: Đang tạm khoá', 'Status: Temporarily locked'), color: 'warning' as const },
+});
+
+const getTypeMap = (tt: (vi: string, en: string) => string) => ({
+  private: { label: tt('Nội bộ', 'Private'), color: 'warning' as const },
+  public: { label: tt('Công khai', 'Public'), color: 'primary' as const },
+});
 
 type ColorMap = {
   [key: number]: string
@@ -65,9 +69,13 @@ type ColorMap = {
 
 
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+  const { tt } = useTranslation();
+  const statusMap = getStatusMap(tt);
+  const typeMap = getTypeMap(tt);
+  
   React.useEffect(() => {
-    document.title = "Suất diễn | ETIK - Vé điện tử & Quản lý sự kiện";
-  }, []);
+    document.title = tt("Suất diễn | ETIK - Vé điện tử & Quản lý sự kiện", "Shows | ETIK - E-tickets & Event Management");
+  }, [tt]);
   const { event_id } = params;
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -82,7 +90,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         );
         setShows(response.data);
       } catch (error) {
-        notificationCtx.error('Error fetching ticket categories:', error);
+        notificationCtx.error(tt('Lỗi khi tải danh sách suất diễn', 'Error fetching shows'), error);
       } finally {
         setIsLoading(false);
       }
@@ -105,7 +113,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Suất diễn</Typography>
+          <Typography variant="h4">{tt("Suất diễn", "Shows")}</Typography>
         </Stack>
         <div>
           <Button
@@ -114,7 +122,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
             variant="contained"
             href="shows/create"
           >
-            Thêm suất diễn
+            {tt("Thêm suất diễn", "Add Show")}
           </Button>
         </div>
       </Stack>
@@ -139,18 +147,18 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       </Typography>
                       <Stack sx={{ alignItems: 'center', flexWrap: 'wrap' }} direction="row" spacing={1}>
                         <Chip
-                          label={statusMap[show.status]?.label}
-                          color={statusMap[show.status]?.color}
+                          label={statusMap[show.status as StatusKey]?.label || show.status}
+                          color={statusMap[show.status as StatusKey]?.color || 'default'}
                           size="small"
                         />
                         <Chip
-                          label={typeMap[show.type]?.label}
-                          color={typeMap[show.type]?.color}
+                          label={typeMap[show.type as TypeKey]?.label || show.type}
+                          color={typeMap[show.type as TypeKey]?.color || 'default'}
                           size="small"
                         />
                         {show.disabled === true &&
                           <Chip
-                            label={'Đang khóa bởi hệ thống'}
+                            label={tt('Đang khóa bởi hệ thống', 'Locked by system')}
                             color={'secondary'}
                             size="small"
                           />}
@@ -163,7 +171,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       <Typography color="text.secondary" display="inline" variant="body2">
                         {show.startDateTime && show.endDateTime
                           ? `${dayjs(show.startDateTime || 0).format('HH:mm')} - ${dayjs(show.endDateTime || 0).format('HH:mm ngày DD/MM/YYYY')}`
-                          : 'Chưa xác định'}
+                          : tt('Chưa xác định', 'Not determined')}
                       </Typography>
                     </Stack>
                   </Stack>
@@ -179,7 +187,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       size="small"
                       startIcon={<Pencil />}
                     >
-                      Chỉnh sửa
+                      {tt("Chỉnh sửa", "Edit")}
                     </Button>
                   </Stack>
                 </Stack>

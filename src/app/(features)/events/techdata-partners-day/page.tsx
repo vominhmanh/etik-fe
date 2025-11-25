@@ -136,12 +136,6 @@ type CheckoutRuntimeField = {
   options?: CheckoutRuntimeFieldOption[];
 };
 
-const paymentMethodLabelMap: Record<string, string> = {
-  cash: 'Tiền mặt',
-  transfer: 'Chuyển khoản',
-  napas247: 'Napas 247',
-};
-
 export default function Page(): React.JSX.Element {
   const params = { event_slug: 'techdata-partners-day' }
   const searchParams = useSearchParams();
@@ -382,10 +376,6 @@ export default function Page(): React.JSX.Element {
     });
   };
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
-  };
-
   const formatDateTime = React.useCallback((date: string) => {
     return lang === 'vi'
       ? dayjs(date).format('HH:mm DD/MM/YYYY')
@@ -456,7 +446,7 @@ export default function Page(): React.JSX.Element {
 
     const totalSelectedCategories = Object.values(selectedCategories).reduce((sum, catMap) => sum + Object.keys(catMap || {}).length, 0);
     if (totalSelectedCategories === 0) {
-      notificationCtx.warning(tt('Vui lòng chọn ít nhất 1 loại vé', 'Please select at least one ticket type'));
+      notificationCtx.warning(tt('Vui lòng chọn ít nhất 1 loại huy hiệu', 'Please select at least one badge type'));
       return;
     }
 
@@ -556,7 +546,7 @@ export default function Page(): React.JSX.Element {
     }
 
     if (Object.keys(selectedCategories).length == 0) {
-      notificationCtx.warning(tt('Vui lòng chọn ít nhất 1 loại vé', 'Please select at least one ticket type'));
+      notificationCtx.warning(tt('Vui lòng chọn ít nhất 1 chức năng', 'Please select at least one badge type'));
       return;
     }
 
@@ -1165,15 +1155,11 @@ export default function Page(): React.JSX.Element {
                                 <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                   <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                                     <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{show?.name || tt('Chưa xác định', 'Unknown')} - {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket type')}</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{show?.name || tt('Chưa xác định', 'Unknown')} - {ticketCategory?.name || tt('Chưa rõ', 'Unknown badge type')}</Typography>
                                     <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => setRequestedCategoryModalId(categoryId)}><Pencil /></IconButton>
                                   </Stack>
                                   <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                                    <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
-                                    <Typography variant="caption">x {quantity}</Typography>
-                                    <Typography variant="caption">
-                                      = {formatPrice((ticketCategory?.price || 0) * quantity)}
-                                    </Typography>
+                                    <Typography variant="caption">{quantity}</Typography>
                                   </Stack>
                                 </Stack>
 
@@ -1269,7 +1255,7 @@ export default function Page(): React.JSX.Element {
                 if (field.internal_name === 'name') {
                   return (
                     <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">{field.label}</Typography>
+                      <Typography variant="body2">{tt("Họ và tên", "Full Name")}</Typography>
                       <Typography variant="body2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
                     </Box>
                   );
@@ -1277,7 +1263,7 @@ export default function Page(): React.JSX.Element {
                 if (field.internal_name === 'email') {
                   return (
                     <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">{field.label}</Typography>
+                      <Typography variant="body2">{tt("Địa chỉ Email", "Email Address")}</Typography>
                       <Typography variant="body2">{customer.email}</Typography>
                     </Box>
                   );
@@ -1285,7 +1271,7 @@ export default function Page(): React.JSX.Element {
                 if (field.internal_name === 'phone_number') {
                   return (
                     <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">{field.label}</Typography>
+                      <Typography variant="body2">{tt("Số điện thoại", "Phone Number")}</Typography>
                       <Typography variant="body2">
                         {(() => {
                           const selectedCountry = PHONE_COUNTRIES.find(c => c.iso2 === customer.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
@@ -1300,7 +1286,7 @@ export default function Page(): React.JSX.Element {
                 if (field.internal_name === 'address') {
                   return (
                     <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">{field.label}</Typography>
+                      <Typography variant="body2">{tt("Địa chỉ", "Address")}</Typography>
                       <Typography variant="body2">{customer.address || '-'}</Typography>
                     </Box>
                   );
@@ -1308,7 +1294,7 @@ export default function Page(): React.JSX.Element {
                 if (field.internal_name === 'dob') {
                   return (
                     <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">{field.label}</Typography>
+                      <Typography variant="body2">{tt("Ngày tháng năm sinh", "Date of Birth")}</Typography>
                       <Typography variant="body2">{customer.dob || '-'}</Typography>
                     </Box>
                   );
@@ -1316,7 +1302,7 @@ export default function Page(): React.JSX.Element {
                 if (field.internal_name === 'idcard_number') {
                   return (
                     <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">{field.label}</Typography>
+                      <Typography variant="body2">{tt("Số Căn cước công dân", "ID Card Number")}</Typography>
                       <Typography variant="body2">{customer.idcard_number || '-'}</Typography>
                     </Box>
                   );
@@ -1359,7 +1345,7 @@ export default function Page(): React.JSX.Element {
                       <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                           <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{show?.name || tt('Chưa xác định', 'Unknown')} - {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket type')}</Typography>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{show?.name || tt('Chưa xác định', 'Unknown')} - {ticketCategory?.name || tt('Chưa rõ', 'Unknown badge type')}</Typography>
                         </Stack>
                         <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
                           <Typography variant="caption">{quantity}</Typography>

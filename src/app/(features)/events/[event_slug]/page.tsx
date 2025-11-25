@@ -1305,7 +1305,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 if (field.internal_name === 'name') {
                   return (
                     <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">{field.label}</Typography>
+                      <Typography variant="body2">{tt("Họ và tên", "Full Name")}</Typography>
                       <Typography variant="body2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
                     </Box>
                   );
@@ -1313,7 +1313,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 if (field.internal_name === 'email') {
                   return (
                     <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">{field.label}</Typography>
+                      <Typography variant="body2">{tt("Địa chỉ Email", "Email Address")}</Typography>
                       <Typography variant="body2">{customer.email}</Typography>
                     </Box>
                   );
@@ -1321,7 +1321,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 if (field.internal_name === 'phone_number') {
                   return (
                     <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">{field.label}</Typography>
+                      <Typography variant="body2">{tt("Số điện thoại", "Phone Number")}</Typography>
                       <Typography variant="body2">
                         {(() => {
                           const selectedCountry = PHONE_COUNTRIES.find(c => c.iso2 === customer.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
@@ -1336,7 +1336,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 if (field.internal_name === 'address') {
                   return (
                     <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">{field.label}</Typography>
+                      <Typography variant="body2">{tt("Địa chỉ", "Address")}</Typography>
                       <Typography variant="body2">{customer.address || '-'}</Typography>
                     </Box>
                   );
@@ -1344,7 +1344,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 if (field.internal_name === 'dob') {
                   return (
                     <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">{field.label}</Typography>
+                      <Typography variant="body2">{tt("Ngày tháng năm sinh", "Date of Birth")}</Typography>
                       <Typography variant="body2">{customer.dob || '-'}</Typography>
                     </Box>
                   );
@@ -1352,7 +1352,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 if (field.internal_name === 'idcard_number') {
                   return (
                     <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">{field.label}</Typography>
+                      <Typography variant="body2">{tt("Số Căn cước công dân", "ID Card Number")}</Typography>
                       <Typography variant="body2">{customer.idcard_number || '-'}</Typography>
                     </Box>
                   );
