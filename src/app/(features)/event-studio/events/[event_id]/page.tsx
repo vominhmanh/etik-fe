@@ -71,6 +71,8 @@ export type TicketCategory = {
   checkedIn: number;
   nowInside: number;
   nowOutside: number;
+  readyToCheckIn: number;
+  notEligible: number;
   disabled: boolean;
   avatar: string | null;
   name: string;
@@ -719,13 +721,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       acc.totalSold += c.sold || 0;
                       acc.totalNowInside += c.nowInside || 0;
                       acc.totalNowOutside += c.nowOutside || 0;
+                      acc.totalReadyToCheckIn += c.readyToCheckIn || 0;
+                      acc.totalNotEligible += c.notEligible || 0;
                       return acc;
                     },
-                    { totalCheckedIn: 0, totalSold: 0, totalNowInside: 0, totalNowOutside: 0 }
+                    { totalCheckedIn: 0, totalSold: 0, totalNowInside: 0, totalNowOutside: 0, totalReadyToCheckIn: 0, totalNotEligible: 0 }
                   );
 
                   const remainingNotCheckedIn = Math.max(
-                    totals.totalSold - totals.totalCheckedIn,
+                    totals.totalReadyToCheckIn - totals.totalCheckedIn,
                     0
                   );
 
@@ -735,13 +739,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     return `${rate.toFixed(1)}%`;
                   };
 
+                  const formatPercentOfReady = (value: number) => {
+                    if (totals.totalReadyToCheckIn <= 0) return '0%';
+                    const rate = (value / totals.totalReadyToCheckIn) * 100;
+                    return `${rate.toFixed(1)}%`;
+                  };
+
                   const overallRate =
                     totals.totalSold > 0 ? (totals.totalCheckedIn / totals.totalSold) * 100 : 0;
 
                   // Always provide a numeric series so ApexCharts doesn't see undefined on first render
                   const donutSeries =
-                    totals.totalSold > 0
-                      ? [totals.totalCheckedIn, Math.max(totals.totalSold - totals.totalCheckedIn, 0)]
+                    totals.totalReadyToCheckIn > 0
+                      ? [totals.totalCheckedIn, Math.max(totals.totalReadyToCheckIn - totals.totalCheckedIn, 0)]
                       : [0, 0];
 
                   const donutOptions: ApexOptions = {
@@ -762,7 +772,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
                   const barCategories = categories.map((c) => c.name);
                   const barSeriesData = categories.map((c) => {
-                    const val = c.sold > 0 ? (c.checkedIn / c.sold) * 100 : 0;
+                    const val = c.readyToCheckIn > 0 ? (c.checkedIn / c.readyToCheckIn) * 100 : 0;
                     return Number.isFinite(val) ? val : 0;
                   });
 
@@ -844,7 +854,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             <Grid xs={6} md={6}>
                               <Paper variant="outlined" sx={{ p: 2 }}>
                                 <Typography variant="subtitle2">
-                                  {tt('Đã bán', 'Sold')}
+                                  {tt('Tổng vé xuất', 'Total exported tickets')}
                                 </Typography>
                                 <Typography variant="h5">{totals.totalSold}</Typography>
                                 <Typography variant="body2" color="text.secondary">
@@ -855,11 +865,35 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             <Grid xs={6} md={6}>
                               <Paper variant="outlined" sx={{ p: 2 }}>
                                 <Typography variant="subtitle2">
+                                  {tt('Sẵn sàng check-in', 'Ready to check-in')}
+                                </Typography>
+                                <Typography variant="h5">{totals.totalReadyToCheckIn}</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  100%
+                                </Typography>
+                              </Paper>
+                            </Grid>
+                            <Grid xs={6} md={6}>
+                              <Paper variant="outlined" sx={{ p: 2 }}>
+                                <Typography variant="subtitle2" color="text.secondary">
+                                  {tt('Không đủ điều kiện', 'Not eligible')}
+                                </Typography>
+                                <Typography variant="h5" color="text.secondary">
+                                  {totals.totalNotEligible}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {formatPercentOfSold(totals.totalNotEligible)}
+                                </Typography>
+                              </Paper>
+                            </Grid>
+                            <Grid xs={6} md={6}>
+                              <Paper variant="outlined" sx={{ p: 2 }}>
+                                <Typography variant="subtitle2">
                                   {tt('Đã check-in', 'Checked-in')}
                                 </Typography>
                                 <Typography variant="h5">{totals.totalCheckedIn}</Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                  {formatPercentOfSold(totals.totalCheckedIn)}
+                                  {formatPercentOfReady(totals.totalCheckedIn)}
                                 </Typography>
                               </Paper>
                             </Grid>
@@ -872,7 +906,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                   {remainingNotCheckedIn}
                                 </Typography>
                                 <Typography variant="body2" color="warning.main">
-                                  {formatPercentOfSold(remainingNotCheckedIn)}
+                                  {formatPercentOfReady(remainingNotCheckedIn)}
                                 </Typography>
                               </Paper>
                             </Grid>
@@ -933,18 +967,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               <TableCell>{tt('Loại vé', 'Ticket type')}</TableCell>
                               <TableCell>{tt('Giá bán', 'Price')}</TableCell>
                               <TableCell>{tt('Đã bán', 'Sold')}</TableCell>
+                              <TableCell>{tt('Sẵn sàng check-in', 'Ready to check-in')}</TableCell>
+                              <TableCell>{tt('Không đủ điều kiện', 'Not eligible')}</TableCell>
                               <TableCell>{tt('Đã check-in', 'Checked-in')}</TableCell>
                               <TableCell>{tt('Tỉ lệ check-in', 'Check-in rate')}</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
                             {categories.map((c) => {
-                              const rate = c.sold > 0 ? (c.checkedIn / c.sold) * 100 : 0;
+                              const rate = c.readyToCheckIn > 0 ? (c.checkedIn / c.readyToCheckIn) * 100 : 0;
                               return (
                                 <TableRow key={c.id}>
                                   <TableCell>{c.name}</TableCell>
                                   <TableCell>{c.price.toLocaleString('vi-VN')}đ</TableCell>
                                   <TableCell>{c.sold}</TableCell>
+                                  <TableCell>{c.readyToCheckIn}</TableCell>
+                                  <TableCell>{c.notEligible}</TableCell>
                                   <TableCell>{c.checkedIn}</TableCell>
                                   <TableCell>{`${rate.toFixed(1)}%`}</TableCell>
                                 </TableRow>
