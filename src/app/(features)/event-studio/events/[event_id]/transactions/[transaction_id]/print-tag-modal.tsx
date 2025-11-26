@@ -11,11 +11,7 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  FormControl,
-  InputLabel,
-  MenuItem,
   Radio,
-  Select,
   Stack,
   Table,
   TableBody,
@@ -23,6 +19,7 @@ import {
   TableHead,
   TableRow,
   Typography,
+  FormControlLabel,
 } from '@mui/material';
 
 import { useReactToPrint } from 'react-to-print';
@@ -36,6 +33,7 @@ import type { Transaction } from './page';
 interface TicketRow {
   ticketId: number;
   holderDisplayName: string;
+  holderNameRaw?: string;
   holderEmail?: string | null;
   holderPhone?: string | null;
   showName: string;
@@ -43,30 +41,38 @@ interface TicketRow {
   eCode?: string;
 }
 
-interface TicketTagSelectedComponent {
+// New Ticket Tag design schema (multi-design per event)
+interface ComponentData {
+  id: string;
   key: string;
   label: string;
-}
-
-interface TicketTagComponentSetting {
+  x: number;
+  y: number;
   width: number;
   height: number;
-  top: number;
-  left: number;
   fontSize: number;
-  color?: string | null;
+  fontFamily: string;
+  fontWeight: string;
+  fontStyle: string;
+  textDecoration: string;
+  color: string;
+  backgroundColor: string;
+  textAlign: 'left' | 'center' | 'right';
+  customText?: string | null;
+  imageUrl?: string | null;
+  zIndex?: number | null;
+  includeTitle?: boolean | null;
+  verticalAlign?: 'top' | 'middle' | 'bottom' | null;
 }
 
-interface TicketTagSettings {
-  size: string;
-  selectedComponents: TicketTagSelectedComponent[];
-  componentSettings: Record<string, TicketTagComponentSetting>;
-}
-
-interface TicketTagSettingsResponse {
-  size: string;
-  selectedComponents?: TicketTagSelectedComponent[];
-  componentSettings?: Record<string, any>;
+interface TicketTagDesign {
+  id: number;
+  name: string;
+  size: string; // '40x30mm' | 'custom' ...
+  customSize?: { width: number; height: number } | null;
+  components: ComponentData[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface PrintTagModalProps {
@@ -76,136 +82,15 @@ interface PrintTagModalProps {
   eventId: number;
 }
 
-const normalizeComponentSettings = (
-  componentSettings: Record<string, any>
-): Record<string, TicketTagComponentSetting> => {
-  const normalized: Record<string, TicketTagComponentSetting> = {};
-  Object.entries(componentSettings || {}).forEach(([key, value]) => {
-    if (!value) return;
-    normalized[key] = {
-      width: Number(value.width ?? 0),
-      height: Number(value.height ?? 0),
-      top: Number(value.top ?? 0),
-      left: Number(value.left ?? 0),
-      fontSize: Number(value.fontSize ?? value.font_size ?? 10),
-      color: typeof value.color === 'string' ? value.color : '000000',
-    };
-  });
-  return normalized;
-};
+const PX_PER_MM = 96 / 25.4;
+const CANVAS_SCALE = 2;
+const MAX_CANVAS_WIDTH = 600;
+const MAX_CANVAS_HEIGHT = 500;
 
-const LABEL_SIZE_MAP: Record<string, { width: number; height: number }> = {
-  '40x30mm': { width: 40, height: 30 },
-  '50x30mm': { width: 50, height: 30 },
-  '50x40mm': { width: 50, height: 40 },
-  '50x50mm': { width: 50, height: 50 },
-  '81x64mm': { width: 81, height: 64 },
-};
-
-const DEFAULT_TEMPLATE_SIZE = '50x50mm';
-const DEFAULT_LABEL_SIZE = LABEL_SIZE_MAP[DEFAULT_TEMPLATE_SIZE];
-
-const getDefaultComponentLabels = (tt: (vi: string, en: string) => string): Record<string, string> => ({
-  eventName: tt('Tên sự kiện', 'Event Name'),
-  customerName: tt('Tên khách mời', 'Customer Name'),
-  customerAddress: tt('Địa chỉ khách mời', 'Customer Address'),
-  customerPhone: tt('Điện thoại khách mời', 'Customer Phone'),
-  customerEmail: tt('Email Khách mời', 'Customer Email'),
-  ticketsList: tt('Danh sách vé', 'Tickets List'),
-  eCode: tt('Mã Check-in', 'Check-in Code'),
-  eCodeQr: tt('Ảnh QR', 'QR Image'),
-  startDateTime: tt('Thời gian bắt đầu', 'Start Date Time'),
-  endDateTime: tt('Thời gian kết thúc', 'End Date Time'),
-  place: tt('Địa điểm', 'Place'),
-});
-
-const DEFAULT_TEMPLATES: Record<
-  string,
-  {
-    selectedComponents: string[];
-    componentSettings: Record<string, TicketTagComponentSetting>;
-  }
-> = {
-  '40x30mm': {
-    selectedComponents: ['customerName', 'eCodeQr', 'eCode', 'eventName'],
-    componentSettings: {
-      eventName: { width: 100, height: 12, top: 1, left: 0, fontSize: 8, color: '000000' },
-      customerName: { width: 100, height: 15, top: 18, left: 0, fontSize: 11, color: '000000' },
-      startDateTime: { width: 60, height: 8, top: 29, left: 5, fontSize: 7, color: '000000' },
-      place: { width: 60, height: 8, top: 38, left: 5, fontSize: 7, color: '000000' },
-      eCodeQr: { width: 30, height: 30, top: 50, left: 60, fontSize: 10, color: '000000' },
-      eCode: { width: 30, height: 8, top: 80, left: 60, fontSize: 7, color: '000000' },
-    },
-  },
-  '50x40mm': {
-    selectedComponents: ['customerName', 'eCodeQr', 'eCode', 'eventName'],
-    componentSettings: {
-      eventName: { width: 100, height: 12, top: 1, left: 0, fontSize: 8, color: '000000' },
-      customerName: { width: 100, height: 15, top: 18, left: 0, fontSize: 11, color: '000000' },
-      startDateTime: { width: 60, height: 8, top: 29, left: 5, fontSize: 7, color: '000000' },
-      place: { width: 60, height: 8, top: 38, left: 5, fontSize: 7, color: '000000' },
-      eCodeQr: { width: 30, height: 30, top: 50, left: 60, fontSize: 10, color: '000000' },
-      eCode: { width: 30, height: 8, top: 80, left: 60, fontSize: 7, color: '000000' },
-    },
-  },
-  '50x50mm': {
-    selectedComponents: ['customerName', 'eCodeQr', 'eCode', 'eventName'],
-    componentSettings: {
-      eventName: { width: 100, height: 12, top: 1, left: 0, fontSize: 8, color: '000000' },
-      customerName: { width: 100, height: 15, top: 18, left: 0, fontSize: 11, color: '000000' },
-      startDateTime: { width: 60, height: 8, top: 29, left: 5, fontSize: 7, color: '000000' },
-      place: { width: 60, height: 8, top: 38, left: 5, fontSize: 7, color: '000000' },
-      eCodeQr: { width: 30, height: 30, top: 50, left: 60, fontSize: 10, color: '000000' },
-      eCode: { width: 30, height: 8, top: 80, left: 60, fontSize: 7, color: '000000' },
-    },
-  },
-  '50x30mm': {
-    selectedComponents: ['customerName', 'eCodeQr', 'eCode', 'eventName'],
-    componentSettings: {
-      eventName: { width: 100, height: 12, top: 1, left: 0, fontSize: 8, color: '000000' },
-      customerName: { width: 100, height: 15, top: 18, left: 0, fontSize: 11, color: '000000' },
-      startDateTime: { width: 60, height: 8, top: 29, left: 5, fontSize: 7, color: '000000' },
-      place: { width: 60, height: 8, top: 38, left: 5, fontSize: 7, color: '000000' },
-      eCodeQr: { width: 30, height: 30, top: 50, left: 60, fontSize: 10, color: '000000' },
-      eCode: { width: 30, height: 8, top: 80, left: 60, fontSize: 7, color: '000000' },
-    },
-  },
-};
-
-const LABEL_OPTIONS = [
-  { value: '40x30mm', label: '40 x 30 mm' },
-  { value: '50x30mm', label: '50 x 30 mm' },
-  { value: '50x40mm', label: '50 x 40 mm' },
-  { value: '50x50mm', label: '50 x 50 mm' },
-  { value: '81x64mm', label: '81 x 64 mm' },
-];
-
-const parseLabelSize = (size?: string | null) => {
-  if (!size) return DEFAULT_LABEL_SIZE;
-  const normalized = size.trim();
-  if (LABEL_SIZE_MAP[normalized]) {
-    return LABEL_SIZE_MAP[normalized];
-  }
-  const match = normalized.match(/(\d+)\s*x\s*(\d+)\s*mm/i);
-  if (match) {
-    return { width: Number(match[1]), height: Number(match[2]) };
-  }
-  return DEFAULT_LABEL_SIZE;
-};
-
-const createDefaultSettings = (size: string, tt: (vi: string, en: string) => string): TicketTagSettings => {
-  const template = DEFAULT_TEMPLATES[size] || DEFAULT_TEMPLATES[DEFAULT_TEMPLATE_SIZE];
-  const labels = getDefaultComponentLabels(tt);
-  return {
-    size,
-    selectedComponents: template.selectedComponents.map(key => ({
-      key,
-      label: labels[key] || key,
-    })),
-    componentSettings: Object.fromEntries(
-      Object.entries(template.componentSettings).map(([key, value]) => [key, { ...value }])
-    ),
-  };
+const parseSizeString = (size: string): { width: number; height: number } | null => {
+  const match = size?.match(/(\d+)\s*x\s*(\d+)\s*mm/i);
+  if (match) return { width: Number(match[1]), height: Number(match[2]) };
+  return null;
 };
 
 const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transaction, eventId }) => {
@@ -219,10 +104,12 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
     const sharedCode = useSharedCode ? transaction.eCode : undefined;
     return transaction.transactionTicketCategories.flatMap(category =>
       category.tickets.map(ticket => {
-        const holderName = [ticket.holderTitle, ticket.holderName].filter(Boolean).join(' ').trim();
+        const holderNameRaw = (ticket.holderName || '').trim();
+        const holderName = [ticket.holderTitle, holderNameRaw].filter(Boolean).join(' ').trim();
         return {
           ticketId: ticket.id,
           holderDisplayName: holderName || buyerName || transaction.name,
+          holderNameRaw: holderNameRaw || undefined,
           holderEmail: ticket.holderEmail ?? transaction.email,
           holderPhone: ticket.holderPhone ?? transaction.phoneNumber,
           showName: category.ticketCategory.show.name,
@@ -234,20 +121,61 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
   }, [transaction]);
 
   const [selectedTicketId, setSelectedTicketId] = React.useState<number | null>(null);
-  const [settings, setSettings] = React.useState<TicketTagSettings | null>(null);
-  const [selectedSize, setSelectedSize] = React.useState<string>(DEFAULT_TEMPLATE_SIZE);
-  const [loadingSettings, setLoadingSettings] = React.useState<boolean>(false);
+  const [designs, setDesigns] = React.useState<TicketTagDesign[]>([]);
+  const [selectedDesignId, setSelectedDesignId] = React.useState<number | null>(null);
+  const [loadingDesigns, setLoadingDesigns] = React.useState<boolean>(false);
   const [isPreparingPrint, setIsPreparingPrint] = React.useState<boolean>(false);
   const printAreaRef = React.useRef<HTMLDivElement>(null);
-  const labelSize = React.useMemo(
-    () => parseLabelSize(settings?.size || selectedSize),
-    [selectedSize, settings?.size]
-  );
 
   const selectedTicket = React.useMemo(
     () => ticketRows.find(row => row.ticketId === selectedTicketId) || null,
     [ticketRows, selectedTicketId]
   );
+  const selectedDesign = React.useMemo(
+    () => designs.find(d => d.id === selectedDesignId) || null,
+    [designs, selectedDesignId]
+  );
+  const selectedSizeMm = React.useMemo(() => {
+    if (!selectedDesign) return { width: 50, height: 50 };
+    if (selectedDesign.size === 'custom' && selectedDesign.customSize) return selectedDesign.customSize;
+    return parseSizeString(selectedDesign.size) || { width: 50, height: 50 };
+  }, [selectedDesign]);
+  const printCss = React.useMemo(() => {
+    const w = selectedSizeMm.width;
+    const h = selectedSizeMm.height;
+    return `
+      @page { size: ${w}mm ${h}mm; margin: 0; }
+      @media print {
+        html, body {
+          width: ${w}mm;
+          height: ${h}mm;
+          margin: 0; padding: 0;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        body * { visibility: hidden !important; }
+        .print-area, .print-area * { visibility: visible !important; }
+        .print-area {
+          position: fixed !important;
+          top: 0 !important;
+          left: 50% !important;
+          transform: translateX(-50%) !important;
+          width: ${w}mm !important;
+          height: ${h}mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          display: block !important;
+          overflow: visible !important;
+          box-sizing: border-box !important;
+        }
+        .print-area * {
+          padding: 0 !important;
+          margin: 0 !important;
+          box-sizing: border-box !important;
+        }
+      }
+    `;
+  }, [selectedSizeMm]);
 
   const handleReactPrint = useReactToPrint({
     content: () => printAreaRef.current,
@@ -266,49 +194,28 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
   React.useEffect(() => {
     if (!open) return;
     let isMounted = true;
-    const fetchSettings = async () => {
+    const fetchDesigns = async () => {
       try {
-        setLoadingSettings(true);
-        const response = await baseHttpServiceInstance.get(
-          `/event-studio/events/${eventId}/ticket-tag-settings`
-        );
+        setLoadingDesigns(true);
+        const response = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/ticket-tag-designs`);
         if (!isMounted) return;
-        const payload = response.data as TicketTagSettingsResponse;
-        const size = payload.size || DEFAULT_TEMPLATE_SIZE;
-        const incomingComponents = payload.selectedComponents ?? [];
-        const incomingSettings = payload.componentSettings ?? {};
-        if (incomingComponents.length === 0 || Object.keys(incomingSettings).length === 0) {
-          const defaults = createDefaultSettings(size, tt);
-          setSettings(defaults);
-          setSelectedSize(size);
-          return;
-        }
-        const labels = getDefaultComponentLabels(tt);
-        setSettings({
-          size,
-          selectedComponents: incomingComponents.map(component => ({
-            key: component.key,
-            label: component.label || labels[component.key] || component.key,
-          })),
-          componentSettings: normalizeComponentSettings(incomingSettings),
-        });
-        setSelectedSize(size);
-      } catch (error) {
+        const list = (response.data || []) as TicketTagDesign[];
+        setDesigns(list);
+        setSelectedDesignId(list.length > 0 ? list[0].id : null);
+      } catch (error: any) {
         if (isMounted) {
-          const defaults = createDefaultSettings(DEFAULT_TEMPLATE_SIZE, tt);
-          setSettings(defaults);
-          setSelectedSize(DEFAULT_TEMPLATE_SIZE);
-          notificationCtx.warning(tt('Chưa có cấu hình tem nhãn, sử dụng thiết kế mặc định.', 'No tag configuration found, using default design.'));
+          setDesigns([]);
+          setSelectedDesignId(null);
+          notificationCtx.error(tt('Không thể tải thiết kế tem.', 'Unable to load tag designs.') + ` ${error?.message || error}`);
         }
       } finally {
         if (isMounted) {
-          setLoadingSettings(false);
+          setLoadingDesigns(false);
         }
       }
     };
 
-    fetchSettings();
-
+    fetchDesigns();
     return () => {
       isMounted = false;
     };
@@ -325,20 +232,44 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
       if (!transaction) return '';
       const buyerName = [transaction.title, transaction.name].filter(Boolean).join(' ').trim();
       switch (key) {
+        // Ticket holder (per-ticket) fields
+        case 'ticketHolderName':
+          return ticket.holderDisplayName;
+        case 'ticketHolderEmail':
+          return ticket.holderEmail || '';
+        case 'ticketHolderPhone':
+          return ticket.holderPhone || '';
         case 'eventName':
           return transaction.event?.name || '';
         case 'organizer':
           return transaction.event?.organizer || '';
         case 'customerName':
-          return ticket.holderDisplayName || buyerName;
+          return buyerName;
         case 'customerAddress':
           return transaction.address || '';
         case 'customerPhone':
-          return ticket.holderPhone || transaction.phoneNumber || '';
+          return transaction.phoneNumber || '';
         case 'customerEmail':
-          return ticket.holderEmail || transaction.email || '';
+          return transaction.email || '';
         case 'ticketsList':
           return `${ticket.showName} - ${ticket.categoryName}`;
+        case 'transactionId':
+          return String(transaction.id ?? '');
+        case 'ticketTid':
+          return ticket.ticketId ? `TID-${ticket.ticketId}` : '';
+        // New dynamic builtin keys
+        case 'name':
+          return buyerName;
+        case 'email':
+          return transaction.email || '';
+        case 'phone':
+          return transaction.phoneNumber || '';
+        case 'address':
+          return transaction.address || '';
+        case 'dob':
+          return transaction.dob || '';
+        case 'idcard_number':
+          return (transaction.formAnswers && (transaction.formAnswers['idcard_number'] ?? '')) || '';
         case 'showName':
           return ticket.showName;
         case 'ticketCategory':
@@ -364,72 +295,175 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
         case 'locationUrl':
           return transaction.event?.locationUrl || '';
         default:
+          // Custom form keys: 'form_<internal_name>[_<id>]' or 'form_<safeLabel>'
+          if (key.startsWith('form_') && transaction.formAnswers) {
+            const raw = key.slice(5);
+            const tryKeys: string[] = [];
+            // as-is
+            tryKeys.push(raw);
+            // remove trailing _<id> if any
+            const parts = raw.split('_');
+            if (parts.length > 1 && /^\d+$/.test(parts[parts.length - 1])) {
+              tryKeys.push(parts.slice(0, -1).join('_'));
+            }
+            // normalized lowercase + spaces to '_' + strip non a-z0-9_ for both
+            const normalize = (s: string) =>
+              s
+                .toLowerCase()
+                .replace(/\s+/g, '_')
+                .replace(/[^a-z0-9_]/g, '_')
+                .replace(/_+/g, '_')
+                .replace(/^_+|_+$/g, '');
+            tryKeys.push(...tryKeys.map(normalize));
+
+            for (const k of tryKeys) {
+              if (transaction.formAnswers[k] !== undefined) {
+                const v = transaction.formAnswers[k];
+                if (Array.isArray(v)) return v.join(', ');
+                return String(v ?? '');
+              }
+            }
+
+            // Final fallback: normalize all keys in formAnswers and compare
+            const normalizedTarget = normalize(raw);
+            for (const ansKey of Object.keys(transaction.formAnswers)) {
+              if (normalize(ansKey) === normalizedTarget) {
+                const v = (transaction.formAnswers as any)[ansKey];
+                if (Array.isArray(v)) return v.join(', ');
+                return String(v ?? '');
+              }
+            }
+          }
           return '';
       }
     },
     [transaction]
   );
 
-  const renderComponent = React.useCallback(
-    (component: TicketTagSelectedComponent, ticket: TicketRow) => {
-      if (!settings) return null;
-      const setting = settings.componentSettings[component.key];
-      if (!setting) return null;
-      const value = resolveComponentValue(component.key, ticket);
-      if (!value) return null;
+  const renderComponentBox = (
+    comp: ComponentData,
+    ticket: TicketRow,
+    canvasScale: number
+  ) => {
+    // Normalize legacy keys to unified naming
+    const normalizedKey = comp.key === 'customerName' ? 'name' : comp.key;
+    // Convert px to mm based on canvasScale
+    const xMm = comp.x / (PX_PER_MM * CANVAS_SCALE * canvasScale);
+    const yMm = comp.y / (PX_PER_MM * CANVAS_SCALE * canvasScale);
+    const widthMm = comp.width / (PX_PER_MM * CANVAS_SCALE * canvasScale);
+    const heightMm = comp.height / (PX_PER_MM * CANVAS_SCALE * canvasScale);
+    const fontSizeMm = comp.fontSize / (PX_PER_MM * CANVAS_SCALE * canvasScale);
 
-      const { width, height } = labelSize;
-      const topMm = (setting.top / 100) * height;
-      const leftMm = (setting.left / 100) * width;
-      const widthMm = (setting.width / 100) * width;
-      const heightMm = (setting.height / 100) * height;
-      const fontSizeMm = (setting.fontSize || 10) / 3;
-
-      const baseStyles: React.CSSProperties = {
-        position: 'absolute',
-        top: `${topMm}mm`,
-        left: `${leftMm}mm`,
-        width: `${widthMm}mm`,
-        height: `${heightMm}mm`,
-        color: `#${setting.color || '000000'}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center',
-        fontSize: `${fontSizeMm}mm`,
-        boxSizing: 'border-box',
-        padding: '1mm',
-        wordBreak: 'break-word',
-        whiteSpace: 'pre-line',
-      };
-
-      if (component.key === 'eCodeQr') {
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?margin=16&size=280x280&data=${encodeURIComponent(
-          value
-        )}`;
-        return (
-          <Box key={`${ticket.ticketId}-${component.key}`} sx={baseStyles}>
-            <Box component="img" src={qrUrl} alt="QR" sx={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          </Box>
-        );
+    let value: string;
+    if (normalizedKey === 'customText' && comp.customText) {
+      value = comp.customText;
+    } else if (normalizedKey === 'eCodeQr') {
+      value = resolveComponentValue('eCodeQr', ticket);
+    } else if (normalizedKey === 'name') {
+      // Always source "name" from transaction info, never ticket holder
+      if (comp.includeTitle === false) {
+        value = (transaction?.name || '').trim();
+      } else {
+        value = resolveComponentValue('name', ticket);
       }
+    } else if (normalizedKey === 'ticketHolderName') {
+      if (comp.includeTitle === false) {
+        value = (ticket.holderNameRaw || '').trim();
+      } else {
+        value = ticket.holderDisplayName;
+      }
+    } else if (normalizedKey.startsWith('form_') && transaction?.formAnswers) {
+      // Try to resolve using component label as a fallback mapping to formAnswers keys
+      const normalize = (s: string) =>
+        s
+          .toLowerCase()
+          .replace(/\s+/g, '_')
+          .replace(/[^a-z0-9_]/g, '_')
+          .replace(/_+/g, '_')
+          .replace(/^_+|_+$/g, '');
+      const labelNorm = normalize(comp.label || '');
+      let matched: string | undefined;
+      for (const ansKey of Object.keys(transaction.formAnswers)) {
+        if (normalize(ansKey) === labelNorm) {
+          const v = (transaction.formAnswers as any)[ansKey];
+          matched = Array.isArray(v) ? v.join(', ') : String(v ?? '');
+          break;
+        }
+      }
+      value = matched !== undefined ? matched : resolveComponentValue(normalizedKey, ticket);
+    } else {
+      value = resolveComponentValue(normalizedKey, ticket);
+    }
 
-      return (
-        <Box key={`${ticket.ticketId}-${component.key}`} sx={baseStyles}>
-          {value}
-        </Box>
-      );
-    },
-    [labelSize, resolveComponentValue, settings]
-  );
+    return (
+      <div
+        key={comp.id}
+        style={{
+          position: 'absolute',
+          left: `${xMm}mm`,
+          top: `${yMm}mm`,
+          width: `${widthMm}mm`,
+          height: `${heightMm}mm`,
+          minWidth: `${widthMm}mm`,
+          minHeight: `${heightMm}mm`,
+          backgroundColor: comp.backgroundColor ? `#${comp.backgroundColor}` : 'transparent',
+          backgroundImage: 'none',
+          display: 'flex',
+          alignItems: (comp.verticalAlign === 'top' ? 'flex-start' : comp.verticalAlign === 'bottom' ? 'flex-end' : 'center'),
+          justifyContent: comp.textAlign === 'center' ? 'center' : comp.textAlign === 'right' ? 'flex-end' : 'flex-start',
+          padding: '1mm',
+          boxSizing: 'border-box',
+          border: '0.01mm solid rgba(0,0,0,0.001)',
+          zIndex: comp.zIndex ?? 1,
+          overflow: 'hidden',
+        }}
+      >
+        {normalizedKey === 'eCodeQr' && value ? (
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?margin=16&size=140x140&data=${encodeURIComponent(
+              value
+            )}`}
+            alt="QR Code"
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          />
+        ) : normalizedKey === 'image' && ((comp as any).imageUrl || (comp as any).image_url || (comp as any).customText) ? (
+          <img
+            src={(comp as any).imageUrl || (comp as any).image_url || (comp as any).customText}
+            alt="Component"
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          />
+        ) : (
+          <span
+            style={{
+              fontSize: `${fontSizeMm}mm`,
+              fontFamily: comp.fontFamily || 'Arial',
+              fontWeight: String(comp.fontWeight),
+              fontStyle: comp.fontStyle as any,
+              textDecoration: comp.textDecoration as any,
+              color: `#${comp.color}`,
+              textAlign: comp.textAlign as any,
+              wordBreak: 'normal',
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'break-word',
+              width: '100%',
+              display: 'block',
+            }}
+          >
+            {value}
+          </span>
+        )}
+      </div>
+    );
+  };
 
   const handlePrint = () => {
     if (!transaction) {
       notificationCtx.warning(tt('Không tìm thấy thông tin đơn hàng.', 'Order information not found.'));
       return;
     }
-    if (!settings || settings.selectedComponents.length === 0) {
-      notificationCtx.warning(tt('Chưa có cấu hình tem nhãn. Vui lòng thiết kế trước khi in.', 'No tag configuration found. Please design before printing.'));
+    const selectedDesign = designs.find(d => d.id === selectedDesignId) || null;
+    if (!selectedDesign) {
+      notificationCtx.warning(tt('Chưa có thiết kế tem nhãn. Vui lòng tạo thiết kế trước khi in.', 'No tag design found. Please create a design before printing.'));
       return;
     }
 
@@ -448,18 +482,11 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
   };
 
   const hasTicketRows = ticketRows.length > 0;
-  const handleSizeChange = (value: string) => {
-    setSelectedSize(value);
-    setSettings(prev => {
-      if (prev && prev.size === value) {
-        return prev;
-      }
-      return createDefaultSettings(value, tt);
-    });
-  };
+
 
   return (
     <>
+      <style dangerouslySetInnerHTML={{ __html: printCss }} />
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
         <DialogTitle>{tt("In tag vé", "Print Ticket Tag")}</DialogTitle>
         <DialogContent>
@@ -468,10 +495,10 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
               <Typography variant="body2">
                 {tt("Chọn vé để in", "Select ticket to print")} ({selectedTicket ? 1 : 0}/{ticketRows.length})
               </Typography>
-              {loadingSettings && (
+              {loadingDesigns && (
                 <Stack direction="row" spacing={1} alignItems="center">
                   <CircularProgress size={16} />
-                  <Typography variant="caption">{tt("Đang tải cấu hình tem nhãn...", "Loading tag configuration...")}</Typography>
+                  <Typography variant="caption">{tt("Đang tải thiết kế...", "Loading designs...")}</Typography>
                 </Stack>
               )}
             </Stack>
@@ -513,70 +540,88 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
             )}
 
             <Divider />
-            <Stack
-              direction={{ xs: 'column', md: 'row' }}
-              spacing={2}
-              alignItems={{ xs: 'flex-start', md: 'center' }}
-              justifyContent="space-between"
-            >
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel>{tt("Kích thước tem", "Tag Size")}</InputLabel>
-                <Select
-                  label={tt("Kích thước tem", "Tag Size")}
-                  value={selectedSize}
-                  onChange={event => handleSizeChange(event.target.value)}
-                >
-                  {LABEL_OPTIONS.map(option => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="subtitle2">{tt("Chọn thiết kế tem để in", "Select a tag design to print")}</Typography>
               <Button
                 component={LocalizedLink}
-                href={`/event-studio/events/${eventId}/ticket-tag-design`}
+                href={`/event-studio/events/${eventId}/ticket-tag-designs`}
                 target="_blank"
                 rel="noopener noreferrer"
                 size="small"
               >
-                {tt("Thay đổi thiết kế tem tại đây", "Change tag design here")}
+                {tt("Quản lý thiết kế tem", "Manage tag designs")}
               </Button>
             </Stack>
-            <Typography variant="subtitle2">{tt("Xem trước tem", "Tag Preview")}</Typography>
-            {settings && selectedTicket ? (
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                <Box
-                  ref={printAreaRef}
-                  sx={{
-                    width: `${labelSize.width}mm`,
-                    height: `${labelSize.height}mm`,
-                    position: 'relative',
-                    backgroundColor: '#fff',
-                    border: theme => `1px solid ${theme.palette.divider}`,
-                    borderRadius: 1,
-                    overflow: 'hidden',
-                  }}
-                >
-                  {settings.selectedComponents.map(component =>
-                    renderComponent(component, selectedTicket)
-                  )}
-                </Box>
-                <Typography variant="caption" color="text.secondary">
-                  {tt("Tem được căn theo kích thước", "Tag is aligned to size")} {labelSize.width} x {labelSize.height} mm.
-                </Typography>
-              </Box>
-            ) : (
+
+            {loadingDesigns ? (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <CircularProgress size={16} />
+                <Typography variant="caption">{tt("Đang tải thiết kế...", "Loading designs...")}</Typography>
+              </Stack>
+            ) : designs.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                {tt("Vui lòng tạo thiết kế tem trước.", "Please create a tag design first.")}
+              </Typography>
+            ) : !selectedTicket ? (
               <Typography variant="body2" color="text.secondary">
                 {tt("Vui lòng chọn vé để xem trước.", "Please select a ticket to preview.")}
               </Typography>
+            ) : (
+              <Stack
+                direction="row"
+                flexWrap="nowrap"
+                gap={2}
+                sx={{ overflowX: 'auto', overflowY: 'hidden' }}
+              >
+                {designs.map((design) => {
+                  const sizeMm =
+                    design.size === 'custom' && design.customSize
+                      ? design.customSize
+                      : parseSizeString(design.size) || { width: 50, height: 50 };
+                  const rawCanvasWidthPx = sizeMm.width * PX_PER_MM * CANVAS_SCALE;
+                  const rawCanvasHeightPx = sizeMm.height * PX_PER_MM * CANVAS_SCALE;
+                  const canvasScale = Math.min(1, MAX_CANVAS_WIDTH / rawCanvasWidthPx, MAX_CANVAS_HEIGHT / rawCanvasHeightPx);
+                  const isSelected = selectedDesignId === design.id;
+
+                  return (
+                    <Box
+                      key={design.id}
+                      sx={{
+                        border: theme => `1px solid ${isSelected ? theme.palette.primary.main : theme.palette.divider}`,
+                        borderRadius: 2,
+                        p: 1.5,
+                        minWidth: 220,
+                      }}
+                    >
+                      <FormControlLabel
+                        control={
+                          <Radio
+                            checked={isSelected}
+                            onChange={() => setSelectedDesignId(design.id)}
+                            size="small"
+                          />
+                        }
+                        label={design.name || `#${design.id}`}
+                        sx={{ mb: 1 }}
+                      />
+
+                      <Box
+                        sx={{
+                          width: `${sizeMm.width}mm`,
+                          height: `${sizeMm.height}mm`,
+                          position: 'relative',
+                          backgroundColor: '#fff',
+                          border: theme => `1px dashed ${theme.palette.divider}`,
+                          borderRadius: 1,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {design.components.map((comp) => renderComponentBox(comp, selectedTicket, canvasScale))}
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Stack>
             )}
           </Stack>
         </DialogContent>
@@ -588,8 +633,8 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
             disabled={
               !hasTicketRows ||
               !selectedTicket ||
-              !settings ||
-              loadingSettings ||
+              !selectedDesignId ||
+              loadingDesigns ||
               isPreparingPrint
             }
           >
@@ -597,6 +642,45 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Hidden print area for the selected design */}
+      {open && selectedTicket && selectedDesignId && (
+        <div
+          ref={printAreaRef}
+          className="print-area"
+          style={{
+            position: 'absolute',
+            left: '-9999px',
+          }}
+        >
+          {(() => {
+            const design = designs.find(d => d.id === selectedDesignId)!;
+            const sizeMm =
+              design.size === 'custom' && design.customSize
+                ? design.customSize
+                : parseSizeString(design.size) || { width: 50, height: 50 };
+            const rawCanvasWidthPx = sizeMm.width * PX_PER_MM * CANVAS_SCALE;
+            const rawCanvasHeightPx = sizeMm.height * PX_PER_MM * CANVAS_SCALE;
+            const canvasScale = Math.min(1, MAX_CANVAS_WIDTH / rawCanvasWidthPx, MAX_CANVAS_HEIGHT / rawCanvasHeightPx);
+            return (
+              <div
+                style={{
+                  width: `${sizeMm.width}mm`,
+                  height: `${sizeMm.height}mm`,
+                  minWidth: `${sizeMm.width}mm`,
+                  minHeight: `${sizeMm.height}mm`,
+                  position: 'relative',
+                  backgroundColor: '#fff',
+                  boxSizing: 'border-box',
+                  overflow: 'hidden',
+                }}
+              >
+                {design.components.map((comp) => renderComponentBox(comp, selectedTicket, canvasScale))}
+              </div>
+            );
+          })()}
+        </div>
+      )}
     </>
   );
 };

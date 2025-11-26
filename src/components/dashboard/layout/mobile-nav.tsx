@@ -65,6 +65,14 @@ export type EventResponse = {
 export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element {
   const { tt, locale } = useTranslation();
   const pathname = usePathname();
+  const normalizedPathname = React.useMemo(() => {
+    if (!pathname) return '/';
+    if (locale && pathname.startsWith(`/${locale}`)) {
+      const trimmed = pathname.slice(locale.length + 1);
+      return trimmed ? trimmed : '/';
+    }
+    return pathname;
+  }, [pathname, locale]);
   const logo = locale === 'en' ? logoImageEn : logoImage;
   const [dynamicId, setDynamicId] = React.useState<string | null>(null);
   const [event, setEvent] = React.useState<EventResponse | null>(null);
@@ -161,16 +169,16 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
       <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
         <Stack component="ul" key={navItems[0].key} spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }}>
           <NavItem
-            pathname={pathname}
+            pathname={normalizedPathname}
             key="overview"
             title={tt("Tổng quan", "Overview")}
             href={`/event-studio/events/${dynamicId}`}
             icon={ChartPieIcon}
             onClose={onClose}
           />
-          <NavItemCollapse pathname={pathname} key="configuration" title={tt("Thiết kế sự kiện", "Event Design")} icon={PlugsConnectedIcon} onClose={onClose}>
+          <NavItemCollapse pathname={normalizedPathname} key="configuration" title={tt("Thiết kế sự kiện", "Event Design")} icon={PlugsConnectedIcon} onClose={onClose}>
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="configuration-event-info"
               title={tt("Thông tin & Hiển thị", "Information & Display")}
               href={`/event-studio/events/${dynamicId}/event-detail`}
@@ -178,7 +186,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="advanced-settings"
               title={tt("Cài đặt nâng cao", "Advanced Settings")}
               href={`/event-studio/events/${dynamicId}/advanced-settings`}
@@ -186,7 +194,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="revenue-and-fee"
               title={tt("Doanh thu & Phí dịch vụ", "Revenue & Service Fee")}
               href={`/event-studio/events/${dynamicId}/revenue-and-fee`}
@@ -194,7 +202,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="etik-forms"
               title={tt("ETIK Forms", "ETIK Forms")}
               href={`/event-studio/events/${dynamicId}/etik-forms`}
@@ -202,7 +210,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="invitation-letter-design"
               title={tt("Thiết kế thư mời", "Invitation Letter Design")}
               href={`/event-studio/events/${dynamicId}/invitation-letter-design`}
@@ -210,15 +218,15 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="ticket-tag-design"
               title={tt("Thiết kế tem vé", "Ticket Tag Design")}
-              href={`/event-studio/events/${dynamicId}/ticket-tag-design`}
+              href={`/event-studio/events/${dynamicId}/ticket-tag-designs`}
               icon={Tag}
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="configuration-date-time"
               title={tt("Suất diễn", "Shows")}
               href={`/event-studio/events/${dynamicId}/schedules`}
@@ -226,7 +234,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="configuration-shows-ticket-categories"
               title={tt("Hạng mục vé", "Ticket Categories")}
               href={`/event-studio/events/${dynamicId}/shows`}
@@ -234,9 +242,9 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
           </NavItemCollapse>
-          <NavItemCollapse pathname={pathname} key="transactions" title={tt("Bán vé & Khách hàng", "Ticket Sales & Customers")} icon={TicketIcon} onClose={onClose}>
+          <NavItemCollapse pathname={normalizedPathname} key="transactions" title={tt("Bán vé & Khách hàng", "Ticket Sales & Customers")} icon={TicketIcon} onClose={onClose}>
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="transactions-create"
               title={tt("Tạo đơn hàng", "Create Order")}
               href={`/event-studio/events/${dynamicId}/transactions/create`}
@@ -244,7 +252,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="transactions-create-bulk"
               title={tt("Tạo đơn hàng theo lô", "Create Bulk Orders")}
               href={`/event-studio/events/${dynamicId}/transactions/create-bulk`}
@@ -252,7 +260,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="transactions-list"
               title={tt("Danh sách đơn hàng", "Order List")}
               href={`/event-studio/events/${dynamicId}/transactions`}
@@ -260,7 +268,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="tickets-list"
               title={tt("Danh sách khách hàng & vé", "Customer & Ticket List")}
               href={`/event-studio/events/${dynamicId}/tickets`}
@@ -268,9 +276,9 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
           </NavItemCollapse>
-          <NavItemCollapse pathname={pathname} key="check-in" title={tt("Soát vé", "Check-in")} icon={DoorIcon} onClose={onClose}>
+          <NavItemCollapse pathname={normalizedPathname} key="check-in" title={tt("Soát vé", "Check-in")} icon={DoorIcon} onClose={onClose}>
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="check-in-qr"
               title={tt("Soát vé bằng mã QR", "Check-in with QR Code")}
               href={`/event-studio/events/${dynamicId}/check-in/qr`}
@@ -278,7 +286,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="check-in-face"
               title={tt("Soát vé bằng khuôn mặt", "Face Check-in")}
               href={`https://ekyc.etik.vn/check-in-face`}
@@ -287,16 +295,16 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             />
           </NavItemCollapse>
           <NavItem
-            pathname={pathname}
+            pathname={normalizedPathname}
             key="roles"
             title={tt("Phân quyền", "Roles & Permissions")}
             href={`/event-studio/events/${dynamicId}/roles`}
             icon={UsersIcon}
             onClose={onClose}
           />
-          <NavItemCollapse pathname={pathname} key="email-template" title="Email" icon={Mailbox} onClose={onClose}>
+          <NavItemCollapse pathname={normalizedPathname} key="email-template" title="Email" icon={Mailbox} onClose={onClose}>
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="email-template-1"
               title={tt("Email marketing", "Email Marketing")}
               href={`/event-studio/events/${dynamicId}/templates/email-marketing`}
@@ -304,7 +312,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="email-template-2"
               title={tt("Template vé bị huỷ", "Cancelled Ticket Template")}
               href={`/event-studio/events/${dynamicId}/templates`}
@@ -312,9 +320,9 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
           </NavItemCollapse>
-          <NavItemCollapse pathname={pathname} key="mini-app" title="Mini App" icon={SquaresFour} onClose={onClose}>
+          <NavItemCollapse pathname={normalizedPathname} key="mini-app" title="Mini App" icon={SquaresFour} onClose={onClose}>
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="welcome-banner"
               title={tt("Banner chào mừng", "Welcome Banner")}
               href={`/event-studio/events/${dynamicId}/config-mini-app-welcome-banner`}
@@ -322,7 +330,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="email-template-1"
               title="Rating Online"
               href={`/event-studio/events/${dynamicId}/config-mini-app-rating-online`}
@@ -330,7 +338,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="email-template-2"
               title="Dice roll"
               href={`/event-studio/events/${dynamicId}/templates`}
@@ -338,7 +346,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               onClose={onClose}
             />
             <NavItemCollapseChildItem
-              pathname={pathname}
+              pathname={normalizedPathname}
               key="email-template-3"
               title="Lucky number"
               href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-draw`}

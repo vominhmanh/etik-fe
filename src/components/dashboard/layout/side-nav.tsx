@@ -248,7 +248,7 @@ export function SideNav(): React.JSX.Element {
                 pathname={pathname}
                 key="ticket-tag-design"
                 title={tt("Thiết kế tem vé", "Ticket Tag Design")}
-                href={`/event-studio/events/${dynamicId}/ticket-tag-design`}
+                href={`/event-studio/events/${dynamicId}/ticket-tag-designs`}
                 icon={Tag}
               />
               <NavItemCollapseChildItem
@@ -379,7 +379,17 @@ interface NavItemProps extends Omit<NavItemConfig, 'items'> {
 }
 
 function NavItem({ disabled, external, href, icon, matcher, pathname, title }: NavItemProps): React.JSX.Element {
-  const active = isNavItemActive({ disabled, external, href, matcher, pathname });
+  const { locale } = useTranslation();
+  const currentPathname = usePathname();
+  const normalizedPathname = React.useMemo(() => {
+    if (!currentPathname) return '/';
+    if (locale && currentPathname.startsWith(`/${locale}`)) {
+      const trimmed = currentPathname.slice(locale.length + 1);
+      return trimmed ? trimmed : '/';
+    }
+    return currentPathname;
+  }, [currentPathname, locale]);
+  const active = isNavItemActive({ disabled, external, href, matcher, pathname: normalizedPathname });
   const Icon = icon;
 
   return (
@@ -446,7 +456,17 @@ function NavItemCollapse({
   children,
 }: NavItemProps): React.JSX.Element {
   const [open, setOpen] = React.useState(true); // State to manage collapse/expand
-  const active = isNavItemActive({ disabled, external, href, matcher, pathname });
+  const { locale } = useTranslation();
+  const currentPathname = usePathname();
+  const normalizedPathname = React.useMemo(() => {
+    if (!currentPathname) return '/';
+    if (locale && currentPathname.startsWith(`/${locale}`)) {
+      const trimmed = currentPathname.slice(locale.length + 1);
+      return trimmed ? trimmed : '/';
+    }
+    return currentPathname;
+  }, [currentPathname, locale]);
+  const active = isNavItemActive({ disabled, external, href, matcher, pathname: normalizedPathname });
   const Icon = icon;
 
   const handleToggle = () => {
@@ -542,7 +562,17 @@ function NavItemCollapseChildItem({
   title,
   onClick,
 }: NavItemProps): React.JSX.Element {
-  const active = isNavItemActive({ disabled, external, href, matcher, pathname });
+  const { locale } = useTranslation();
+  const currentPathname = usePathname();
+  const normalizedPathname = React.useMemo(() => {
+    if (!currentPathname) return '/';
+    if (locale && currentPathname.startsWith(`/${locale}`)) {
+      const trimmed = currentPathname.slice(locale.length + 1);
+      return trimmed ? trimmed : '/';
+    }
+    return currentPathname;
+  }, [currentPathname, locale]);
+  const active = isNavItemActive({ disabled, external, href, matcher, pathname: normalizedPathname });
   const Icon = icon;
 
   const handleClick = (event: React.MouseEvent) => {
