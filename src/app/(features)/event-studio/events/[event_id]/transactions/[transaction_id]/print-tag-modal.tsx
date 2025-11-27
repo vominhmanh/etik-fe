@@ -590,7 +590,10 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
                         border: theme => `1px solid ${isSelected ? theme.palette.primary.main : theme.palette.divider}`,
                         borderRadius: 2,
                         p: 1.5,
-                        minWidth: 220,
+                        // Prevent flex item from shrinking so the preview keeps its real mm size
+                        flex: '0 0 auto',
+                        // Ensure the container is at least as wide as the preview (plus padding)
+                        minWidth: Math.max(220, sizeMm.width * PX_PER_MM + 24),
                       }}
                     >
                       <FormControlLabel
@@ -609,6 +612,8 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
                         sx={{
                           width: `${sizeMm.width}mm`,
                           height: `${sizeMm.height}mm`,
+                          minWidth: `${sizeMm.width}mm`,
+                          minHeight: `${sizeMm.height}mm`,
                           position: 'relative',
                           backgroundColor: '#fff',
                           border: theme => `1px dashed ${theme.palette.divider}`,
