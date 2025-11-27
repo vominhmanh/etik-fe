@@ -34,6 +34,7 @@ interface TicketRow {
   ticketId: number;
   holderDisplayName: string;
   holderNameRaw?: string;
+  holderTitle?: string;
   holderEmail?: string | null;
   holderPhone?: string | null;
   showName: string;
@@ -63,6 +64,7 @@ interface ComponentData {
   zIndex?: number | null;
   includeTitle?: boolean | null;
   verticalAlign?: 'top' | 'middle' | 'bottom' | null;
+  fieldId?: number | null; // For custom form fields: stable ID for mapping with formAnswers
 }
 
 interface TicketTagDesign {
@@ -110,6 +112,7 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
           ticketId: ticket.id,
           holderDisplayName: holderName || buyerName || transaction.name,
           holderNameRaw: holderNameRaw || undefined,
+          holderTitle: ticket.holderTitle || undefined,
           holderEmail: ticket.holderEmail ?? transaction.email,
           holderPhone: ticket.holderPhone ?? transaction.phoneNumber,
           showName: category.ticketCategory.show.name,
@@ -235,6 +238,8 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
         // Ticket holder (per-ticket) fields
         case 'ticketHolderName':
           return ticket.holderDisplayName;
+        case 'titleTicketHolder':
+          return ticket.holderTitle || '';
         case 'ticketHolderEmail':
           return ticket.holderEmail || '';
         case 'ticketHolderPhone':
@@ -260,6 +265,8 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
         // New dynamic builtin keys
         case 'name':
           return buyerName;
+        case 'titleTrxn':
+          return transaction.title || '';
         case 'email':
           return transaction.email || '';
         case 'phone':
@@ -295,47 +302,33 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
         case 'locationUrl':
           return transaction.event?.locationUrl || '';
         default:
-          // Custom form keys: 'form_<internal_name>[_<id>]' or 'form_<safeLabel>'
-          if (key.startsWith('form_') && transaction.formAnswers) {
-            const raw = key.slice(5);
-            const tryKeys: string[] = [];
-            // as-is
-            tryKeys.push(raw);
-            // remove trailing _<id> if any
-            const parts = raw.split('_');
-            if (parts.length > 1 && /^\d+$/.test(parts[parts.length - 1])) {
-              tryKeys.push(parts.slice(0, -1).join('_'));
-            }
-            // normalized lowercase + spaces to '_' + strip non a-z0-9_ for both
-            const normalize = (s: string) =>
-              s
-                .toLowerCase()
-                .replace(/\s+/g, '_')
-                .replace(/[^a-z0-9_]/g, '_')
-                .replace(/_+/g, '_')
-                .replace(/^_+|_+$/g, '');
-            tryKeys.push(...tryKeys.map(normalize));
-
-            for (const k of tryKeys) {
-              if (transaction.formAnswers[k] !== undefined) {
-                const v = transaction.formAnswers[k];
-                if (Array.isArray(v)) return v.join(', ');
-                return String(v ?? '');
-              }
-            }
-
-            // Final fallback: normalize all keys in formAnswers and compare
-            const normalizedTarget = normalize(raw);
-            for (const ansKey of Object.keys(transaction.formAnswers)) {
-              if (normalize(ansKey) === normalizedTarget) {
-                const v = (transaction.formAnswers as any)[ansKey];
-                if (Array.isArray(v)) return v.join(', ');
-                return String(v ?? '');
-              }
-            }
-          }
+          // Unknown key - return empty
           return '';
       }
+    },
+    [transaction]
+  );
+
+  // Resolve custom field value using fieldId (stable, required for custom fields)
+  const resolveCustomFieldValue = React.useCallback(
+    (comp: ComponentData): string => {
+      if (!transaction?.formAnswers || !Array.isArray(transaction.formAnswers)) return '';
+      
+      // fieldId is required for custom fields - direct lookup
+      if (!comp.fieldId) {
+        console.warn('[resolveCustomFieldValue] Missing fieldId for component:', comp.key, comp.label);
+        return '';
+      }
+      
+      const answerItem = transaction.formAnswers.find((item: any) => item.id === comp.fieldId);
+      if (!answerItem) {
+        console.warn('[resolveCustomFieldValue] No answer found for fieldId:', comp.fieldId);
+        return '';
+      }
+      
+      const value = answerItem.value;
+      if (Array.isArray(value)) return value.join(', ');
+      return String(value ?? '');
     },
     [transaction]
   );
@@ -372,25 +365,9 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
       } else {
         value = ticket.holderDisplayName;
       }
-    } else if (normalizedKey.startsWith('form_') && transaction?.formAnswers) {
-      // Try to resolve using component label as a fallback mapping to formAnswers keys
-      const normalize = (s: string) =>
-        s
-          .toLowerCase()
-          .replace(/\s+/g, '_')
-          .replace(/[^a-z0-9_]/g, '_')
-          .replace(/_+/g, '_')
-          .replace(/^_+|_+$/g, '');
-      const labelNorm = normalize(comp.label || '');
-      let matched: string | undefined;
-      for (const ansKey of Object.keys(transaction.formAnswers)) {
-        if (normalize(ansKey) === labelNorm) {
-          const v = (transaction.formAnswers as any)[ansKey];
-          matched = Array.isArray(v) ? v.join(', ') : String(v ?? '');
-          break;
-        }
-      }
-      value = matched !== undefined ? matched : resolveComponentValue(normalizedKey, ticket);
+    } else if (comp.fieldId) {
+      // Custom form field - identified by presence of fieldId (stable mapping)
+      value = resolveCustomFieldValue(comp);
     } else {
       value = resolveComponentValue(normalizedKey, ticket);
     }

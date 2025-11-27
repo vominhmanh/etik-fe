@@ -441,19 +441,42 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
       if (response.status === 200) {
         notificationCtx.success(tt('Thông tin đơn hàng đã được cập nhật thành công!', 'Order information has been updated successfully!'));
-        setTransaction((prev) => prev ? {
-          ...prev,
-          name: formData.name,
-          phoneNumber: formData.phoneNumber,
-          address: formData.address,
-          dob: formData.dob,
-          title: formData.title,
-          formAnswers: {
-            ...(prev as any).formAnswers,
-            ...formAnswers,
-          },
-        } : prev);
-
+        setTransaction((prev) => {
+          if (!prev) return prev;
+          
+          // Update formAnswers array with new values
+          const prevFormAnswers = (prev as any).formAnswers;
+          let updatedFormAnswers: any;
+          
+          if (Array.isArray(prevFormAnswers)) {
+            // New format: array of objects
+            updatedFormAnswers = prevFormAnswers.map((item: any) => {
+              if (formAnswers.hasOwnProperty(item.internalName)) {
+                return { ...item, value: formAnswers[item.internalName] };
+              }
+              return item;
+            });
+          } else {
+            // Old format: dictionary
+            updatedFormAnswers = {
+              ...(prevFormAnswers || {}),
+              ...formAnswers,
+            };
+          }
+          
+          return {
+            ...prev,
+            name: formData.name,
+            phoneNumber: formData.phoneNumber,
+            address: formData.address,
+            dob: formData.dob,
+            title: formData.title,
+            formAnswers: updatedFormAnswers,
+          };
+        });
+        
+        // Also update local state
+        setCheckoutCustomAnswers(prev => ({ ...prev, ...formAnswers }));
       }
     } catch (error) {
       notificationCtx.error(tt('Lỗi:', 'Error:'), error);
@@ -487,7 +510,19 @@ export default function Page({ params }: { params: { event_id: number; transacti
         });
 
         // Khởi tạo câu trả lời custom fields nếu có
-        setCheckoutCustomAnswers((response.data as any).formAnswers || {});
+        // Convert from structured array to dictionary for local state
+        const formAnswersData = (response.data as any).formAnswers;
+        const answersDict: Record<string, any> = {};
+        if (Array.isArray(formAnswersData)) {
+          // New format: array of objects
+          formAnswersData.forEach((item: any) => {
+            answersDict[item.internalName] = item.value;
+          });
+        } else if (formAnswersData && typeof formAnswersData === 'object') {
+          // Old format: dictionary (backward compatibility)
+          Object.assign(answersDict, formAnswersData);
+        }
+        setCheckoutCustomAnswers(answersDict);
 
         // Load requireGuestAvatar from transaction data
         setRequireGuestAvatar(response.data?.requireGuestAvatar || false);

@@ -71,6 +71,7 @@ interface ComponentData {
   zIndex?: number; // Layering order
   includeTitle?: boolean; // For builtin name key: include title (Mr./Ms.) in display
   verticalAlign?: 'top' | 'middle' | 'bottom';
+  fieldId?: number; // For custom form fields: stable ID for mapping with formAnswers
 }
 
 interface TicketTagSettings {
@@ -89,9 +90,12 @@ interface VisibleFieldOption {
 interface VisibleField {
   id?: number;
   internal_name?: string;
+  internalName?: string;
   label: string;
   field_type: string;
+  fieldType?: string;
   builtin_key?: string | null;
+  builtinKey?: string | null;
   options?: VisibleFieldOption[] | null;
 }
 
@@ -117,6 +121,7 @@ const getDefaultComponents = (tt: (vi: string, en: string) => string): { label: 
   { label: tt('Loại vé', 'Ticket Category'), key: 'ticketCategory' },
   // Ticket Holder specific (per-ticket fields)
   { label: tt('Tên người sở hữu vé', 'Ticket Holder Name'), key: 'ticketHolderName' },
+  { label: tt('Danh xưng (người sở hữu vé)', 'Title (Ticket Holder)'), key: 'titleTicketHolder' },
   { label: tt('Email người sở hữu vé', 'Ticket Holder Email'), key: 'ticketHolderEmail' },
   { label: tt('SĐT người sở hữu vé', 'Ticket Holder Phone'), key: 'ticketHolderPhone' },
   { label: tt('Ảnh', 'Image'), key: 'image' },
@@ -156,7 +161,7 @@ const getDefaultTemplates = (tt: (vi: string, en: string) => string, canvasWidth
         {
           id: 'name-1',
           key: 'name',
-          label: tt('Họ tên', 'Full Name'),
+          label: tt('Họ tên (đơn hàng)', 'Name (Trxn)'),
           x: canvasWidthPx * 0.1,
           y: canvasHeightPx * 0.25,
           width: canvasWidthPx * 0.8,
@@ -230,7 +235,7 @@ const getDefaultTemplates = (tt: (vi: string, en: string) => string, canvasWidth
         {
           id: 'name-2',
           key: 'name',
-          label: tt('Họ tên', 'Full Name'),
+          label: tt('Họ tên (đơn hàng)', 'Name (Trxn)'),
           x: canvasWidthPx * 0.05,
           y: canvasHeightPx * 0.16,
           width: canvasWidthPx * 0.5,
@@ -355,7 +360,7 @@ const getDefaultTemplates = (tt: (vi: string, en: string) => string, canvasWidth
         {
           id: 'name-3',
           key: 'name',
-          label: tt('Họ tên', 'Full Name'),
+          label: tt('Họ tên (đơn hàng)', 'Name (Trxn)'),
           x: canvasWidthPx * 0.1,
           y: canvasHeightPx * 0.75,
           width: canvasWidthPx * 0.8,
@@ -460,7 +465,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   // Map API visible field to component key
   const mapFieldToComponentKey = (f: VisibleField): string => {
-    switch (f.builtin_key) {
+    const builtinKey = f.builtinKey || f.builtin_key;
+    switch (builtinKey) {
       case 'name':
         return 'name';
       case 'email':
@@ -474,9 +480,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       case 'idcard_number':
         return 'idcard_number';
       default:
-        // Prefer internal_name when available; append id for stability/uniqueness
-        if (f.internal_name && f.internal_name.trim().length > 0) {
-          return `form_${f.internal_name}${f.id ? `_${f.id}` : ''}`;
+        const internalName = f.internalName || f.internal_name;
+        if (internalName && internalName.trim().length > 0) {
+          return `form_${internalName}${f.id ? `_${f.id}` : ''}`;
         }
         if (typeof f.id === 'number') {
           return `form_field_${f.id}`;
@@ -504,9 +510,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   }, [event_id]);
 
   const getBuiltinLabelForKey = (key: string): string | null => {
-    // Force language by current locale to avoid stale memoization in tt
     const vi = {
-      name: 'Họ tên',
+      name: 'Họ tên (đơn hàng)',
       email: 'Email',
       phone: 'Số điện thoại',
       dob: 'Ngày sinh',
@@ -514,7 +519,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       idcard_number: 'CMND/CCCD',
     } as const;
     const en = {
-      name: 'Full Name',
+      name: 'Name (Trxn)',
       email: 'Email',
       phone: 'Phone Number',
       dob: 'Date of Birth',
@@ -525,25 +530,96 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return (dict as any)[key] || null;
   };
 
+  // Get current label for a component (considering locale changes)
+  const getCurrentLabel = (comp: ComponentData): string => {
+    // For built-in fields, always return localized label based on current locale
+    const builtinLabel = getBuiltinLabelForKey(comp.key);
+    if (builtinLabel) {
+      return builtinLabel;
+    }
+    // For other components, use the stored label
+    return comp.label;
+  };
+
   // Component list combining static + dynamic fields
-  const componentList = useMemo(() => {
+  const componentList = useMemo((): Array<{ label: string; key: string; fieldId?: number }> => {
     const staticList = getDefaultComponents(tt);
-    const dynamicList = visibleFields.map((f) => {
-      const key = mapFieldToComponentKey(f);
-      const builtinLabel = getBuiltinLabelForKey(key);
-      return {
-        label: builtinLabel || f.label,
-        key,
-      };
+    
+    // Define localized labels for built-in fields
+    const builtinLabels = locale === 'en' 
+      ? {
+          name: 'Name (Trxn)',
+          email: 'Email',
+          phone: 'Phone Number',
+          dob: 'Date of Birth',
+          address: 'Address',
+          idcard_number: 'ID Card Number',
+        }
+      : {
+          name: 'Họ tên (đơn hàng)',
+          email: 'Email',
+          phone: 'Số điện thoại',
+          dob: 'Ngày sinh',
+          address: 'Địa chỉ',
+          idcard_number: 'CMND/CCCD',
+        };
+    
+    // Map API builtin_key to component key
+    const builtinKeyMapping: Record<string, string> = {
+      'name': 'name',
+      'email': 'email',
+      'phone_number': 'phone',
+      'dob': 'dob',
+      'address': 'address',
+      'idcard_number': 'idcard_number',
+    };
+    
+    // Create a Set of built-in keys that exist in visibleFields
+    const visibleBuiltinKeys = new Set<string>();
+    visibleFields.forEach((f) => {
+      const builtinKey = f.builtinKey || f.builtin_key;
+      if (builtinKey && builtinKeyMapping[builtinKey]) {
+        visibleBuiltinKeys.add(builtinKeyMapping[builtinKey]);
+      }
     });
-    // Always include built-in person fields regardless of visibleFields response
-    const builtinKeysAlways = ['name', 'email', 'phone', 'address', 'idcard_number', 'dob'] as const;
-    const builtinList = builtinKeysAlways.map((key) => ({
-      label: getBuiltinLabelForKey(key) || key,
-      key,
-    }));
-    // Deduplicate by key while preserving order priority: static -> builtin -> dynamic
-    const combined = [...staticList, ...builtinList, ...dynamicList];
+    
+    // Only include built-in fields that are in visibleFields (with localized labels)
+    const builtinKeys = ['name', 'email', 'phone', 'dob', 'address', 'idcard_number'] as const;
+    const builtinList = builtinKeys
+      .filter((key) => visibleBuiltinKeys.has(key))
+      .map((key) => ({
+        label: builtinLabels[key],
+        key,
+      }));
+    
+    // Add "Title (Trxn)" only if "name" is visible
+    const conditionalList: Array<{ label: string; key: string }> = [];
+    if (visibleBuiltinKeys.has('name')) {
+      conditionalList.push({
+        label: tt('Danh xưng (đơn hàng)', 'Title (Trxn)'),
+        key: 'titleTrxn',
+      });
+    }
+    
+    // Only show custom fields from visibleFields (exclude built-in fields)
+    const builtinApiKeys = ['name', 'email', 'phone_number', 'dob', 'address', 'idcard_number'];
+    const customFieldsList = visibleFields
+      .filter((f) => {
+        const builtinKey = f.builtinKey || f.builtin_key;
+        return !builtinApiKeys.includes(builtinKey || '');
+      })
+      .map((f) => {
+        const key = mapFieldToComponentKey(f);
+        // Custom fields use backend label and store field ID for stable mapping
+        return {
+          label: f.label,
+          key,
+          fieldId: f.id, // Store field ID for stable mapping with formAnswers
+        };
+      });
+    
+    // Deduplicate by key while preserving order priority: static -> builtin -> conditional -> custom
+    const combined = [...staticList, ...builtinList, ...conditionalList, ...customFieldsList];
     const seen = new Set<string>();
     const unique = combined.filter((item) => {
       if (seen.has(item.key)) return false;
@@ -577,7 +653,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   // Add component from list
-  const handleAddComponent = (key: string, label: string) => {
+  const handleAddComponent = (key: string, label: string, fieldId?: number) => {
     const newComponent: ComponentData = {
       id: `${key}-${Date.now()}`,
       key,
@@ -600,6 +676,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       ...(key === 'image' ? { imageUrl: '' } : {}),
       ...(key === 'name' ? { includeTitle: true } : {}),
       ...(key === 'ticketHolderName' ? { includeTitle: true } : {}),
+      ...(fieldId ? { fieldId } : {}), // Store field ID for custom form fields
     };
     setComponents((prev) => [...prev, newComponent]);
     setSelectedComponentId(newComponent.id);
@@ -776,23 +853,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const buildPreviewValueForField = (f: VisibleField): string => {
     // Builtin samples
     const today = new Date(2025, 0, 1);
-    if (f.builtin_key === 'name') return 'Nguyễn Văn A';
-    if (f.builtin_key === 'email') return 'nguyenvana@example.com';
-    if (f.builtin_key === 'phone_number') return '0901234567';
-    if (f.builtin_key === 'address') return '123 Đường ABC, Q1, TP.HCM';
-    if (f.builtin_key === 'idcard_number') return '012345678901';
-    if (f.builtin_key === 'dob') return tt(formatDateVi(today), formatDateEn(today));
+    const builtinKey = f.builtinKey || f.builtin_key;
+    if (builtinKey === 'name') return 'Nguyễn Văn A';
+    if (builtinKey === 'email') return 'nguyenvana@example.com';
+    if (builtinKey === 'phone_number') return '0901234567';
+    if (builtinKey === 'address') return '123 Đường ABC, Q1, TP.HCM';
+    if (builtinKey === 'idcard_number') return '012345678901';
+    if (builtinKey === 'dob') return tt(formatDateVi(today), formatDateEn(today));
 
     // By field type
-    if (f.field_type === 'radio') {
+    const fieldType = f.fieldType || f.field_type;
+    if (fieldType === 'radio') {
       const first = f.options?.[0];
       return first?.label || 'Option 1';
     }
-    if (f.field_type === 'checkbox') {
+    if (fieldType === 'checkbox') {
       const labels = (f.options || []).map((o) => o.label).filter(Boolean);
       return labels.length ? labels.join(', ') : 'Option A, Option B';
     }
-    if (f.field_type === 'date' || f.field_type === 'datetime') {
+    if (fieldType === 'date' || fieldType === 'datetime') {
       return tt(formatDateVi(today), formatDateEn(today));
     }
     // default text
@@ -951,19 +1030,99 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <CardHeader title={tt("Thành phần", "Components")} titleTypographyProps={{ variant: 'subtitle2' }} />
               <Divider />
               <List dense>
-                {componentList.map(({ label, key }, idx) => (
-                  <ListItem
-                    key={`${key}-${idx}`}
-                    button
-                    onClick={() => handleAddComponent(key, label)}
-                    sx={{
-                      cursor: 'pointer',
-                      '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.08)' },
-                    }}
-                  >
-                    <Typography variant="body2">{label}</Typography>
-                  </ListItem>
-                ))}
+                {/* Thông tin chung */}
+                <ListItem sx={{ backgroundColor: 'rgba(0, 0, 0, 0.04)', py: 0.5 }}>
+                  <Typography variant="caption" fontWeight="bold" color="text.secondary">
+                    {tt("Thông tin chung", "General Info")}
+                  </Typography>
+                </ListItem>
+                {componentList
+                  .filter(({ key }) => ['eventName', 'ticketsList', 'eCode', 'eCodeQr', 'startDateTime', 'endDateTime', 'place'].includes(key))
+                  .map(({ label, key, fieldId }, idx) => (
+                    <ListItem
+                      key={`${key}-${idx}`}
+                      button
+                      onClick={() => handleAddComponent(key, label, fieldId)}
+                      sx={{
+                        cursor: 'pointer',
+                        '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.08)' },
+                      }}
+                    >
+                      <Typography variant="body2">{label}</Typography>
+                    </ListItem>
+                  ))}
+
+                <Divider sx={{ my: 0.5 }} />
+
+                {/* Thông tin vé */}
+                <ListItem sx={{ backgroundColor: 'rgba(0, 0, 0, 0.04)', py: 0.5 }}>
+                  <Typography variant="caption" fontWeight="bold" color="text.secondary">
+                    {tt("Thông tin vé", "Ticket Info")}
+                  </Typography>
+                </ListItem>
+                {componentList
+                  .filter(({ key }) => ['ticketTid', 'showName', 'ticketCategory', 'titleTicketHolder', 'ticketHolderName', 'ticketHolderEmail', 'ticketHolderPhone'].includes(key))
+                  .map(({ label, key, fieldId }, idx) => (
+                    <ListItem
+                      key={`${key}-${idx}`}
+                      button
+                      onClick={() => handleAddComponent(key, label, fieldId)}
+                      sx={{
+                        cursor: 'pointer',
+                        '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.08)' },
+                      }}
+                    >
+                      <Typography variant="body2">{label}</Typography>
+                    </ListItem>
+                  ))}
+
+                <Divider sx={{ my: 0.5 }} />
+
+                {/* Thông tin đơn hàng */}
+                <ListItem sx={{ backgroundColor: 'rgba(0, 0, 0, 0.04)', py: 0.5 }}>
+                  <Typography variant="caption" fontWeight="bold" color="text.secondary">
+                    {tt("Thông tin đơn hàng", "Order Info")}
+                  </Typography>
+                </ListItem>
+                {componentList
+                  .filter(({ key }) => ['transactionId', 'name', 'titleTrxn', 'email', 'phone', 'dob', 'address', 'idcard_number'].includes(key) || key.startsWith('form_'))
+                  .map(({ label, key, fieldId }, idx) => (
+                    <ListItem
+                      key={`${key}-${idx}`}
+                      button
+                      onClick={() => handleAddComponent(key, label, fieldId)}
+                      sx={{
+                        cursor: 'pointer',
+                        '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.08)' },
+                      }}
+                    >
+                      <Typography variant="body2">{label}</Typography>
+                    </ListItem>
+                  ))}
+
+                <Divider sx={{ my: 0.5 }} />
+
+                {/* Components khác */}
+                <ListItem sx={{ backgroundColor: 'rgba(0, 0, 0, 0.04)', py: 0.5 }}>
+                  <Typography variant="caption" fontWeight="bold" color="text.secondary">
+                    {tt("Components khác", "Other Components")}
+                  </Typography>
+                </ListItem>
+                {componentList
+                  .filter(({ key }) => ['image', 'customText'].includes(key))
+                  .map(({ label, key, fieldId }, idx) => (
+                    <ListItem
+                      key={`${key}-${idx}`}
+                      button
+                      onClick={() => handleAddComponent(key, label, fieldId)}
+                      sx={{
+                        cursor: 'pointer',
+                        '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.08)' },
+                      }}
+                    >
+                      <Typography variant="body2">{label}</Typography>
+                    </ListItem>
+                  ))}
               </List>
             </Card>
 
@@ -1051,8 +1210,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 const displayText = comp.key === 'customText' && comp.customText
                   ? comp.customText
                   : showPreview
-                    ? (previewData[comp.key] || comp.label)
-                    : comp.label;
+                    ? (previewData[comp.key] || getCurrentLabel(comp))
+                    : getCurrentLabel(comp);
 
                 return (
                   <div
@@ -1181,7 +1340,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <Card>
               <CardHeader
                 title={tt("Thuộc tính", "Properties")}
-                subheader={selectedComponent.label}
+                subheader={getCurrentLabel(selectedComponent)}
               />
               <Divider />
               <Box sx={{ p: 2 }}>
@@ -1597,8 +1756,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             const displayText = comp.key === 'customText' && comp.customText
               ? comp.customText
               : showPreview
-                ? (previewData[comp.key] || comp.label)
-                : comp.label;
+                ? (previewData[comp.key] || getCurrentLabel(comp))
+                : getCurrentLabel(comp);
             // Convert px to mm for print (px on canvas -> mm for print)
             // Canvas px = mm * PX_PER_MM * CANVAS_SCALE * canvasScale
             // So: mm = px / (PX_PER_MM * CANVAS_SCALE * canvasScale)
