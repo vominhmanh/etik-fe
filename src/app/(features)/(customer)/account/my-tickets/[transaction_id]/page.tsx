@@ -590,7 +590,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
         <Grid lg={7} md={7} xs={12} spacing={3}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader title={tt('Thông tin người mua vé', 'Buyer Information')} />
+              <CardHeader title={tt('Thông tin người mua vé', 'Information')} />
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>

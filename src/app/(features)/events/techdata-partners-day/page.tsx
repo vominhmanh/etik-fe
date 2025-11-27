@@ -1139,7 +1139,7 @@ export default function Page(): React.JSX.Element {
                 {totalSelectedTickets > 0 && (
                   <Card>
                     <CardHeader
-                      title={tt('Danh sách vé', 'Tickets')}
+                      title={tt('Danh sách badge', 'List')}
                     />
                     <Divider />
                     <CardContent>
@@ -1186,36 +1186,6 @@ export default function Page(): React.JSX.Element {
                           });
                         })}
                       </Stack>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {totalSelectedTickets > 1 && (
-                  <Card>
-                    <CardHeader
-                      title={tt('Tùy chọn bổ sung', 'Additional options')}
-                    />
-                    <Divider />
-                    <CardContent>
-                      <Grid container spacing={1} alignItems="center">
-                        <Grid item xs>
-                          <Typography variant="body2">{tt('Sử dụng mã QR riêng cho từng vé', 'Use a separate QR for each ticket')}</Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {tt('Bạn cần nhập email cho từng vé.', 'You need to enter an email for each ticket.')}
-                          </Typography>
-                        </Grid>
-                        <Grid item>
-                          <Checkbox
-                            checked={qrOption === 'separate'}
-                            onChange={(_e, checked) => {
-                              setQrOption(checked ? 'separate' : 'shared');
-                              if (checked) {
-                                notificationCtx.info(tt('Vui lòng điền thông tin cho từng vé', 'Please fill info for each ticket'));
-                              }
-                            }}
-                          />
-                        </Grid>
-                      </Grid>
                     </CardContent>
                   </Card>
                 )}
@@ -1332,7 +1302,7 @@ export default function Page(): React.JSX.Element {
             })}
             <Divider />
 
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt('Danh sách vé', 'Tickets')}</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt('Danh sách badge', 'List')} </Typography>
             <Stack spacing={1}>
               {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
                 const show = event?.shows.find((show) => show.id === parseInt(showId));

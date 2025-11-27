@@ -190,7 +190,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
     <>
       <Card>
         <CardHeader
-          title={`${tt('Chọn loại vé cho', 'Choose ticket type for')} ${show.name}`}
+          title={`${tt('Chọn loại badge cho', 'Choose badge type for')} ${show.name}`}
           action={
             <IconButton>
               <ArrowCounterClockwiseIcon fontSize="var(--icon-fontSize-md)" />
@@ -321,10 +321,10 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                       {showMore && (
                         <>
                           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                            {tt('Số vé tối đa mỗi đơn hàng', 'Max tickets per order')}: {selectedTicketCategory?.limitPerTransaction || tt('Không giới hạn', 'No limit')}
+                            {tt('Số lượng tối đa mỗi đơn hàng', 'Max quantity per order')}: {selectedTicketCategory?.limitPerTransaction || tt('Không giới hạn', 'No limit')}
                           </Typography>
                           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                            {tt('Số vé tối đa mỗi khách hàng', 'Max tickets per customer')}: {selectedTicketCategory?.limitPerCustomer || tt('Không giới hạn', 'No limit')}
+                            {tt('Số lượng tối đa mỗi khách hàng', 'Max quantity per customer')}: {selectedTicketCategory?.limitPerCustomer || tt('Không giới hạn', 'No limit')}
                           </Typography>
                         </>
                       )}
@@ -337,27 +337,19 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                   ) : (
                     <>
                       <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                        {tt('Số vé tối đa mỗi đơn hàng', 'Max tickets per order')}: {selectedTicketCategory?.limitPerTransaction || tt('Không giới hạn', 'No limit')}
+                        {tt('Số lượng tối đa mỗi đơn hàng', 'Max quantity per order')}: {selectedTicketCategory?.limitPerTransaction || tt('Không giới hạn', 'No limit')}
                       </Typography>
                       <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                        {tt('Số vé tối đa mỗi khách hàng', 'Max tickets per customer')}: {selectedTicketCategory?.limitPerCustomer || tt('Không giới hạn', 'No limit')}
+                        {tt('Số lượng tối đa mỗi khách hàng', 'Max quantity per customer')}: {selectedTicketCategory?.limitPerCustomer || tt('Không giới hạn', 'No limit')}
                       </Typography>
                     </>
                   )}
                 </Stack>
                 <Stack spacing={1}>
-                  {/* createdAt */}
+                  
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">{tt('Đơn giá', 'Unit price')}</Typography>
-                    </Stack>
-                    <Typography variant="body1">
-                      {formatPrice(selectedTicketCategory?.price || 0)}
-                    </Typography>
-                  </Grid>
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">{tt('Số lượng vé', 'Ticket quantity')}</Typography>
+                      <Typography variant="body1">{tt('Số lượng', 'Quantity')}</Typography>
                     </Stack>
                     <Typography variant="body1">
                       <OutlinedInput
@@ -370,14 +362,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                       />
                     </Typography>
                   </Grid>
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">{tt('Thành tiền', 'Total')}</Typography>
-                    </Stack>
-                    <Typography variant="body1">
-                      {formatPrice((selectedTicketCategory?.price || 0) * (ticketQuantities[selectedTicketCategory?.id as number] ?? 0))}
-                    </Typography>
-                  </Grid>
+                  
                 </Stack>
                 {qrOption === 'separate' && (
                   <Stack spacing={1}>
@@ -450,9 +435,9 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                           </Grid>
                           <Grid item md={3} xs={12}>
                             <FormControl fullWidth size="small">
-                              <InputLabel>{tt('SĐT vé', 'Ticket phone')} {index + 1}</InputLabel>
+                              <InputLabel>{tt('SĐT ', ' phone')} {index + 1}</InputLabel>
                               <OutlinedInput
-                                label={`${tt('SĐT vé', 'Ticket phone')} ${index + 1}`}
+                                label={`${tt('SĐT ', ' phone')} ${index + 1}`}
                                 type="tel"
                                 value={holder.phone}
                                 onChange={(e) => {

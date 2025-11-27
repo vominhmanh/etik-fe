@@ -824,6 +824,14 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     const builtinOrder = ['name', 'email', 'phone_number', 'dob', 'address', 'idcard_number'];
                     const builtinFields = trxn?.formFieldsAnswers?.filter(f => f.builtinKey && builtinOrder.includes(f.builtinKey)) || [];
                     const builtinFieldsMap = new Map(builtinFields.map(f => [f.builtinKey, f]));
+                    const builtinLabelMap: Record<string, string> = {
+                      name: tt('Họ và tên', 'Full name'),
+                      email: tt('Email', 'Email'),
+                      phone_number: tt('Số điện thoại', 'Phone number'),
+                      dob: tt('Ngày sinh', 'Date of birth'),
+                      address: tt('Địa chỉ', 'Address'),
+                      idcard_number: tt('Số CMND/CCCD', 'ID number'),
+                    };
                     
                     return builtinOrder.map(builtinKey => {
                       const field = builtinFieldsMap.get(builtinKey);
@@ -831,7 +839,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       
                       return (
                         <Grid container justifyContent="space-between" key={builtinKey}>
-                          <Typography variant="body1">{field.label}:</Typography>
+                          <Typography variant="body1">{builtinLabelMap[builtinKey] || field.label}:</Typography>
                           <Typography variant="body1" sx={{ maxWidth: '60%', wordBreak: 'break-word', textAlign: 'right' }}>
                             {field.value || '-'}
                           </Typography>
