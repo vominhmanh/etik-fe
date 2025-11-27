@@ -235,18 +235,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const [customers, setCustomers] = React.useState<Customer[]>(() => [{ title: getDefaultTitle() }]);
 
-  // Update default title when locale changes for existing customers that still have old default
-  React.useEffect(() => {
-    const currentDefault = getDefaultTitle();
-    setCustomers(prev => prev.map(customer => {
-      // If customer has old default title or empty title, update to new default based on locale
-      const oldDefaults = locale === 'en' ? ['You', tt('Bạn', 'You')] : ['Mx.', 'You'];
-      if (!customer.title || oldDefaults.includes(customer.title)) {
-        return { ...customer, title: currentDefault };
-      }
-      return customer;
-    }));
-  }, [locale, getDefaultTitle, tt]);
+  // Do not change existing customers' title when locale changes; keep original value as entered
 
   // Update customers when form fields are loaded
   React.useEffect(() => {
@@ -1023,29 +1012,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                               handleCustomerChange(index, 'title', e.target.value)
                                             }
                                           >
-                                            {locale === 'en' ? (
-                                              // English: Only Mr., Ms., Mx.
-                                              ['Mr.', 'Ms.', 'Mx.'].map((title) => (
-                                                <MenuItem key={title} value={title}>{title}</MenuItem>
-                                              ))
-                                            ) : (
-                                              // Vietnamese: All Vietnamese titles + English titles
-                                              [
-                                                { value: tt("Anh", "Mr."), label: tt("Anh", "Mr.") },
-                                                { value: tt("Chị", "Ms."), label: tt("Chị", "Ms.") },
-                                                { value: tt("Bạn", "You"), label: tt("Bạn", "You") },
-                                                { value: tt("Em", "Younger"), label: tt("Em", "Younger") },
-                                                { value: tt("Ông", "Sir"), label: tt("Ông", "Sir") },
-                                                { value: tt("Bà", "Madam"), label: tt("Bà", "Madam") },
-                                                { value: tt("Cô", "Miss"), label: tt("Cô", "Miss") },
-                                                { value: tt("Thầy", "Teacher"), label: tt("Thầy", "Teacher") },
-                                                { value: "Mr.", label: "Mr." },
-                                                { value: "Ms.", label: "Ms." },
-                                                { value: "Mx.", label: "Mx." },
-                                              ].map((title) => (
-                                                <MenuItem key={title.value} value={title.value}>{title.label}</MenuItem>
-                                              ))
-                                            )}
+                                            {['Anh','Chị','Bạn','Em','Ông','Bà','Cô','Thầy','Mr.','Ms.','Mx.','Miss'].map((title) => (
+                                              <MenuItem key={title} value={title}>{title}</MenuItem>
+                                            ))}
                                           </Select>
                                         </InputAdornment>
                                       }

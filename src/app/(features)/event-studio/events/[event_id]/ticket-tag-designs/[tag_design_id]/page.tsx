@@ -534,7 +534,21 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
         key,
       };
     });
-    return [...staticList, ...dynamicList];
+    // Always include built-in person fields regardless of visibleFields response
+    const builtinKeysAlways = ['name', 'email', 'phone', 'address', 'idcard_number', 'dob'] as const;
+    const builtinList = builtinKeysAlways.map((key) => ({
+      label: getBuiltinLabelForKey(key) || key,
+      key,
+    }));
+    // Deduplicate by key while preserving order priority: static -> builtin -> dynamic
+    const combined = [...staticList, ...builtinList, ...dynamicList];
+    const seen = new Set<string>();
+    const unique = combined.filter((item) => {
+      if (seen.has(item.key)) return false;
+      seen.add(item.key);
+      return true;
+    });
+    return unique;
   }, [tt, visibleFields, locale]);
 
   // Handle size change

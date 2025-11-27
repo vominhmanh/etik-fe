@@ -269,7 +269,7 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
         case 'dob':
           return transaction.dob || '';
         case 'idcard_number':
-          return (transaction.formAnswers && (transaction.formAnswers['idcard_number'] ?? '')) || '';
+          return ((transaction as any).idcardNumber || (transaction as any).idcard_number || '');
         case 'showName':
           return ticket.showName;
         case 'ticketCategory':

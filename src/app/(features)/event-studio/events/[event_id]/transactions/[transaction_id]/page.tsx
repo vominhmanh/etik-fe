@@ -477,7 +477,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         const parsedPhone = parseE164Phone(response.data?.phoneNumber);
         const defaultTitle = locale === 'en' ? 'Mx.' : 'Bạn';
         setFormData({
-          title: response.data?.title || defaultTitle,
+          title: (response.data?.title || '').trim() || defaultTitle,
           name: response.data?.name || '',
           phoneNumber: parsedPhone?.nationalNumber || '',
           phoneCountryIso2: parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2,
@@ -499,7 +499,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
     };
 
     fetchTransactionDetails();
-  }, [event_id, transaction_id, locale, tt]);
+  }, [event_id, transaction_id]);
 
   // Fetch checkout form runtime configuration (Event Studio)
   useEffect(() => {
@@ -1333,25 +1333,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                     }
                                     sx={{ minWidth: 70 }}
                                   >
-                                    {locale === 'en' ? (
-                                      ['Mr.', 'Ms.', 'Mx.'].map((title) => (
-                                        <MenuItem key={title} value={title}>{title}</MenuItem>
-                                      ))
-                                    ) : (
-                                      <>
-                                        <MenuItem value="Anh">Anh</MenuItem>
-                                        <MenuItem value="Chị">Chị</MenuItem>
-                                        <MenuItem value="Bạn">Bạn</MenuItem>
-                                        <MenuItem value="Em">Em</MenuItem>
-                                        <MenuItem value="Ông">Ông</MenuItem>
-                                        <MenuItem value="Bà">Bà</MenuItem>
-                                        <MenuItem value="Cô">Cô</MenuItem>
-                                        <MenuItem value="Thầy">Thầy</MenuItem>
-                                        <MenuItem value="Mr.">Mr.</MenuItem>
-                                        <MenuItem value="Ms.">Ms.</MenuItem>
-                                        <MenuItem value="Mx.">Mx.</MenuItem>
-                                      </>
-                                    )}
+                                    {['Anh','Chị','Bạn','Em','Ông','Bà','Cô','Mr.','Ms.','Mx.','Miss','Thầy'].map((title) => (
+                                      <MenuItem key={title} value={title}>{title}</MenuItem>
+                                    ))}
                                   </Select>
                                 </InputAdornment>
                               }

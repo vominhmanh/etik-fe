@@ -129,8 +129,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [extraFee, setExtraFee] = React.useState<number>(0);
   const router = useRouter(); // Use useRouter from next/navigation
   const [selectedCategories, setSelectedCategories] = React.useState<Record<number, Record<number, number>>>({});
+  const defaultTitle = locale === 'en' ? 'Mx.' : 'Bạn';
   const [customer, setCustomer] = React.useState({
-    title: 'Bạn',
+    title: defaultTitle,
     name: '',
     email: '',
     phoneNumber: '',
@@ -833,7 +834,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             <Select
                               variant="standard"
                               disableUnderline
-                              value={customer.title || "Bạn"}
+                              value={customer.title || defaultTitle}
                               onChange={(e) =>
                                 setCustomer({ ...customer, title: e.target.value })
                               }
@@ -846,11 +847,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               <MenuItem value="Ông">Ông</MenuItem>
                               <MenuItem value="Bà">Bà</MenuItem>
                               <MenuItem value="Cô">Cô</MenuItem>
+                              <MenuItem value="Thầy">Thầy</MenuItem>
                               <MenuItem value="Mr.">Mr.</MenuItem>
                               <MenuItem value="Ms.">Ms.</MenuItem>
                               <MenuItem value="Mx.">Mx.</MenuItem>
                               <MenuItem value="Miss">Miss</MenuItem>
-                              <MenuItem value="Thầy">Thầy</MenuItem>
                             </Select>
                           </InputAdornment>
                         }
