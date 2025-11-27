@@ -815,7 +815,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
               <>
                 <Stack spacing={1}>
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1" fontWeight="bold">{tt('Người mua:', 'Buyer:')}</Typography>
+                    <Typography variant="body1" fontWeight="bold">{tt('Thông tin:', 'Information:')}</Typography>
                     <IconButton size='small' target='_blank' component={LocalizedLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}?checkInCode=${eCode}`}><ArrowSquareIn /></IconButton>
                   </Grid>
 
@@ -860,7 +860,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     );
                   })()}
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1" fontWeight="bold">{tt('Danh sách vé đang có:', 'Current Tickets:')}</Typography>
+                    <Typography variant="body1" fontWeight="bold">{tt('Danh sách badge đang có:', 'Current Badges:')}</Typography>
                     <Typography variant="body1">{trxn?.ticketQuantity}</Typography>
                   </Grid>
 
