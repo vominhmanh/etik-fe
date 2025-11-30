@@ -65,6 +65,8 @@ interface ComponentData {
   includeTitle?: boolean | null;
   verticalAlign?: 'top' | 'middle' | 'bottom' | null;
   fieldId?: number | null; // For custom form fields: stable ID for mapping with formAnswers
+  /** Rotation in degrees (0, 90, 180, 270). Optional, default is 0 (no rotation). */
+  rotation?: number | null;
 }
 
 interface TicketTagDesign {
@@ -346,6 +348,10 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
     const widthMm = comp.width / (PX_PER_MM * CANVAS_SCALE * canvasScale);
     const heightMm = comp.height / (PX_PER_MM * CANVAS_SCALE * canvasScale);
     const fontSizeMm = comp.fontSize / (PX_PER_MM * CANVAS_SCALE * canvasScale);
+    const rotation = comp.rotation ?? 0;
+    const normalizedRotation = ((rotation % 360) + 360) % 360;
+    const isVertical = normalizedRotation === 90 || normalizedRotation === 270;
+    const isUpsideDown = normalizedRotation === 180 || normalizedRotation === 270;
 
     let value: string;
     if (normalizedKey === 'customText' && comp.customText) {
@@ -424,6 +430,9 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
               overflowWrap: 'break-word',
               width: '100%',
               display: 'block',
+              writingMode: isVertical ? 'vertical-rl' : 'horizontal-tb',
+              transform: isUpsideDown ? 'rotate(180deg)' : 'none',
+              transformOrigin: 'center center',
             }}
           >
             {value}

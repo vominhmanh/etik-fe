@@ -29,7 +29,7 @@ import { AxiosResponse } from 'axios';
 import { useRouter } from 'next/navigation';
 import { useReactToPrint } from 'react-to-print';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
-import { Resizable, ResizeCallbackData } from 'react-resizable';
+import { ResizeCallbackData } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
@@ -38,6 +38,8 @@ import FormatAlignLeftIcon from '@mui/icons-material/FormatAlignLeft';
 import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
 import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import RotateLeftIcon from '@mui/icons-material/RotateLeft';
+import RotateRightIcon from '@mui/icons-material/RotateRight';
 
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
@@ -72,6 +74,8 @@ interface ComponentData {
   includeTitle?: boolean; // For builtin name key: include title (Mr./Ms.) in display
   verticalAlign?: 'top' | 'middle' | 'bottom';
   fieldId?: number; // For custom form fields: stable ID for mapping with formAnswers
+  /** Rotation in degrees (0, 90, 180, 270). Optional, default is 0 (no rotation). */
+  rotation?: number;
 }
 
 interface TicketTagSettings {
@@ -458,10 +462,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   
   const canvasWidthPx = rawCanvasWidthPx * canvasScale;
   const canvasHeightPx = rawCanvasHeightPx * canvasScale;
-  
-  // Helper functions to convert between mm and px
-  const mmToPx = (mm: number) => mm * PX_PER_MM * CANVAS_SCALE * canvasScale;
-  const pxToMm = (px: number) => px / (PX_PER_MM * CANVAS_SCALE * canvasScale);
 
   // Map API visible field to component key
   const mapFieldToComponentKey = (f: VisibleField): string => {
@@ -672,6 +672,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       textAlign: 'left',
       zIndex: 1,
       verticalAlign: 'middle',
+      rotation: 0,
       ...(key === 'customText' ? { customText: tt('Nhập text của bạn', 'Enter your text') } : {}),
       ...(key === 'image' ? { imageUrl: '' } : {}),
       ...(key === 'name' ? { includeTitle: true } : {}),
@@ -712,6 +713,55 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           };
         }
         return comp;
+      })
+    );
+    hasUserEditedRef.current = true;
+  };
+
+  // Rotate component (left/right by 90 degrees)
+  const handleRotateComponent = (id: string, direction: 'left' | 'right') => {
+    setComponents((prev) =>
+      prev.map((comp) => {
+        if (comp.id !== id) return comp;
+        const currentRotation = comp.rotation ?? 0;
+        const delta = direction === 'left' ? -90 : 90;
+        let nextRotation = (currentRotation + delta) % 360;
+        if (nextRotation < 0) nextRotation += 360;
+
+        const wasVertical = Math.abs(currentRotation % 180) === 90;
+        const willBeVertical = Math.abs(nextRotation % 180) === 90;
+
+        let { x, y, width, height } = comp;
+
+        // Khi chuyển giữa trạng thái ngang <-> dọc, hoán đổi width/height
+        // và giữ nguyên tâm, sau đó clamp lại trong canvas
+        if (wasVertical !== willBeVertical) {
+          const centerX = x + width / 2;
+          const centerY = y + height / 2;
+
+          const newWidth = height;
+          const newHeight = width;
+
+          let newX = centerX - newWidth / 2;
+          let newY = centerY - newHeight / 2;
+
+          newX = Math.max(0, Math.min(canvasWidthPx - newWidth, newX));
+          newY = Math.max(0, Math.min(canvasHeightPx - newHeight, newY));
+
+          x = newX;
+          y = newY;
+          width = newWidth;
+          height = newHeight;
+        }
+
+        return {
+          ...comp,
+          rotation: nextRotation,
+          x,
+          y,
+          width,
+          height,
+        };
       })
     );
     hasUserEditedRef.current = true;
@@ -1206,6 +1256,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               >
               {components.map((comp) => {
                 const isSelected = comp.id === selectedComponentId;
+                const rotation = comp.rotation ?? 0;
+                const normalizedRotation = ((rotation % 360) + 360) % 360;
+                const isVertical = normalizedRotation === 90 || normalizedRotation === 270;
+                const isUpsideDown = normalizedRotation === 180 || normalizedRotation === 270;
                 // For customText component, always show customText if available
                 const displayText = comp.key === 'customText' && comp.customText
                   ? comp.customText
@@ -1234,19 +1288,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         style={{
                           width: `${comp.width}px`,
                           height: `${comp.height}px`,
-                          border: isSelected ? '2px solid #2196F3' : '1px dashed #ccc',
-                          backgroundColor: comp.backgroundColor ? `#${comp.backgroundColor}` : 'transparent',
                           cursor: 'move',
                           display: 'flex',
-                          alignItems: (comp.verticalAlign === 'top' ? 'flex-start' : comp.verticalAlign === 'bottom' ? 'flex-end' : 'center'),
-                          justifyContent: comp.textAlign === 'center' ? 'center' : comp.textAlign === 'right' ? 'flex-end' : 'flex-start',
-                          padding: '4px',
-                          fontSize: `${comp.fontSize}px`,
-                          fontFamily: comp.fontFamily || 'Arial',
-                          fontWeight: comp.fontWeight,
-                          fontStyle: comp.fontStyle,
-                          color: `#${comp.color}`,
-                          textAlign: comp.textAlign,
+                          alignItems: 'center',
+                          justifyContent: 'center',
                           boxSizing: 'border-box',
                           position: 'relative',
                         }}
@@ -1261,27 +1306,54 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           }
                         }}
                       >
-                        {comp.key === 'eCodeQr' && showPreview && previewData[comp.key] ? (
-                          <img src={previewData[comp.key]} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                        ) : comp.key === 'image' && ((comp as any).imageUrl || (comp as any).image_url || (comp as any).customText) ? (
-                          <img src={(comp as any).imageUrl || (comp as any).image_url || (comp as any).customText} alt="Component" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                        ) : (
-                          <span
-                            style={{
-                              fontSize: `${comp.fontSize}px`,
-                              fontFamily: comp.fontFamily || 'Arial',
-                              fontWeight: comp.fontWeight,
-                              fontStyle: comp.fontStyle,
-                              textDecoration: comp.textDecoration,
-                              color: `#${comp.color}`,
-                              textAlign: comp.textAlign,
-                              wordBreak: 'break-word',
-                              width: '100%',
-                            }}
-                          >
-                            {displayText}
-                          </span>
-                        )}
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            border: isSelected ? '2px solid #2196F3' : '1px dashed #ccc',
+                            backgroundColor: comp.backgroundColor ? `#${comp.backgroundColor}` : 'transparent',
+                            padding: '4px',
+                            boxSizing: 'border-box',
+                            display: 'flex',
+                            alignItems:
+                              comp.verticalAlign === 'top'
+                                ? 'flex-start'
+                                : comp.verticalAlign === 'bottom'
+                                  ? 'flex-end'
+                                  : 'center',
+                            justifyContent:
+                              comp.textAlign === 'center'
+                                ? 'center'
+                                : comp.textAlign === 'right'
+                                  ? 'flex-end'
+                                  : 'flex-start',
+                          }}
+                        >
+                          {comp.key === 'eCodeQr' && showPreview && previewData[comp.key] ? (
+                            <img src={previewData[comp.key]} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          ) : comp.key === 'image' && ((comp as any).imageUrl || (comp as any).image_url || (comp as any).customText) ? (
+                            <img src={(comp as any).imageUrl || (comp as any).image_url || (comp as any).customText} alt="Component" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: `${comp.fontSize}px`,
+                                fontFamily: comp.fontFamily || 'Arial',
+                                fontWeight: comp.fontWeight,
+                                fontStyle: comp.fontStyle,
+                                textDecoration: comp.textDecoration,
+                                color: `#${comp.color}`,
+                                textAlign: comp.textAlign,
+                                wordBreak: 'break-word',
+                                width: '100%',
+                                writingMode: isVertical ? 'vertical-rl' : 'horizontal-tb',
+                                transform: isUpsideDown ? 'rotate(180deg)' : 'none',
+                                transformOrigin: 'center center',
+                              }}
+                            >
+                              {displayText}
+                            </span>
+                          )}
+                        </div>
                         {/* Resize handle */}
                         {isSelected && (
                           <div
@@ -1406,6 +1478,28 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           }}
                           inputProps={{ min: 0 }}
                         />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                            {tt('Xoay', 'Rotate')}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRotateComponent(selectedComponent.id, 'left')}
+                          >
+                            <RotateLeftIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRotateComponent(selectedComponent.id, 'right')}
+                          >
+                            <RotateRightIcon fontSize="small" />
+                          </IconButton>
+                          <Typography variant="caption" color="text.secondary">
+                            {(selectedComponent.rotation ?? 0)}°
+                          </Typography>
+                        </Stack>
                       </Grid>
                     </Grid>
                   </Box>
@@ -1763,6 +1857,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             // So: mm = px / (PX_PER_MM * CANVAS_SCALE * canvasScale)
             const xMm = comp.x / (PX_PER_MM * CANVAS_SCALE * canvasScale);
             const yMm = comp.y / (PX_PER_MM * CANVAS_SCALE * canvasScale);
+            const rotation = comp.rotation ?? 0;
+            const normalizedRotation = ((rotation % 360) + 360) % 360;
+            const isVertical = normalizedRotation === 90 || normalizedRotation === 270;
+            const isUpsideDown = normalizedRotation === 180 || normalizedRotation === 270;
             const widthMm = comp.width / (PX_PER_MM * CANVAS_SCALE * canvasScale);
             const heightMm = comp.height / (PX_PER_MM * CANVAS_SCALE * canvasScale);
             const fontSizeMm = comp.fontSize / (PX_PER_MM * CANVAS_SCALE * canvasScale);
@@ -1806,6 +1904,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       wordBreak: 'break-word',
                       width: '100%',
                       display: 'block',
+                      writingMode: isVertical ? 'vertical-rl' : 'horizontal-tb',
+                      transform: isUpsideDown ? 'rotate(180deg)' : 'none',
+                      transformOrigin: 'center center',
                     }}
                   >
                     {displayText}
