@@ -723,6 +723,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">{tt("Danh sách đơn hàng", "Order List")}</Typography>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="contained"
+              size="small"
+            >
+              {tt("Đơn hàng", "Orders")}
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              component={LocalizedLink}
+              href={`/event-studio/events/${params.event_id}/tickets`}
+            >
+              {tt("Khách hàng & vé", "Customers & Tickets")}
+            </Button>
+          </Stack>
         </Stack>
         <div>
           <Button

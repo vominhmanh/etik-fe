@@ -288,13 +288,13 @@ export function SideNav(): React.JSX.Element {
                 href={`/event-studio/events/${dynamicId}/transactions`}
                 icon={ListDashesIcon}
               />
-              <NavItemCollapseChildItem
+              {/* <NavItemCollapseChildItem
                 pathname={pathname}
                 key="tickets-list"
                 title={tt("Danh sách khách hàng & vé", "Customer & Ticket List")}
                 href={`/event-studio/events/${dynamicId}/tickets`}
                 icon={UserList}
-              />
+              /> */}
             </NavItemCollapse>
             <NavItemCollapse pathname={pathname} key="check-in" title={tt("Soát vé", "Check-in")} icon={DoorIcon}>
               <NavItemCollapseChildItem

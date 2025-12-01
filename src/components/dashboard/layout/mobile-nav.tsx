@@ -267,14 +267,14 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               icon={ListDashesIcon}
               onClose={onClose}
             />
-            <NavItemCollapseChildItem
+            {/* <NavItemCollapseChildItem
               pathname={normalizedPathname}
               key="tickets-list"
               title={tt("Danh sách khách hàng & vé", "Customer & Ticket List")}
               href={`/event-studio/events/${dynamicId}/tickets`}
               icon={UserList}
               onClose={onClose}
-            />
+            /> */}
           </NavItemCollapse>
           <NavItemCollapse pathname={normalizedPathname} key="check-in" title={tt("Soát vé", "Check-in")} icon={DoorIcon} onClose={onClose}>
             <NavItemCollapseChildItem

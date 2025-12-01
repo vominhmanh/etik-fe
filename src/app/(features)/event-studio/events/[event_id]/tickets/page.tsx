@@ -93,7 +93,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const STORAGE_KEY = `tickets-table-sort-${params.event_id}`;
   const AUTO_RELOAD_STORAGE_KEY = `tickets-auto-reload-${params.event_id}`;
   React.useEffect(() => {
-    document.title = tt("Danh sách khách hàng & vé | ETIK - Vé điện tử & Quản lý sự kiện", "Customer & Ticket List | ETIK - E-tickets & Event Management");
+    document.title = tt("Danh sách đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện", "Order & Ticket List | ETIK - E-tickets & Event Management");
   }, [tt]);
   const [tickets, setTickets] = React.useState<Ticket[]>([]);
   const [page, setPage] = React.useState(0);
@@ -330,6 +330,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     fetchShowsWithTicketCategories();
   }, [params.event_id]);
 
+  // Auto-select first show when filterShows is loaded and no show is selected
+  React.useEffect(() => {
+    if (filterShows.length > 0 && filters.show.length === 0) {
+      setFilters((prevFilters) => ({ ...prevFilters, show: [filterShows[0].id] }));
+    }
+  }, [filterShows]);
+
 
   const ticketIds = React.useMemo(() => {
     return tickets.map((ticket) => ticket.id);
@@ -525,8 +532,23 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       </Backdrop>{' '}
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">{tt("Danh sách khách hàng & vé", "Customer & Ticket List")}</Typography>
-
+          <Typography variant="h4">{tt("Danh sách đơn hàng", "Order List")}</Typography>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              size="small"
+              component={LocalizedLink}
+              href={`/event-studio/events/${params.event_id}/transactions`}
+            >
+              {tt("Đơn hàng", "Orders")}
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+            >
+              {tt("Khách hàng & vé", "Customers & Tickets")}
+            </Button>
+          </Stack>
         </Stack>
         <div>
           <Button
@@ -739,7 +761,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     const value = e.target.value;
                     handleFilterChange('show', typeof value === 'string' ? value.split(',').map(Number) : (value as number[]));
                   }}
-                  renderValue={(selected) => (selected as number[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as number[]).length} đã chọn`, `${(selected as number[]).length} selected`)}
+                  renderValue={(selected) => {
+                    const selectedArray = selected as number[];
+                    if (selectedArray.length === 0) {
+                      return tt('Tất cả', 'All');
+                    }
+                    if (selectedArray.length === 1) {
+                      const show = filterShows.find(s => s.id === selectedArray[0]);
+                      return show ? show.name : '';
+                    }
+                    return tt(`${selectedArray.length} đã chọn`, `${selectedArray.length} selected`);
+                  }}
                   MenuProps={{
                     PaperProps: {
                       style: {
@@ -767,7 +799,20 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     const value = e.target.value;
                     handleFilterChange('ticketCategory', typeof value === 'string' ? value.split(',').map(Number) : (value as number[]));
                   }}
-                  renderValue={(selected) => (selected as number[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as number[]).length} đã chọn`, `${(selected as number[]).length} selected`)}
+                  renderValue={(selected) => {
+                    const selectedArray = selected as number[];
+                    if (selectedArray.length === 0) {
+                      return tt('Tất cả', 'All');
+                    }
+                    if (selectedArray.length === 1) {
+                      const allTicketCategories = filterShows
+                        .filter(show => filters.show.length === 0 || filters.show.includes(show.id))
+                        .flatMap(show => show.ticketCategories);
+                      const ticketCategory = allTicketCategories.find(tc => tc.id === selectedArray[0]);
+                      return ticketCategory ? ticketCategory.name : '';
+                    }
+                    return tt(`${selectedArray.length} đã chọn`, `${selectedArray.length} selected`);
+                  }}
                   MenuProps={{
                     PaperProps: {
                       style: {
@@ -797,7 +842,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   label={tt('Trạng thái đơn hàng', 'Order Status')}
                   name="status"
                   onChange={(e) => handleFilterChange('status', e.target.value as string[])}
-                  renderValue={(selected) => (selected as string[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as string[]).length} đã chọn`, `${(selected as string[]).length} selected`)}
+                  renderValue={(selected) => {
+                    const selectedArray = selected as string[];
+                    if (selectedArray.length === 0) {
+                      return tt('Tất cả', 'All');
+                    }
+                    if (selectedArray.length === 1) {
+                      const statusLabels: Record<string, string> = {
+                        'normal': tt('Bình thường', 'Normal'),
+                        'wait_for_response': tt('Đang chờ', 'Pending'),
+                        'staff_locked': tt('Khoá bởi NV', 'Locked by Staff'),
+                        'customer_cancelled': tt('Huỷ bởi KH', 'Cancelled by Customer'),
+                      };
+                      return statusLabels[selectedArray[0]] || selectedArray[0];
+                    }
+                    return tt(`${selectedArray.length} đã chọn`, `${selectedArray.length} selected`);
+                  }}
                   MenuProps={{
                     PaperProps: {
                       style: {
@@ -832,7 +892,21 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   label={tt('Trạng thái thanh toán', 'Payment Status')}
                   name="payment_status"
                   onChange={(e) => handleFilterChange('paymentStatus', e.target.value as string[])}
-                  renderValue={(selected) => (selected as string[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as string[]).length} đã chọn`, `${(selected as string[]).length} selected`)}
+                  renderValue={(selected) => {
+                    const selectedArray = selected as string[];
+                    if (selectedArray.length === 0) {
+                      return tt('Tất cả', 'All');
+                    }
+                    if (selectedArray.length === 1) {
+                      const paymentStatusLabels: Record<string, string> = {
+                        'waiting_for_payment': tt('Chờ thanh toán', 'Waiting for Payment'),
+                        'paid': tt('Đã thanh toán', 'Paid'),
+                        'refund': tt('Đã hoàn tiền', 'Refunded'),
+                      };
+                      return paymentStatusLabels[selectedArray[0]] || selectedArray[0];
+                    }
+                    return tt(`${selectedArray.length} đã chọn`, `${selectedArray.length} selected`);
+                  }}
                   MenuProps={{
                     PaperProps: {
                       style: {
@@ -863,7 +937,20 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   label={tt('Trạng thái xuất vé', 'Ticket Issued Status')}
                   name="sentTicketEmailStatus"
                   onChange={(e) => handleFilterChange('sentTicketEmailStatus', e.target.value as string[])}
-                  renderValue={(selected) => (selected as string[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as string[]).length} đã chọn`, `${(selected as string[]).length} selected`)}
+                  renderValue={(selected) => {
+                    const selectedArray = selected as string[];
+                    if (selectedArray.length === 0) {
+                      return tt('Tất cả', 'All');
+                    }
+                    if (selectedArray.length === 1) {
+                      const sentTicketEmailStatusLabels: Record<string, string> = {
+                        'not_sent': tt('Chưa xuất vé', 'Not Issued'),
+                        'sent': tt('Đã xuất vé', 'Issued'),
+                      };
+                      return sentTicketEmailStatusLabels[selectedArray[0]] || selectedArray[0];
+                    }
+                    return tt(`${selectedArray.length} đã chọn`, `${selectedArray.length} selected`);
+                  }}
                   MenuProps={{
                     PaperProps: {
                       style: {
@@ -890,7 +977,20 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   label={tt('Trạng thái check-in', 'Check-in Status')}
                   name="checkInStatus"
                   onChange={(e) => handleFilterChange('checkInStatus', e.target.value as string[])}
-                  renderValue={(selected) => (selected as string[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as string[]).length} đã chọn`, `${(selected as string[]).length} selected`)}
+                  renderValue={(selected) => {
+                    const selectedArray = selected as string[];
+                    if (selectedArray.length === 0) {
+                      return tt('Tất cả', 'All');
+                    }
+                    if (selectedArray.length === 1) {
+                      const checkInStatusLabels: Record<string, string> = {
+                        'not_checked': tt('Chưa check-in', 'Not Checked In'),
+                        'checked': tt('Đã check-in', 'Checked In'),
+                      };
+                      return checkInStatusLabels[selectedArray[0]] || selectedArray[0];
+                    }
+                    return tt(`${selectedArray.length} đã chọn`, `${selectedArray.length} selected`);
+                  }}
                   MenuProps={{
                     PaperProps: {
                       style: {
@@ -917,7 +1017,20 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   label={tt('Trạng thái yêu cầu hủy', 'Cancellation Request Status')}
                   name="cancelRequestStatus"
                   onChange={(e) => handleFilterChange('cancelRequestStatus', e.target.value as string[])}
-                  renderValue={(selected) => (selected as string[]).length === 0 ? tt('Tất cả', 'All') : tt(`${(selected as string[]).length} đã chọn`, `${(selected as string[]).length} selected`)}
+                  renderValue={(selected) => {
+                    const selectedArray = selected as string[];
+                    if (selectedArray.length === 0) {
+                      return tt('Tất cả', 'All');
+                    }
+                    if (selectedArray.length === 1) {
+                      const cancelRequestStatusLabels: Record<string, string> = {
+                        'pending': tt('Đang yêu cầu hủy', 'Pending Cancellation'),
+                        'no_request': tt('Không có yêu cầu hủy', 'No Cancellation Request'),
+                      };
+                      return cancelRequestStatusLabels[selectedArray[0]] || selectedArray[0];
+                    }
+                    return tt(`${selectedArray.length} đã chọn`, `${selectedArray.length} selected`);
+                  }}
                   MenuProps={{
                     PaperProps: {
                       style: {
