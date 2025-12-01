@@ -295,7 +295,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   // Auto reload interval
   React.useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
-    
+
     if (autoReload) {
       intervalId = setInterval(() => {
         fetchTransactions(false); // Don't show backdrop during auto reload
@@ -343,7 +343,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       // Sent Ticket Email Status filter
       if (filters.sentTicketEmailStatus.length > 0) {
         const isSent = !!transaction.exportedTicketAt;
-        const shouldInclude = 
+        const shouldInclude =
           (filters.sentTicketEmailStatus.includes('sent') && isSent) ||
           (filters.sentTicketEmailStatus.includes('not_sent') && !isSent);
         if (!shouldInclude) {
@@ -355,7 +355,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       if (filters.cancelRequestStatus.length > 0) {
         const isPending = transaction.cancelRequestStatus === 'pending';
         const hasNoRequest = transaction.cancelRequestStatus == null;
-        const shouldInclude = 
+        const shouldInclude =
           (filters.cancelRequestStatus.includes('pending') && isPending) ||
           (filters.cancelRequestStatus.includes('no_request') && hasNoRequest);
         if (!shouldInclude) {
@@ -701,6 +701,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const paginatedCustomers = applyPagination(filteredTransactions, page, rowsPerPage);
 
+  const hasFilter =
+    !!querySearch ||
+    filters.status.length > 0 ||
+    filters.paymentStatus.length > 0 ||
+    filters.sentTicketEmailStatus.length > 0 ||
+    filters.cancelRequestStatus.length > 0;
+
   return (
     <Stack spacing={3}>
       <Backdrop
@@ -729,161 +736,161 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </div>
       </Stack>
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={() => fetchTransactions()}>
-              {tt("Tải lại", "Reload")}
-            </Button>
+        <Button color="inherit" startIcon={<ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />} onClick={() => fetchTransactions()}>
+          {tt("Tải lại", "Reload")}
+        </Button>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={autoReload}
+              onChange={(e) => setAutoReload(e.target.checked)}
+              size="small"
+            />
+          }
+          label={
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+              <Typography variant="body2">{tt("Live Update", "Live Update")}</Typography>
+              {isAutoReloading && (
+                <CircularProgress size={14} sx={{ ml: 0.5 }} />
+              )}
+            </Stack>
+          }
+          sx={{ ml: 1 }}
+        />
+        <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />} onClick={handleExportExcel}>
+          {tt("Xuất file excel", "Export Excel")}
+        </Button>
+        {spreadsheetId ? (
+          <>
+
             <FormControlLabel
               control={
                 <Switch
-                  checked={autoReload}
-                  onChange={(e) => setAutoReload(e.target.checked)}
-                  size="small"
-                />
-              }
-              label={
-                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                  <Typography variant="body2">{tt("Live Update", "Live Update")}</Typography>
-                  {isAutoReloading && (
-                    <CircularProgress size={14} sx={{ ml: 0.5 }} />
-                  )}
-                </Stack>
-              }
-              sx={{ ml: 1 }}
-            />
-            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />} onClick={handleExportExcel}>
-              {tt("Xuất file excel", "Export Excel")}
-            </Button>
-            {spreadsheetId ? (
-              <>
-                
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={!!isGsheetSyncEnabled}
-                      onChange={async (e) => {
-                        const next = e.target.checked;
-                        if (!next) {
-                          const confirmed = window.confirm(
-                            tt(
-                              "Dừng đồng bộ sẽ khiến các giao dịch mới/được chỉnh sửa sau này không được cập nhật sang Google Sheets nữa. Bạn có chắc chắn?",
-                              "Stopping sync means new or updated transactions will no longer be pushed to Google Sheets. Are you sure?"
-                            )
-                          );
-                          if (!confirmed) {
-                            return;
-                          }
-                        }
-                        try {
-                          setIsLoading(true);
-                          if (next) {
-                            await baseHttpServiceInstance.post(
-                              `/event-studio/events/${params.event_id}/google-sheet-sync/enable`
-                            );
-                            setIsGsheetSyncEnabled(true);
-                            notificationCtx.success(
-                              tt("Đã bật đồng bộ với Google Sheets", "Resumed syncing with Google Sheets")
-                            );
-                          } else {
-                            await baseHttpServiceInstance.post(
-                              `/event-studio/events/${params.event_id}/google-sheet-sync/disable`
-                            );
-                            setIsGsheetSyncEnabled(false);
-                            notificationCtx.success(
-                              tt("Đã dừng đồng bộ với Google Sheets", "Stopped syncing with Google Sheets")
-                            );
-                          }
-                        } catch (error) {
-                          notificationCtx.error(
-                            next
-                              ? tt("Bật đồng bộ Google Sheets thất bại:", "Enable Google Sheets sync failed:")
-                              : tt("Dừng đồng bộ Google Sheets thất bại:", "Disable Google Sheets sync failed:"),
-                            error
-                          );
-                        } finally {
-                          setIsLoading(false);
-                        }
-                      }}
-                      size="small"
-                    />
-                  }
-                  label={tt("Đồng bộ Google Sheets", "Syncing to Google Sheets")}
-                  sx={{ ml: 1 }}
-                />
-                <IconButton
-                  color="inherit"
-                  component="a"
-                  href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={tt("Mở Google Sheets", "Open Google Sheets")}
-                >
-                  <MicrosoftExcelLogo fontSize="var(--icon-fontSize-md)" />
-                </IconButton>
-                <IconButton
-                  color="error"
-                  onClick={async () => {
-                    const confirmed = window.confirm(
-                      tt(
-                        "Đồng bộ lại sẽ ghi đè toàn bộ dữ liệu hiện có trên Google Sheets. Bạn có chắc chắn muốn tiếp tục?",
-                        "Resync will overwrite all existing data on Google Sheets. Are you sure you want to continue?"
-                      )
-                    );
-                    if (!confirmed) return;
+                  checked={!!isGsheetSyncEnabled}
+                  onChange={async (e) => {
+                    const next = e.target.checked;
+                    if (!next) {
+                      const confirmed = window.confirm(
+                        tt(
+                          "Dừng đồng bộ sẽ khiến các giao dịch mới/được chỉnh sửa sau này không được cập nhật sang Google Sheets nữa. Bạn có chắc chắn?",
+                          "Stopping sync means new or updated transactions will no longer be pushed to Google Sheets. Are you sure?"
+                        )
+                      );
+                      if (!confirmed) {
+                        return;
+                      }
+                    }
                     try {
                       setIsLoading(true);
-                      await baseHttpServiceInstance.post(
-                        `/event-studio/events/${params.event_id}/google-sheet-sync`
-                      );
-                      // BE nên tự bật lại cờ sync nếu đang tắt
-                      setIsGsheetSyncEnabled(true);
-                      notificationCtx.success(
-                        tt("Đã bắt đầu đồng bộ lại dữ liệu", "Started resyncing data to Google Sheets")
-                      );
+                      if (next) {
+                        await baseHttpServiceInstance.post(
+                          `/event-studio/events/${params.event_id}/google-sheet-sync/enable`
+                        );
+                        setIsGsheetSyncEnabled(true);
+                        notificationCtx.success(
+                          tt("Đã bật đồng bộ với Google Sheets", "Resumed syncing with Google Sheets")
+                        );
+                      } else {
+                        await baseHttpServiceInstance.post(
+                          `/event-studio/events/${params.event_id}/google-sheet-sync/disable`
+                        );
+                        setIsGsheetSyncEnabled(false);
+                        notificationCtx.success(
+                          tt("Đã dừng đồng bộ với Google Sheets", "Stopped syncing with Google Sheets")
+                        );
+                      }
                     } catch (error) {
                       notificationCtx.error(
-                        tt("Đồng bộ lại Google Sheets thất bại:", "Resync Google Sheets failed:"),
+                        next
+                          ? tt("Bật đồng bộ Google Sheets thất bại:", "Enable Google Sheets sync failed:")
+                          : tt("Dừng đồng bộ Google Sheets thất bại:", "Disable Google Sheets sync failed:"),
                         error
                       );
                     } finally {
                       setIsLoading(false);
                     }
                   }}
-                  aria-label={tt("Đồng bộ lại dữ liệu Google Sheets", "Resync Google Sheets data")}
-                >
-                  <ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />
-                </IconButton>
-              </>
-            ) : (
-              <Button
-                color="inherit"
-                startIcon={<MicrosoftExcelLogo fontSize="var(--icon-fontSize-md)" />}
-                onClick={async () => {
-                  try {
-                    setIsLoading(true);
-                    const response: AxiosResponse<{ spreadsheet_id?: string }> =
-                      await baseHttpServiceInstance.post(
-                        `/event-studio/events/${params.event_id}/google-sheet-sync`
-                      );
-                    if (response.data.spreadsheet_id) {
-                      setSpreadsheetId(response.data.spreadsheet_id);
-                    }
-                    notificationCtx.success(
-                      tt("Đã bắt đầu đồng bộ Google Sheets", "Started syncing to Google Sheets")
-                    );
-                  } catch (error) {
-                    notificationCtx.error(
-                      tt("Đồng bộ Google Sheets thất bại:", "Sync Google Sheets failed:"),
-                      error
-                    );
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-              >
-                {tt("Đồng bộ Google Sheets", "Sync Google Sheets")}
-              </Button>
-            )}
-          </Stack>
+                  size="small"
+                />
+              }
+              label={tt("Đồng bộ Google Sheets", "Syncing to Google Sheets")}
+              sx={{ ml: 1 }}
+            />
+            <IconButton
+              color="inherit"
+              component="a"
+              href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={tt("Mở Google Sheets", "Open Google Sheets")}
+            >
+              <MicrosoftExcelLogo fontSize="var(--icon-fontSize-md)" />
+            </IconButton>
+            <IconButton
+              color="error"
+              onClick={async () => {
+                const confirmed = window.confirm(
+                  tt(
+                    "Đồng bộ lại sẽ ghi đè toàn bộ dữ liệu hiện có trên Google Sheets. Bạn có chắc chắn muốn tiếp tục?",
+                    "Resync will overwrite all existing data on Google Sheets. Are you sure you want to continue?"
+                  )
+                );
+                if (!confirmed) return;
+                try {
+                  setIsLoading(true);
+                  await baseHttpServiceInstance.post(
+                    `/event-studio/events/${params.event_id}/google-sheet-sync`
+                  );
+                  // BE nên tự bật lại cờ sync nếu đang tắt
+                  setIsGsheetSyncEnabled(true);
+                  notificationCtx.success(
+                    tt("Đã bắt đầu đồng bộ lại dữ liệu", "Started resyncing data to Google Sheets")
+                  );
+                } catch (error) {
+                  notificationCtx.error(
+                    tt("Đồng bộ lại Google Sheets thất bại:", "Resync Google Sheets failed:"),
+                    error
+                  );
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              aria-label={tt("Đồng bộ lại dữ liệu Google Sheets", "Resync Google Sheets data")}
+            >
+              <ArrowCounterClockwise fontSize="var(--icon-fontSize-md)" />
+            </IconButton>
+          </>
+        ) : (
+          <Button
+            color="inherit"
+            startIcon={<MicrosoftExcelLogo fontSize="var(--icon-fontSize-md)" />}
+            onClick={async () => {
+              try {
+                setIsLoading(true);
+                const response: AxiosResponse<{ spreadsheet_id?: string }> =
+                  await baseHttpServiceInstance.post(
+                    `/event-studio/events/${params.event_id}/google-sheet-sync`
+                  );
+                if (response.data.spreadsheet_id) {
+                  setSpreadsheetId(response.data.spreadsheet_id);
+                }
+                notificationCtx.success(
+                  tt("Đã bắt đầu đồng bộ Google Sheets", "Started syncing to Google Sheets")
+                );
+              } catch (error) {
+                notificationCtx.error(
+                  tt("Đồng bộ Google Sheets thất bại:", "Sync Google Sheets failed:"),
+                  error
+                );
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+          >
+            {tt("Đồng bộ Google Sheets", "Sync Google Sheets")}
+          </Button>
+        )}
+      </Stack>
       <Card sx={{ p: 2 }}>
         <Grid container spacing={3} direction={'row'} sx={{ alignItems: 'center' }}>
           <Grid item xs={12} md={3}>
@@ -1046,6 +1053,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           </Grid>
         </Grid>
       </Card>
+      <Typography
+        variant="body2"
+        sx={{ mt: 1, fontWeight: 600 }}
+      >
+        {tt("Có", "There are")} {filteredTransactions.length.toLocaleString()} {tt("đơn hàng", "orders")}
+        {hasFilter
+          ? ` ${tt("khớp với các bộ lọc hiện tại", "matching current filters")}`
+          : null}
+      </Typography>
+
       <Card>
         <Box sx={{ overflowX: 'auto' }} >
           <Stack spacing={1} direction={'row'} sx={{ flexWrap: 'no-wrap', minWidth: '900px', alignItems: 'center' }}>

@@ -170,8 +170,28 @@ export function TicketsTable({
   };
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    onRowsPerPageChange(parseInt(event.target.value, 10));
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    onRowsPerPageChange(newRowsPerPage);
+
+    // Persist user preference for rows per page
+    if (typeof window !== 'undefined') {
+      const storageKey = `tickets-table-rows-per-page-${eventId}`;
+      localStorage.setItem(storageKey, String(newRowsPerPage));
+    }
   };
+
+  // Load rowsPerPage preference from localStorage on mount / when event changes
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storageKey = `tickets-table-rows-per-page-${eventId}`;
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!Number.isNaN(parsed) && parsed > 0 && parsed !== rowsPerPage) {
+        onRowsPerPageChange(parsed);
+      }
+    }
+  }, [eventId]);
 
   const rowIds = React.useMemo(() => {
     return rows.map((ticket) => ticket.id);
