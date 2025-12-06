@@ -261,6 +261,7 @@ export interface Transaction {
   ticketQuantity: number;           // Number of tickets purchased
   extraFee: number;                 // Extra fees for the transaction
   discount: number;                 // Discount applied to the transaction
+  discountCode: string | null;      // Voucher code applied to the transaction, nullable
   totalAmount: number;              // Total amount for the transaction
   paymentMethod: string;            // Payment method used
   paymentStatus: string;            // Current status of the payment
@@ -1763,7 +1764,14 @@ export default function Page({ params }: { params: { event_id: number; transacti
                       <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
                       <Typography variant="body1">{tt('Giảm giá:', 'Discount:')}</Typography>
                     </Stack>
-                    <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
+                    <Stack spacing={1} direction={'column'} sx={{ alignItems: 'flex-end' }}>
+                      <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
+                      {transaction.discountCode && (
+                        <Typography variant="caption" color="text.secondary">
+                          {tt('Mã khuyến mãi:', 'Voucher code:')} {transaction.discountCode}
+                        </Typography>
+                      )}
+                    </Stack>
                   </Grid>
 
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>

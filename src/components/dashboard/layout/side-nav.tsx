@@ -54,6 +54,7 @@ import { useTranslation } from '@/contexts/locale-context';
 
 import { getNavItems } from './config';
 import { Tag } from '@phosphor-icons/react/dist/ssr/Tag';
+import { SealPercent } from '@phosphor-icons/react/dist/ssr/SealPercent';
 
 export type EventResponse = {
   id: number;
@@ -264,6 +265,13 @@ export function SideNav(): React.JSX.Element {
                 title={tt("Hạng mục vé", "Ticket Categories")}
                 href={`/event-studio/events/${dynamicId}/shows`}
                 icon={TicketIcon}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="vouchers"
+                title={tt("Khuyến mãi", "Vouchers")}
+                href={`/event-studio/events/${dynamicId}/vouchers`}
+                icon={SealPercent}
               />
             </NavItemCollapse>
             <NavItemCollapse pathname={pathname} key="transactions" title={tt("Bán vé & Khách hàng", "Ticket Sales & Customers")} icon={TicketIcon}>

@@ -420,6 +420,8 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
   const [selectedSize, setSelectedSize] = useState<string>('50x50mm');
   const [customSize, setCustomSize] = useState<{ width: number; height: number } | null>(null);
   const [showCustomSize, setShowCustomSize] = useState(false);
+  // Local state for input values to allow empty strings
+  const [customSizeInput, setCustomSizeInput] = useState<{ width: string; height: string }>({ width: '', height: '' });
 
   // Components state
   const [components, setComponents] = useState<ComponentData[]>([]);
@@ -634,7 +636,14 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
     if (value === 'custom') {
       setShowCustomSize(true);
       if (!customSize) {
-        setCustomSize({ width: 50, height: 50 });
+        const defaultSize = { width: 50, height: 50 };
+        setCustomSize(defaultSize);
+        setCustomSizeInput({ width: '50', height: '50' });
+      } else {
+        setCustomSizeInput({ 
+          width: customSize.width.toString(), 
+          height: customSize.height.toString() 
+        });
       }
     } else {
       setShowCustomSize(false);
@@ -644,9 +653,23 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
   };
 
   // Handle custom size input
-  const handleCustomSizeChange = (field: 'width' | 'height', value: number) => {
+  const handleCustomSizeChange = (field: 'width' | 'height', value: string) => {
+    // Update input state immediately to allow empty strings
+    setCustomSizeInput((prev) => ({ ...prev, [field]: value }));
+    
+    // Only update customSize if value is a valid number
+    if (value === '') {
+      return; // Allow empty input, don't update customSize
+    }
+    
+    const numValue = Number(value);
+    if (isNaN(numValue) || numValue <= 0) {
+      return; // Ignore invalid values
+    }
+    
     setCustomSize((prev) => {
-      const newSize = { ...(prev || { width: 50, height: 50 }), [field]: value };
+      const baseSize = prev || { width: 50, height: 50 };
+      const newSize = { ...baseSize, [field]: numValue };
       hasUserEditedRef.current = true;
       return newSize;
     });
@@ -851,6 +874,10 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
             if (size === 'custom' && apiCustomSize) {
               setShowCustomSize(true);
               setCustomSize(apiCustomSize);
+              setCustomSizeInput({ 
+                width: apiCustomSize.width.toString(), 
+                height: apiCustomSize.height.toString() 
+              });
             } else {
               setSelectedSize(size);
               setShowCustomSize(false);
@@ -1104,8 +1131,14 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
                       label={tt("Chiều rộng (mm)", "Width (mm)")}
                       type="number"
                       size="small"
-                      value={customSize?.width || 50}
-                      onChange={(e) => handleCustomSizeChange('width', Number(e.target.value))}
+                      value={customSizeInput.width}
+                      onChange={(e) => handleCustomSizeChange('width', e.target.value)}
+                      onBlur={(e) => {
+                        // If empty on blur, restore to previous valid value
+                        if (e.target.value === '' && customSize) {
+                          setCustomSizeInput((prev) => ({ ...prev, width: customSize.width.toString() }));
+                        }
+                      }}
                       InputProps={{
                         endAdornment: <InputAdornment position="end">mm</InputAdornment>,
                       }}
@@ -1114,8 +1147,14 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
                       label={tt("Chiều cao (mm)", "Height (mm)")}
                       type="number"
                       size="small"
-                      value={customSize?.height || 50}
-                      onChange={(e) => handleCustomSizeChange('height', Number(e.target.value))}
+                      value={customSizeInput.height}
+                      onChange={(e) => handleCustomSizeChange('height', e.target.value)}
+                      onBlur={(e) => {
+                        // If empty on blur, restore to previous valid value
+                        if (e.target.value === '' && customSize) {
+                          setCustomSizeInput((prev) => ({ ...prev, height: customSize.height.toString() }));
+                        }
+                      }}
                       InputProps={{
                         endAdornment: <InputAdornment position="end">mm</InputAdornment>,
                       }}
