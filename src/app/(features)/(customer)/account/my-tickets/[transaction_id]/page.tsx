@@ -35,6 +35,7 @@ import { useTranslation } from '@/contexts/locale-context';
 import { Link } from '@phosphor-icons/react';
 import { AxiosResponse } from 'axios';
 import { parseE164Phone, PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY } from '@/config/phone-countries';
+import GiftTicketModal from '@/components/transactions/gift-ticket-modal';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -95,6 +96,10 @@ const getRowStatusDetails = (status: string, tt: (vi: string, en: string) => str
       return { label: tt('Bình thường', 'Normal'), color: 'success' };
     case 'wait_for_response':
       return { label: tt('Đang chờ', 'Waiting'), color: 'warning' };
+    case 'wait_for_transfering':
+      return { label: tt('Chờ chuyển nhượng', 'Waiting for Transfer'), color: 'warning' };
+    case 'transfered':
+      return { label: tt('Đã chuyển nhượng', 'Transferred'), color: 'error' };
     case 'customer_cancelled':
       return { label: tt('Huỷ bởi KH', 'Cancelled by Customer'), color: 'error' };
     case 'staff_locked':
@@ -127,6 +132,7 @@ interface Event {
   slug: string;
   locationInstruction: string | null;
   timeInstruction: string | null;
+  allowTicketTransfer: boolean;
 };
 
 export interface Ticket {
@@ -135,6 +141,7 @@ export interface Ticket {
   holderPhone: string;        // Name of the ticket holder
   holderEmail: string;        // Name of the ticket holder
   holderTitle: string;        // Name of the ticket holder
+  status: string;            // Status of the ticket
   createdAt: string;   // The date the ticket was created
   checkInAt: string | null; // The date/time the ticket was checked in, nullable
 }
@@ -203,6 +210,7 @@ export interface Transaction {
   sentPaymentInstructionAt: string | null
   cancelRequestStatus: string | null
   shareUuid: string | null
+  customerResponseToken: string | null
   event: Event
   qrOption: string
   requireGuestAvatar: boolean
@@ -244,6 +252,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [open, setOpen] = useState(false);
+  const [openGiftModal, setOpenGiftModal] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   const handleConfirmCancel = async () => {
@@ -855,7 +864,12 @@ export default function Page({ params }: { params: { transaction_id: number } })
                                   </Stack>
                                 </>
                                 <div>
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>TID-{ticket.id} {ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}</Typography>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    TID-{ticket.id} {ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}
+                                    {ticket.status && ticket.status !== 'normal' && (
+                                      <> - <Chip size="small" label={getRowStatusDetails(ticket.status, tt).label} color={getRowStatusDetails(ticket.status, tt).color} sx={{ height: 18, fontSize: '0.7rem' }} /></>
+                                    )}
+                                  </Typography>
                                 </div>
                               </Box>
                             </Stack>
@@ -958,6 +972,27 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   >
                     {tt('Khoe với bạn bè', 'Share with Friends')}
                   </Button>
+                  {(() => {
+                    const hasAvailableTickets = transaction.transactionTicketCategories.some(
+                      ttc => ttc.tickets.some(ticket => ticket.status === 'normal')
+                    );
+                    const canGift = transaction.event.allowTicketTransfer &&
+                      transaction.status === 'normal' &&
+                      transaction.paymentStatus === 'paid' &&
+                      transaction.exportedTicketAt !== null &&
+                      hasAvailableTickets;
+                    
+                    return (
+                      <Button
+                        size="small"
+                        startIcon={<TagIcon />}
+                        onClick={() => setOpenGiftModal(true)}
+                        disabled={!canGift}
+                      >
+                        {tt('Tặng vé', 'Gift Tickets')}
+                      </Button>
+                    );
+                  })()}
                 </Stack>
                 <Typography variant='caption'>
                   {tt('Xin lưu ý: Việc chia sẻ xác nhận sở hữu vé sẽ tiết lộ', 'Please note: Sharing ticket ownership confirmation will reveal')} <b>{tt('tên người mua, số lượng vé, và thông tin công khai của sự kiện', 'buyer name, ticket quantity, and public event information')}</b>. {tt('Các thông tin khác được bảo mật.', 'Other information is kept confidential.')}
@@ -984,6 +1019,31 @@ export default function Page({ params }: { params: { transaction_id: number } })
           </Button>
         </DialogActions>
       </Dialog>
+      {transaction && (
+        <GiftTicketModal
+          open={openGiftModal}
+          onClose={() => setOpenGiftModal(false)}
+          transaction={transaction}
+          event={transaction.event}
+          onSuccess={() => {
+            // Refresh transaction data
+            const fetchTransactionDetails = async () => {
+              try {
+                setIsLoading(true);
+                const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
+                  `/account/transactions/${transaction_id}`
+                );
+                setTransaction(response.data);
+              } catch (error) {
+                notificationCtx.error(tt('Lỗi:', 'Error:'), error);
+              } finally {
+                setIsLoading(false);
+              }
+            };
+            fetchTransactionDetails();
+          }}
+        />
+      )}
     </Stack>
   );
 }

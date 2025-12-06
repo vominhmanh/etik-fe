@@ -110,6 +110,10 @@ const getRowStatusDetails = (status: string): { label: string, color: "success" 
       return { label: 'Bình thường', color: 'success' };
     case 'wait_for_response':
       return { label: 'Đang chờ', color: 'warning' };
+    case 'wait_for_transfering':
+      return { label: 'Chờ chuyển nhượng', color: 'warning' };
+    case 'transfered':
+      return { label: 'Đã chuyển nhượng', color: 'error' };
     case 'customer_cancelled':
       return { label: 'Huỷ bởi KH', color: 'error' }; // error for danger
     case 'staff_locked':

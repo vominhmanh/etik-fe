@@ -66,6 +66,10 @@ const getRowStatusDetails = (status: string, tt: (vi: string, en: string) => str
       return { label: tt('Bình thường', 'Normal'), color: 'success' };
     case 'wait_for_response':
       return { label: tt('Đang chờ', 'Pending'), color: 'warning' };
+    case 'wait_for_transfering':
+      return { label: tt('Chờ chuyển nhượng', 'Waiting for Transfer'), color: 'warning' };
+    case 'transfered':
+      return { label: tt('Đã chuyển nhượng', 'Transferred'), color: 'error' };
     case 'customer_cancelled':
       return { label: tt('Huỷ bởi KH', 'Cancelled by Customer'), color: 'error' };
     case 'staff_locked':
@@ -227,6 +231,7 @@ export function TicketsTable({
               <TableCell sx={{ minWidth: '150px' }}>{tt('Suất diễn', 'Show')}</TableCell>
               <TableCell sx={{ minWidth: '80px' }}>{tt('Loại vé', 'Ticket Type')}</TableCell>
               <TableCell>{tt('Trạng thái', 'Status')}</TableCell>
+              <TableCell>{tt('Trạng thái vé', 'Ticket Status')}</TableCell>
               <TableCell>{tt('Thanh toán', 'Payment')}</TableCell>
               <TableCell>{tt('Xuất vé', 'Ticket Issued')}</TableCell>
               <TableCell>
@@ -312,6 +317,13 @@ export function TicketsTable({
                       }
                     </Stack>
 
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      color={getRowStatusDetails(row.status, tt).color}
+                      label={getRowStatusDetails(row.status, tt).label}
+                      size="small"
+                    />
                   </TableCell>
                   <TableCell>
                     <Chip

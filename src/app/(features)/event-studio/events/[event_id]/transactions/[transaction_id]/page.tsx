@@ -90,6 +90,10 @@ const getRowStatusDetails = (status: string, tt: (vi: string, en: string) => str
       return { label: tt('Bình thường', 'Normal'), color: 'success' };
     case 'wait_for_response':
       return { label: tt('Đang chờ', 'Pending'), color: 'warning' };
+    case 'wait_for_transfering':
+      return { label: tt('Chờ chuyển nhượng', 'Waiting for Transfer'), color: 'warning' };
+    case 'transfered':
+      return { label: tt('Đã chuyển nhượng', 'Transferred'), color: 'error' };
     case 'customer_cancelled':
       return { label: tt('Huỷ bởi KH', 'Cancelled by Customer'), color: 'error' };
     case 'staff_locked':
@@ -159,6 +163,7 @@ export interface Ticket {
   eCode?: string;
   createdAt: string;   // The date the ticket was created
   checkInAt: string | null; // The date/time the ticket was checked in, nullable
+  status: string;      // Ticket status
   historyCheckIns: CheckInHistory[]; // List of check-in history
 }
 
@@ -1195,7 +1200,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                         </Button>
                       )}
 
-                    {(transaction.status === 'staff_locked' || transaction.status === 'customer_cancelled') &&
+                    {(transaction.status === 'staff_locked' || transaction.status === 'customer_cancelled')  &&
                       transaction.paymentStatus === 'paid' && (
                         <Button
                           onClick={() => setTransactionRefundStatus(params.event_id, params.transaction_id)}
@@ -1206,6 +1211,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                         </Button>
                       )}
                   </Stack>
+                  {transaction.status !== 'transfered' && (
                   <Grid container spacing={3}>
                     <Grid md={10} xs={9}>
                       <FormControl size='small' fullWidth>
@@ -1235,6 +1241,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                       </Button>
                     </Grid>
                   </Grid>
+                  )}
                 </Stack>
               </CardContent>
             </Card>
@@ -1703,7 +1710,12 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                     </Stack>
                                   </>
                                 <div>
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>TID-{ticket.id} {ticket.checkInAt ? tt(`Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}`, `Checked in at ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}`) : tt('Chưa check-in', 'Not checked in')}</Typography>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    TID-{ticket.id} {ticket.checkInAt ? tt(`Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}`, `Checked in at ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}`) : tt('Chưa check-in', 'Not checked in')}
+                                    {ticket.status && ticket.status !== 'normal' && (
+                                      <> - <Chip size="small" label={getRowStatusDetails(ticket.status, tt).label} color={getRowStatusDetails(ticket.status, tt).color} sx={{ height: 18, fontSize: '0.7rem' }} /></>
+                                    )}
+                                  </Typography>
                                   <IconButton size="small" sx={{ ml: 2 }} onClick={(e) => handleOpenTicketMenu(e.currentTarget, categoryIndex, ticketIndex)}>
                                     <DotsThreeOutline />
                                   </IconButton>

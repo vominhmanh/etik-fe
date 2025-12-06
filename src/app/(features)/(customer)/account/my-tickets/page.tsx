@@ -102,6 +102,10 @@ const getRowStatusDetails = (
       return { label: tt('Trạng thái: Bình thường', 'Status: Normal'), color: 'success' };
     case 'wait_for_response':
       return { label: tt('Đang chờ', 'Waiting'), color: 'warning' };
+    case 'wait_for_transfering':
+      return { label: tt('Chờ chuyển nhượng', 'Waiting for Transfer'), color: 'warning' };
+    case 'transfered':
+      return { label: tt('Đã chuyển nhượng', 'Transferred'), color: 'error' };
     case 'customer_cancelled':
       return { label: tt('Trạng thái: Huỷ bởi KH', 'Status: Cancelled by Customer'), color: 'error' };
     case 'staff_locked':

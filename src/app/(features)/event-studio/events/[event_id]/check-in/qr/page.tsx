@@ -44,6 +44,7 @@ export interface Ticket {
   holderEmail: string | null;
   holderPhone: string | null;
   checkInAt: Date | null;
+  status: string;
   historyCheckIns?: CheckInHistory[];
 }
 
@@ -210,6 +211,10 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         return { label: tt('Bình thường', 'Normal'), color: 'success' };
       case 'wait_for_response':
         return { label: tt('Đang chờ', 'Waiting'), color: 'warning' };
+      case 'wait_for_transfering':
+        return { label: tt('Chờ chuyển nhượng', 'Waiting for Transfer'), color: 'warning' };
+      case 'transfered':
+        return { label: tt('Đã chuyển nhượng', 'Transferred'), color: 'error' };
       case 'customer_cancelled':
         return { label: tt('Huỷ bởi KH', 'Cancelled by Customer'), color: 'error' };
       case 'staff_locked':
@@ -905,6 +910,9 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                   label={
                                     <Stack direction="column" alignItems="left">
                                       <Typography variant="body2">TID-{ticket.id} {ticket.holderName || ticket.holderTitle}</Typography>
+                                      {ticket.status && ticket.status !== 'normal' && (
+                                        <Chip size="small" label={getRowStatusDetails(ticket.status, tt).label} color={getRowStatusDetails(ticket.status, tt).color} sx={{ height: 18, fontSize: '0.7rem', mt: 0.5 }} />
+                                      )}
                                       {(() => {
                                         const historyCheckIns = ticket.historyCheckIns || [];
                                         const latestCheckIn = historyCheckIns.length > 0

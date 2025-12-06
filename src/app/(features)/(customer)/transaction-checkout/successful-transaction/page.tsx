@@ -210,6 +210,10 @@ export default function Page(): React.JSX.Element {
         return { label: tt('Bình thường', 'Normal'), color: 'success' };
       case 'wait_for_response':
         return { label: tt('Đang chờ', 'Waiting'), color: 'warning' };
+      case 'wait_for_transfering':
+        return { label: tt('Chờ chuyển nhượng', 'Waiting for Transfer'), color: 'warning' };
+      case 'transfered':
+        return { label: tt('Đã chuyển nhượng', 'Transferred'), color: 'error' };
       case 'customer_cancelled':
         return { label: tt('Huỷ bởi KH', 'Cancelled by customer'), color: 'error' };
       case 'staff_locked':

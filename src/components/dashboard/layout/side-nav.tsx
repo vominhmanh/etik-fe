@@ -15,6 +15,7 @@ import Typography from '@mui/material/Typography';
 import { FileText, SpinnerBall } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
 import {
+  Armchair,
   ArrowLeft,
   CurrencyCircleDollar,
   DiceSix,
@@ -265,6 +266,13 @@ export function SideNav(): React.JSX.Element {
                 title={tt("Hạng mục vé", "Ticket Categories")}
                 href={`/event-studio/events/${dynamicId}/shows`}
                 icon={TicketIcon}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="seat-maps"
+                title={tt("Sơ đồ ghế", "Seat Maps")}
+                href={`/event-studio/events/${dynamicId}/seat-maps`}
+                icon={Armchair}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}

@@ -32,7 +32,7 @@ import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
 
 import { getNavItems } from './config';
-import { CurrencyCircleDollar, DiceSix, FileText, ImageSquare, Mailbox, SealPercent, Sliders, SpinnerBall, SquaresFour, StackPlus, StarHalf, Tag, UserList } from '@phosphor-icons/react/dist/ssr';
+import { Armchair, CurrencyCircleDollar, DiceSix, FileText, ImageSquare, Mailbox, SealPercent, Sliders, SpinnerBall, SquaresFour, StackPlus, StarHalf, Tag, UserList } from '@phosphor-icons/react/dist/ssr';
 import NotificationContext from '@/contexts/notification-context';
 import { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
@@ -247,6 +247,14 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               title={tt("Khuyến mãi", "Vouchers")}
               href={`/event-studio/events/${dynamicId}/vouchers`}
               icon={SealPercent}
+              onClose={onClose}
+            />
+            <NavItemCollapseChildItem
+              pathname={normalizedPathname}
+              key="seat-maps"
+              title={tt("Sơ đồ ghế", "Seat Maps")}
+              href={`/event-studio/events/${dynamicId}/seat-maps`}
+              icon={Armchair}
               onClose={onClose}
             />
           </NavItemCollapse>

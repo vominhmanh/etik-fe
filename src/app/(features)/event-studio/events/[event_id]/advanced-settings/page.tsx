@@ -87,6 +87,9 @@ export interface SendTicketMethodsRequest {
 export interface CheckInFaceConfig {
   useCheckInFace: boolean;
 }
+export interface TicketTransferConfig {
+  allowTicketTransfer: boolean;
+}
 
 import PrinterModal, { TicketTagPrinter } from './printer-modal';
 
@@ -110,6 +113,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [isEmailTemplateLoading, setIsEmailTemplateLoading] = useState<boolean>(false);
   const [isSendTicketMethodsLoading, setIsSendTicketMethodsLoading] = useState<boolean>(false);
   const [isCheckInFaceLoading, setIsCheckInFaceLoading] = useState<boolean>(false);
+  const [isTicketTransferLoading, setIsTicketTransferLoading] = useState<boolean>(false);
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const [previewAvatarUrl, setPreviewAvatarUrl] = useState<string>(event?.avatarUrl || '');
   const [isAvatarSelected, setIsAvatarSelected] = useState(false);
@@ -143,6 +147,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [checkInFaceConfig, setCheckInFaceConfig] = useState<CheckInFaceConfig>({
     useCheckInFace: false,
   });
+  const [ticketTransferConfig, setTicketTransferConfig] = useState<TicketTransferConfig>({
+    allowTicketTransfer: true,
+  });
 
   const [printers, setPrinters] = useState<TicketTagPrinter[]>([]);
   const [selectedPrinterId, setSelectedPrinterId] = useState<number | null>(null);
@@ -155,11 +162,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     async function fetchData() {
       setIsLoading(true);
       try {
-        const [smtpRes, emailTplRes, sendMethodsRes, faceCfgRes, eventRes] = await Promise.allSettled([
+        const [smtpRes, emailTplRes, sendMethodsRes, faceCfgRes, transferCfgRes, eventRes] = await Promise.allSettled([
           getSMTPSettings(params.event_id),
           getEmailTemplateSettings(params.event_id),
           getSendTicketMethods(params.event_id),
           getCheckInFaceConfig(params.event_id),
+          getTicketTransferConfig(params.event_id),
           baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}`),
         ]);
 
@@ -185,6 +193,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           setCheckInFaceConfig(faceCfgRes.value);
         } else if (faceCfgRes.status === 'rejected') {
           notificationCtx.warning(tt('Không tải được cài đặt Check-in bằng khuôn mặt', 'Failed to load face check-in settings'));
+        }
+
+        if (transferCfgRes.status === 'fulfilled' && transferCfgRes.value) {
+          setTicketTransferConfig(transferCfgRes.value);
+        } else if (transferCfgRes.status === 'rejected') {
+          notificationCtx.warning(tt('Không tải được cài đặt chuyển nhượng vé', 'Failed to load ticket transfer settings'));
         }
 
         if (eventRes.status === 'fulfilled' && eventRes.value) {
@@ -504,6 +518,41 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   }
 
+  async function getTicketTransferConfig(eventId: number): Promise<TicketTransferConfig | null> {
+    try {
+      const response: AxiosResponse<TicketTransferConfig> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${eventId}/ticket-transfer-settings`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async function saveTicketTransferConfig(eventId: number, config: TicketTransferConfig): Promise<void> {
+    try {
+      await baseHttpServiceInstance.post(`/event-studio/events/${eventId}/ticket-transfer-settings`, config);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  const handleTicketTransferChange = (_e: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+    setTicketTransferConfig((prev) => ({ ...prev, allowTicketTransfer: checked }));
+  };
+
+  const handleSaveTicketTransferConfig = async () => {
+    try {
+      setIsTicketTransferLoading(true);
+      await saveTicketTransferConfig(event_id, ticketTransferConfig);
+      notificationCtx.success(tt('Cập nhật thành công', 'Updated successfully'));
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsTicketTransferLoading(false);
+    }
+  };
+
   const handlePrinterChange = (printerId: number | null) => {
     setSelectedPrinterId(printerId);
   };
@@ -668,6 +717,36 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button variant="contained" color="primary" onClick={handleSaveCheckInFaceConfig} startIcon={<ScanSmileyIcon />} disabled={isCheckInFaceLoading}>
                     {isCheckInFaceLoading ? <CircularProgress size={24} /> : tt("Lưu cài đặt", "Save Settings")}
+                  </Button>
+                </CardActions>
+              </Card>
+              <Card>
+                <CardHeader title={tt("Chuyển nhượng vé", "Ticket Transfer")} />
+                <Divider />
+                <CardContent>
+                  <Grid container spacing={6} wrap="wrap">
+                    <Grid md={12} sm={12} xs={12}>
+                      <Stack spacing={1}>
+                        <FormGroup>
+                          <FormControlLabel
+                            control={<Checkbox checked={ticketTransferConfig.allowTicketTransfer}
+                              onChange={handleTicketTransferChange} />}
+                            label={tt("Cho phép người mua tặng / sang nhượng vé", "Allow customers to gift / transfer tickets")}
+                          />
+                          <FormHelperText>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {tt("Khi bật, khách hàng có thể chuyển nhượng vé cho người khác", "When enabled, customers can transfer tickets to others")}
+                            </Typography>
+                          </FormHelperText>
+                        </FormGroup>
+                      </Stack>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+                <Divider />
+                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button variant="contained" color="primary" onClick={handleSaveTicketTransferConfig} startIcon={<ScanSmileyIcon />} disabled={isTicketTransferLoading}>
+                    {isTicketTransferLoading ? <CircularProgress size={24} /> : tt("Lưu cài đặt", "Save Settings")}
                   </Button>
                 </CardActions>
               </Card>
