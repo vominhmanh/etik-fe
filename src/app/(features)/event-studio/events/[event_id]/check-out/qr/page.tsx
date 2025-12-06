@@ -496,7 +496,12 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           const isInSelectedSchedule = transactionTicketCategory.ticketCategory.show.id === selectedSchedule?.id && selectedCategories.includes(transactionTicketCategory.ticketCategory.id);
           
           // For check-out: only enable tickets that are checked in (not checked out)
-          if (isCheckedIn && isInSelectedSchedule) {
+          // Also disable tickets with status != 'normal'
+          if (ticket.status !== 'normal') {
+            // Ticket has invalid status - disable
+            ticDisabledState[ticketKey] = true
+            ticCheckboxState[ticketKey] = false
+          } else if (isCheckedIn && isInSelectedSchedule) {
             // Ticket is checked in and in selected schedule - can check-out
             ticDisabledState[ticketKey] = false
             ticCheckboxState[ticketKey] = true
@@ -865,7 +870,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     );
                   })()}
                   <Grid container justifyContent="space-between">
-                    <Typography variant="body1" fontWeight="bold">{tt('Danh sách badge đang có:', 'Current Badges:')}</Typography>
+                    <Typography variant="body1" fontWeight="bold">{tt('Danh sách vé đang có:', 'Current Badges:')}</Typography>
                     <Typography variant="body1">{trxn?.ticketQuantity}</Typography>
                   </Grid>
 
@@ -908,7 +913,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                     <Stack direction="column" alignItems="left">
                                       <Typography variant="body2">TID-{ticket.id} {ticket.holderName || ticket.holderTitle}</Typography>
                                       {ticket.status && ticket.status !== 'normal' && (
-                                        <Chip size="small" label={getRowStatusDetails(ticket.status, tt).label} color={getRowStatusDetails(ticket.status, tt).color} sx={{ height: 18, fontSize: '0.7rem', mt: 0.5 }} />
+                                        <Chip size="small" label={getRowStatusDetails(ticket.status).label} color={getRowStatusDetails(ticket.status).color} sx={{ height: 18, fontSize: '0.7rem', mt: 0.5 }} />
                                       )}
                                       {(() => {
                                         const historyCheckIns = ticket.historyCheckIns || [];
