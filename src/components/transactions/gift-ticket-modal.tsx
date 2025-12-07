@@ -333,7 +333,7 @@ export default function GiftTicketModal({
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: { sm: '90%', md: '80%', lg: '70%' },
+            width: { xs: '95%', sm: '95%', md: '80%', lg: '70%' },
             maxWidth: '900px',
             maxHeight: '90vh',
             overflow: 'auto',
