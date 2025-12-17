@@ -253,6 +253,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [open, setOpen] = useState(false);
   const [openGiftModal, setOpenGiftModal] = useState(false);
+  const [openTransferNotAllowedModal, setOpenTransferNotAllowedModal] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   const handleConfirmCancel = async () => {
@@ -599,7 +600,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
         <Grid lg={7} md={7} xs={12} spacing={3}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader title={tt('Thông tin người mua vé', 'Information')} />
+              <CardHeader title={tt('Thông tin người mua', 'Information')} />
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
@@ -976,18 +977,26 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     const hasAvailableTickets = transaction.transactionTicketCategories.some(
                       ttc => ttc.tickets.some(ticket => ticket.status === 'normal')
                     );
-                    const canGift = transaction.event.allowTicketTransfer &&
-                      transaction.status === 'normal' &&
+                    const otherConditionsMet = transaction.status === 'normal' &&
                       transaction.paymentStatus === 'paid' &&
                       transaction.exportedTicketAt !== null &&
                       hasAvailableTickets;
+                    const canGift = transaction.event.allowTicketTransfer && otherConditionsMet;
+                    
+                    const handleGiftButtonClick = () => {
+                      if (!transaction.event.allowTicketTransfer) {
+                        setOpenTransferNotAllowedModal(true);
+                      } else if (otherConditionsMet) {
+                        setOpenGiftModal(true);
+                      }
+                    };
                     
                     return (
                       <Button
                         size="small"
                         startIcon={<TagIcon />}
-                        onClick={() => setOpenGiftModal(true)}
-                        disabled={!canGift}
+                        onClick={handleGiftButtonClick}
+                        disabled={!otherConditionsMet}
                       >
                         {tt('Tặng vé', 'Gift Tickets')}
                       </Button>
@@ -1016,6 +1025,20 @@ export default function Page({ params }: { params: { transaction_id: number } })
           </Button>
           <Button onClick={handleConfirmCancel} color="error" disabled={isLoading}>
             {isLoading ? tt('Đang hủy...', 'Cancelling...') : tt('Xác nhận', 'Confirm')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Transfer Not Allowed Dialog */}
+      <Dialog open={openTransferNotAllowedModal} onClose={() => setOpenTransferNotAllowedModal(false)}>
+        <DialogTitle>{tt('Không thể tặng vé', 'Cannot Gift Tickets')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {tt('Sự kiện này không cho phép tặng vé.', 'This event does not allow ticket transfers.')}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenTransferNotAllowedModal(false)} color="primary">
+            {tt('Đóng', 'Close')}
           </Button>
         </DialogActions>
       </Dialog>

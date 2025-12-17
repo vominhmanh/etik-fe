@@ -410,16 +410,23 @@ export default function GiftTicketModal({
                                   {ttc.ticketCategory.show.name} - {ttc.ticketCategory.name}
                                 </Typography>
                                 {categoryTickets.map((ticket) => (
-                                  <FormControlLabel
-                                    key={ticket.id}
-                                    control={
-                                      <Checkbox
-                                        checked={selectedTicketIds.includes(ticket.id)}
-                                        onChange={() => handleTicketToggle(ticket.id)}
-                                      />
-                                    }
-                                    label={`${ticket.holderTitle || ''} ${ticket.holderName}`.trim() || tt('Chưa có thông tin', 'No information')}
-                                  />
+                                  <Box key={ticket.id} sx={{ mb: 0.5 }}>
+                                    <FormControlLabel
+                                      control={
+                                        <Checkbox
+                                          checked={selectedTicketIds.includes(ticket.id)}
+                                          onChange={() => handleTicketToggle(ticket.id)}
+                                        />
+                                      }
+                                      label={
+                                        <Box>
+                                          <Typography variant="body2" component="span">
+                                            TID-{ticket.id} {`${ticket.holderTitle || ''} ${ticket.holderName}`.trim() || tt('Chưa có thông tin', 'No information')}
+                                          </Typography>
+                                        </Box>
+                                      }
+                                    />
+                                  </Box>
                                 ))}
                               </Box>
                             );
