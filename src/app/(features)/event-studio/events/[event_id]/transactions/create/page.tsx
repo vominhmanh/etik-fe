@@ -94,13 +94,13 @@ type TicketHolderInfo = { title: string; name: string; email: string; phone: str
 type CheckoutRuntimeFieldOption = {
   value: string;
   label: string;
-  sort_order: number;
+  sortOrder: number;
 };
 
 type CheckoutRuntimeField = {
-  internal_name: string;
+  internalName: string;
   label: string;
-  field_type: string;
+  fieldType: string;
   visible: boolean;
   required: boolean;
   note?: string | null;
@@ -239,12 +239,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   }, [params.event_id]);
 
   const builtinInternalNames = React.useMemo(
-    () => new Set(['name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
+    () => new Set(['title', 'name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
     []
   );
 
   const customCheckoutFields = React.useMemo(
-    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internal_name)),
+    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internalName)),
     [checkoutFormFields, builtinInternalNames]
   );
 
@@ -592,27 +592,27 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       if (!field.visible || !field.required) continue;
 
       // Built-in fields: map vào customer
-      if (field.internal_name === 'name' && !customer.name) {
+      if (field.internalName === 'name' && !customer.name) {
         notificationCtx.warning(tt('Vui lòng nhập họ tên người mua', 'Please enter buyer name'));
         return;
       }
-      if (field.internal_name === 'email' && !customer.email) {
+      if (field.internalName === 'email' && !customer.email) {
         notificationCtx.warning(tt('Vui lòng nhập email người mua', 'Please enter buyer email'));
         return;
       }
-      if (field.internal_name === 'phone_number' && !customer.phoneNumber) {
+      if (field.internalName === 'phone_number' && !customer.phoneNumber) {
         notificationCtx.warning(tt('Vui lòng nhập số điện thoại người mua', 'Please enter buyer phone number'));
         return;
       }
-      if (field.internal_name === 'address' && !customer.address) {
+      if (field.internalName === 'address' && !customer.address) {
         notificationCtx.warning(tt('Vui lòng nhập địa chỉ người mua', 'Please enter buyer address'));
         return;
       }
-      if (field.internal_name === 'dob' && !customer.dob) {
+      if (field.internalName === 'dob' && !customer.dob) {
         notificationCtx.warning(tt('Vui lòng nhập ngày sinh người mua', 'Please enter buyer date of birth'));
         return;
       }
-      if (field.internal_name === 'idcard_number' && !customer.idcard_number) {
+      if (field.internalName === 'idcard_number' && !customer.idcard_number) {
         notificationCtx.warning(
           tt(
             'Vui lòng nhập số Căn cước công dân của người mua',
@@ -623,9 +623,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       }
 
       // Custom fields
-      if (!builtinInternalNames.has(field.internal_name)) {
-        const value = checkoutCustomAnswers[field.internal_name];
-        if (field.field_type === 'checkbox') {
+      if (!builtinInternalNames.has(field.internalName)) {
+        const value = checkoutCustomAnswers[field.internalName];
+        if (field.fieldType === 'checkbox') {
           if (!Array.isArray(value) || value.length === 0) {
             notificationCtx.warning(
               tt(
@@ -868,7 +868,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       // Prepare customer data, only include fields that are visible in checkout form
       const customerData: any = {
-        title: customer.title,
+        title: customer.title || (locale === 'en' ? 'Mx.' : 'Bạn'),
         name: customer.name,
         email: customer.email,
         phoneNumber: customer.phoneNumber,
@@ -877,8 +877,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       };
 
       const isFieldVisible = (name: string) =>
-        !!checkoutFormFields.find((f) => f.internal_name === name && f.visible);
+        !!checkoutFormFields.find((f) => f.internalName === name && f.visible);
 
+      // Title is always included as it's a built-in core field (shown in startAdornment of name field)
+      // Other optional built-in fields
       if (isFieldVisible('dob')) {
         customerData.dob = customer.dob;
       }
@@ -897,8 +899,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const formAnswers: Record<string, any> = {};
       checkoutFormFields.forEach((field) => {
         if (!field.visible) return;
-        if (builtinInternalNames.has(field.internal_name)) return;
-        formAnswers[field.internal_name] = checkoutCustomAnswers[field.internal_name];
+        if (builtinInternalNames.has(field.internalName)) return;
+        formAnswers[field.internalName] = checkoutCustomAnswers[field.internalName];
       });
 
       const transactionData: any = {
@@ -1083,7 +1085,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   </Grid>
                   {/* Builtin optional fields controlled by checkout form config */}
                   {(() => {
-                    const dobCfg = checkoutFormFields.find((f) => f.internal_name === 'dob');
+                    const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
                     const visible = !!dobCfg && dobCfg.visible;
                     const required = !!dobCfg?.required;
                     return (
@@ -1111,7 +1113,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     );
                   })()}
                   {(() => {
-                    const idCfg = checkoutFormFields.find((f) => f.internal_name === 'idcard_number');
+                    const idCfg = checkoutFormFields.find((f) => f.internalName === 'idcard_number');
                     const visible = !!idCfg && idCfg.visible;
                     const required = !!idCfg?.required;
                     return (
@@ -1132,7 +1134,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   })()}
 
                   {(() => {
-                    const addrCfg = checkoutFormFields.find((f) => f.internal_name === 'address');
+                    const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
                     const visible = !!addrCfg && addrCfg.visible;
                     const required = !!addrCfg?.required;
                     return (
@@ -1156,7 +1158,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
                   {/* Custom checkout fields (ETIK Forms) */}
                   {customCheckoutFields.map((field) => (
-                    <Grid key={field.internal_name} xs={12}>
+                    <Grid key={field.internalName} xs={12}>
                       <Stack spacing={0.5}>
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
                           {field.label}
@@ -1168,51 +1170,51 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           </Typography>
                         )}
 
-                        {['text', 'number'].includes(field.field_type) && (
+                        {['text', 'number'].includes(field.fieldType) && (
                           <TextField
                             fullWidth
                             size="small"
-                            type={field.field_type === 'number' ? 'number' : 'text'}
-                            value={checkoutCustomAnswers[field.internal_name] ?? ''}
+                            type={field.fieldType === 'number' ? 'number' : 'text'}
+                            value={checkoutCustomAnswers[field.internalName] ?? ''}
                             onChange={(e) =>
                               setCheckoutCustomAnswers((prev) => ({
                                 ...prev,
-                                [field.internal_name]: e.target.value,
+                                [field.internalName]: e.target.value,
                               }))
                             }
                           />
                         )}
 
-                        {['date', 'time', 'datetime'].includes(field.field_type) && (
+                        {['date', 'time', 'datetime'].includes(field.fieldType) && (
                           <TextField
                             fullWidth
                             size="small"
                             type={
-                              field.field_type === 'date'
+                              field.fieldType === 'date'
                                 ? 'date'
-                                : field.field_type === 'time'
+                                : field.fieldType === 'time'
                                 ? 'time'
                                 : 'datetime-local'
                             }
                             InputLabelProps={{ shrink: true }}
-                            value={checkoutCustomAnswers[field.internal_name] ?? ''}
+                            value={checkoutCustomAnswers[field.internalName] ?? ''}
                             onChange={(e) =>
                               setCheckoutCustomAnswers((prev) => ({
                                 ...prev,
-                                [field.internal_name]: e.target.value,
+                                [field.internalName]: e.target.value,
                               }))
                             }
                           />
                         )}
 
-                        {field.field_type === 'radio' && field.options && (
+                        {field.fieldType === 'radio' && field.options && (
                           <FormControl component="fieldset" variant="standard">
                             <RadioGroup
-                              value={checkoutCustomAnswers[field.internal_name] ?? ''}
+                              value={checkoutCustomAnswers[field.internalName] ?? ''}
                               onChange={(e) =>
                                 setCheckoutCustomAnswers((prev) => ({
                                   ...prev,
-                                  [field.internal_name]: e.target.value,
+                                  [field.internalName]: e.target.value,
                                 }))
                               }
                             >
@@ -1228,11 +1230,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           </FormControl>
                         )}
 
-                        {field.field_type === 'checkbox' && field.options && (
+                        {field.fieldType === 'checkbox' && field.options && (
                           <FormGroup>
                             {field.options.map((opt) => {
                               const current: string[] =
-                                checkoutCustomAnswers[field.internal_name] ?? [];
+                                checkoutCustomAnswers[field.internalName] ?? [];
                               const checked = current.includes(opt.value);
                               return (
                                 <FormControlLabel
@@ -1243,7 +1245,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                       checked={checked}
                                       onChange={(e) => {
                                         setCheckoutCustomAnswers((prev) => {
-                                          const prevArr: string[] = prev[field.internal_name] ?? [];
+                                          const prevArr: string[] = prev[field.internalName] ?? [];
                                           let nextArr: string[];
                                           if (e.target.checked) {
                                             nextArr = Array.from(new Set([...prevArr, opt.value]));
@@ -1252,7 +1254,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                           }
                                           return {
                                             ...prev,
-                                            [field.internal_name]: nextArr,
+                                            [field.internalName]: nextArr,
                                           };
                                         });
                                       }}
@@ -1858,27 +1860,27 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Stack spacing={2} sx={{ mt: 1 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt("Thông tin người mua", "Buyer Information")}</Typography>
                   {checkoutFormFields.filter(f => f.visible).map((field) => {
-                    if (builtinInternalNames.has(field.internal_name)) {
+                    if (builtinInternalNames.has(field.internalName)) {
                       // Built-in fields
-                      if (field.internal_name === 'name') {
+                      if (field.internalName === 'name') {
                         return (
-                          <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="body2">{tt("Họ và tên", "Full Name")}</Typography>
                             <Typography variant="body2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
                           </Box>
                         );
                       }
-                      if (field.internal_name === 'email') {
+                      if (field.internalName === 'email') {
                         return (
-                          <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="body2">{tt("Địa chỉ Email", "Email Address")}</Typography>
                             <Typography variant="body2">{customer.email}</Typography>
                           </Box>
                         );
                       }
-                      if (field.internal_name === 'phone_number') {
+                      if (field.internalName === 'phone_number') {
                         return (
-                          <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="body2">{tt("Số điện thoại", "Phone Number")}</Typography>
                             <Typography variant="body2">
                               {formattedCustomerPhone || customer.phoneNumber}
@@ -1886,25 +1888,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           </Box>
                         );
                       }
-                      if (field.internal_name === 'address') {
+                      if (field.internalName === 'address') {
                         return (
-                          <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="body2">{tt("Địa chỉ", "Address")}</Typography>
                             <Typography variant="body2">{customer.address || '-'}</Typography>
                           </Box>
                         );
                       }
-                      if (field.internal_name === 'dob') {
+                      if (field.internalName === 'dob') {
                         return (
-                          <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="body2">{tt("Ngày tháng năm sinh", "Date of Birth")}</Typography>
                             <Typography variant="body2">{customer.dob || '-'}</Typography>
                           </Box>
                         );
                       }
-                      if (field.internal_name === 'idcard_number') {
+                      if (field.internalName === 'idcard_number') {
                         return (
-                          <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="body2">{tt("Số Căn cước công dân", "ID Card Number")}</Typography>
                             <Typography variant="body2">{customer.idcard_number || '-'}</Typography>
                           </Box>
@@ -1913,12 +1915,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       return null;
                     } else {
                       // Custom fields
-                      const answer = checkoutCustomAnswers[field.internal_name];
+                      const answer = checkoutCustomAnswers[field.internalName];
                       let displayValue = '-';
                       if (answer !== undefined && answer !== null && answer !== '') {
-                        if (field.field_type === 'checkbox' && Array.isArray(answer)) {
+                        if (field.fieldType === 'checkbox' && Array.isArray(answer)) {
                           displayValue = answer.join(', ');
-                        } else if (field.field_type === 'radio' && field.options) {
+                        } else if (field.fieldType === 'radio' && field.options) {
                           const option = field.options.find(opt => opt.value === answer);
                           displayValue = option ? option.label : answer;
                         } else {
@@ -1926,7 +1928,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         }
                       }
                       return (
-                        <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography variant="body2">{field.label}</Typography>
                           <Typography variant="body2">{displayValue}</Typography>
                         </Box>

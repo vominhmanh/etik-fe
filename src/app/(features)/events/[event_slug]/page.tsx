@@ -125,13 +125,13 @@ type TicketHolderInfo = { title: string; name: string; email: string; phone: str
 type CheckoutRuntimeFieldOption = {
   value: string;
   label: string;
-  sort_order: number;
+  sortOrder: number;
 };
 
 type CheckoutRuntimeField = {
-  internal_name: string;
+  internalName: string;
   label: string;
-  field_type: string;
+  fieldType: string;
   visible: boolean;
   required: boolean;
   note?: string | null;
@@ -420,7 +420,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   );
 
   const customCheckoutFields = React.useMemo(
-    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internal_name)),
+    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internalName)),
     [checkoutFormFields, builtinInternalNames]
   );
   const handleAddToCartQuantity = (showId: number, categoryId: number, quantity: number, holders?: TicketHolderInfo[]) => {
@@ -514,35 +514,35 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       if (!field.visible || !field.required) continue;
 
       // Built-in fields mapped vào customer
-      if (field.internal_name === 'name' && !customer.name) {
+      if (field.internalName === 'name' && !customer.name) {
         notificationCtx.warning(tt('Vui lòng nhập họ tên', 'Please enter your full name'));
         return;
       }
-      if (field.internal_name === 'email' && !customer.email) {
+      if (field.internalName === 'email' && !customer.email) {
         notificationCtx.warning(tt('Vui lòng nhập email', 'Please enter your email'));
         return;
       }
-      if (field.internal_name === 'phone_number' && !customer.phoneNumber) {
+      if (field.internalName === 'phone_number' && !customer.phoneNumber) {
         notificationCtx.warning(tt('Vui lòng nhập số điện thoại', 'Please enter your phone number'));
         return;
       }
-      if (field.internal_name === 'address' && !customer.address) {
+      if (field.internalName === 'address' && !customer.address) {
         notificationCtx.warning(tt('Vui lòng nhập địa chỉ', 'Please enter your address'));
         return;
       }
-      if (field.internal_name === 'dob' && !customer.dob) {
+      if (field.internalName === 'dob' && !customer.dob) {
         notificationCtx.warning(tt('Vui lòng nhập ngày sinh', 'Please enter your date of birth'));
         return;
       }
-      if (field.internal_name === 'idcard_number' && !customer.idcard_number) {
+      if (field.internalName === 'idcard_number' && !customer.idcard_number) {
         notificationCtx.warning(tt('Vui lòng nhập số căn cước công dân', 'Please enter your ID card number'));
         return;
       }
 
       // Custom fields
-      if (!builtinInternalNames.has(field.internal_name)) {
-        const value = checkoutCustomAnswers[field.internal_name];
-        if (field.field_type === 'checkbox') {
+      if (!builtinInternalNames.has(field.internalName)) {
+        const value = checkoutCustomAnswers[field.internalName];
+        if (field.fieldType === 'checkbox') {
           if (!Array.isArray(value) || value.length === 0) {
             notificationCtx.warning(
               tt(
@@ -652,35 +652,35 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       if (!field.visible || !field.required) continue;
 
       // Built-in fields mapped vào customer
-      if (field.internal_name === 'name' && !customer.name) {
+      if (field.internalName === 'name' && !customer.name) {
         notificationCtx.warning(tt('Vui lòng nhập họ tên', 'Please enter your full name'));
         return;
       }
-      if (field.internal_name === 'email' && !customer.email) {
+      if (field.internalName === 'email' && !customer.email) {
         notificationCtx.warning(tt('Vui lòng nhập email', 'Please enter your email'));
         return;
       }
-      if (field.internal_name === 'phone_number' && !customer.phoneNumber) {
+      if (field.internalName === 'phone_number' && !customer.phoneNumber) {
         notificationCtx.warning(tt('Vui lòng nhập số điện thoại', 'Please enter your phone number'));
         return;
       }
-      if (field.internal_name === 'address' && !customer.address) {
+      if (field.internalName === 'address' && !customer.address) {
         notificationCtx.warning(tt('Vui lòng nhập địa chỉ', 'Please enter your address'));
         return;
       }
-      if (field.internal_name === 'dob' && !customer.dob) {
+      if (field.internalName === 'dob' && !customer.dob) {
         notificationCtx.warning(tt('Vui lòng nhập ngày sinh', 'Please enter your date of birth'));
         return;
       }
-      if (field.internal_name === 'idcard_number' && !customer.idcard_number) {
+      if (field.internalName === 'idcard_number' && !customer.idcard_number) {
         notificationCtx.warning(tt('Vui lòng nhập số căn cước công dân', 'Please enter your ID card number'));
         return;
       }
 
       // Custom fields
-      if (!builtinInternalNames.has(field.internal_name)) {
-        const value = checkoutCustomAnswers[field.internal_name];
-        if (field.field_type === 'checkbox') {
+      if (!builtinInternalNames.has(field.internalName)) {
+        const value = checkoutCustomAnswers[field.internalName];
+        if (field.fieldType === 'checkbox') {
           if (!Array.isArray(value) || value.length === 0) {
             notificationCtx.warning(
               tt(
@@ -781,7 +781,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       };
 
       const isFieldVisible = (name: string) =>
-        !!checkoutFormFields.find((f) => f.internal_name === name && f.visible);
+        !!checkoutFormFields.find((f) => f.internalName === name && f.visible);
 
       if (!isFieldVisible('address')) {
         delete customerData.address;
@@ -797,8 +797,8 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       const formAnswers: Record<string, any> = {};
       checkoutFormFields.forEach((field) => {
         if (!field.visible) return;
-        if (builtinInternalNames.has(field.internal_name)) return;
-        formAnswers[field.internal_name] = checkoutCustomAnswers[field.internal_name];
+        if (builtinInternalNames.has(field.internalName)) return;
+        formAnswers[field.internalName] = checkoutCustomAnswers[field.internalName];
       });
 
       const transactionData: any = {
@@ -1098,7 +1098,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                       </Grid>
 
                       {(() => {
-                        const dobCfg = checkoutFormFields.find((f) => f.internal_name === 'dob');
+                        const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
                         const visible = !!dobCfg && dobCfg.visible;
                         const required = !!dobCfg?.required;
                         return (
@@ -1131,7 +1131,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                       
 {(() => {
                         const idCfg = checkoutFormFields.find(
-                          (f) => f.internal_name === 'idcard_number'
+                          (f) => f.internalName === 'idcard_number'
                         );
                         const visible = !!idCfg && idCfg.visible;
                         const required = !!idCfg?.required;
@@ -1158,7 +1158,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
 
                       {(() => {
                         const addrCfg = checkoutFormFields.find(
-                          (f) => f.internal_name === 'address'
+                          (f) => f.internalName === 'address'
                         );
                         const visible = !!addrCfg && addrCfg.visible;
                         const required = !!addrCfg?.required;
@@ -1185,7 +1185,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
 
                       {/* Custom checkout fields (ETIK Forms) */}
                       {customCheckoutFields.map((field) => (
-                        <Grid key={field.internal_name} item xs={12}>
+                        <Grid key={field.internalName} item xs={12}>
                           <Stack spacing={0.5}>
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
                               {field.label}
@@ -1197,51 +1197,51 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                               </Typography>
                             )}
 
-                            {['text', 'number'].includes(field.field_type) && (
+                            {['text', 'number'].includes(field.fieldType) && (
                               <TextField
                                 fullWidth
                                 size="small"
-                                type={field.field_type === 'number' ? 'number' : 'text'}
-                                value={checkoutCustomAnswers[field.internal_name] ?? ''}
+                                type={field.fieldType === 'number' ? 'number' : 'text'}
+                                value={checkoutCustomAnswers[field.internalName] ?? ''}
                                 onChange={(e) =>
                                   setCheckoutCustomAnswers((prev) => ({
                                     ...prev,
-                                    [field.internal_name]: e.target.value,
+                                    [field.internalName]: e.target.value,
                                   }))
                                 }
                               />
                             )}
 
-                            {['date', 'time', 'datetime'].includes(field.field_type) && (
+                            {['date', 'time', 'datetime'].includes(field.fieldType) && (
                               <TextField
                                 fullWidth
                                 size="small"
                                 type={
-                                  field.field_type === 'date'
+                                  field.fieldType === 'date'
                                     ? 'date'
-                                    : field.field_type === 'time'
+                                    : field.fieldType === 'time'
                                       ? 'time'
                                       : 'datetime-local'
                                 }
                                 InputLabelProps={{ shrink: true }}
-                                value={checkoutCustomAnswers[field.internal_name] ?? ''}
+                                value={checkoutCustomAnswers[field.internalName] ?? ''}
                                 onChange={(e) =>
                                   setCheckoutCustomAnswers((prev) => ({
                                     ...prev,
-                                    [field.internal_name]: e.target.value,
+                                    [field.internalName]: e.target.value,
                                   }))
                                 }
                               />
                             )}
 
-                            {field.field_type === 'radio' && field.options && (
+                            {field.fieldType === 'radio' && field.options && (
                               <FormControl component="fieldset" variant="standard">
                                 <RadioGroup
-                                  value={checkoutCustomAnswers[field.internal_name] ?? ''}
+                                  value={checkoutCustomAnswers[field.internalName] ?? ''}
                                   onChange={(e) =>
                                     setCheckoutCustomAnswers((prev) => ({
                                       ...prev,
-                                      [field.internal_name]: e.target.value,
+                                      [field.internalName]: e.target.value,
                                     }))
                                   }
                                 >
@@ -1257,11 +1257,11 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                               </FormControl>
                             )}
 
-                            {field.field_type === 'checkbox' && field.options && (
+                            {field.fieldType === 'checkbox' && field.options && (
                               <FormGroup>
                                 {field.options.map((opt) => {
                                   const current: string[] =
-                                    checkoutCustomAnswers[field.internal_name] ?? [];
+                                    checkoutCustomAnswers[field.internalName] ?? [];
                                   const checked = current.includes(opt.value);
                                   return (
                                     <FormControlLabel
@@ -1273,7 +1273,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                                           onChange={(e) => {
                                             setCheckoutCustomAnswers((prev) => {
                                               const prevArr: string[] =
-                                                prev[field.internal_name] ?? [];
+                                                prev[field.internalName] ?? [];
                                               let nextArr: string[];
                                               if (e.target.checked) {
                                                 nextArr = Array.from(
@@ -1284,7 +1284,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                                               }
                                               return {
                                                 ...prev,
-                                                [field.internal_name]: nextArr,
+                                                [field.internalName]: nextArr,
                                               };
                                             });
                                           }}
@@ -1732,27 +1732,27 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
           <Stack spacing={2} sx={{ mt: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt('Thông tin người mua', 'Buyer information')}</Typography>
             {checkoutFormFields.filter(f => f.visible).map((field) => {
-              if (builtinInternalNames.has(field.internal_name)) {
+              if (builtinInternalNames.has(field.internalName)) {
                 // Built-in fields
-                if (field.internal_name === 'name') {
+                if (field.internalName === 'name') {
                   return (
-                    <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2">{tt("Họ và tên", "Full Name")}</Typography>
                       <Typography variant="body2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
                     </Box>
                   );
                 }
-                if (field.internal_name === 'email') {
+                if (field.internalName === 'email') {
                   return (
-                    <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2">{tt("Địa chỉ Email", "Email Address")}</Typography>
                       <Typography variant="body2">{customer.email}</Typography>
                     </Box>
                   );
                 }
-                if (field.internal_name === 'phone_number') {
+                if (field.internalName === 'phone_number') {
                   return (
-                    <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2">{tt("Số điện thoại", "Phone Number")}</Typography>
                       <Typography variant="body2">
                         {(() => {
@@ -1765,25 +1765,25 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                     </Box>
                   );
                 }
-                if (field.internal_name === 'address') {
+                if (field.internalName === 'address') {
                   return (
-                    <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2">{tt("Địa chỉ", "Address")}</Typography>
                       <Typography variant="body2">{customer.address || '-'}</Typography>
                     </Box>
                   );
                 }
-                if (field.internal_name === 'dob') {
+                if (field.internalName === 'dob') {
                   return (
-                    <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2">{tt("Ngày tháng năm sinh", "Date of Birth")}</Typography>
                       <Typography variant="body2">{customer.dob || '-'}</Typography>
                     </Box>
                   );
                 }
-                if (field.internal_name === 'idcard_number') {
+                if (field.internalName === 'idcard_number') {
                   return (
-                    <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2">{tt("Số Căn cước công dân", "ID Card Number")}</Typography>
                       <Typography variant="body2">{customer.idcard_number || '-'}</Typography>
                     </Box>
@@ -1792,12 +1792,12 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 return null;
               } else {
                 // Custom fields
-                const answer = checkoutCustomAnswers[field.internal_name];
+                const answer = checkoutCustomAnswers[field.internalName];
                 let displayValue = '-';
                 if (answer !== undefined && answer !== null && answer !== '') {
-                  if (field.field_type === 'checkbox' && Array.isArray(answer)) {
+                  if (field.fieldType === 'checkbox' && Array.isArray(answer)) {
                     displayValue = answer.join(', ');
-                  } else if (field.field_type === 'radio' && field.options) {
+                  } else if (field.fieldType === 'radio' && field.options) {
                     const option = field.options.find(opt => opt.value === answer);
                     displayValue = option ? option.label : answer;
                   } else {
@@ -1805,7 +1805,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                   }
                 }
                 return (
-                  <Box key={field.internal_name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2">{field.label}</Typography>
                     <Typography variant="body2">{displayValue}</Typography>
                   </Box>

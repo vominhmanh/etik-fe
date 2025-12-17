@@ -214,6 +214,7 @@ export interface Transaction {
   event: Event
   qrOption: string
   requireGuestAvatar: boolean
+  checkoutFormFields: CheckoutRuntimeField[]
   // Dynamic checkout form answers (ETIK Forms)
   formAnswers?: Record<string, any>
 }
@@ -295,6 +296,9 @@ export default function Page({ params }: { params: { transaction_id: number } })
           `/account/transactions/${transaction_id}`
         );
         setTransaction(response.data);
+        if (response.data.checkoutFormFields) {
+          setCheckoutFormFields(response.data.checkoutFormFields);
+        }
       } catch (error) {
         notificationCtx.error(tt('Lỗi:', 'Error:'), error);
       } finally {
@@ -318,22 +322,6 @@ export default function Page({ params }: { params: { transaction_id: number } })
     [checkoutFormFields, builtinInternalNames]
   );
 
-  useEffect(() => {
-    const fetchCheckoutForm = async () => {
-      if (!transaction?.event?.slug) return;
-      try {
-        const resp: AxiosResponse<{ fields: CheckoutRuntimeField[] }> =
-          await baseHttpServiceInstance.get(
-            `/marketplace/events/${transaction.event.slug}/forms/checkout/runtime`
-          );
-        setCheckoutFormFields(resp.data.fields || []);
-      } catch (error) {
-        // Nếu form chưa cấu hình hoặc lỗi, bỏ qua, tiếp tục dùng layout mặc định tối thiểu
-        console.error('Failed to load checkout form runtime', error);
-      }
-    };
-    fetchCheckoutForm();
-  }, [transaction?.event?.slug]);
 
   useEffect(() => {
     const fetchCheckInECode = async () => {
@@ -500,7 +488,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                 </Stack>
               </CardContent>
             </Card>
-            
+
             {transaction.paymentMethod === 'napas247' && (
               <Card>
                 <CardHeader title={tt('Chi tiết thanh toán Napas 247', 'Napas 247 Payment Details')} />
@@ -760,8 +748,8 @@ export default function Page({ params }: { params: { transaction_id: number } })
                                 field.field_type === 'date'
                                   ? 'date'
                                   : field.field_type === 'time'
-                                  ? 'time'
-                                  : 'datetime-local'
+                                    ? 'time'
+                                    : 'datetime-local'
                               }
                               value={rawValue ?? ''}
                               disabled={disabled}
@@ -803,8 +791,8 @@ export default function Page({ params }: { params: { transaction_id: number } })
                           {!['text', 'number', 'date', 'time', 'datetime', 'radio', 'checkbox'].includes(
                             field.field_type
                           ) && (
-                            <Typography variant="body2">{rawValue ?? '—'}</Typography>
-                          )}
+                              <Typography variant="body2">{rawValue ?? '—'}</Typography>
+                            )}
                         </Stack>
                       </Grid>
                     );
@@ -845,21 +833,21 @@ export default function Page({ params }: { params: { transaction_id: number } })
                                         {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : tt('Chưa có thông tin', 'No information')}
                                       </Typography>
                                       {transaction.qrOption === 'separate' && (
-                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        {(() => {
-                                          const email = ticket.holderEmail || tt('Chưa có email', 'No email');
-                                          if (!ticket.holderPhone) {
-                                            return `${email} - ${tt('Chưa có SĐT', 'No phone')}`;
-                                          }
-                                          // Parse E.164 phone to get country code and national number
-                                          const parsedPhone = parseE164Phone(ticket.holderPhone);
-                                          if (parsedPhone) {
-                                            const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
-                                            return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
-                                          }
-                                          return `${email} - ${ticket.holderPhone}`;
-                                        })()}
-                                      </Typography>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          {(() => {
+                                            const email = ticket.holderEmail || tt('Chưa có email', 'No email');
+                                            if (!ticket.holderPhone) {
+                                              return `${email} - ${tt('Chưa có SĐT', 'No phone')}`;
+                                            }
+                                            // Parse E.164 phone to get country code and national number
+                                            const parsedPhone = parseE164Phone(ticket.holderPhone);
+                                            if (parsedPhone) {
+                                              const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
+                                              return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
+                                            }
+                                            return `${email} - ${ticket.holderPhone}`;
+                                          })()}
+                                        </Typography>
                                       )}
                                     </div>
                                   </Stack>
@@ -948,7 +936,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
               <CardHeader title={tt('Hành động', 'Actions')} />
               <Divider />
               <CardContent>
-                <Stack spacing={2} direction="row" sx={{flexWrap:'wrap'}}>
+                <Stack spacing={2} direction="row" sx={{ flexWrap: 'wrap' }}>
                   <Button size="small" color="error" startIcon={<X />} onClick={handleOpen} disabled={transaction.cancelRequestStatus != null || ['customer_cancelled', 'staff_locked'].includes(transaction.status)}>
                     {transaction.cancelRequestStatus === 'pending' ? tt('Đang chờ phản hồi hủy đơn hàng', 'Awaiting cancellation response') : transaction.cancelRequestStatus == 'accepted' ? tt('Đơn hàng đã được hủy', 'Order has been cancelled') : transaction.cancelRequestStatus == 'rejected' ? tt('Yêu cầu hủy bị từ chối', 'Cancellation request rejected') : tt('Hủy đơn hàng', 'Cancel Order')}
                   </Button>
@@ -982,7 +970,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                       transaction.exportedTicketAt !== null &&
                       hasAvailableTickets;
                     const canGift = transaction.event.allowTicketTransfer && otherConditionsMet;
-                    
+
                     const handleGiftButtonClick = () => {
                       if (!transaction.event.allowTicketTransfer) {
                         setOpenTransferNotAllowedModal(true);
@@ -990,7 +978,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                         setOpenGiftModal(true);
                       }
                     };
-                    
+
                     return (
                       <Button
                         size="small"

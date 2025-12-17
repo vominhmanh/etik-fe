@@ -58,13 +58,13 @@ interface Event {
 type CheckoutRuntimeFieldOption = {
   value: string;
   label: string;
-  sort_order: number;
+  sortOrder: number;
 };
 
 type CheckoutRuntimeField = {
-  internal_name: string;
+  internalName: string;
   label: string;
-  field_type: string;
+  fieldType: string;
   visible: boolean;
   required: boolean;
   note?: string | null;
@@ -227,19 +227,19 @@ export default function GiftTicketModal({
 
   const validateForm = (): boolean => {
     // Validate required builtin fields
-    const nameField = checkoutFormFields.find((f) => f.internal_name === 'name');
+    const nameField = checkoutFormFields.find((f) => f.internalName === 'name');
     if (nameField?.visible && nameField?.required && !customerInfo.name.trim()) {
       notificationCtx.warning(tt('Vui lòng nhập họ tên', 'Please enter full name'));
       return false;
     }
 
-    const emailField = checkoutFormFields.find((f) => f.internal_name === 'email');
+    const emailField = checkoutFormFields.find((f) => f.internalName === 'email');
     if (emailField?.visible && emailField?.required && !customerInfo.email.trim()) {
       notificationCtx.warning(tt('Vui lòng nhập email', 'Please enter email'));
       return false;
     }
 
-    const phoneField = checkoutFormFields.find((f) => f.internal_name === 'phone_number');
+    const phoneField = checkoutFormFields.find((f) => f.internalName === 'phone_number');
     if (phoneField?.visible && phoneField?.required && !customerInfo.phone_number.trim()) {
       notificationCtx.warning(tt('Vui lòng nhập số điện thoại', 'Please enter phone number'));
       return false;
@@ -320,7 +320,7 @@ export default function GiftTicketModal({
   );
 
   const customCheckoutFields = React.useMemo(
-    () => checkoutFormFields.filter((f) => f.visible && !builtinInternalNames.has(f.internal_name)),
+    () => checkoutFormFields.filter((f) => f.visible && !builtinInternalNames.has(f.internalName)),
     [checkoutFormFields, builtinInternalNames]
   );
 
@@ -445,7 +445,7 @@ export default function GiftTicketModal({
                   <Grid container spacing={2}>
                     {/* Built-in fields */}
                     {(() => {
-                      const nameCfg = checkoutFormFields.find((f) => f.internal_name === 'name');
+                      const nameCfg = checkoutFormFields.find((f) => f.internalName === 'name');
                       const visible = !!nameCfg && nameCfg.visible;
                       const label = nameCfg?.label || tt('Danh xưng*  Họ và tên', 'Title*  Full name');
                       return (
@@ -487,7 +487,7 @@ export default function GiftTicketModal({
                     })()}
 
                     {(() => {
-                      const emailCfg = checkoutFormFields.find((f) => f.internal_name === 'email');
+                      const emailCfg = checkoutFormFields.find((f) => f.internalName === 'email');
                       const visible = !!emailCfg && emailCfg.visible;
                       const label = emailCfg?.label || 'Email';
                       return (
@@ -508,7 +508,7 @@ export default function GiftTicketModal({
                     })()}
 
                     {(() => {
-                      const phoneCfg = checkoutFormFields.find((f) => f.internal_name === 'phone_number');
+                      const phoneCfg = checkoutFormFields.find((f) => f.internalName === 'phone_number');
                       const visible = !!phoneCfg && phoneCfg.visible;
                       const label = phoneCfg?.label || tt('Số điện thoại', 'Phone number');
                       return (
@@ -554,7 +554,7 @@ export default function GiftTicketModal({
                     })()}
 
                     {(() => {
-                      const addrCfg = checkoutFormFields.find((f) => f.internal_name === 'address');
+                      const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
                       const visible = !!addrCfg && addrCfg.visible;
                       const label = addrCfg?.label || tt('Địa chỉ', 'Address');
                       return (
@@ -575,7 +575,7 @@ export default function GiftTicketModal({
                     })()}
 
                     {(() => {
-                      const dobCfg = checkoutFormFields.find((f) => f.internal_name === 'dob');
+                      const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
                       const visible = !!dobCfg && dobCfg.visible;
                       const label = dobCfg?.label || tt('Ngày tháng năm sinh', 'Date of Birth');
                       return (
@@ -597,7 +597,7 @@ export default function GiftTicketModal({
                     })()}
 
                     {(() => {
-                      const idCfg = checkoutFormFields.find((f) => f.internal_name === 'idcard_number');
+                      const idCfg = checkoutFormFields.find((f) => f.internalName === 'idcard_number');
                       const visible = !!idCfg && idCfg.visible;
                       const label = idCfg?.label || tt('Căn cước công dân', 'ID Card Number');
                       return (
@@ -619,10 +619,10 @@ export default function GiftTicketModal({
 
                     {/* Custom checkout fields */}
                     {customCheckoutFields.map((field) => {
-                      const rawValue = formAnswers[field.internal_name] ?? '';
+                      const rawValue = formAnswers[field.internalName] ?? '';
 
                       return (
-                        <Grid item key={field.internal_name} xs={12}>
+                        <Grid item key={field.internalName} xs={12}>
                           <Stack spacing={0.5}>
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
                               {field.label}
@@ -634,44 +634,44 @@ export default function GiftTicketModal({
                               </Typography>
                             )}
 
-                            {['text', 'number'].includes(field.field_type) && (
+                            {['text', 'number'].includes(field.fieldType) && (
                               <OutlinedInput
                                 fullWidth
                                 size="small"
-                                type={field.field_type === 'number' ? 'number' : 'text'}
+                                type={field.fieldType === 'number' ? 'number' : 'text'}
                                 value={rawValue}
                                 onChange={(e) =>
                                   handleFormAnswerChange(
-                                    field.internal_name,
-                                    field.field_type === 'number' ? Number(e.target.value) : e.target.value
+                                    field.internalName,
+                                    field.fieldType === 'number' ? Number(e.target.value) : e.target.value
                                   )
                                 }
                                 required={field.required}
                               />
                             )}
 
-                            {['date', 'time', 'datetime'].includes(field.field_type) && (
+                            {['date', 'time', 'datetime'].includes(field.fieldType) && (
                               <OutlinedInput
                                 fullWidth
                                 size="small"
                                 type={
-                                  field.field_type === 'date'
+                                  field.fieldType === 'date'
                                     ? 'date'
-                                    : field.field_type === 'time'
+                                    : field.fieldType === 'time'
                                     ? 'time'
                                     : 'datetime-local'
                                 }
                                 value={rawValue}
-                                onChange={(e) => handleFormAnswerChange(field.internal_name, e.target.value)}
+                                onChange={(e) => handleFormAnswerChange(field.internalName, e.target.value)}
                                 required={field.required}
                               />
                             )}
 
-                            {field.field_type === 'radio' && field.options && (
+                            {field.fieldType === 'radio' && field.options && (
                               <FormGroup>
                                 <RadioGroup
                                   value={rawValue}
-                                  onChange={(e) => handleFormAnswerChange(field.internal_name, e.target.value)}
+                                  onChange={(e) => handleFormAnswerChange(field.internalName, e.target.value)}
                                 >
                                   {field.options.map((opt) => (
                                     <FormControlLabel
@@ -685,7 +685,7 @@ export default function GiftTicketModal({
                               </FormGroup>
                             )}
 
-                            {field.field_type === 'checkbox' && field.options && (
+                            {field.fieldType === 'checkbox' && field.options && (
                               <FormGroup>
                                 {field.options.map((opt) => {
                                   const current: string[] = Array.isArray(rawValue) ? rawValue : [];
@@ -701,7 +701,7 @@ export default function GiftTicketModal({
                                             const newValue = e.target.checked
                                               ? [...current, opt.value]
                                               : current.filter((v) => v !== opt.value);
-                                            handleFormAnswerChange(field.internal_name, newValue);
+                                            handleFormAnswerChange(field.internalName, newValue);
                                           }}
                                         />
                                       }
@@ -713,13 +713,13 @@ export default function GiftTicketModal({
                             )}
 
                             {!['text', 'number', 'date', 'time', 'datetime', 'radio', 'checkbox'].includes(
-                              field.field_type
+                              field.fieldType
                             ) && (
                               <OutlinedInput
                                 fullWidth
                                 size="small"
                                 value={rawValue}
-                                onChange={(e) => handleFormAnswerChange(field.internal_name, e.target.value)}
+                                onChange={(e) => handleFormAnswerChange(field.internalName, e.target.value)}
                                 required={field.required}
                               />
                             )}

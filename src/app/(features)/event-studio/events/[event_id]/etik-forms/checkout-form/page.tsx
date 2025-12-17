@@ -45,7 +45,7 @@ interface FieldDefinition {
   note: string;
   showInTransactionHistory: boolean;
   showInTicketEmail: boolean;
-  locked: boolean; // không cho chỉnh sửa (3 trường đầu)
+  locked: boolean; // không cho chỉnh sửa (4 trường đầu)
   nonDeletable: boolean; // không cho xoá (6 trường đầu)
   options?: string[]; // cho radio / checkbox
 }
@@ -64,6 +64,19 @@ interface NewFieldState {
 const INITIAL_FIELDS: FieldDefinition[] = [
   {
     id: 1,
+    name: 'title',
+    label: 'Danh xưng',
+    type: 'text',
+    visible: true,
+    required: true,
+    note: '',
+    showInTransactionHistory: true, // luôn true, không cho edit (core field)
+    showInTicketEmail: true, // luôn true, không cho edit (core field)
+    locked: true,
+    nonDeletable: true,
+  },
+  {
+    id: 2,
     name: 'name',
     label: 'Họ tên',
     type: 'text',
@@ -76,7 +89,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     nonDeletable: true,
   },
   {
-    id: 2,
+    id: 3,
     name: 'email',
     label: 'Email',
     type: 'text',
@@ -89,7 +102,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     nonDeletable: true,
   },
   {
-    id: 3,
+    id: 4,
     name: 'phone_number',
     label: 'Số điện thoại',
     type: 'text',
@@ -179,9 +192,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         if (!apiFields || apiFields.length === 0) return;
 
         const mapped: FieldDefinition[] = apiFields.map((f: any) => {
-          const builtinKey = f.builtin_key as string | null;
+          const builtinKey = f.builtinKey as string | null;
           const isCore =
-            builtinKey === 'name' || builtinKey === 'email' || builtinKey === 'phone_number';
+            builtinKey === 'title' || builtinKey === 'name' || builtinKey === 'email' || builtinKey === 'phone_number';
           const isOptional =
             builtinKey === 'address' ||
             builtinKey === 'dob' ||
@@ -195,19 +208,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               ? (f.options as any[]).map((opt) => opt.label as string)
               : undefined;
 
-          // Chỉ 3 trường core (name, email, phone_number) luôn true, các trường khác dùng giá trị từ API
-          const isCoreField = builtinKey === 'name' || builtinKey === 'email' || builtinKey === 'phone_number';
+          // Chỉ 4 trường core (title, name, email, phone_number) luôn true, các trường khác dùng giá trị từ API
+          const isCoreField = builtinKey === 'title' || builtinKey === 'name' || builtinKey === 'email' || builtinKey === 'phone_number';
           
           return {
             id: f.id,
-            name: f.internal_name,
+            name: f.internalName,
             label: f.label,
-            type: f.field_type,
+            type: f.fieldType,
             visible: f.visible,
             required: f.required,
             note: f.note || '',
-            showInTransactionHistory: isCoreField ? true : (f.show_in_transaction_history || false),
-            showInTicketEmail: isCoreField ? true : (f.show_in_ticket_email || false),
+            showInTransactionHistory: isCoreField ? true : (f.showInTransactionHistory || false),
+            showInTicketEmail: isCoreField ? true : (f.showInTicketEmail || false),
             locked,
             nonDeletable,
             options,
@@ -318,8 +331,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           const canEditType = !(field.locked || field.nonDeletable);
           const canEditVisibilityAndRequired = !field.locked;
 
-          // Chỉ 3 trường core (name, email, phone_number) luôn true, các trường khác cho phép edit
-          const isCoreField = field.name === 'name' || field.name === 'email' || field.name === 'phone_number';
+          // Chỉ 4 trường core (title, name, email, phone_number) luôn true, các trường khác cho phép edit
+          const isCoreField = field.name === 'title' || field.name === 'name' || field.name === 'email' || field.name === 'phone_number';
           
           return {
             ...field,
@@ -367,7 +380,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleSaveConfigToServer = async () => {
     try {
-      const builtinCore = new Set(['name', 'email', 'phone_number']);
+      const builtinCore = new Set(['title', 'name', 'email', 'phone_number']);
       const builtinOptional = new Set(['address', 'dob', 'idcard_number']);
 
       const payloadFields = fields.map((field, index) => {
@@ -380,9 +393,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           ? 'builtin_optional'
           : 'custom';
 
-        const builtin_key = isBuiltinCore || isBuiltinOptional ? field.name : null;
+        const builtinKey = isBuiltinCore || isBuiltinOptional ? field.name : null;
 
-        const sort_order = (index + 1) * 10;
+        const sortOrder = (index + 1) * 10;
 
         const options =
           (field.type === 'radio' || field.type === 'checkbox') && field.options
@@ -392,25 +405,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   // id bỏ trống để backend tự tạo / sync
                   value: label,
                   label,
-                  sort_order: (optIndex + 1) * 10,
-                  is_active: true,
+                  sortOrder: (optIndex + 1) * 10,
+                  isActive: true,
                 }))
             : undefined;
 
         return {
-          // Không gửi id cho custom mới; backend sẽ map builtin theo sort_order + builtin_key
+          // Không gửi id cho custom mới; backend sẽ map builtin theo sortOrder + builtinKey
           id: field.id,
           kind,
-          builtin_key,
-          internal_name: field.name,
+          builtinKey,
+          internalName: field.name,
           label: field.label,
-          field_type: field.type,
+          fieldType: field.type,
           visible: field.visible,
           required: field.required,
           note: field.note || null,
-          show_in_transaction_history: field.showInTransactionHistory,
-          show_in_ticket_email: field.showInTicketEmail,
-          sort_order,
+          showInTransactionHistory: field.showInTransactionHistory,
+          showInTicketEmail: field.showInTicketEmail,
+          sortOrder,
           options,
         };
       });
@@ -668,7 +681,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       onChange={(e) =>
                         setNewField((prev) => ({ ...prev, showInTransactionHistory: e.target.checked }))
                       }
-                      disabled={!!editingField && (editingField.name === 'name' || editingField.name === 'email' || editingField.name === 'phone_number')}
+                      disabled={!!editingField && (editingField.name === 'title' || editingField.name === 'name' || editingField.name === 'email' || editingField.name === 'phone_number')}
                     />
                   }
                   label={
@@ -688,7 +701,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       onChange={(e) =>
                         setNewField((prev) => ({ ...prev, showInTicketEmail: e.target.checked }))
                       }
-                      disabled={!!editingField && (editingField.name === 'name' || editingField.name === 'email' || editingField.name === 'phone_number')}
+                      disabled={!!editingField && (editingField.name === 'title' || editingField.name === 'name' || editingField.name === 'email' || editingField.name === 'phone_number')}
                     />
                   }
                   label="Hiển thị trong email vé"

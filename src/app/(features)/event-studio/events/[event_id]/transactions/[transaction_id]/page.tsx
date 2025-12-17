@@ -295,13 +295,13 @@ export interface Transaction {
 type CheckoutRuntimeFieldOption = {
   value: string;
   label: string;
-  sort_order: number;
+  sortOrder: number;
 };
 
 type CheckoutRuntimeField = {
-  internal_name: string;
+  internalName: string;
   label: string;
-  field_type: string;
+  fieldType: string;
   visible: boolean;
   required: boolean;
   note?: string | null;
@@ -343,12 +343,12 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [checkoutCustomAnswers, setCheckoutCustomAnswers] = useState<Record<string, any>>({});
 
   const builtinInternalNames = React.useMemo(
-    () => new Set(['name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
+    () => new Set(['title', 'name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
     []
   );
 
   const customCheckoutFields = React.useMemo(
-    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internal_name)),
+    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internalName)),
     [checkoutFormFields, builtinInternalNames]
   );
 
@@ -422,8 +422,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
       const formAnswers: Record<string, any> = {};
       checkoutFormFields.forEach((field) => {
         if (!field.visible) return;
-        if (builtinInternalNames.has(field.internal_name)) return;
-        formAnswers[field.internal_name] = checkoutCustomAnswers[field.internal_name];
+        if (builtinInternalNames.has(field.internalName)) return;
+        formAnswers[field.internalName] = checkoutCustomAnswers[field.internalName];
       });
 
       const payload: any = {
@@ -432,7 +432,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         phoneCountry: formData.phoneCountryIso2,
         phoneNationalNumber: formData.phoneNumber.replace(/\D/g, '').replace(/^0(?!$)/, ''),
         dob: formData.dob,
-        title: formData.title,
+        title: formData.title || (locale === 'en' ? 'Mx.' : 'Bạn'),
         address: formData.address,
       };
 
@@ -1351,7 +1351,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                 <Grid container spacing={3}>
                   {/* Built-in fields driven by checkout runtime config */}
                   {(() => {
-                    const nameCfg = checkoutFormFields.find((f) => f.internal_name === 'name');
+                    const nameCfg = checkoutFormFields.find((f) => f.internalName === 'name');
                     const visible = !!nameCfg && nameCfg.visible;
                     const label = nameCfg?.label || tt('Danh xưng*  Họ và tên', 'Title* Full Name');
                     return (
@@ -1390,7 +1390,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   })()}
 
                   {(() => {
-                    const emailCfg = checkoutFormFields.find((f) => f.internal_name === 'email');
+                    const emailCfg = checkoutFormFields.find((f) => f.internalName === 'email');
                     const visible = !!emailCfg && emailCfg.visible;
                     const label = emailCfg?.label || tt('Email', 'Email');
                     return (
@@ -1406,7 +1406,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   })()}
 
                   {(() => {
-                    const phoneCfg = checkoutFormFields.find((f) => f.internal_name === 'phone_number');
+                    const phoneCfg = checkoutFormFields.find((f) => f.internalName === 'phone_number');
                     const visible = !!phoneCfg && phoneCfg.visible;
                     const label = phoneCfg?.label || tt('Số điện thoại', 'Phone Number');
                     return (
@@ -1450,7 +1450,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   })()}
 
                   {(() => {
-                    const dobCfg = checkoutFormFields.find((f) => f.internal_name === 'dob');
+                    const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
                     const visible = !!dobCfg && dobCfg.visible;
                     const label = dobCfg?.label || tt('Ngày tháng năm sinh', 'Date of Birth');
                     return (
@@ -1473,7 +1473,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   })()}
 
                   {(() => {
-                    const addrCfg = checkoutFormFields.find((f) => f.internal_name === 'address');
+                    const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
                     const visible = !!addrCfg && addrCfg.visible;
                     const label = addrCfg?.label || tt('Địa chỉ', 'Address');
                     return (
@@ -1495,7 +1495,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
                   {(() => {
                     const idCfg = checkoutFormFields.find(
-                      (f) => f.internal_name === 'idcard_number'
+                      (f) => f.internalName === 'idcard_number'
                     );
                     const visible = !!idCfg && idCfg.visible;
                     const label = idCfg?.label || tt('Căn cước công dân', 'ID Card Number');
@@ -1517,10 +1517,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
                   {/* Custom checkout fields (visible only, editable in Event Studio) */}
                   {customCheckoutFields.map((field) => {
-                    const rawValue = checkoutCustomAnswers[field.internal_name];
+                    const rawValue = checkoutCustomAnswers[field.internalName];
 
                     return (
-                      <Grid key={field.internal_name} xs={12}>
+                      <Grid key={field.internalName} xs={12}>
                         <Stack spacing={0.5}>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
                             {field.label}
@@ -1532,29 +1532,29 @@ export default function Page({ params }: { params: { event_id: number; transacti
                             </Typography>
                           )}
 
-                          {['text', 'number'].includes(field.field_type) && (
+                          {['text', 'number'].includes(field.fieldType) && (
                             <TextField
                               fullWidth
                               size="small"
-                              type={field.field_type === 'number' ? 'number' : 'text'}
+                              type={field.fieldType === 'number' ? 'number' : 'text'}
                               value={rawValue ?? ''}
                               onChange={(e) =>
                                 setCheckoutCustomAnswers((prev) => ({
                                   ...prev,
-                                  [field.internal_name]: e.target.value,
+                                  [field.internalName]: e.target.value,
                                 }))
                               }
                             />
                           )}
 
-                          {['date', 'time', 'datetime'].includes(field.field_type) && (
+                          {['date', 'time', 'datetime'].includes(field.fieldType) && (
                             <TextField
                               fullWidth
                               size="small"
                               type={
-                                field.field_type === 'date'
+                                field.fieldType === 'date'
                                   ? 'date'
-                                  : field.field_type === 'time'
+                                  : field.fieldType === 'time'
                                   ? 'time'
                                   : 'datetime-local'
                               }
@@ -1563,20 +1563,20 @@ export default function Page({ params }: { params: { event_id: number; transacti
                               onChange={(e) =>
                                 setCheckoutCustomAnswers((prev) => ({
                                   ...prev,
-                                  [field.internal_name]: e.target.value,
+                                  [field.internalName]: e.target.value,
                                 }))
                               }
                             />
                           )}
 
-                          {field.field_type === 'radio' && field.options && (
+                          {field.fieldType === 'radio' && field.options && (
                             <FormGroup>
                               <RadioGroup
                                 value={rawValue ?? ''}
                                 onChange={(e) =>
                                   setCheckoutCustomAnswers((prev) => ({
                                     ...prev,
-                                    [field.internal_name]: e.target.value,
+                                    [field.internalName]: e.target.value,
                                   }))
                                 }
                               >
@@ -1592,7 +1592,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                             </FormGroup>
                           )}
 
-                          {field.field_type === 'checkbox' && field.options && (
+                          {field.fieldType === 'checkbox' && field.options && (
                             <FormGroup>
                               {field.options.map((opt) => {
                                 const current: string[] = Array.isArray(rawValue) ? rawValue : [];
@@ -1606,7 +1606,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                         checked={checked}
                                         onChange={(e) => {
                                           setCheckoutCustomAnswers((prev) => {
-                                            const prevArr: string[] = prev[field.internal_name] ?? [];
+                                            const prevArr: string[] = prev[field.internalName] ?? [];
                                             let nextArr: string[];
                                             if (e.target.checked) {
                                               nextArr = Array.from(new Set([...prevArr, opt.value]));
@@ -1615,7 +1615,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                             }
                                             return {
                                               ...prev,
-                                              [field.internal_name]: nextArr,
+                                              [field.internalName]: nextArr,
                                             };
                                           });
                                         }}
@@ -1629,7 +1629,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           )}
 
                           {!['text', 'number', 'date', 'time', 'datetime', 'radio', 'checkbox'].includes(
-                            field.field_type
+                            field.fieldType
                           ) && (
                             <Typography variant="body2">{rawValue ?? '—'}</Typography>
                           )}

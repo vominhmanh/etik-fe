@@ -77,14 +77,14 @@ export type EventResponse = {
 type FormFieldConfig = {
   id: number;
   kind: string;
-  builtin_key: string | null;
-  internal_name: string;
+  builtinKey: string | null;
+  internalName: string;
   label: string;
-  field_type: string;
+  fieldType: string;
   visible: boolean;
   required: boolean;
   note: string | null;
-  sort_order: number;
+  sortOrder: number;
   options?: Array<{ value: string; label: string }>;
 };
 
@@ -117,11 +117,11 @@ const getPaymentMethodLabel = (method: string, tt: (vi: string, en: string) => s
 };
 // customerFieldLabelMap will be built dynamically from form fields
 const getCustomerFieldLabelMap = (fields: FormFieldConfig[], tt: (vi: string, en: string) => string): Record<string, string> => {
-  const map: Record<string, string> = { title: tt('Danh xưng', 'Title') };
+  const map: Record<string, string> = {};
   fields.forEach(field => {
-    const key = field.builtin_key || field.internal_name;
-    const normalizedKey = field.builtin_key === 'phone_number' ? 'phoneNumber' :
-      field.builtin_key === 'idcard_number' ? 'idcardNumber' : key;
+    const key = field.builtinKey || field.internalName;
+    const normalizedKey = field.builtinKey === 'phone_number' ? 'phoneNumber' :
+      field.builtinKey === 'idcard_number' ? 'idcardNumber' : key;
     map[normalizedKey] = field.label;
   });
   return map;
@@ -133,6 +133,7 @@ const normalizeFieldKey = (field: string): string =>
 const getBuiltinKeyLabel = (builtinKey: string | null, tt: (vi: string, en: string) => string): string | null => {
   if (!builtinKey) return null;
   const labelMap: Record<string, { vi: string; en: string }> = {
+    'title': { vi: 'Danh xưng', en: 'Title' },
     'name': { vi: 'Tên', en: 'Name' },
     'email': { vi: 'Email', en: 'Email' },
     'phone_number': { vi: 'Số điện thoại', en: 'Phone Number' },
@@ -155,21 +156,21 @@ const getFieldTypeLabel = (field: FormFieldConfig, tt: (vi: string, en: string) 
     'radio': { vi: 'Chọn một', en: 'Single Choice' },
     'checkbox': { vi: 'Chọn nhiều', en: 'Multiple Choice' },
   };
-  const mapped = typeMap[field.field_type];
-  return mapped ? tt(mapped.vi, mapped.en) : field.field_type;
+  const mapped = typeMap[field.fieldType];
+  return mapped ? tt(mapped.vi, mapped.en) : field.fieldType;
 };
 
 // Helper function to get format hint text for a field
 const getFormatHint = (field: FormFieldConfig): string => {
-  if (field.field_type === 'date') {
+  if (field.fieldType === 'date') {
     return 'DD/MM/YYYY';
-  } else if (field.field_type === 'datetime') {
+  } else if (field.fieldType === 'datetime') {
     return 'DD/MM/YYYY HH:mm:ss';
-  } else if (field.field_type === 'time') {
+  } else if (field.fieldType === 'time') {
     return 'HH:mm:ss';
-  } else if (field.field_type === 'radio' && field.options && field.options.length > 0) {
+  } else if (field.fieldType === 'radio' && field.options && field.options.length > 0) {
     return field.options.map(opt => opt.label).join(' | ');
-  } else if (field.field_type === 'checkbox' && field.options && field.options.length > 0) {
+  } else if (field.fieldType === 'checkbox' && field.options && field.options.length > 0) {
     return `[${field.options.map(opt => opt.label).join(', ')}]`;
   }
   return '';
@@ -195,7 +196,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
   const [customerValidationErrors, setCustomerValidationErrors] = React.useState<CustomerValidationError[]>([]);
   const [formFields, setFormFields] = React.useState<FormFieldConfig[]>([]);
-  
+
   // Voucher states
   const [availableVouchers, setAvailableVouchers] = React.useState<any[]>([]);
   const [appliedVoucher, setAppliedVoucher] = React.useState<any | null>(null);
@@ -203,11 +204,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [voucherDetailModalOpen, setVoucherDetailModalOpen] = React.useState<boolean>(false);
   const [selectedVoucherForDetail, setSelectedVoucherForDetail] = React.useState<any | null>(null);
 
-  // Get visible fields sorted by sort_order
+  // Get visible fields sorted by sortOrder
   const visibleFields = React.useMemo(() => {
     return formFields
       .filter(f => f.visible)
-      .sort((a, b) => a.sort_order - b.sort_order);
+      .sort((a, b) => a.sortOrder - b.sortOrder);
   }, [formFields]);
 
   // Get default title based on locale
@@ -215,34 +216,35 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return locale === 'en' ? 'Mx.' : tt('Bạn', 'You');
   }, [locale, tt]);
 
-  // Create initial customer object based on visible fields
   const createEmptyCustomer = React.useCallback((): Customer => {
-    const customer: Customer = { title: getDefaultTitle() };
+    const customer: Customer = {};
     visibleFields.forEach(field => {
-      const key = field.builtin_key || field.internal_name;
+      const key = field.builtinKey || field.internalName;
       // Map builtin keys to customer object keys
-      if (field.builtin_key === 'name') {
+      if (field.builtinKey === 'title') {
+        customer.title = getDefaultTitle();
+      } else if (field.builtinKey === 'name') {
         customer.name = '';
-      } else if (field.builtin_key === 'email') {
+      } else if (field.builtinKey === 'email') {
         customer.email = '';
-      } else if (field.builtin_key === 'phone_number') {
+      } else if (field.builtinKey === 'phone_number') {
         customer.phoneNumber = '';
         customer.phoneCountryCode = '+84'; // Default country code
-      } else if (field.builtin_key === 'address') {
+      } else if (field.builtinKey === 'address') {
         customer.address = '';
-      } else if (field.builtin_key === 'dob') {
+      } else if (field.builtinKey === 'dob') {
         customer.dob = '';
-      } else if (field.builtin_key === 'idcard_number') {
+      } else if (field.builtinKey === 'idcard_number') {
         customer.idcardNumber = '';
       } else {
         // Custom field
-        customer[field.internal_name] = '';
+        customer[field.internalName] = '';
       }
     });
     return customer;
   }, [visibleFields, getDefaultTitle]);
 
-  const [customers, setCustomers] = React.useState<Customer[]>(() => [{ title: getDefaultTitle() }]);
+  const [customers, setCustomers] = React.useState<Customer[]>(() => [{ ...createEmptyCustomer() }]);
 
   // Do not change existing customers' title when locale changes; keep original value as entered
 
@@ -253,26 +255,26 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const updatedCustomers = customers.map(customer => {
         const updated = { ...customer };
         visibleFields.forEach(field => {
-          const key = field.builtin_key || field.internal_name;
-          if (field.builtin_key === 'name' && !('name' in updated)) {
+          const key = field.builtinKey || field.internalName;
+          if (field.builtinKey === 'name' && !('name' in updated)) {
             updated.name = '';
-          } else if (field.builtin_key === 'email' && !('email' in updated)) {
+          } else if (field.builtinKey === 'email' && !('email' in updated)) {
             updated.email = '';
-          } else if (field.builtin_key === 'phone_number') {
+          } else if (field.builtinKey === 'phone_number') {
             if (!('phoneNumber' in updated)) {
               updated.phoneNumber = '';
             }
             if (!('phoneCountryCode' in updated)) {
               updated.phoneCountryCode = '+84';
             }
-          } else if (field.builtin_key === 'address' && !('address' in updated)) {
+          } else if (field.builtinKey === 'address' && !('address' in updated)) {
             updated.address = '';
-          } else if (field.builtin_key === 'dob' && !('dob' in updated)) {
+          } else if (field.builtinKey === 'dob' && !('dob' in updated)) {
             updated.dob = '';
-          } else if (field.builtin_key === 'idcard_number' && !('idcardNumber' in updated)) {
+          } else if (field.builtinKey === 'idcard_number' && !('idcardNumber' in updated)) {
             updated.idcardNumber = '';
-          } else if (!field.builtin_key && !(field.internal_name in updated)) {
-            updated[field.internal_name] = '';
+          } else if (!field.builtinKey && !(field.internalName in updated)) {
+            updated[field.internalName] = '';
           }
         });
         return updated;
@@ -353,26 +355,26 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const updatedCustomers = customers.map(customer => {
         const updated = { ...customer };
         visibleFields.forEach(field => {
-          const key = field.builtin_key || field.internal_name;
-          if (field.builtin_key === 'name' && !('name' in updated)) {
+          const key = field.builtinKey || field.internalName;
+          if (field.builtinKey === 'name' && !('name' in updated)) {
             updated.name = '';
-          } else if (field.builtin_key === 'email' && !('email' in updated)) {
+          } else if (field.builtinKey === 'email' && !('email' in updated)) {
             updated.email = '';
-          } else if (field.builtin_key === 'phone_number') {
+          } else if (field.builtinKey === 'phone_number') {
             if (!('phoneNumber' in updated)) {
               updated.phoneNumber = '';
             }
             if (!('phoneCountryCode' in updated)) {
               updated.phoneCountryCode = '+84';
             }
-          } else if (field.builtin_key === 'address' && !('address' in updated)) {
+          } else if (field.builtinKey === 'address' && !('address' in updated)) {
             updated.address = '';
-          } else if (field.builtin_key === 'dob' && !('dob' in updated)) {
+          } else if (field.builtinKey === 'dob' && !('dob' in updated)) {
             updated.dob = '';
-          } else if (field.builtin_key === 'idcard_number' && !('idcardNumber' in updated)) {
+          } else if (field.builtinKey === 'idcard_number' && !('idcardNumber' in updated)) {
             updated.idcardNumber = '';
-          } else if (!field.builtin_key && !(field.internal_name in updated)) {
-            updated[field.internal_name] = '';
+          } else if (!field.builtinKey && !(field.internalName in updated)) {
+            updated[field.internalName] = '';
           }
         });
         return updated;
@@ -498,22 +500,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       visibleFields.forEach(field => {
         if (field.required) {
-          const key = field.builtin_key || field.internal_name;
+          const key = field.builtinKey || field.internalName;
           let value = '';
-          if (field.builtin_key === 'name') {
+          if (field.builtinKey === 'name') {
             value = customer.name || '';
-          } else if (field.builtin_key === 'email') {
+          } else if (field.builtinKey === 'email') {
             value = customer.email || '';
-          } else if (field.builtin_key === 'phone_number') {
+          } else if (field.builtinKey === 'phone_number') {
             value = customer.phoneNumber || '';
-          } else if (field.builtin_key === 'address') {
+          } else if (field.builtinKey === 'address') {
             value = customer.address || '';
-          } else if (field.builtin_key === 'dob') {
+          } else if (field.builtinKey === 'dob') {
             value = customer.dob || '';
-          } else if (field.builtin_key === 'idcard_number') {
+          } else if (field.builtinKey === 'idcard_number') {
             value = customer.idcardNumber || '';
           } else {
-            value = customer[field.internal_name] || '';
+            value = customer[field.internalName] || '';
           }
 
           if (!value || value.trim() === '') {
@@ -549,19 +551,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       return;
     }
 
-    // Create headers: Title + all visible field labels
+    // Create headers: All visible field labels
     // For phone_number, add 2 columns: "Country Code" and the field label
-    const titleHeader = tt('Danh xưng', 'Title');
     const countryCodeHeader = tt('Mã quốc gia', 'Country Code');
-    const headers: string[] = [titleHeader];
+    const headers: string[] = [];
     visibleFields.forEach(field => {
-      if (field.builtin_key === 'phone_number') {
-        // Use bilingual label for builtin_key
-        const builtinLabel = getBuiltinKeyLabel(field.builtin_key, tt) || field.label;
+      if (field.builtinKey === 'phone_number') {
+        // Use bilingual label for builtinKey
+        const builtinLabel = getBuiltinKeyLabel(field.builtinKey, tt) || field.label;
         headers.push(countryCodeHeader, builtinLabel);
       } else {
-        // Use bilingual label for builtin_key, otherwise use field.label from backend
-        const builtinLabel = getBuiltinKeyLabel(field.builtin_key, tt);
+        // Use bilingual label for builtinKey, otherwise use field.label from backend
+        const builtinLabel = getBuiltinKeyLabel(field.builtinKey, tt);
         headers.push(builtinLabel || field.label);
       }
     });
@@ -569,60 +570,60 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     // Generate 3 example rows with proper format
     const exampleRows: any[] = [];
     for (let i = 0; i < 3; i++) {
-      const row: any = { 
-        [titleHeader]: locale === 'en' 
-          ? (i === 0 ? 'Mr.' : i === 1 ? 'Ms.' : 'Mx.') 
-          : (i === 0 ? tt('Anh', 'Mr.') : i === 1 ? tt('Chị', 'Ms.') : tt('Bạn', 'You')) 
-      };
-      
+      const row: any = {};
+
       visibleFields.forEach(field => {
         let exampleValue = '';
-        
-        if (field.builtin_key === 'name') {
+
+        if (field.builtinKey === 'title') {
+          exampleValue = locale === 'en'
+            ? (i === 0 ? 'Mr.' : i === 1 ? 'Ms.' : 'Mx.')
+            : (i === 0 ? tt('Anh', 'Mr.') : i === 1 ? tt('Chị', 'Ms.') : tt('Bạn', 'You'));
+        } else if (field.builtinKey === 'name') {
           exampleValue = i === 0 ? 'Nguyễn Văn A' : i === 1 ? 'Trần Thị B' : 'Lê Văn C';
-        } else if (field.builtin_key === 'email') {
+        } else if (field.builtinKey === 'email') {
           exampleValue = i === 0 ? 'nguyenvana@example.com' : i === 1 ? 'tranthib@example.com' : 'levanc@example.com';
-        } else if (field.builtin_key === 'phone_number') {
+        } else if (field.builtinKey === 'phone_number') {
           // Phone number will be handled separately with country code
           // Skip here, will add to row separately
-        } else if (field.builtin_key === 'address') {
+        } else if (field.builtinKey === 'address') {
           exampleValue = i === 0 ? '123 Đường ABC, Quận 1, TP.HCM' : i === 1 ? '456 Đường XYZ, Quận 2, TP.HCM' : '789 Đường DEF, Quận 3, TP.HCM';
-        } else if (field.builtin_key === 'dob') {
+        } else if (field.builtinKey === 'dob') {
           exampleValue = i === 0 ? '15/03/1990' : i === 1 ? '20/07/1995' : '10/11/2000';
-        } else if (field.builtin_key === 'idcard_number') {
+        } else if (field.builtinKey === 'idcard_number') {
           exampleValue = i === 0 ? '123456789012' : i === 1 ? '234567890123' : '345678901234';
-        } else if (field.field_type === 'date') {
+        } else if (field.fieldType === 'date') {
           exampleValue = i === 0 ? '25/12/2024' : i === 1 ? '26/12/2024' : '27/12/2024';
-        } else if (field.field_type === 'datetime') {
+        } else if (field.fieldType === 'datetime') {
           exampleValue = i === 0 ? '25/12/2024 14:30:00' : i === 1 ? '26/12/2024 15:45:00' : '27/12/2024 16:00:00';
-        } else if (field.field_type === 'time') {
+        } else if (field.fieldType === 'time') {
           exampleValue = i === 0 ? '14:30:00' : i === 1 ? '15:45:00' : '16:00:00';
-        } else if (field.field_type === 'radio' && field.options && field.options.length > 0) {
+        } else if (field.fieldType === 'radio' && field.options && field.options.length > 0) {
           // Use first option as example
           exampleValue = field.options[0].label;
-        } else if (field.field_type === 'checkbox' && field.options && field.options.length > 0) {
+        } else if (field.fieldType === 'checkbox' && field.options && field.options.length > 0) {
           // Use first 2 options as example, separated by comma
           const selectedOptions = field.options.slice(0, Math.min(2, field.options.length));
           exampleValue = selectedOptions.map(opt => opt.label).join(', ');
-        } else if (field.field_type === 'number') {
+        } else if (field.fieldType === 'number') {
           exampleValue = i === 0 ? '100' : i === 1 ? '200' : '300';
         } else {
           // Text field
           exampleValue = i === 0 ? `${tt('Ví dụ', 'Example')} ${field.label} 1` : i === 1 ? `${tt('Ví dụ', 'Example')} ${field.label} 2` : `${tt('Ví dụ', 'Example')} ${field.label} 3`;
         }
-        
+
         // Handle phone_number separately with country code
-        if (field.builtin_key === 'phone_number') {
-          const builtinLabel = getBuiltinKeyLabel(field.builtin_key, tt) || field.label;
+        if (field.builtinKey === 'phone_number') {
+          const builtinLabel = getBuiltinKeyLabel(field.builtinKey, tt) || field.label;
           row[countryCodeHeader] = i === 0 ? '+84' : i === 1 ? '+84' : '+84';
           row[builtinLabel] = i === 0 ? '0901234567' : i === 1 ? '0912345678' : '0923456789';
         } else {
-          // Use bilingual label for builtin_key, otherwise use field.label from backend
-          const builtinLabel = getBuiltinKeyLabel(field.builtin_key, tt);
+          // Use bilingual label for builtinKey, otherwise use field.label from backend
+          const builtinLabel = getBuiltinKeyLabel(field.builtinKey, tt);
           row[builtinLabel || field.label] = exampleValue;
         }
       });
-      
+
       exampleRows.push(row);
     }
 
@@ -646,42 +647,55 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const parsedData = XLSX.utils.sheet_to_json<CustomerExcelInput>(sheet);
-        
+
         // Map Excel columns to customer fields based on form config (using column labels)
-        const titleHeaderKey = tt('Danh xưng', 'Title');
         const countryCodeHeaderKey = tt('Mã quốc gia', 'Country Code');
-        const defaultTitle = locale === 'en' ? 'Mx.' : tt('Bạn', 'You');
+        const defaultTitle = getDefaultTitle();
         const formattedData: Customer[] = parsedData.map(d => {
-          const customer: Customer = { title: d[titleHeaderKey] || defaultTitle };
+          const customer: Customer = {};
+          // Initialize title with default if not found in visibleFields later (but usually we rely on fields)
+          // Actually, we should only set properties that are in visibleFields or special handling
+
           visibleFields.forEach(field => {
-            // Try to match both bilingual label and backend label for builtin_key
-            const builtinLabel = getBuiltinKeyLabel(field.builtin_key, tt);
+            // Try to match both bilingual label and backend label for builtinKey
+            const builtinLabel = getBuiltinKeyLabel(field.builtinKey, tt);
             const excelKey = builtinLabel || field.label; // Use bilingual label if available, otherwise use field.label
             // Try to find value using either bilingual label or backend label
             const excelValue = d[excelKey] || d[field.label] || '';
-            
+
             // Map to customer object keys
-            if (field.builtin_key === 'name') {
+            if (field.builtinKey === 'title') {
+              customer.title = String(excelValue) || defaultTitle;
+            } else if (field.builtinKey === 'name') {
               customer.name = String(excelValue);
-            } else if (field.builtin_key === 'email') {
+            } else if (field.builtinKey === 'email') {
               customer.email = String(excelValue);
-            } else if (field.builtin_key === 'phone_number') {
+            } else if (field.builtinKey === 'phone_number') {
               // Get country code from "Country Code" column, default to +84
               const countryCode = d[countryCodeHeaderKey] || '+84';
               customer.phoneCountryCode = String(countryCode);
               customer.phoneNumber = String(excelValue);
-            } else if (field.builtin_key === 'address') {
+            } else if (field.builtinKey === 'address') {
               customer.address = String(excelValue);
-            } else if (field.builtin_key === 'dob') {
+            } else if (field.builtinKey === 'dob') {
               customer.dob = String(excelValue);
-            } else if (field.builtin_key === 'idcard_number') {
+            } else if (field.builtinKey === 'idcard_number') {
               customer.idcardNumber = String(excelValue);
             } else {
               // Custom field - try both bilingual label and backend label
               const customValue = d[excelKey] || d[field.label] || '';
-              customer[field.internal_name] = String(customValue);
+              customer[field.internalName] = String(customValue);
             }
           });
+          return customer;
+          // If title field is NOT visible but is required for logic, we might need default.
+          // But based on requirement, if it's not in visibleFields, we don't care about it (or it's handled by default in handleSubmit if needed)
+          if (!customer.title && visibleFields.some(f => f.builtinKey === 'title')) {
+            customer.title = defaultTitle;
+          } else if (!customer.title && !visibleFields.some(f => f.builtinKey === 'title')) {
+            // If not visible, we might still want a default title for backend compatibility if it relies on it?
+            // handleSubmit adds default title if missing.
+          }
           return customer;
         });
         setCustomers(formattedData);
@@ -750,7 +764,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         ),
       };
     }
-    
+
     // For single code voucher (multiple uses), validation will be done at backend
     // Frontend cannot check remaining uses without API call
 
@@ -838,18 +852,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         { params: { code: manualDiscountCode.trim() } }
       );
       const voucher = response.data;
-      
+
       // Always set to show the box, even if validation fails
       setAppliedVoucher(voucher);
       setManualDiscountCode('');
-      
+
       // Validate voucher after receiving from API
       const validation = validateVoucher(voucher);
       if (!validation.valid) {
         notificationCtx.error(validation.message || tt('Voucher không hợp lệ', 'Invalid voucher'));
         return;
       }
-      
+
       notificationCtx.success(tt('Mã khuyến mãi hợp lệ', 'Voucher code is valid'));
     } catch (error: any) {
       const errorMessage = error?.response?.data?.detail || tt('Mã khuyến mãi không hợp lệ', 'Invalid voucher code');
@@ -866,22 +880,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     customers.forEach((customer, index) => {
       visibleFields.forEach(field => {
         if (field.required) {
-          const key = field.builtin_key || field.internal_name;
+          const key = field.builtinKey || field.internalName;
           let value = '';
-          if (field.builtin_key === 'name') {
+          if (field.builtinKey === 'name') {
             value = customer.name || '';
-          } else if (field.builtin_key === 'email') {
+          } else if (field.builtinKey === 'email') {
             value = customer.email || '';
-          } else if (field.builtin_key === 'phone_number') {
+          } else if (field.builtinKey === 'phone_number') {
             value = customer.phoneNumber || '';
-          } else if (field.builtin_key === 'address') {
+          } else if (field.builtinKey === 'address') {
             value = customer.address || '';
-          } else if (field.builtin_key === 'dob') {
+          } else if (field.builtinKey === 'dob') {
             value = customer.dob || '';
-          } else if (field.builtin_key === 'idcard_number') {
+          } else if (field.builtinKey === 'idcard_number') {
             value = customer.idcardNumber || '';
           } else {
-            value = customer[field.internal_name] || '';
+            value = customer[field.internalName] || '';
           }
 
           if (!value || value.trim() === '') {
@@ -938,7 +952,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           phoneCountryCode: customer.phoneCountryCode || '+84',
           title: customer.title || defaultTitle,
         };
-        
+
         // Add optional builtin fields if they exist
         if (customer.address) customerData.address = customer.address;
         if (customer.dob) customerData.dob = customer.dob;
@@ -947,27 +961,27 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         // Collect custom fields into form_answers
         const formAnswers: Record<string, any> = {};
         visibleFields.forEach(field => {
-          if (!field.builtin_key) {
+          if (!field.builtinKey) {
             // This is a custom field
-            const fieldValue = customer[field.internal_name];
+            const fieldValue = customer[field.internalName];
             if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
-              if (field.field_type === 'checkbox') {
+              if (field.fieldType === 'checkbox') {
                 // For checkbox, fieldValue should already be an array
                 if (Array.isArray(fieldValue)) {
-                  formAnswers[field.internal_name] = fieldValue;
+                  formAnswers[field.internalName] = fieldValue;
                 } else if (typeof fieldValue === 'string') {
                   // If it's a string, try to parse it (comma-separated values)
-                  formAnswers[field.internal_name] = fieldValue.split(',').map(v => v.trim()).filter(v => v);
+                  formAnswers[field.internalName] = fieldValue.split(',').map(v => v.trim()).filter(v => v);
                 }
               } else {
-                formAnswers[field.internal_name] = fieldValue;
+                formAnswers[field.internalName] = fieldValue;
               }
             }
-          } else if (field.builtin_key === 'idcard_number') {
+          } else if (field.builtinKey === 'idcard_number') {
             // idcard_number might be in form_answers if not in customer object
-            const idcardValue = customer.idcardNumber || customer[field.internal_name];
+            const idcardValue = customer.idcardNumber || customer[field.internalName];
             if (idcardValue) {
-              formAnswers[field.internal_name] = idcardValue;
+              formAnswers[field.internalName] = idcardValue;
             }
           }
         });
@@ -1103,404 +1117,413 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ width: '20px', py: 1 }}></TableCell>
-                        {visibleFields.map((field) => (
-                          <TableCell
-                            key={field.id}
-                            sx={{
-                              py: 0,
-                              ...(field.builtin_key === 'name' ? { minWidth: '200px', width: 'auto' } : 
-                                  field.builtin_key === 'email' ? { width: '200px' } : 
-                                  field.builtin_key === 'phone_number' ? { width: '200px' } : 
-                                  field.builtin_key === 'address' ? { width: '250px' } : 
-                                  field.builtin_key === 'dob' ? { width: '150px' } : 
-                                  !field.builtin_key ? { width: '200px' } : {})
-                            }}
-                          >
-                          <Stack spacing={0}>
-                            <Typography variant="body2">
-                              {(() => {
-                                // Use bilingual label for builtin_key, otherwise use field.label from backend
-                                const builtinLabel = getBuiltinKeyLabel(field.builtin_key, tt);
-                                return builtinLabel || field.label;
-                              })()}{field.required ? ' *' : ''}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '10px', fontStyle: 'italic' }}>
-                              {getFieldTypeLabel(field, tt)}
-                            </Typography>
-                          </Stack>
-                        </TableCell>
-                        ))}
+                        {visibleFields.map((field) => {
+                          if (field.builtinKey === 'title' && visibleFields.some(f => f.builtinKey === 'name')) return null;
+                          return (
+                            <TableCell
+                              key={field.id}
+                              sx={{
+                                py: 0,
+                                ...(field.builtinKey === 'name' ? { minWidth: '200px', width: 'auto' } :
+                                  field.builtinKey === 'email' ? { width: '200px' } :
+                                    field.builtinKey === 'phone_number' ? { width: '200px' } :
+                                      field.builtinKey === 'address' ? { width: '250px' } :
+                                        field.builtinKey === 'dob' ? { width: '150px' } :
+                                          !field.builtinKey ? { width: '200px' } : {})
+                              }}
+                            >
+                              <Stack spacing={0}>
+                                <Typography variant="body2">
+                                  {(() => {
+                                    // Use bilingual label for builtinKey, otherwise use field.label from backend
+                                    const builtinLabel = getBuiltinKeyLabel(field.builtinKey, tt);
+                                    return builtinLabel || field.label;
+                                  })()}{field.required ? ' *' : ''}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '10px', fontStyle: 'italic' }}>
+                                  {getFieldTypeLabel(field, tt)}
+                                </Typography>
+                              </Stack>
+                            </TableCell>
+                          );
+                        })}
                         <TableCell sx={{ py: 1 }}></TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                    {customers.map((customer, index) => {
-                      const rowErrors = customerErrorsMap[index] || {};
-                      return (
-                        <TableRow
-                          hover
-                          key={index}
-                          sx={
-                            rowErrors && Object.keys(rowErrors).length > 0
-                              ? { backgroundColor: 'rgba(255, 152, 0, 0.08)' }
-                              : undefined
-                          }
-                        >
-                          <TableCell>{index + 1}</TableCell>
-                          {visibleFields.map((field) => {
-                            const fieldKey = field.builtin_key || field.internal_name;
-                            const normalizedKey = normalizeFieldKey(fieldKey);
-                            const fieldErrors = rowErrors[normalizedKey] || [];
-
-                            // Get value from customer object
-                            let value = '';
-                            if (field.builtin_key === 'name') {
-                              value = customer.name || '';
-                            } else if (field.builtin_key === 'email') {
-                              value = customer.email || '';
-                            } else if (field.builtin_key === 'phone_number') {
-                              value = customer.phoneNumber || '';
-                            } else if (field.builtin_key === 'address') {
-                              value = customer.address || '';
-                            } else if (field.builtin_key === 'dob') {
-                              value = customer.dob || '';
-                            } else if (field.builtin_key === 'idcard_number') {
-                              value = customer.idcardNumber || '';
-                            } else {
-                              value = customer[field.internal_name] || '';
+                      {customers.map((customer, index) => {
+                        const rowErrors = customerErrorsMap[index] || {};
+                        return (
+                          <TableRow
+                            hover
+                            key={index}
+                            sx={
+                              rowErrors && Object.keys(rowErrors).length > 0
+                                ? { backgroundColor: 'rgba(255, 152, 0, 0.08)' }
+                                : undefined
                             }
+                          >
+                            <TableCell>{index + 1}</TableCell>
+                            {visibleFields.map((field) => {
+                              if (field.builtinKey === 'title' && visibleFields.some(f => f.builtinKey === 'name')) return null;
 
-                            // Determine the field key for onChange
-                            let onChangeKey = fieldKey;
-                            if (field.builtin_key === 'phone_number') {
-                              onChangeKey = 'phoneNumber';
-                            } else if (field.builtin_key === 'idcard_number') {
-                              onChangeKey = 'idcardNumber';
-                            }
+                              const fieldKey = field.builtinKey || field.internalName;
+                              const normalizedKey = normalizeFieldKey(fieldKey);
+                              const fieldErrors = rowErrors[normalizedKey] || [];
 
-                            return (
-                              <TableCell key={field.id}>
-                                {field.builtin_key === 'name' ? (
-                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
-                                    <OutlinedInput
-                                      name={`customer_${fieldKey}_${index}`}
-                                      value={value}
-                                      onChange={(e) =>
-                                        handleCustomerChange(index, 'name', e.target.value)
-                                      }
-                                      size="small"
-                                      sx={{ fontSize: '11px' }}
-                                      startAdornment={
-                                        <InputAdornment position="start">
-                                          <Select
-                                            variant="standard"
-                                            sx={{ fontSize: '11px' }}
-                                            disableUnderline
-                                            value={customer.title || getDefaultTitle()}
-                                            onChange={(e) =>
-                                              handleCustomerChange(index, 'title', e.target.value)
-                                            }
-                                          >
-                                            {['Anh','Chị','Bạn','Em','Ông','Bà','Cô','Thầy','Mr.','Ms.','Mx.','Miss'].map((title) => (
-                                              <MenuItem key={title} value={title}>{title}</MenuItem>
-                                            ))}
-                                          </Select>
-                                        </InputAdornment>
-                                      }
-                                    />
-                                    {fieldErrors.map((err, errIdx) => (
-                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
-                                        {`${err.msg}`}
-                                      </FormHelperText>
-                                    ))}
-                                  </FormControl>
-                                ) : field.field_type === 'radio' && field.options ? (
-                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
-                                    <Select
-                                      value={value}
-                                      onChange={(e) =>
-                                        handleCustomerChange(index, onChangeKey, e.target.value)
-                                      }
-                                      size="small"
-                                      sx={{ fontSize: '11px' }}
-                                    >
-                                      {field.options.map((opt) => (
-                                        <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '11px' }}>
-                                          {opt.label}
-                                        </MenuItem>
+                              // Get value from customer object
+                              let value = '';
+                              if (field.builtinKey === 'title') {
+                                value = customer.title || '';
+                              } else if (field.builtinKey === 'name') {
+                                value = customer.name || '';
+                              } else if (field.builtinKey === 'email') {
+                                value = customer.email || '';
+                              } else if (field.builtinKey === 'phone_number') {
+                                value = customer.phoneNumber || '';
+                              } else if (field.builtinKey === 'address') {
+                                value = customer.address || '';
+                              } else if (field.builtinKey === 'dob') {
+                                value = customer.dob || '';
+                              } else if (field.builtinKey === 'idcard_number') {
+                                value = customer.idcardNumber || '';
+                              } else {
+                                value = customer[field.internalName] || '';
+                              }
+
+                              // Determine the field key for onChange
+                              let onChangeKey = fieldKey;
+                              if (field.builtinKey === 'phone_number') {
+                                onChangeKey = 'phoneNumber';
+                              } else if (field.builtinKey === 'idcard_number') {
+                                onChangeKey = 'idcardNumber';
+                              }
+
+                              return (
+                                <TableCell key={field.id}>
+                                  {field.builtinKey === 'name' ? (
+                                    <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                      <OutlinedInput
+                                        name={`customer_${fieldKey}_${index}`}
+                                        value={value}
+                                        onChange={(e) =>
+                                          handleCustomerChange(index, 'name', e.target.value)
+                                        }
+                                        size="small"
+                                        sx={{ fontSize: '11px' }}
+                                        startAdornment={
+                                          visibleFields.some(f => f.builtinKey === 'title') ? (
+                                            <InputAdornment position="start">
+                                              <Select
+                                                variant="standard"
+                                                sx={{ fontSize: '11px' }}
+                                                disableUnderline
+                                                value={customer.title || getDefaultTitle()}
+                                                onChange={(e) =>
+                                                  handleCustomerChange(index, 'title', e.target.value)
+                                                }
+                                              >
+                                                {['Anh', 'Chị', 'Bạn', 'Em', 'Ông', 'Bà', 'Cô', 'Thầy', 'Mr.', 'Ms.', 'Mx.', 'Miss'].map((title) => (
+                                                  <MenuItem key={title} value={title}>{title}</MenuItem>
+                                                ))}
+                                              </Select>
+                                            </InputAdornment>
+                                          ) : null
+                                        }
+                                      />
+                                      {fieldErrors.map((err, errIdx) => (
+                                        <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                          {`${err.msg}`}
+                                        </FormHelperText>
                                       ))}
-                                    </Select>
-                                    {fieldErrors.map((err, errIdx) => (
-                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
-                                        {`${err.msg}`}
-                                      </FormHelperText>
-                                    ))}
-                                  </FormControl>
-                                ) : field.field_type === 'checkbox' && field.options ? (
-                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
-                                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-                                      {field.options.map((opt) => {
-                                        const checked = value.split(',').includes(opt.value);
-                                        return (
-                                          <FormControlLabel
-                                            key={opt.value}
-                                            control={
-                                              <Checkbox
-                                                checked={checked}
-                                                onChange={(e) => {
-                                                  const currentValues = value ? value.split(',').filter(v => v.trim()) : [];
-                                                  let newValue = '';
-                                                  if (e.target.checked) {
-                                                    newValue = [...currentValues, opt.value].join(',');
-                                                  } else {
-                                                    newValue = currentValues.filter(v => v !== opt.value).join(',');
-                                                  }
-                                                  handleCustomerChange(index, onChangeKey, newValue);
-                                                }}
-                                                size="small"
-                                                sx={{ '& .MuiSvgIcon-root': { fontSize: '16px' } }}
-                                              />
+                                    </FormControl>
+                                  ) : field.fieldType === 'radio' && field.options ? (
+                                    <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                      <Select
+                                        value={value}
+                                        onChange={(e) =>
+                                          handleCustomerChange(index, onChangeKey, e.target.value)
+                                        }
+                                        size="small"
+                                        sx={{ fontSize: '11px' }}
+                                      >
+                                        {field.options.map((opt) => (
+                                          <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '11px' }}>
+                                            {opt.label}
+                                          </MenuItem>
+                                        ))}
+                                      </Select>
+                                      {fieldErrors.map((err, errIdx) => (
+                                        <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                          {`${err.msg}`}
+                                        </FormHelperText>
+                                      ))}
+                                    </FormControl>
+                                  ) : field.fieldType === 'checkbox' && field.options ? (
+                                    <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                      <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                                        {field.options.map((opt) => {
+                                          const checked = value.split(',').includes(opt.value);
+                                          return (
+                                            <FormControlLabel
+                                              key={opt.value}
+                                              control={
+                                                <Checkbox
+                                                  checked={checked}
+                                                  onChange={(e) => {
+                                                    const currentValues = value ? value.split(',').filter(v => v.trim()) : [];
+                                                    let newValue = '';
+                                                    if (e.target.checked) {
+                                                      newValue = [...currentValues, opt.value].join(',');
+                                                    } else {
+                                                      newValue = currentValues.filter(v => v !== opt.value).join(',');
+                                                    }
+                                                    handleCustomerChange(index, onChangeKey, newValue);
+                                                  }}
+                                                  size="small"
+                                                  sx={{ '& .MuiSvgIcon-root': { fontSize: '16px' } }}
+                                                />
+                                              }
+                                              label={<Typography sx={{ fontSize: '11px' }}>{opt.label}</Typography>}
+                                              sx={{ fontSize: '11px', margin: 0 }}
+                                            />
+                                          );
+                                        })}
+                                      </Stack>
+                                      {fieldErrors.map((err, errIdx) => (
+                                        <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                          {`${err.msg}`}
+                                        </FormHelperText>
+                                      ))}
+                                    </FormControl>
+                                  ) : field.fieldType === 'date' ? (
+                                    <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                      <OutlinedInput
+                                        name={`customer_${fieldKey}_${index}`}
+                                        placeholder={tt("DD/MM/YYYY", "DD/MM/YYYY")}
+                                        value={value}
+                                        onChange={(e) => {
+                                          // Allow user to type DD/MM/YYYY format
+                                          let input = e.target.value;
+                                          // Remove non-digit characters except /
+                                          input = input.replace(/[^\d/]/g, '');
+                                          // Auto-format: DD/MM/YYYY
+                                          if (input.length <= 2) {
+                                            // DD
+                                            handleCustomerChange(index, onChangeKey, input);
+                                          } else if (input.length <= 5) {
+                                            // DD/MM
+                                            if (input.length === 3 && !input.includes('/')) {
+                                              input = input.slice(0, 2) + '/' + input.slice(2);
                                             }
-                                            label={<Typography sx={{ fontSize: '11px' }}>{opt.label}</Typography>}
-                                            sx={{ fontSize: '11px', margin: 0 }}
-                                          />
-                                        );
-                                      })}
-                                    </Stack>
-                                    {fieldErrors.map((err, errIdx) => (
-                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
-                                        {`${err.msg}`}
-                                      </FormHelperText>
-                                    ))}
-                                  </FormControl>
-                                ) : field.field_type === 'date' ? (
-                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
-                                    <OutlinedInput
-                                      name={`customer_${fieldKey}_${index}`}
-                                      placeholder={tt("DD/MM/YYYY", "DD/MM/YYYY")}
-                                      value={value}
-                                      onChange={(e) => {
-                                        // Allow user to type DD/MM/YYYY format
-                                        let input = e.target.value;
-                                        // Remove non-digit characters except /
-                                        input = input.replace(/[^\d/]/g, '');
-                                        // Auto-format: DD/MM/YYYY
-                                        if (input.length <= 2) {
-                                          // DD
-                                          handleCustomerChange(index, onChangeKey, input);
-                                        } else if (input.length <= 5) {
-                                          // DD/MM
-                                          if (input.length === 3 && !input.includes('/')) {
-                                            input = input.slice(0, 2) + '/' + input.slice(2);
-                                          }
-                                          handleCustomerChange(index, onChangeKey, input);
-                                        } else if (input.length <= 10) {
-                                          // DD/MM/YYYY
-                                          if (input.length === 6 && input.split('/').length === 2) {
-                                            input = input + '/';
-                                          }
-                                          handleCustomerChange(index, onChangeKey, input.slice(0, 10));
-                                        }
-                                      }}
-                                      size="small"
-                                      sx={{ fontSize: '11px' }}
-                                    />
-                                    {fieldErrors.map((err, errIdx) => (
-                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
-                                        {`${err.msg}`}
-                                      </FormHelperText>
-                                    ))}
-                                  </FormControl>
-                                ) : field.field_type === 'datetime' ? (
-                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
-                                    <OutlinedInput
-                                      name={`customer_${fieldKey}_${index}`}
-                                      placeholder={tt("DD/MM/YYYY HH:mm:ss", "DD/MM/YYYY HH:mm:ss")}
-                                      value={value}
-                                      onChange={(e) => {
-                                        let input = e.target.value;
-                                        // Remove non-digit characters except /, :, and space
-                                        input = input.replace(/[^\d/: ]/g, '');
-                                        // Auto-format: DD/MM/YYYY HH:mm:ss
-                                        if (input.length <= 10) {
-                                          // Handle date part (DD/MM/YYYY)
-                                          if (input.length === 3 && !input.includes('/')) {
-                                            input = input.slice(0, 2) + '/' + input.slice(2);
-                                          } else if (input.length === 6 && input.split('/').length === 2) {
-                                            input = input + '/';
-                                          }
-                                          handleCustomerChange(index, onChangeKey, input.slice(0, 10));
-                                        } else if (input.length <= 19) {
-                                          // Handle datetime part
-                                          if (input.length === 11 && !input.includes(' ')) {
-                                            input = input.slice(0, 10) + ' ' + input.slice(10);
-                                          } else if (input.length === 14 && input.split(':').length === 1) {
-                                            input = input.slice(0, 13) + ':' + input.slice(13);
-                                          } else if (input.length === 17 && input.split(':').length === 2) {
-                                            input = input.slice(0, 16) + ':' + input.slice(16);
-                                          }
-                                          handleCustomerChange(index, onChangeKey, input.slice(0, 19));
-                                        }
-                                      }}
-                                      size="small"
-                                      sx={{ fontSize: '11px' }}
-                                    />
-                                    {fieldErrors.map((err, errIdx) => (
-                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
-                                        {`${err.msg}`}
-                                      </FormHelperText>
-                                    ))}
-                                  </FormControl>
-                                ) : field.field_type === 'time' ? (
-                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
-                                    <OutlinedInput
-                                      name={`customer_${fieldKey}_${index}`}
-                                      placeholder={tt("HH:mm:ss", "HH:mm:ss")}
-                                      value={value}
-                                      onChange={(e) => {
-                                        let input = e.target.value;
-                                        // Remove non-digit characters except :
-                                        input = input.replace(/[^\d:]/g, '');
-                                        // Auto-format: HH:mm:ss
-                                        if (input.length <= 2) {
-                                          // HH
-                                          handleCustomerChange(index, onChangeKey, input);
-                                        } else if (input.length <= 5) {
-                                          // HH:mm
-                                          if (input.length === 3 && !input.includes(':')) {
-                                            input = input.slice(0, 2) + ':' + input.slice(2);
-                                          }
-                                          handleCustomerChange(index, onChangeKey, input);
-                                        } else if (input.length <= 8) {
-                                          // HH:mm:ss
-                                          if (input.length === 6 && input.split(':').length === 2) {
-                                            input = input + ':';
-                                          }
-                                          handleCustomerChange(index, onChangeKey, input.slice(0, 8));
-                                        }
-                                      }}
-                                      size="small"
-                                      sx={{ fontSize: '11px' }}
-                                    />
-                                    {fieldErrors.map((err, errIdx) => (
-                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
-                                        {`${err.msg}`}
-                                      </FormHelperText>
-                                    ))}
-                                  </FormControl>
-                                ) : field.builtin_key === 'phone_number' ? (
-                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
-                                    <OutlinedInput
-                                      name={`customer_${fieldKey}_${index}`}
-                                      type="tel"
-                                      value={value}
-                                      onChange={(e) =>
-                                        handleCustomerChange(index, onChangeKey, e.target.value)
-                                      }
-                                      size="small"
-                                      sx={{ fontSize: '11px' }}
-                                      startAdornment={
-                                        <InputAdornment position="start">
-                                          <Select
-                                            variant="standard"
-                                            sx={{ fontSize: '11px', minWidth: 40 }}
-                                            disableUnderline
-                                            value={customer.phoneCountryCode || '+84'}
-                                            onChange={(e) =>
-                                              handleCustomerChange(index, 'phoneCountryCode', e.target.value)
+                                            handleCustomerChange(index, onChangeKey, input);
+                                          } else if (input.length <= 10) {
+                                            // DD/MM/YYYY
+                                            if (input.length === 6 && input.split('/').length === 2) {
+                                              input = input + '/';
                                             }
-                                            renderValue={(value) => {
-                                              const country = PHONE_COUNTRIES.find(c => c.dialCode === value);
-                                              return country ? country.dialCode : value;
-                                            }}
-                                          >
-                                            {PHONE_COUNTRIES.map((country) => (
-                                              <MenuItem key={country.iso2} value={country.dialCode}>
-                                                {country.nameVi} ({country.dialCode})
-                                              </MenuItem>
-                                            ))}
-                                          </Select>
-                                        </InputAdornment>
-                                      }
-                                    />
-                                    {fieldErrors.map((err, errIdx) => (
-                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
-                                        {`${err.msg}`}
-                                      </FormHelperText>
-                                    ))}
-                                  </FormControl>
-                                ) : field.builtin_key === 'address' ? (
-                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
-                                    <OutlinedInput
-                                      name={`customer_${fieldKey}_${index}`}
-                                      type="text"
-                                      value={value}
-                                      onChange={(e) =>
-                                        handleCustomerChange(index, onChangeKey, e.target.value)
-                                      }
-                                      size="small"
-                                      sx={{ fontSize: '11px' }}
-                                      multiline
-                                      minRows={2}
-                                      maxRows={4}
-                                    />
-                                    {fieldErrors.map((err, errIdx) => (
-                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
-                                        {`${err.msg}`}
-                                      </FormHelperText>
-                                    ))}
-                                  </FormControl>
-                                ) : !field.builtin_key && field.field_type === 'text' ? (
-                                  // Custom text fields - allow multiline
-                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
-                                    <OutlinedInput
-                                      name={`customer_${fieldKey}_${index}`}
-                                      type="text"
-                                      value={value}
-                                      onChange={(e) =>
-                                        handleCustomerChange(index, onChangeKey, e.target.value)
-                                      }
-                                      size="small"
-                                      sx={{ fontSize: '11px' }}
-                                      multiline
-                                      minRows={1}
-                                      maxRows={4}
-                                    />
-                                    {fieldErrors.map((err, errIdx) => (
-                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
-                                        {`${err.msg}`}
-                                      </FormHelperText>
-                                    ))}
-                                  </FormControl>
-                                ) : (
-                                  <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
-                                    <OutlinedInput
-                                      name={`customer_${fieldKey}_${index}`}
-                                      type={field.builtin_key === 'email' ? 'email' : field.field_type === 'number' ? 'number' : 'text'}
-                                      value={value}
-                                      onChange={(e) =>
-                                        handleCustomerChange(index, onChangeKey, e.target.value)
-                                      }
-                                      size="small"
-                                      sx={{ fontSize: '11px' }}
-                                    />
-                                    {fieldErrors.map((err, errIdx) => (
-                                      <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
-                                        {`${err.msg}`}
-                                      </FormHelperText>
-                                    ))}
-                                  </FormControl>
-                                )}
-                              </TableCell>
-                            );
-                          })}
-                          <TableCell>
-                            <IconButton onClick={() => removeCustomer(index)}>
-                              <X />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      );
+                                            handleCustomerChange(index, onChangeKey, input.slice(0, 10));
+                                          }
+                                        }}
+                                        size="small"
+                                        sx={{ fontSize: '11px' }}
+                                      />
+                                      {fieldErrors.map((err, errIdx) => (
+                                        <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                          {`${err.msg}`}
+                                        </FormHelperText>
+                                      ))}
+                                    </FormControl>
+                                  ) : field.fieldType === 'datetime' ? (
+                                    <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                      <OutlinedInput
+                                        name={`customer_${fieldKey}_${index}`}
+                                        placeholder={tt("DD/MM/YYYY HH:mm:ss", "DD/MM/YYYY HH:mm:ss")}
+                                        value={value}
+                                        onChange={(e) => {
+                                          let input = e.target.value;
+                                          // Remove non-digit characters except /, :, and space
+                                          input = input.replace(/[^\d/: ]/g, '');
+                                          // Auto-format: DD/MM/YYYY HH:mm:ss
+                                          if (input.length <= 10) {
+                                            // Handle date part (DD/MM/YYYY)
+                                            if (input.length === 3 && !input.includes('/')) {
+                                              input = input.slice(0, 2) + '/' + input.slice(2);
+                                            } else if (input.length === 6 && input.split('/').length === 2) {
+                                              input = input + '/';
+                                            }
+                                            handleCustomerChange(index, onChangeKey, input.slice(0, 10));
+                                          } else if (input.length <= 19) {
+                                            // Handle datetime part
+                                            if (input.length === 11 && !input.includes(' ')) {
+                                              input = input.slice(0, 10) + ' ' + input.slice(10);
+                                            } else if (input.length === 14 && input.split(':').length === 1) {
+                                              input = input.slice(0, 13) + ':' + input.slice(13);
+                                            } else if (input.length === 17 && input.split(':').length === 2) {
+                                              input = input.slice(0, 16) + ':' + input.slice(16);
+                                            }
+                                            handleCustomerChange(index, onChangeKey, input.slice(0, 19));
+                                          }
+                                        }}
+                                        size="small"
+                                        sx={{ fontSize: '11px' }}
+                                      />
+                                      {fieldErrors.map((err, errIdx) => (
+                                        <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                          {`${err.msg}`}
+                                        </FormHelperText>
+                                      ))}
+                                    </FormControl>
+                                  ) : field.fieldType === 'time' ? (
+                                    <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                      <OutlinedInput
+                                        name={`customer_${fieldKey}_${index}`}
+                                        placeholder={tt("HH:mm:ss", "HH:mm:ss")}
+                                        value={value}
+                                        onChange={(e) => {
+                                          let input = e.target.value;
+                                          // Remove non-digit characters except :
+                                          input = input.replace(/[^\d:]/g, '');
+                                          // Auto-format: HH:mm:ss
+                                          if (input.length <= 2) {
+                                            // HH
+                                            handleCustomerChange(index, onChangeKey, input);
+                                          } else if (input.length <= 5) {
+                                            // HH:mm
+                                            if (input.length === 3 && !input.includes(':')) {
+                                              input = input.slice(0, 2) + ':' + input.slice(2);
+                                            }
+                                            handleCustomerChange(index, onChangeKey, input);
+                                          } else if (input.length <= 8) {
+                                            // HH:mm:ss
+                                            if (input.length === 6 && input.split(':').length === 2) {
+                                              input = input + ':';
+                                            }
+                                            handleCustomerChange(index, onChangeKey, input.slice(0, 8));
+                                          }
+                                        }}
+                                        size="small"
+                                        sx={{ fontSize: '11px' }}
+                                      />
+                                      {fieldErrors.map((err, errIdx) => (
+                                        <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                          {`${err.msg}`}
+                                        </FormHelperText>
+                                      ))}
+                                    </FormControl>
+                                  ) : field.builtinKey === 'phone_number' ? (
+                                    <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                      <OutlinedInput
+                                        name={`customer_${fieldKey}_${index}`}
+                                        type="tel"
+                                        value={value}
+                                        onChange={(e) =>
+                                          handleCustomerChange(index, onChangeKey, e.target.value)
+                                        }
+                                        size="small"
+                                        sx={{ fontSize: '11px' }}
+                                        startAdornment={
+                                          <InputAdornment position="start">
+                                            <Select
+                                              variant="standard"
+                                              sx={{ fontSize: '11px', minWidth: 40 }}
+                                              disableUnderline
+                                              value={customer.phoneCountryCode || '+84'}
+                                              onChange={(e) =>
+                                                handleCustomerChange(index, 'phoneCountryCode', e.target.value)
+                                              }
+                                              renderValue={(value) => {
+                                                const country = PHONE_COUNTRIES.find(c => c.dialCode === value);
+                                                return country ? country.dialCode : value;
+                                              }}
+                                            >
+                                              {PHONE_COUNTRIES.map((country) => (
+                                                <MenuItem key={country.iso2} value={country.dialCode}>
+                                                  {country.nameVi} ({country.dialCode})
+                                                </MenuItem>
+                                              ))}
+                                            </Select>
+                                          </InputAdornment>
+                                        }
+                                      />
+                                      {fieldErrors.map((err, errIdx) => (
+                                        <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                          {`${err.msg}`}
+                                        </FormHelperText>
+                                      ))}
+                                    </FormControl>
+                                  ) : field.builtinKey === 'address' ? (
+                                    <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                      <OutlinedInput
+                                        name={`customer_${fieldKey}_${index}`}
+                                        type="text"
+                                        value={value}
+                                        onChange={(e) =>
+                                          handleCustomerChange(index, onChangeKey, e.target.value)
+                                        }
+                                        size="small"
+                                        sx={{ fontSize: '11px' }}
+                                        multiline
+                                        minRows={2}
+                                        maxRows={4}
+                                      />
+                                      {fieldErrors.map((err, errIdx) => (
+                                        <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                          {`${err.msg}`}
+                                        </FormHelperText>
+                                      ))}
+                                    </FormControl>
+                                  ) : !field.builtinKey && field.fieldType === 'text' ? (
+                                    // Custom text fields - allow multiline
+                                    <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                      <OutlinedInput
+                                        name={`customer_${fieldKey}_${index}`}
+                                        type="text"
+                                        value={value}
+                                        onChange={(e) =>
+                                          handleCustomerChange(index, onChangeKey, e.target.value)
+                                        }
+                                        size="small"
+                                        sx={{ fontSize: '11px' }}
+                                        multiline
+                                        minRows={1}
+                                        maxRows={4}
+                                      />
+                                      {fieldErrors.map((err, errIdx) => (
+                                        <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                          {`${err.msg}`}
+                                        </FormHelperText>
+                                      ))}
+                                    </FormControl>
+                                  ) : (
+                                    <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
+                                      <OutlinedInput
+                                        name={`customer_${fieldKey}_${index}`}
+                                        type={field.builtinKey === 'email' ? 'email' : field.fieldType === 'number' ? 'number' : 'text'}
+                                        value={value}
+                                        onChange={(e) =>
+                                          handleCustomerChange(index, onChangeKey, e.target.value)
+                                        }
+                                        size="small"
+                                        sx={{ fontSize: '11px' }}
+                                      />
+                                      {fieldErrors.map((err, errIdx) => (
+                                        <FormHelperText key={`${fieldKey}-error-${index}-${errIdx}`}>
+                                          {`${err.msg}`}
+                                        </FormHelperText>
+                                      ))}
+                                    </FormControl>
+                                  )}
+                                </TableCell>
+                              );
+                            })}
+                            <TableCell>
+                              <IconButton onClick={() => removeCustomer(index)}>
+                                <X />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        );
                       })}
                     </TableBody>
                   </Table>
@@ -1987,26 +2010,26 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           {tt(`Người mua ${index + 1}`, `Customer ${index + 1}`)}
                         </Typography>
                         {visibleFields.map((field) => {
-                          const fieldKey = field.builtin_key || field.internal_name;
+                          const fieldKey = field.builtinKey || field.internalName;
                           let value = '';
-                          if (field.builtin_key === 'name') {
+                          if (field.builtinKey === 'name') {
                             value = customer.name || '';
-                          } else if (field.builtin_key === 'email') {
+                          } else if (field.builtinKey === 'email') {
                             value = customer.email || '';
-                          } else if (field.builtin_key === 'phone_number') {
+                          } else if (field.builtinKey === 'phone_number') {
                             value = customer.phoneNumber || '';
-                          } else if (field.builtin_key === 'address') {
+                          } else if (field.builtinKey === 'address') {
                             value = customer.address || '';
-                          } else if (field.builtin_key === 'dob') {
+                          } else if (field.builtinKey === 'dob') {
                             value = customer.dob || '';
-                          } else if (field.builtin_key === 'idcard_number') {
+                          } else if (field.builtinKey === 'idcard_number') {
                             value = customer.idcardNumber || '';
                           } else {
-                            value = customer[field.internal_name] || '';
+                            value = customer[field.internalName] || '';
                           }
 
                           // Format name field with title
-                          if (field.builtin_key === 'name') {
+                          if (field.builtinKey === 'name') {
                             value = customer.title ? `${customer.title} ${value}` : value;
                           }
 
