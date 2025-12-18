@@ -246,7 +246,7 @@ export function SideNav(): React.JSX.Element {
                 href={`/event-studio/events/${dynamicId}/invitation-letter-design`}
                 icon={ImageSquare}
               />
-               <NavItemCollapseChildItem
+              <NavItemCollapseChildItem
                 pathname={pathname}
                 key="ticket-tag-design"
                 title={tt("Thiết kế tem vé", "Ticket Tag Design")}
@@ -287,6 +287,7 @@ export function SideNav(): React.JSX.Element {
                 pathname={pathname}
                 key="transactions-create"
                 title={tt("Tạo đơn hàng", "Create Order")}
+                caption={tt("Dành cho quản trị viên sự kiện", "For Event Managers")}
                 href={`/event-studio/events/${dynamicId}/transactions/create`}
                 icon={PlusIcon}
               />
@@ -380,7 +381,7 @@ export function SideNav(): React.JSX.Element {
                 href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-draw`}
                 icon={SpinnerBall}
               />
-              
+
             </NavItemCollapse>
           </Stack>
         </Box>
@@ -392,6 +393,7 @@ export function SideNav(): React.JSX.Element {
 interface NavItemProps extends Omit<NavItemConfig, 'items'> {
   pathname: string;
   children?: React.ReactNode;
+  caption?: string;
 }
 
 function NavItem({ disabled, external, href, icon, matcher, pathname, title }: NavItemProps): React.JSX.Element {
@@ -577,6 +579,7 @@ function NavItemCollapseChildItem({
   pathname,
   title,
   onClick,
+  caption,
 }: NavItemProps): React.JSX.Element {
   const { locale } = useTranslation();
   const currentPathname = usePathname();
@@ -654,6 +657,14 @@ function NavItemCollapseChildItem({
           >
             {title}
           </Typography>
+          {caption && (
+            <Typography
+              component="span"
+              sx={{ color: active ? 'var(--mui-palette-neutral-200)' : 'var(--mui-palette-neutral-500)', fontSize: '0.75rem', lineHeight: '1', display: 'block', marginTop: '-4px' }}
+            >
+              {caption}
+            </Typography>
+          )}
         </Box>
       </Box>
     </li>

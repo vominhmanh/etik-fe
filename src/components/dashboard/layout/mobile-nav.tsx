@@ -263,6 +263,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               pathname={normalizedPathname}
               key="transactions-create"
               title={tt("Tạo đơn hàng", "Create Order")}
+              caption={tt("Dành cho quản trị viên sự kiện", "For Event Manager")}
               href={`/event-studio/events/${dynamicId}/transactions/create`}
               icon={PlusIcon}
               onClose={onClose}
@@ -270,7 +271,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
               key="transactions-create-bulk"
-              title={tt("Tạo đơn hàng theo lô", "Create Bulk Orders")}
+              title={tt("Tạo đơn hàng theo lô (Admin)", "Create Bulk Orders (Admin)")}
               href={`/event-studio/events/${dynamicId}/transactions/create-bulk`}
               icon={StackPlus}
               onClose={onClose}
@@ -369,7 +370,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               icon={SpinnerBall}
               onClose={onClose}
             />
-            
+
           </NavItemCollapse>
         </Stack>
       </Box>
@@ -381,6 +382,7 @@ interface NavItemProps extends Omit<NavItemConfig, 'items'> {
   pathname: string;
   children?: React.ReactNode;
   onClose?: () => void;
+  caption?: string;
 }
 
 function NavItem({ disabled, external, href, icon, matcher, pathname, title, onClose }: NavItemProps): React.JSX.Element {
@@ -558,6 +560,7 @@ function NavItemCollapseChildItem({
   title,
   onClick,
   onClose,
+  caption,
 }: NavItemProps): React.JSX.Element {
   const active = isNavItemActive({ disabled, external, href, matcher, pathname });
   const Icon = icon;
@@ -641,6 +644,14 @@ function NavItemCollapseChildItem({
           >
             {title}
           </Typography>
+          {caption && (
+            <Typography
+              component="span"
+              sx={{ color: active ? 'var(--mui-palette-neutral-200)' : 'var(--mui-palette-neutral-500)', fontSize: '0.75rem', lineHeight: '1', display: 'block', marginTop: '-4px' }}
+            >
+              {caption}
+            </Typography>
+          )}
         </Box>
       </Box>
     </li>
