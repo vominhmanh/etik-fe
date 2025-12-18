@@ -8,6 +8,7 @@ import { AnchorHTMLAttributes, forwardRef } from 'react';
 type LocalizedLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> &
   LinkProps & {
     children?: React.ReactNode;
+    style?: React.CSSProperties;
   };
 
 /**
@@ -35,10 +36,10 @@ export const LocalizedLink = forwardRef<HTMLAnchorElement, LocalizedLinkProps>(
     if (!hrefString.startsWith('/')) {
       // Get the base pathname (remove /en prefix if present)
       const basePathname = pathname.startsWith('/en') ? pathname.substring(3) : pathname;
-      
+
       // Get the directory of the current path (everything except the last segment)
       const currentDir = basePathname.substring(0, basePathname.lastIndexOf('/')) || '/';
-      
+
       // Resolve the relative path
       if (currentDir === '/') {
         hrefString = `/${hrefString}`;
@@ -52,7 +53,7 @@ export const LocalizedLink = forwardRef<HTMLAnchorElement, LocalizedLinkProps>(
       ? `/en${hrefString}`
       : hrefString;
 
-    return <Link ref={ref} href={localizedHref} {...props} />;
+    return <Link ref={ref} href={localizedHref} {...props} style={props.style} />;
   }
 );
 

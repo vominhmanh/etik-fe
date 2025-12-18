@@ -100,6 +100,7 @@ export type EventResponse = {
   displayOption: string;
   externalLink: string | null;
   useCheckInFace: boolean;
+  checkoutFormFields?: CheckoutRuntimeField[];
 };
 
 
@@ -198,7 +199,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   const [responseTransaction, setResponseTransaction] = React.useState<Transaction | null>(null);
   const [checkoutFormFields, setCheckoutFormFields] = React.useState<CheckoutRuntimeField[]>([]);
   const [checkoutCustomAnswers, setCheckoutCustomAnswers] = React.useState<Record<string, any>>({});
-  
+
   // Voucher states
   const [availableVouchers, setAvailableVouchers] = React.useState<any[]>([]);
   const [appliedVoucher, setAppliedVoucher] = React.useState<any | null>(null);
@@ -367,6 +368,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
             `/marketplace/events/${params.event_slug}`
           );
           setEvent(response.data);
+          setCheckoutFormFields(response.data.checkoutFormFields || []);
         } catch (error) {
           notificationCtx.error('Lỗi:', error);
         } finally {
@@ -396,23 +398,6 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
     }
   }, [params.event_slug]);
 
-  // Load checkout form runtime (builtin + custom fields)
-  React.useEffect(() => {
-    const fetchCheckoutForm = async () => {
-      if (!params.event_slug) return;
-      try {
-        const resp: AxiosResponse<{ fields: CheckoutRuntimeField[] }> =
-          await baseHttpServiceInstance.get(
-            `/marketplace/events/${params.event_slug}/forms/checkout/runtime`
-          );
-        setCheckoutFormFields(resp.data.fields || []);
-      } catch (error) {
-        // Nếu chưa có form cấu hình, vẫn dùng các field mặc định hiện tại
-        console.error('Failed to load marketplace checkout form runtime', error);
-      }
-    };
-    fetchCheckoutForm();
-  }, [params.event_slug]);
 
   const builtinInternalNames = React.useMemo(
     () => new Set(['name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
@@ -625,14 +610,14 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       const voucher = response.data;
       setAppliedVoucher(voucher); // Always set to show the box
       setManualDiscountCode('');
-      
+
       // Validate voucher after receiving from API
       const validation = validateVoucher(voucher);
       if (!validation.valid) {
         notificationCtx.error(validation.message || tt('Voucher không hợp lệ', 'Invalid voucher'));
         return;
       }
-      
+
       notificationCtx.success(tt('Mã khuyến mãi hợp lệ', 'Voucher code is valid'));
     } catch (error: any) {
       const errorMessage = error?.response?.data?.detail || tt('Mã khuyến mãi không hợp lệ', 'Invalid voucher code');
@@ -1128,8 +1113,8 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                         );
                       })()}
 
-                      
-{(() => {
+
+                      {(() => {
                         const idCfg = checkoutFormFields.find(
                           (f) => f.internalName === 'idcard_number'
                         );

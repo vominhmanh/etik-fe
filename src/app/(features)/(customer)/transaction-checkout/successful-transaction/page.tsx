@@ -112,6 +112,7 @@ export interface Transaction {
   };
   // Dynamic checkout form answers (ETIK Forms)
   formAnswers?: Record<string, any>;
+  checkoutFormFields?: CheckoutRuntimeField[];
 }
 
 
@@ -137,7 +138,7 @@ type CheckoutRuntimeField = {
 
 export default function Page(): React.JSX.Element {
   const { tt } = useTranslation();
-  
+
   React.useEffect(() => {
     document.title = tt("Giao dịch thành công", "Transaction Successful") + " | ETIK - " + tt("Vé điện tử & Quản lý sự kiện", "E-Tickets & Event Management");
   }, [tt]);
@@ -161,7 +162,7 @@ export default function Page(): React.JSX.Element {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const transactionId = searchParams.get('transaction_id');
-  
+
   // Helper functions that use tt
   const getPaymentMethodDetails = React.useCallback((paymentMethod: string) => {
     switch (paymentMethod) {
@@ -237,7 +238,7 @@ export default function Page(): React.JSX.Element {
   // Fetch transaction details
   useEffect(() => {
     const fetchTransactionDetails = async () => {
-      if (!token || !transactionId) return <React.Suspense fallback={<div>Loading...</div>}></React.Suspense>; // Ensure token exists before making the request
+      if (!token || !transactionId) return;
 
       try {
         setIsLoading(true);
@@ -245,6 +246,7 @@ export default function Page(): React.JSX.Element {
           `/customers/transactions/${transactionId}?token=${token}`
         );
         setTransaction(response.data);
+        setCheckoutFormFields(response.data.checkoutFormFields || []);
       } catch (error) {
         notificationCtx.error(tt('Lỗi:', 'Error:'), error);
       } finally {
@@ -255,22 +257,6 @@ export default function Page(): React.JSX.Element {
     fetchTransactionDetails();
   }, [transactionId, token, tt, notificationCtx]);
 
-  // Fetch checkout form runtime configuration (Marketplace) once transaction is loaded
-  useEffect(() => {
-    const fetchCheckoutForm = async () => {
-      if (!transaction?.event?.slug) return;
-      try {
-        const resp: AxiosResponse<{ fields: CheckoutRuntimeField[] }> =
-          await baseHttpServiceInstance.get(
-            `/marketplace/events/${transaction.event.slug}/forms/checkout/runtime`
-          );
-        setCheckoutFormFields(resp.data.fields || []);
-      } catch (error) {
-        console.error('Failed to load checkout form runtime', error);
-      }
-    };
-    fetchCheckoutForm();
-  }, [transaction?.event?.slug]);
 
   // Fetch check-in eCode
   useEffect(() => {
@@ -675,8 +661,8 @@ export default function Page(): React.JSX.Element {
                                     field.field_type === 'date'
                                       ? 'date'
                                       : field.field_type === 'time'
-                                      ? 'time'
-                                      : 'datetime-local'
+                                        ? 'time'
+                                        : 'datetime-local'
                                   }
                                   value={rawValue ?? ''}
                                   disabled={disabled}
@@ -718,8 +704,8 @@ export default function Page(): React.JSX.Element {
                               {!['text', 'number', 'date', 'time', 'datetime', 'radio', 'checkbox'].includes(
                                 field.field_type
                               ) && (
-                                <Typography variant="body2">{rawValue ?? '—'}</Typography>
-                              )}
+                                  <Typography variant="body2">{rawValue ?? '—'}</Typography>
+                                )}
                             </Stack>
                           </Grid>
                         );

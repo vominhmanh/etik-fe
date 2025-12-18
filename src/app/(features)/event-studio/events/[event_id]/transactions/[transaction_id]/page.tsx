@@ -12,7 +12,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, CaretDoubleRight, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, CaretDoubleRight, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, Gift, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import { LocalizedLink } from '@/components/localized-link';
 
 import * as React from 'react';
@@ -290,6 +290,7 @@ export interface Transaction {
   eCode?: string;
   // Dynamic checkout form answers (ETIK Forms)
   formAnswers?: Record<string, any>;
+  checkoutFormFields?: CheckoutRuntimeField[];
 }
 
 type CheckoutRuntimeFieldOption = {
@@ -449,11 +450,11 @@ export default function Page({ params }: { params: { event_id: number; transacti
         notificationCtx.success(tt('Thông tin đơn hàng đã được cập nhật thành công!', 'Order information has been updated successfully!'));
         setTransaction((prev) => {
           if (!prev) return prev;
-          
+
           // Update formAnswers array with new values
           const prevFormAnswers = (prev as any).formAnswers;
           let updatedFormAnswers: any;
-          
+
           if (Array.isArray(prevFormAnswers)) {
             // New format: array of objects
             updatedFormAnswers = prevFormAnswers.map((item: any) => {
@@ -469,7 +470,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
               ...formAnswers,
             };
           }
-          
+
           return {
             ...prev,
             name: formData.name,
@@ -480,7 +481,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
             formAnswers: updatedFormAnswers,
           };
         });
-        
+
         // Also update local state
         setCheckoutCustomAnswers(prev => ({ ...prev, ...formAnswers }));
       }
@@ -501,7 +502,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
           }
         );
         setTransaction(response.data);
-        
+
         // Parse E.164 phone number to extract country and national number
         const parsedPhone = parseE164Phone(response.data?.phoneNumber);
         const defaultTitle = locale === 'en' ? 'Mx.' : 'Bạn';
@@ -532,6 +533,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
         // Load requireGuestAvatar from transaction data
         setRequireGuestAvatar(response.data?.requireGuestAvatar || false);
+
+        // Load checkout form fields
+        setCheckoutFormFields(response.data?.checkoutFormFields || []);
       } catch (error) {
         notificationCtx.error(tt('Lỗi:', 'Error:'), error);
       } finally {
@@ -542,22 +546,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
     fetchTransactionDetails();
   }, [event_id, transaction_id]);
 
-  // Fetch checkout form runtime configuration (Event Studio)
-  useEffect(() => {
-    const fetchCheckoutForm = async () => {
-      if (!event_id) return;
-      try {
-        const resp: AxiosResponse<{ fields: CheckoutRuntimeField[] }> =
-          await baseHttpServiceInstance.get(
-            `/event-studio/events/${event_id}/forms/checkout/runtime`
-          );
-        setCheckoutFormFields(resp.data.fields || []);
-      } catch (error) {
-        console.error('Failed to load checkout form runtime', error);
-      }
-    };
-    fetchCheckoutForm();
-  }, [event_id]);
 
 
   const handleSetTransactionStatus = async (status: string) => {
@@ -828,11 +816,11 @@ export default function Page({ params }: { params: { event_id: number; transacti
         tickets: editingCategory.tickets.map((ticket, index) => {
           const holder = editingHolderInfos[index];
           if (!holder) return null;
-          
+
           // Derive NSN from phone number (strip leading '0' if present)
           const digits = holder.phone.replace(/\D/g, '');
           const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
-          
+
           return {
             id: ticket.id,
             holderTitle: holder.title,
@@ -848,7 +836,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         `/event-studio/events/${event_id}/transactions/${transaction_id}/update-ticket-holders`,
         payload
       );
-      
+
       // Update transaction state with E.164 formatted phone numbers
       setTransaction((prev) => {
         if (!prev) return prev;
@@ -859,10 +847,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
             tickets: cat.tickets.map((t, i) => {
               const holder = editingHolderInfos[i];
               if (!holder) return t;
-              
+
               // Format phone to E.164
               const e164Phone = formatToE164(holder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2, holder.phone.replace(/\D/g, '').replace(/^0+/, ''));
-              
+
               return {
                 ...t,
                 holderTitle: holder.title || t.holderTitle,
@@ -875,7 +863,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         });
         return { ...prev, transactionTicketCategories: updatedCategories };
       });
-      
+
       notificationCtx.success(tt('Cập nhật thông tin vé thành công!', 'Ticket information updated successfully!'));
       setEditCategoryModalOpen(false);
       setPendingHolderAvatarFiles({});
@@ -961,617 +949,589 @@ export default function Page({ params }: { params: { event_id: number; transacti
   return (
     <>
       <Stack spacing={3}>
-      <Backdrop
-        open={isLoading}
-        sx={{
-          color: '#fff',
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          marginLeft: '0px !important',
-        }}
-      >
-        <CircularProgress color="inherit" />
-      </Backdrop>
-      <div>
-        <Typography variant="h4">{tt('Chi tiết đơn hàng của', 'Order Details for')} {transaction.name}</Typography>
-      </div>
-      <Grid container spacing={3}>
-        <Grid lg={5} md={5} xs={12} spacing={3}>
-          <Stack spacing={3}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent
-                sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-              >
-                <Stack direction="column" spacing={2}>
-                  <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
-                    <div>
-                      {transaction.event.avatarUrl ?
-                        <Box component="img" src={transaction.event.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
-                        :
-                        <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
-                          {(transaction.event.name[0] ?? 'a').toUpperCase()}
-                        </Avatar>}
-                    </div>
-                    <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
-                      {transaction.event.name}
-                    </Typography>
-                  </Stack>
-
-                  <Stack direction="row" spacing={1}>
-                    <HouseLine fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {tt('Đơn vị tổ chức:', 'Organizer:')} {transaction.event.organizer}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" spacing={1}>
-                    <Clock fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {transaction.event.startDateTime && transaction.event.endDateTime
-                        ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                        : tt('Chưa xác định', 'Not specified')} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
-                    </Typography>
-                  </Stack>
-
-                  <Stack direction="row" spacing={1}>
-                    <MapPin fontSize="var(--icon-fontSize-sm)" />
-                    <Typography color="text.secondary" display="inline" variant="body2">
-                      {transaction.event.place ? transaction.event.place : tt('Chưa xác định', 'Not specified')} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
-                    </Typography>
-                  </Stack>
-                </Stack>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader title={tt('Thanh toán', 'Payment')} />
-              <Divider />
-              <CardContent>
-                <Stack spacing={2}>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">{tt('Trạng thái đơn:', 'Order Status:')}</Typography>
-                    <Stack spacing={0} direction={'row'}>
-                      <Chip color={statusDetails.color} label={statusDetails.label} />
-                      {transaction.cancelRequestStatus == 'pending' &&
-                        <Tooltip title={
-                          <Typography>{tt('Khách hàng yêu cầu hủy', 'Customer requested cancellation')}</Typography>
-                        }>
-                          <Chip color={'error'} label={<WarningCircle size={16} />} />
-                        </Tooltip>
-                      }
-                    </Stack>
-
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">{tt('Phương thức thanh toán:', 'Payment Method:')}</Typography>
-                    <Chip icon={paymentMethodDetails.icon} label={paymentMethodDetails.label} />
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">{tt('Trạng thái thanh toán:', 'Payment Status:')}</Typography>
-                    <Chip label={paymentStatusDetails.label} color={paymentStatusDetails.color} />
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">{tt('Trạng thái xuất vé:', 'Ticket Issued Status:')}</Typography>
-                    <Chip
-                      color={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent', tt).color}
-                      label={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent', tt).label}
-                    />
-                  </Grid>
-                  <Grid container justifyContent="space-between">
-                    <Typography variant="body1">{tt('Tổng số tiền:', 'Total Amount:')}</Typography>
-                    <Chip
-                      icon={<MoneyIcon />}
-                      label={`${transaction.totalAmount.toLocaleString()} VND`}
-                      color="success"
-                    />
-                  </Grid>
-                </Stack>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader title={tt('Hành động', 'Actions')} />
-              <Divider />
-              <CardContent>
-                <Stack spacing={3}>
-                  {transaction.cancelRequestStatus === 'pending' &&
-                    <>
-                      <Typography variant='body2' color={'error'} sx={{ fontWeight: 'bold' }}>
-                        {tt('Khách hàng yêu cầu hủy đơn hàng:', 'Customer requested order cancellation:')}
+        <Backdrop
+          open={isLoading}
+          sx={{
+            color: '#fff',
+            zIndex: (theme) => theme.zIndex.drawer + 1,
+            marginLeft: '0px !important',
+          }}
+        >
+          <CircularProgress color="inherit" />
+        </Backdrop>
+        <div>
+          <Typography variant="h4">{tt('Chi tiết đơn hàng của', 'Order Details for')} {transaction.name}</Typography>
+        </div>
+        <Grid container spacing={3}>
+          <Grid lg={5} md={5} xs={12} spacing={3}>
+            <Stack spacing={3}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent
+                  sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                >
+                  <Stack direction="column" spacing={2}>
+                    <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
+                      <div>
+                        {transaction.event.avatarUrl ?
+                          <Box component="img" src={transaction.event.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                          :
+                          <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
+                            {(transaction.event.name[0] ?? 'a').toUpperCase()}
+                          </Avatar>}
+                      </div>
+                      <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
+                        {transaction.event.name}
                       </Typography>
-                      <Stack spacing={2} direction={'row'}>
-                        <Button
-                          onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'reject')}
-                          size="small"
-                        >
-                          {tt('Từ chối hủy', 'Reject Cancellation')}
-                        </Button>
-                        <Button
-                          onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'accept')}
-                          size="small"
-                          color='error'
-                          startIcon={<Check />}
-                        >
-                          {tt('Chấp nhận hủy', 'Accept Cancellation')}
-                        </Button>
-                      </Stack>
-                      <Divider />
-                    </>
-
-                  }
-                  {transaction.status === 'wait_for_response' &&
-                    <Stack spacing={2} direction={'row'}>
-                      <Button onClick={() => handleSetTransactionStatus('normal')} size="small" startIcon={<Check />}>
-                        {tt('Phê duyệt đơn hàng', 'Approve Order')}
-                      </Button>
-                      <Button onClick={() => handleSetTransactionStatus('staff_locked')} size="small" startIcon={<X />}>
-                        {tt('Từ chối đơn hàng', 'Reject Order')}
-                      </Button>
                     </Stack>
-                  }
-                  {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt == null && (
-                    <>
-                      <Stack spacing={1} direction={'row'} flexWrap={'wrap'}>
-                        <Button onClick={() => exportTicket()} size="small" startIcon={<TicketIcon />}>
-                          {tt('Xuất vé', 'Export Tickets')}
-                        </Button>
-                      </Stack>
-                    </>
-                  )}
-                  {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
-                    <>
-                      <Stack spacing={0} direction={'row'} flexWrap={'wrap'}>
-                        {transaction.qrOption === 'shared' && (
-                          <>
-                            <Button onClick={() => sendTransaction('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                              {tt('Gửi Email đơn hàng', 'Send Order Email')}
-                            </Button>
-                            <Button onClick={() => sendTransaction('zalo')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                              {tt('Gửi Zalo đơn hàng', 'Send Order via Zalo')}
-                            </Button>
-                          </>
-                        )}
-                        {transaction.qrOption === 'separate' && (
-                          <>
-                            <Button onClick={() => sendTransaction('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                              {tt('Gửi Email cho người đại diện (ng.mua)', 'Send Email to Representative (Buyer)')}
-                            </Button>
-                            <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                              {tt('Gửi Email cho từng người sở hữu', 'Send Email to Each Ticket Holder')}
-                            </Button>
-                            <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                              {tt('Gửi Zalo cho từng người sở hữu', 'Send Zalo to Each Ticket Holder')}
-                            </Button>
-                          </>
-                        )}
 
-                        <Button
-                          onClick={() => window.open(`/event-studio/events/${event_id}/transactions/${transaction_id}/invitation-letter`, '_blank')}
-                          size="small"
-                          startIcon={<ImageSquare />} // Icon for document-like invitation letter
-                        >
-                          {tt('Xem ảnh thư mời', 'View Invitation Letter')}
-                        </Button>
-                        <Button
-                          onClick={() => setPrintTagModalOpen(true)}
-                          size="small"
-                          startIcon={<Printer />}
-                        >
-                          {tt('In tag vé', 'Print Ticket Tags')}
-                        </Button>
-                      </Stack>
-                    </>
-                  )}
-                  {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
-                    <Stack spacing={2} direction={'row'}>
-                      <Button size="small" startIcon={<SignIn />} onClick={checkInAllTickets}>
-                        {tt('Check-in tất cả vé', 'Check-in All Tickets')}
-                      </Button>
-                      <Button size="small" startIcon={<SignOut />} onClick={checkOutAllTickets}>
-                        {tt('Check-out tất cả vé', 'Check-out All Tickets')}
-                      </Button>
+                    <Stack direction="row" spacing={1}>
+                      <HouseLine fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {tt('Đơn vị tổ chức:', 'Organizer:')} {transaction.event.organizer}
+                      </Typography>
                     </Stack>
-                  )}
+                    <Stack direction="row" spacing={1}>
+                      <Clock fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {transaction.event.startDateTime && transaction.event.endDateTime
+                          ? `${dayjs(transaction.event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(transaction.event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
+                          : tt('Chưa xác định', 'Not specified')} {transaction.event.timeInstruction ? `(${transaction.event.timeInstruction})` : ''}
+                      </Typography>
+                    </Stack>
 
-                  <Stack spacing={2} direction={'row'}>
-                    {transaction.status === 'normal' &&
-                      transaction.paymentMethod === 'napas247' &&
-                      transaction.paymentStatus === 'waiting_for_payment' && (
-                        <>
-                          <Button onClick={resendInstructionNapas247Email}
-                            size="small"
-                            startIcon={<EnvelopeSimpleIcon />}
-                          >
-                            {tt('Gửi Hướng dẫn thanh toán qua Email', 'Send Payment Instruction via Email')}
-                          </Button>
-                          <Button onClick={resendInstructionNapas247Email}
-                            size="small"
-                            startIcon={<EnvelopeSimpleIcon />}
-                          >
-                            {tt('Gửi Hướng dẫn thanh toán qua Zalo', 'Send Payment Instruction via Zalo')}
-                          </Button>
-                        </>
-                      )}
-                    {transaction.status === 'normal' &&
-                      transaction.paymentMethod !== 'napas247' &&
-                      transaction.paymentStatus === 'waiting_for_payment' && (
-                        <Button
-                          onClick={() => setTransactionPaidStatus(params.event_id, params.transaction_id)}
-                          size="small"
-                          startIcon={<EnvelopeSimpleIcon />}
-                        >
-                          {tt('Chuyển trạng thái "Đã thanh toán"', 'Change Status to "Paid"')}
-                        </Button>
-                      )}
-
-                    {(transaction.status === 'staff_locked' || transaction.status === 'customer_cancelled')  &&
-                      transaction.paymentStatus === 'paid' && (
-                        <Button
-                          onClick={() => setTransactionRefundStatus(params.event_id, params.transaction_id)}
-                          size="small"
-                          startIcon={<EnvelopeSimpleIcon />}
-                        >
-                          {tt('Hoàn tiền đơn hàng', 'Refund Order')}
-                        </Button>
-                      )}
+                    <Stack direction="row" spacing={1}>
+                      <MapPin fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {transaction.event.place ? transaction.event.place : tt('Chưa xác định', 'Not specified')} {transaction.event.locationInstruction ? `(${transaction.event.locationInstruction})` : ''}
+                      </Typography>
+                    </Stack>
                   </Stack>
-                  {transaction.status !== 'transfered' && (
-                  <Grid container spacing={3}>
-                    <Grid md={10} xs={9}>
-                      <FormControl size='small' fullWidth>
-                        <InputLabel>{tt('Hủy đơn hàng', 'Cancel Order')}</InputLabel>
-                        <Select
-                          label={tt('Hủy đơn hàng', 'Cancel Order')}
-                          name="status"
-                          value={selectedStatus}
-                          onChange={(event) => setSelectedStatus(event.target.value)}
-                        >
-                          {transaction.status === 'wait_for_response' && (
-                            <MenuItem value="normal">{tt('Phê duyệt đơn hàng', 'Approve Order')}</MenuItem>
-                          )}
-                          <MenuItem value="customer_cancelled">{tt('Huỷ bởi Khách hàng', 'Cancelled by Customer')}</MenuItem>
-                          <MenuItem value="staff_locked">{tt('Khoá bởi Nhân viên', 'Locked by Staff')}</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid md={2} xs={3} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        onClick={() => handleSetTransactionStatus(selectedStatus)}
-                        disabled={!selectedStatus} // Disable if no status is selected
-                      >
-                        {tt('Lưu', 'Save')}
-                      </Button>
-                    </Grid>
-                  </Grid>
-                  )}
-                </Stack>
-              </CardContent>
-            </Card>
-
-            {transaction.paymentMethod === 'napas247' && (
+                </CardContent>
+              </Card>
               <Card>
-                <CardHeader title={tt('Chi tiết thanh toán Napas 247', 'Napas 247 Payment Details')} />
+                <CardHeader title={tt('Thanh toán', 'Payment')} />
                 <Divider />
                 <CardContent>
                   <Stack spacing={2}>
                     <Grid container justifyContent="space-between">
-                      <Typography variant="body1">{tt('Payment order code:', 'Payment order code:')}</Typography>
-                      <Typography variant="body1">{transaction.paymentOrderCode}</Typography>
+                      <Typography variant="body1">{tt('Trạng thái đơn:', 'Order Status:')}</Typography>
+                      <Stack spacing={0} direction={'row'}>
+                        <Chip color={statusDetails.color} label={statusDetails.label} />
+                        {transaction.cancelRequestStatus == 'pending' &&
+                          <Tooltip title={
+                            <Typography>{tt('Khách hàng yêu cầu hủy', 'Customer requested cancellation')}</Typography>
+                          }>
+                            <Chip color={'error'} label={<WarningCircle size={16} />} />
+                          </Tooltip>
+                        }
+                      </Stack>
+
                     </Grid>
-                    {transaction.paymentStatus === 'waiting_for_payment' && (
+                    <Grid container justifyContent="space-between">
+                      <Typography variant="body1">{tt('Phương thức thanh toán:', 'Payment Method:')}</Typography>
+                      <Chip icon={paymentMethodDetails.icon} label={paymentMethodDetails.label} />
+                    </Grid>
+                    <Grid container justifyContent="space-between">
+                      <Typography variant="body1">{tt('Trạng thái thanh toán:', 'Payment Status:')}</Typography>
+                      <Chip label={paymentStatusDetails.label} color={paymentStatusDetails.color} />
+                    </Grid>
+                    <Grid container justifyContent="space-between">
+                      <Typography variant="body1">{tt('Trạng thái xuất vé:', 'Ticket Issued Status:')}</Typography>
+                      <Chip
+                        color={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent', tt).color}
+                        label={getSentEmailTicketStatusDetails(transaction?.exportedTicketAt ? 'sent' : 'not_sent', tt).label}
+                      />
+                    </Grid>
+                    <Grid container justifyContent="space-between">
+                      <Typography variant="body1">{tt('Tổng số tiền:', 'Total Amount:')}</Typography>
+                      <Chip
+                        icon={<MoneyIcon />}
+                        label={`${transaction.totalAmount.toLocaleString()} VND`}
+                        color="success"
+                      />
+                    </Grid>
+                  </Stack>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader title={tt('Hành động', 'Actions')} />
+                <Divider />
+                <CardContent>
+                  <Stack spacing={3}>
+                    {transaction.cancelRequestStatus === 'pending' &&
                       <>
-                        <Grid container justifyContent="space-between">
-                          <Typography variant="body1">{tt('Hạn thanh toán:', 'Payment Deadline:')}</Typography>
-                          <Typography variant="body1">
-                            {dayjs(transaction.paymentDueDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}
-                          </Typography>
-                        </Grid>
-                        <Grid container justifyContent="space-between">
-                          <Typography variant="body1">{tt('Trang thanh toán:', 'Payment Page:')}</Typography>
-                          <Typography variant="body1">
-                            <Button
-                              component={LocalizedLink}
-                              href={transaction.paymentCheckoutUrl || ''}
-                              size="small"
-                              startIcon={<LightningIcon />}
-                            >
-                              {tt('Đến trang thanh toán', 'Go to Payment Page')}
-                            </Button>
-                          </Typography>
-                        </Grid>
+                        <Typography variant='body2' color={'error'} sx={{ fontWeight: 'bold' }}>
+                          {tt('Khách hàng yêu cầu hủy đơn hàng:', 'Customer requested order cancellation:')}
+                        </Typography>
+                        <Stack spacing={2} direction={'row'}>
+                          <Button
+                            onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'reject')}
+                            size="small"
+                          >
+                            {tt('Từ chối hủy', 'Reject Cancellation')}
+                          </Button>
+                          <Button
+                            onClick={() => handleProcessCancelRequestStatus(transaction.id, event_id, 'accept')}
+                            size="small"
+                            color='error'
+                            startIcon={<Check />}
+                          >
+                            {tt('Chấp nhận hủy', 'Accept Cancellation')}
+                          </Button>
+                        </Stack>
+                        <Divider />
+                      </>
+
+                    }
+                    {transaction.status === 'wait_for_response' &&
+                      <Stack spacing={2} direction={'row'}>
+                        <Button onClick={() => handleSetTransactionStatus('normal')} size="small" startIcon={<Check />}>
+                          {tt('Phê duyệt đơn hàng', 'Approve Order')}
+                        </Button>
+                        <Button onClick={() => handleSetTransactionStatus('staff_locked')} size="small" startIcon={<X />}>
+                          {tt('Từ chối đơn hàng', 'Reject Order')}
+                        </Button>
+                      </Stack>
+                    }
+                    {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt == null && (
+                      <>
+                        <Stack spacing={1} direction={'row'} flexWrap={'wrap'}>
+                          <Button onClick={() => exportTicket()} size="small" startIcon={<TicketIcon />}>
+                            {tt('Xuất vé', 'Export Tickets')}
+                          </Button>
+                        </Stack>
                       </>
                     )}
-                    {transaction.paymentStatus === 'paid' && (
-                      <Grid container justifyContent="space-between">
-                        <Typography variant="body1">{tt('Thời gian thanh toán:', 'Payment Time:')}</Typography>
-                        <Typography variant="body1">
-                          {dayjs(transaction.paymentTransactionDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}
-                        </Typography>
+                    {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
+                      <>
+                        <Stack spacing={0} direction={'row'} flexWrap={'wrap'}>
+                          {transaction.qrOption === 'shared' && (
+                            <>
+                              <Button onClick={() => sendTransaction('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                                {tt('Gửi Email đơn hàng', 'Send Order Email')}
+                              </Button>
+                              <Button onClick={() => sendTransaction('zalo')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                                {tt('Gửi Zalo đơn hàng', 'Send Order via Zalo')}
+                              </Button>
+                            </>
+                          )}
+                          {transaction.qrOption === 'separate' && (
+                            <>
+                              <Button onClick={() => sendTransaction('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                                {tt('Gửi Email cho người đại diện (ng.mua)', 'Send Email to Representative (Buyer)')}
+                              </Button>
+                              <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                                {tt('Gửi Email cho từng người sở hữu', 'Send Email to Each Ticket Holder')}
+                              </Button>
+                              <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<EnvelopeSimpleIcon />}>
+                                {tt('Gửi Zalo cho từng người sở hữu', 'Send Zalo to Each Ticket Holder')}
+                              </Button>
+                            </>
+                          )}
+
+                          <Button
+                            onClick={() => window.open(`/event-studio/events/${event_id}/transactions/${transaction_id}/invitation-letter`, '_blank')}
+                            size="small"
+                            startIcon={<ImageSquare />} // Icon for document-like invitation letter
+                          >
+                            {tt('Xem ảnh thư mời', 'View Invitation Letter')}
+                          </Button>
+                          <Button
+                            onClick={() => setPrintTagModalOpen(true)}
+                            size="small"
+                            startIcon={<Printer />}
+                          >
+                            {tt('In tag vé', 'Print Ticket Tags')}
+                          </Button>
+                          <Button
+                            onClick={() => setGiftTicketModalOpen(true)}
+                            size="small"
+                            startIcon={<Gift />}
+                          >
+                            {tt('Tặng vé', 'Gift Ticket')}
+                          </Button>
+                        </Stack>
+                      </>
+                    )}
+                    {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
+                      <Stack spacing={2} direction={'row'}>
+                        <Button size="small" startIcon={<SignIn />} onClick={checkInAllTickets}>
+                          {tt('Check-in tất cả vé', 'Check-in All Tickets')}
+                        </Button>
+                        <Button size="small" startIcon={<SignOut />} onClick={checkOutAllTickets}>
+                          {tt('Check-out tất cả vé', 'Check-out All Tickets')}
+                        </Button>
+                      </Stack>
+                    )}
+
+                    <Stack spacing={2} direction={'row'}>
+                      {transaction.status === 'normal' &&
+                        transaction.paymentMethod === 'napas247' &&
+                        transaction.paymentStatus === 'waiting_for_payment' && (
+                          <>
+                            <Button onClick={resendInstructionNapas247Email}
+                              size="small"
+                              startIcon={<EnvelopeSimpleIcon />}
+                            >
+                              {tt('Gửi Hướng dẫn thanh toán qua Email', 'Send Payment Instruction via Email')}
+                            </Button>
+                            <Button onClick={resendInstructionNapas247Email}
+                              size="small"
+                              startIcon={<EnvelopeSimpleIcon />}
+                            >
+                              {tt('Gửi Hướng dẫn thanh toán qua Zalo', 'Send Payment Instruction via Zalo')}
+                            </Button>
+                          </>
+                        )}
+                      {transaction.status === 'normal' &&
+                        transaction.paymentMethod !== 'napas247' &&
+                        transaction.paymentStatus === 'waiting_for_payment' && (
+                          <Button
+                            onClick={() => setTransactionPaidStatus(params.event_id, params.transaction_id)}
+                            size="small"
+                            startIcon={<EnvelopeSimpleIcon />}
+                          >
+                            {tt('Chuyển trạng thái "Đã thanh toán"', 'Change Status to "Paid"')}
+                          </Button>
+                        )}
+
+                      {(transaction.status === 'staff_locked' || transaction.status === 'customer_cancelled') &&
+                        transaction.paymentStatus === 'paid' && (
+                          <Button
+                            onClick={() => setTransactionRefundStatus(params.event_id, params.transaction_id)}
+                            size="small"
+                            startIcon={<EnvelopeSimpleIcon />}
+                          >
+                            {tt('Hoàn tiền đơn hàng', 'Refund Order')}
+                          </Button>
+                        )}
+                    </Stack>
+                    {transaction.status !== 'transfered' && (
+                      <Grid container spacing={3}>
+                        <Grid md={10} xs={9}>
+                          <FormControl size='small' fullWidth>
+                            <InputLabel>{tt('Hủy đơn hàng', 'Cancel Order')}</InputLabel>
+                            <Select
+                              label={tt('Hủy đơn hàng', 'Cancel Order')}
+                              name="status"
+                              value={selectedStatus}
+                              onChange={(event) => setSelectedStatus(event.target.value)}
+                            >
+                              {transaction.status === 'wait_for_response' && (
+                                <MenuItem value="normal">{tt('Phê duyệt đơn hàng', 'Approve Order')}</MenuItem>
+                              )}
+                              <MenuItem value="customer_cancelled">{tt('Huỷ bởi Khách hàng', 'Cancelled by Customer')}</MenuItem>
+                              <MenuItem value="staff_locked">{tt('Khoá bởi Nhân viên', 'Locked by Staff')}</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                        <Grid md={2} xs={3} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <Button
+                            type="submit"
+                            variant="contained"
+                            onClick={() => handleSetTransactionStatus(selectedStatus)}
+                            disabled={!selectedStatus} // Disable if no status is selected
+                          >
+                            {tt('Lưu', 'Save')}
+                          </Button>
+                        </Grid>
                       </Grid>
                     )}
                   </Stack>
                 </CardContent>
               </Card>
-            )}
-            <Card>
-              <CardHeader title={tt('Thông tin khác', 'Other Information')} />
-              <Divider />
-              <CardContent>
-                <Stack spacing={0}>
-                  {/* createdAt */}
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">{tt('Thời gian khởi tạo:', 'Created At:')}</Typography>
-                    </Stack>
-                    <Typography variant="body1">
-                      {dayjs(transaction.createdAt).format('HH:mm:ss DD/MM/YYYY')}
-                    </Typography>
-                  </Grid>
-                  {/* Created source */}
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">{tt('Người khởi tạo:', 'Created By:')}</Typography>
-                    </Stack>
-                    <Typography variant="body1">{transaction.creator?.fullName || tt('Không có thông tin', 'No information')}</Typography>
-                  </Grid>
-                  {/* Created source */}
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">{tt('Nguồn khởi tạo:', 'Created Source:')}</Typography>
-                    </Stack>
-                    <Typography variant="body1">{createdSource.label || tt('Chưa xác định', 'Not specified')}</Typography>
-                  </Grid>
-                  {/* sentPaymentInstructionAt */}
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">{tt('Thời gian gửi hướng dẫn t.toán:', 'Payment Instruction Sent At:')}</Typography>
-                    </Stack>
-                    <Typography variant="body1">
-                      {transaction.sentPaymentInstructionAt ? dayjs(transaction.sentPaymentInstructionAt).format('HH:mm:ss DD/MM/YYYY') : tt("Chưa gửi", "Not sent")}
-                    </Typography>
-                  </Grid>
-                  {/* createdAt */}
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">{tt('Thời gian xuất vé:', 'Tickets Exported At:')}</Typography>
-                    </Stack>
-                    <Typography variant="body1">
-                      {transaction.exportedTicketAt ? dayjs(transaction.exportedTicketAt).format('HH:mm:ss DD/MM/YYYY') : tt("Chưa gửi", "Not sent")}
-                    </Typography>
-                  </Grid>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Stack>
-        </Grid>
-        <Grid lg={7} md={7} xs={12} spacing={3}>
-          <Stack spacing={3}>
-            <Card>
-              <CardHeader title={tt('Thông tin người mua vé', 'Buyer Information')} />
-              <Divider />
-              <CardContent>
-                <Grid container spacing={3}>
-                  {/* Built-in fields driven by checkout runtime config */}
-                  {(() => {
-                    const nameCfg = checkoutFormFields.find((f) => f.internalName === 'name');
-                    const visible = !!nameCfg && nameCfg.visible;
-                    const label = nameCfg?.label || tt('Danh xưng*  Họ và tên', 'Title* Full Name');
-                    return (
-                      visible && (
-                        <Grid md={6} xs={12}>
-                          <FormControl fullWidth required>
-                            <InputLabel htmlFor="customer-name">{label}</InputLabel>
-                            <OutlinedInput
-                              id="customer-name"
-                              name="name"
-                              value={formData.name}
-                              onChange={(event) => handleFormChange(event)}
-                              label={label}
-                              startAdornment={
-                                <InputAdornment position="start">
-                                  <Select
-                                    variant="standard"
-                                    disableUnderline
-                                    value={formData.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
-                                    onChange={(event) =>
-                                      setFormData({ ...formData, title: event.target.value })
-                                    }
-                                    sx={{ minWidth: 70 }}
-                                  >
-                                    {['Anh','Chị','Bạn','Em','Ông','Bà','Cô','Mr.','Ms.','Mx.','Miss','Thầy'].map((title) => (
-                                      <MenuItem key={title} value={title}>{title}</MenuItem>
-                                    ))}
-                                  </Select>
-                                </InputAdornment>
-                              }
-                            />
-                          </FormControl>
-                        </Grid>
-                      )
-                    );
-                  })()}
 
-                  {(() => {
-                    const emailCfg = checkoutFormFields.find((f) => f.internalName === 'email');
-                    const visible = !!emailCfg && emailCfg.visible;
-                    const label = emailCfg?.label || tt('Email', 'Email');
-                    return (
-                      visible && (
-                        <Grid md={6} xs={12}>
-                          <FormControl fullWidth required>
-                            <InputLabel>{label}</InputLabel>
-                            <OutlinedInput value={transaction.email} disabled label={label} />
-                          </FormControl>
-                        </Grid>
-                      )
-                    );
-                  })()}
-
-                  {(() => {
-                    const phoneCfg = checkoutFormFields.find((f) => f.internalName === 'phone_number');
-                    const visible = !!phoneCfg && phoneCfg.visible;
-                    const label = phoneCfg?.label || tt('Số điện thoại', 'Phone Number');
-                    return (
-                      visible && (
-                        <Grid md={6} xs={12}>
-                          <FormControl fullWidth>
-                            <InputLabel>{label}</InputLabel>
-                            <OutlinedInput
-                              value={formData.phoneNumber}
-                              onChange={(event: any) => handleFormChange(event)}
-                              name="phoneNumber"
-                              label={label}
-                              startAdornment={
-                                <InputAdornment position="start">
-                                  <Select
-                                    variant="standard"
-                                    disableUnderline
-                                    value={formData.phoneCountryIso2}
-                                    onChange={(event) =>
-                                      setFormData({ ...formData, phoneCountryIso2: event.target.value })
-                                    }
-                                    sx={{ minWidth: 80 }}
-                                    renderValue={(value) => {
-                                      const country = PHONE_COUNTRIES.find(c => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
-                                      return country.dialCode;
-                                    }}
-                                  >
-                                    {PHONE_COUNTRIES.map((country) => (
-                                      <MenuItem key={country.iso2} value={country.iso2}>
-                                        {country.nameVi} ({country.dialCode})
-                                      </MenuItem>
-                                    ))}
-                                  </Select>
-                                </InputAdornment>
-                              }
-                            />
-                          </FormControl>
-                        </Grid>
-                      )
-                    );
-                  })()}
-
-                  {(() => {
-                    const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
-                    const visible = !!dobCfg && dobCfg.visible;
-                    const label = dobCfg?.label || tt('Ngày tháng năm sinh', 'Date of Birth');
-                    return (
-                      visible && (
-                        <Grid md={6} xs={12}>
-                          <FormControl fullWidth required={!!dobCfg?.required}>
-                            <InputLabel shrink>{label}</InputLabel>
-                            <OutlinedInput
-                              label={label}
-                              name="dob"
-                              type="date"
-                              value={formData.dob}
-                              onChange={(event: any) => handleFormChange(event)}
-                              inputProps={{ max: new Date().toISOString().slice(0, 10) }}
-                            />
-                          </FormControl>
-                        </Grid>
-                      )
-                    );
-                  })()}
-
-                  {(() => {
-                    const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
-                    const visible = !!addrCfg && addrCfg.visible;
-                    const label = addrCfg?.label || tt('Địa chỉ', 'Address');
-                    return (
-                      visible && (
-                        <Grid md={12} xs={12}>
-                          <FormControl fullWidth required={!!addrCfg?.required}>
-                            <InputLabel>{label}</InputLabel>
-                            <OutlinedInput
-                              value={formData.address}
-                              onChange={(event: any) => handleFormChange(event)}
-                              name="address"
-                              label={label}
-                            />
-                          </FormControl>
-                        </Grid>
-                      )
-                    );
-                  })()}
-
-                  {(() => {
-                    const idCfg = checkoutFormFields.find(
-                      (f) => f.internalName === 'idcard_number'
-                    );
-                    const visible = !!idCfg && idCfg.visible;
-                    const label = idCfg?.label || tt('Căn cước công dân', 'ID Card Number');
-                    return (
-                      visible && (
-                        <Grid md={12} xs={12}>
-                          <FormControl fullWidth required={!!idCfg?.required}>
-                            <InputLabel>{label}</InputLabel>
-                            <OutlinedInput
-                              value={(transaction as any).idcardNumber || ''}
-                              disabled
-                              label={label}
-                            />
-                          </FormControl>
-                        </Grid>
-                      )
-                    );
-                  })()}
-
-                  {/* Custom checkout fields (visible only, editable in Event Studio) */}
-                  {customCheckoutFields.map((field) => {
-                    const rawValue = checkoutCustomAnswers[field.internalName];
-
-                    return (
-                      <Grid key={field.internalName} xs={12}>
-                        <Stack spacing={0.5}>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {field.label}
-                            {field.required && ' *'}
-                          </Typography>
-                          {field.note && (
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {field.note}
+              {transaction.paymentMethod === 'napas247' && (
+                <Card>
+                  <CardHeader title={tt('Chi tiết thanh toán Napas 247', 'Napas 247 Payment Details')} />
+                  <Divider />
+                  <CardContent>
+                    <Stack spacing={2}>
+                      <Grid container justifyContent="space-between">
+                        <Typography variant="body1">{tt('Payment order code:', 'Payment order code:')}</Typography>
+                        <Typography variant="body1">{transaction.paymentOrderCode}</Typography>
+                      </Grid>
+                      {transaction.paymentStatus === 'waiting_for_payment' && (
+                        <>
+                          <Grid container justifyContent="space-between">
+                            <Typography variant="body1">{tt('Hạn thanh toán:', 'Payment Deadline:')}</Typography>
+                            <Typography variant="body1">
+                              {dayjs(transaction.paymentDueDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}
                             </Typography>
-                          )}
+                          </Grid>
+                          <Grid container justifyContent="space-between">
+                            <Typography variant="body1">{tt('Trang thanh toán:', 'Payment Page:')}</Typography>
+                            <Typography variant="body1">
+                              <Button
+                                component={LocalizedLink}
+                                href={transaction.paymentCheckoutUrl || ''}
+                                size="small"
+                                startIcon={<LightningIcon />}
+                              >
+                                {tt('Đến trang thanh toán', 'Go to Payment Page')}
+                              </Button>
+                            </Typography>
+                          </Grid>
+                        </>
+                      )}
+                      {transaction.paymentStatus === 'paid' && (
+                        <Grid container justifyContent="space-between">
+                          <Typography variant="body1">{tt('Thời gian thanh toán:', 'Payment Time:')}</Typography>
+                          <Typography variant="body1">
+                            {dayjs(transaction.paymentTransactionDatetime || 0).format('HH:mm:ss DD/MM/YYYY')}
+                          </Typography>
+                        </Grid>
+                      )}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              )}
+              <Card>
+                <CardHeader title={tt('Thông tin khác', 'Other Information')} />
+                <Divider />
+                <CardContent>
+                  <Stack spacing={0}>
+                    {/* createdAt */}
+                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body1">{tt('Thời gian khởi tạo:', 'Created At:')}</Typography>
+                      </Stack>
+                      <Typography variant="body1">
+                        {dayjs(transaction.createdAt).format('HH:mm:ss DD/MM/YYYY')}
+                      </Typography>
+                    </Grid>
+                    {/* Created source */}
+                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body1">{tt('Người khởi tạo:', 'Created By:')}</Typography>
+                      </Stack>
+                      <Typography variant="body1">{transaction.creator?.fullName || tt('Không có thông tin', 'No information')}</Typography>
+                    </Grid>
+                    {/* Created source */}
+                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body1">{tt('Nguồn khởi tạo:', 'Created Source:')}</Typography>
+                      </Stack>
+                      <Typography variant="body1">{createdSource.label || tt('Chưa xác định', 'Not specified')}</Typography>
+                    </Grid>
+                    {/* sentPaymentInstructionAt */}
+                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body1">{tt('Thời gian gửi hướng dẫn t.toán:', 'Payment Instruction Sent At:')}</Typography>
+                      </Stack>
+                      <Typography variant="body1">
+                        {transaction.sentPaymentInstructionAt ? dayjs(transaction.sentPaymentInstructionAt).format('HH:mm:ss DD/MM/YYYY') : tt("Chưa gửi", "Not sent")}
+                      </Typography>
+                    </Grid>
+                    {/* createdAt */}
+                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body1">{tt('Thời gian xuất vé:', 'Tickets Exported At:')}</Typography>
+                      </Stack>
+                      <Typography variant="body1">
+                        {transaction.exportedTicketAt ? dayjs(transaction.exportedTicketAt).format('HH:mm:ss DD/MM/YYYY') : tt("Chưa gửi", "Not sent")}
+                      </Typography>
+                    </Grid>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Stack>
+          </Grid>
+          <Grid lg={7} md={7} xs={12} spacing={3}>
+            <Stack spacing={3}>
+              <Card>
+                <CardHeader title={tt('Thông tin người mua vé', 'Buyer Information')} />
+                <Divider />
+                <CardContent>
+                  <Grid container spacing={3}>
+                    {/* Built-in fields driven by checkout runtime config */}
+                    {(() => {
+                      const nameCfg = checkoutFormFields.find((f) => f.internalName === 'name');
+                      const visible = !!nameCfg && nameCfg.visible;
+                      const label = nameCfg?.label || tt('Danh xưng*  Họ và tên', 'Title* Full Name');
+                      return (
+                        visible && (
+                          <Grid md={6} xs={12}>
+                            <FormControl fullWidth required>
+                              <InputLabel htmlFor="customer-name">{label}</InputLabel>
+                              <OutlinedInput
+                                id="customer-name"
+                                name="name"
+                                value={formData.name}
+                                onChange={(event) => handleFormChange(event)}
+                                label={label}
+                                startAdornment={
+                                  <InputAdornment position="start">
+                                    <Select
+                                      variant="standard"
+                                      disableUnderline
+                                      value={formData.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
+                                      onChange={(event) =>
+                                        setFormData({ ...formData, title: event.target.value })
+                                      }
+                                      sx={{ minWidth: 70 }}
+                                    >
+                                      {['Anh', 'Chị', 'Bạn', 'Em', 'Ông', 'Bà', 'Cô', 'Mr.', 'Ms.', 'Mx.', 'Miss', 'Thầy'].map((title) => (
+                                        <MenuItem key={title} value={title}>{title}</MenuItem>
+                                      ))}
+                                    </Select>
+                                  </InputAdornment>
+                                }
+                              />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
 
-                          {['text', 'number'].includes(field.fieldType) && (
-                            <TextField
-                              fullWidth
-                              size="small"
-                              type={field.fieldType === 'number' ? 'number' : 'text'}
-                              value={rawValue ?? ''}
-                              onChange={(e) =>
-                                setCheckoutCustomAnswers((prev) => ({
-                                  ...prev,
-                                  [field.internalName]: e.target.value,
-                                }))
-                              }
-                            />
-                          )}
+                    {(() => {
+                      const emailCfg = checkoutFormFields.find((f) => f.internalName === 'email');
+                      const visible = !!emailCfg && emailCfg.visible;
+                      const label = emailCfg?.label || tt('Email', 'Email');
+                      return (
+                        visible && (
+                          <Grid md={6} xs={12}>
+                            <FormControl fullWidth required>
+                              <InputLabel>{label}</InputLabel>
+                              <OutlinedInput value={transaction.email} disabled label={label} />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
 
-                          {['date', 'time', 'datetime'].includes(field.fieldType) && (
-                            <TextField
-                              fullWidth
-                              size="small"
-                              type={
-                                field.fieldType === 'date'
-                                  ? 'date'
-                                  : field.fieldType === 'time'
-                                  ? 'time'
-                                  : 'datetime-local'
-                              }
-                              InputLabelProps={{ shrink: true }}
-                              value={rawValue ?? ''}
-                              onChange={(e) =>
-                                setCheckoutCustomAnswers((prev) => ({
-                                  ...prev,
-                                  [field.internalName]: e.target.value,
-                                }))
-                              }
-                            />
-                          )}
+                    {(() => {
+                      const phoneCfg = checkoutFormFields.find((f) => f.internalName === 'phone_number');
+                      const visible = !!phoneCfg && phoneCfg.visible;
+                      const label = phoneCfg?.label || tt('Số điện thoại', 'Phone Number');
+                      return (
+                        visible && (
+                          <Grid md={6} xs={12}>
+                            <FormControl fullWidth>
+                              <InputLabel>{label}</InputLabel>
+                              <OutlinedInput
+                                value={formData.phoneNumber}
+                                onChange={(event: any) => handleFormChange(event)}
+                                name="phoneNumber"
+                                label={label}
+                                startAdornment={
+                                  <InputAdornment position="start">
+                                    <Select
+                                      variant="standard"
+                                      disableUnderline
+                                      value={formData.phoneCountryIso2}
+                                      onChange={(event) =>
+                                        setFormData({ ...formData, phoneCountryIso2: event.target.value })
+                                      }
+                                      sx={{ minWidth: 80 }}
+                                      renderValue={(value) => {
+                                        const country = PHONE_COUNTRIES.find(c => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                        return country.dialCode;
+                                      }}
+                                    >
+                                      {PHONE_COUNTRIES.map((country) => (
+                                        <MenuItem key={country.iso2} value={country.iso2}>
+                                          {country.nameVi} ({country.dialCode})
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                  </InputAdornment>
+                                }
+                              />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
 
-                          {field.fieldType === 'radio' && field.options && (
-                            <FormGroup>
-                              <RadioGroup
+                    {(() => {
+                      const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
+                      const visible = !!dobCfg && dobCfg.visible;
+                      const label = dobCfg?.label || tt('Ngày tháng năm sinh', 'Date of Birth');
+                      return (
+                        visible && (
+                          <Grid md={6} xs={12}>
+                            <FormControl fullWidth required={!!dobCfg?.required}>
+                              <InputLabel shrink>{label}</InputLabel>
+                              <OutlinedInput
+                                label={label}
+                                name="dob"
+                                type="date"
+                                value={formData.dob}
+                                onChange={(event: any) => handleFormChange(event)}
+                                inputProps={{ max: new Date().toISOString().slice(0, 10) }}
+                              />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
+
+                    {(() => {
+                      const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
+                      const visible = !!addrCfg && addrCfg.visible;
+                      const label = addrCfg?.label || tt('Địa chỉ', 'Address');
+                      return (
+                        visible && (
+                          <Grid md={12} xs={12}>
+                            <FormControl fullWidth required={!!addrCfg?.required}>
+                              <InputLabel>{label}</InputLabel>
+                              <OutlinedInput
+                                value={formData.address}
+                                onChange={(event: any) => handleFormChange(event)}
+                                name="address"
+                                label={label}
+                              />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
+
+                    {(() => {
+                      const idCfg = checkoutFormFields.find(
+                        (f) => f.internalName === 'idcard_number'
+                      );
+                      const visible = !!idCfg && idCfg.visible;
+                      const label = idCfg?.label || tt('Căn cước công dân', 'ID Card Number');
+                      return (
+                        visible && (
+                          <Grid md={12} xs={12}>
+                            <FormControl fullWidth required={!!idCfg?.required}>
+                              <InputLabel>{label}</InputLabel>
+                              <OutlinedInput
+                                value={(transaction as any).idcardNumber || ''}
+                                disabled
+                                label={label}
+                              />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
+
+                    {/* Custom checkout fields (visible only, editable in Event Studio) */}
+                    {customCheckoutFields.map((field) => {
+                      const rawValue = checkoutCustomAnswers[field.internalName];
+
+                      return (
+                        <Grid key={field.internalName} xs={12}>
+                          <Stack spacing={0.5}>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {field.label}
+                              {field.required && ' *'}
+                            </Typography>
+                            {field.note && (
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {field.note}
+                              </Typography>
+                            )}
+
+                            {['text', 'number'].includes(field.fieldType) && (
+                              <TextField
+                                fullWidth
+                                size="small"
+                                type={field.fieldType === 'number' ? 'number' : 'text'}
                                 value={rawValue ?? ''}
                                 onChange={(e) =>
                                   setCheckoutCustomAnswers((prev) => ({
@@ -1579,110 +1539,145 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                     [field.internalName]: e.target.value,
                                   }))
                                 }
-                              >
-                                {field.options.map((opt) => (
-                                  <FormControlLabel
-                                    key={opt.value}
-                                    value={opt.value}
-                                    control={<Radio size="small" />}
-                                    label={opt.label}
-                                  />
-                                ))}
-                              </RadioGroup>
-                            </FormGroup>
-                          )}
+                              />
+                            )}
 
-                          {field.fieldType === 'checkbox' && field.options && (
-                            <FormGroup>
-                              {field.options.map((opt) => {
-                                const current: string[] = Array.isArray(rawValue) ? rawValue : [];
-                                const checked = current.includes(opt.value);
-                                return (
-                                  <FormControlLabel
-                                    key={opt.value}
-                                    control={
-                                      <Checkbox
-                                        size="small"
-                                        checked={checked}
-                                        onChange={(e) => {
-                                          setCheckoutCustomAnswers((prev) => {
-                                            const prevArr: string[] = prev[field.internalName] ?? [];
-                                            let nextArr: string[];
-                                            if (e.target.checked) {
-                                              nextArr = Array.from(new Set([...prevArr, opt.value]));
-                                            } else {
-                                              nextArr = prevArr.filter((v) => v !== opt.value);
-                                            }
-                                            return {
-                                              ...prev,
-                                              [field.internalName]: nextArr,
-                                            };
-                                          });
-                                        }}
-                                      />
-                                    }
-                                    label={opt.label}
-                                  />
-                                );
-                              })}
-                            </FormGroup>
-                          )}
+                            {['date', 'time', 'datetime'].includes(field.fieldType) && (
+                              <TextField
+                                fullWidth
+                                size="small"
+                                type={
+                                  field.fieldType === 'date'
+                                    ? 'date'
+                                    : field.fieldType === 'time'
+                                      ? 'time'
+                                      : 'datetime-local'
+                                }
+                                InputLabelProps={{ shrink: true }}
+                                value={rawValue ?? ''}
+                                onChange={(e) =>
+                                  setCheckoutCustomAnswers((prev) => ({
+                                    ...prev,
+                                    [field.internalName]: e.target.value,
+                                  }))
+                                }
+                              />
+                            )}
 
-                          {!['text', 'number', 'date', 'time', 'datetime', 'radio', 'checkbox'].includes(
-                            field.fieldType
-                          ) && (
-                            <Typography variant="body2">{rawValue ?? '—'}</Typography>
-                          )}
-                        </Stack>
-                      </Grid>
-                    );
-                  })}
-                </Grid>
-              </CardContent>
-              <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  onClick={updateTransaction}
+                            {field.fieldType === 'radio' && field.options && (
+                              <FormGroup>
+                                <RadioGroup
+                                  value={rawValue ?? ''}
+                                  onChange={(e) =>
+                                    setCheckoutCustomAnswers((prev) => ({
+                                      ...prev,
+                                      [field.internalName]: e.target.value,
+                                    }))
+                                  }
+                                >
+                                  {field.options.map((opt) => (
+                                    <FormControlLabel
+                                      key={opt.value}
+                                      value={opt.value}
+                                      control={<Radio size="small" />}
+                                      label={opt.label}
+                                    />
+                                  ))}
+                                </RadioGroup>
+                              </FormGroup>
+                            )}
+
+                            {field.fieldType === 'checkbox' && field.options && (
+                              <FormGroup>
+                                {field.options.map((opt) => {
+                                  const current: string[] = Array.isArray(rawValue) ? rawValue : [];
+                                  const checked = current.includes(opt.value);
+                                  return (
+                                    <FormControlLabel
+                                      key={opt.value}
+                                      control={
+                                        <Checkbox
+                                          size="small"
+                                          checked={checked}
+                                          onChange={(e) => {
+                                            setCheckoutCustomAnswers((prev) => {
+                                              const prevArr: string[] = prev[field.internalName] ?? [];
+                                              let nextArr: string[];
+                                              if (e.target.checked) {
+                                                nextArr = Array.from(new Set([...prevArr, opt.value]));
+                                              } else {
+                                                nextArr = prevArr.filter((v) => v !== opt.value);
+                                              }
+                                              return {
+                                                ...prev,
+                                                [field.internalName]: nextArr,
+                                              };
+                                            });
+                                          }}
+                                        />
+                                      }
+                                      label={opt.label}
+                                    />
+                                  );
+                                })}
+                              </FormGroup>
+                            )}
+
+                            {!['text', 'number', 'date', 'time', 'datetime', 'radio', 'checkbox'].includes(
+                              field.fieldType
+                            ) && (
+                                <Typography variant="body2">{rawValue ?? '—'}</Typography>
+                              )}
+                          </Stack>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
+                </CardContent>
+                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    onClick={updateTransaction}
                   >
-                  {tt('Lưu', 'Save')}
-                </Button>
-              </CardActions>
-            </Card>
+                    {tt('Lưu', 'Save')}
+                  </Button>
+                </CardActions>
+              </Card>
 
-            <Card>
-              <CardHeader
-                title={tt(`Danh sách vé: ${transaction.ticketQuantity} vé`, `Ticket List: ${transaction.ticketQuantity} tickets`)}
-                action={
-                  transaction.qrOption === 'shared' && requireGuestAvatar && (
-                    <Avatar src={transaction.avatar || ''} sx={{ width: 36, height: 36 }} />
-                  )
-                }
-              />
-              <Divider />
-              <CardContent>
-                <Stack spacing={2}>
-                  {/* Loop through each transactionShowTicketCategory */}
-                  {transaction.transactionTicketCategories.map((transactionTicketCategory, categoryIndex) => (
-                    <div key={categoryIndex}>
-                      <Stack direction={{ xs: 'column', md: 'row' }} sx={{ mb: 2, display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name} - {transactionTicketCategory.ticketCategory.name}</Typography>
-                        <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => openEditCategoryModal(transactionTicketCategory)}><Pencil /></IconButton>
+              <Card>
+                <CardHeader
+                  title={tt(`Danh sách vé: ${transaction.ticketQuantity} vé`, `Ticket List: ${transaction.ticketQuantity} tickets`)}
+                  action={
+                    transaction.qrOption === 'shared' && requireGuestAvatar && (
+                      <Avatar src={transaction.avatar || ''} sx={{ width: 36, height: 36 }} />
+                    )
+                  }
+                />
+                <Divider />
+                <CardContent>
+                  <Stack spacing={2}>
+                    {/* Loop through each transactionShowTicketCategory */}
+                    {transaction.transactionTicketCategories.map((transactionTicketCategory, categoryIndex) => (
+                      <div key={categoryIndex}>
+                        <Stack direction={{ xs: 'column', md: 'row' }} sx={{ mb: 2, display: 'flex', justifyContent: 'space-between' }}>
+                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                            <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name} - {transactionTicketCategory.ticketCategory.name}</Typography>
+                            <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => openEditCategoryModal(transactionTicketCategory)}><Pencil /></IconButton>
+                          </Stack>
+                          <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                            <Typography variant="body2">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography>
+                            <Typography variant="body2">x {transactionTicketCategory.tickets.length}</Typography>
+                            <Typography variant="body2">= {formatPrice((transactionTicketCategory.netPricePerOne || 0) * transactionTicketCategory.tickets.length)}</Typography>
+                          </Stack>
                         </Stack>
-                        <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                          <Typography variant="body2">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography>
-                          <Typography variant="body2">x {transactionTicketCategory.tickets.length}</Typography>
-                          <Typography variant="body2">= {formatPrice((transactionTicketCategory.netPricePerOne || 0) * transactionTicketCategory.tickets.length)}</Typography>
-                        </Stack>
-                      </Stack>
-                      {transactionTicketCategory.tickets.length > 0 && (
-                        <Stack spacing={2}>
-                          {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
-                            <Stack direction="row" spacing={0} alignItems="center">
-                              {requireGuestAvatar && transaction.qrOption === 'separate' && <Avatar src={ticket.holderAvatar || ''} sx={{ width: 32, height: 32 }} />}
-                              <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
+                        {transactionTicketCategory.tickets.length > 0 && (
+                          <Stack spacing={2}>
+                            {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
+                              <Stack direction="row" spacing={0} alignItems="center">
+                                {requireGuestAvatar && transaction.qrOption === 'separate' && <Avatar src={ticket.holderAvatar || ''} sx={{ width: 32, height: 32 }} />}
+                                <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
                                   <>
                                     <Stack direction="row" spacing={1} alignItems="center">
                                       <div>
@@ -1690,49 +1685,49 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                           {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : tt('Chưa có thông tin', 'No information')}
                                         </Typography>
                                         {transaction.qrOption === 'separate' && (
-                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                          {(() => {
-                                            const email = ticket.holderEmail || tt('Chưa có email', 'No email');
-                                            if (!ticket.holderPhone) {
-                                              return `${email} - ${tt('Chưa có SĐT', 'No phone number')}`;
-                                            }
-                                            // Parse E.164 phone to get country code and national number
-                                            const parsedPhone = parseE164Phone(ticket.holderPhone);
-                                            if (parsedPhone) {
-                                              const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
-                                              return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
-                                            }
-                                            return `${email} - ${ticket.holderPhone}`;
-                                          })()}
-                                        </Typography>
+                                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                            {(() => {
+                                              const email = ticket.holderEmail || tt('Chưa có email', 'No email');
+                                              if (!ticket.holderPhone) {
+                                                return `${email} - ${tt('Chưa có SĐT', 'No phone number')}`;
+                                              }
+                                              // Parse E.164 phone to get country code and national number
+                                              const parsedPhone = parseE164Phone(ticket.holderPhone);
+                                              if (parsedPhone) {
+                                                const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
+                                                return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
+                                              }
+                                              return `${email} - ${ticket.holderPhone}`;
+                                            })()}
+                                          </Typography>
                                         )}
                                       </div>
                                     </Stack>
                                   </>
-                                <div>
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    TID-{ticket.id} {ticket.checkInAt ? tt(`Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}`, `Checked in at ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}`) : tt('Chưa check-in', 'Not checked in')}
-                                    {ticket.status && ticket.status !== 'normal' && (
-                                      <> - <Chip size="small" label={getRowStatusDetails(ticket.status, tt).label} color={getRowStatusDetails(ticket.status, tt).color} sx={{ height: 18, fontSize: '0.7rem' }} /></>
-                                    )}
-                                  </Typography>
-                                  <IconButton size="small" sx={{ ml: 2 }} onClick={(e) => handleOpenTicketMenu(e.currentTarget, categoryIndex, ticketIndex)}>
-                                    <DotsThreeOutline />
-                                  </IconButton>
-                                </div>
-                              </Box>
-                            </Stack>
-                          ))}
-                        </Stack>
-                      )}
-                      <Menu
-                        anchorEl={ticketMenuAnchorEl}
-                        open={Boolean(ticketMenuAnchorEl)}
-                        onClose={handleCloseTicketMenu}
-                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                      >
-                        {/* <MenuItem onClick={handleCloseTicketMenu} sx={{ fontSize: '14px', color: 'primary' }}>
+                                  <div>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                      TID-{ticket.id} {ticket.checkInAt ? tt(`Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}`, `Checked in at ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}`) : tt('Chưa check-in', 'Not checked in')}
+                                      {ticket.status && ticket.status !== 'normal' && (
+                                        <> - <Chip size="small" label={getRowStatusDetails(ticket.status, tt).label} color={getRowStatusDetails(ticket.status, tt).color} sx={{ height: 18, fontSize: '0.7rem' }} /></>
+                                      )}
+                                    </Typography>
+                                    <IconButton size="small" sx={{ ml: 2 }} onClick={(e) => handleOpenTicketMenu(e.currentTarget, categoryIndex, ticketIndex)}>
+                                      <DotsThreeOutline />
+                                    </IconButton>
+                                  </div>
+                                </Box>
+                              </Stack>
+                            ))}
+                          </Stack>
+                        )}
+                        <Menu
+                          anchorEl={ticketMenuAnchorEl}
+                          open={Boolean(ticketMenuAnchorEl)}
+                          onClose={handleCloseTicketMenu}
+                          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                        >
+                          {/* <MenuItem onClick={handleCloseTicketMenu} sx={{ fontSize: '14px', color: 'primary' }}>
                           <EnvelopeSimpleIcon style={{ marginRight: 8 }} /> Gửi vé qua Email
                         </MenuItem>
                         <MenuItem onClick={handleCloseTicketMenu} sx={{ fontSize: '14px', color: 'primary' }}>
@@ -1741,7 +1736,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           <MenuItem disabled={!!isLoading || !!(activeMenuTicket && (() => {
                             const ticket = transaction.transactionTicketCategories[activeMenuTicket.categoryIndex]?.tickets[activeMenuTicket.ticketIndex];
                             if (!ticket) return true;
-                            const latestCheckIn = ticket.historyCheckIns && ticket.historyCheckIns.length > 0 
+                            const latestCheckIn = ticket.historyCheckIns && ticket.historyCheckIns.length > 0
                               ? ticket.historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
                               : null;
                             return latestCheckIn?.type === 'check-in';
@@ -1751,231 +1746,231 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           <MenuItem disabled={!!isLoading || !!(activeMenuTicket && (() => {
                             const ticket = transaction.transactionTicketCategories[activeMenuTicket.categoryIndex]?.tickets[activeMenuTicket.ticketIndex];
                             if (!ticket) return true;
-                            const latestCheckIn = ticket.historyCheckIns && ticket.historyCheckIns.length > 0 
+                            const latestCheckIn = ticket.historyCheckIns && ticket.historyCheckIns.length > 0
                               ? ticket.historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
                               : null;
                             return !latestCheckIn || latestCheckIn.type !== 'check-in';
                           })())} onClick={handleCheckOutSpecificTicket} sx={{ fontSize: '14px', color: 'primary' }}>
                             <SignOut style={{ marginRight: 8 }} /> Check-out
                           </MenuItem>
-                      </Menu>
-                    </div>
-                  ))}
-                  {/* Additional details for this category */}
-                  <Divider sx={{ marginY: 2 }} />
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <StackPlusIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">{tt('Phụ phí:', 'Extra Fee:')}</Typography>
-                    </Stack>
-                    <Typography variant="body1">{formatPrice(transaction.extraFee || 0)}</Typography>
-                  </Grid>
+                        </Menu>
+                      </div>
+                    ))}
+                    {/* Additional details for this category */}
+                    <Divider sx={{ marginY: 2 }} />
+                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <StackPlusIcon fontSize="var(--icon-fontSize-md)" />
+                        <Typography variant="body1">{tt('Phụ phí:', 'Extra Fee:')}</Typography>
+                      </Stack>
+                      <Typography variant="body1">{formatPrice(transaction.extraFee || 0)}</Typography>
+                    </Grid>
 
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">{tt('Giảm giá:', 'Discount:')}</Typography>
-                    </Stack>
-                    <Stack spacing={1} direction={'column'} sx={{ alignItems: 'flex-end' }}>
-                      <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
-                      {transaction.discountCode && (
-                        <Typography variant="caption" color="text.secondary">
-                          {tt('Mã khuyến mãi:', 'Voucher code:')} {transaction.discountCode}
+                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
+                        <Typography variant="body1">{tt('Giảm giá:', 'Discount:')}</Typography>
+                      </Stack>
+                      <Stack spacing={1} direction={'column'} sx={{ alignItems: 'flex-end' }}>
+                        <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
+                        {transaction.discountCode && (
+                          <Typography variant="caption" color="text.secondary">
+                            {tt('Mã khuyến mãi:', 'Voucher code:')} {transaction.discountCode}
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Grid>
+
+                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <CoinsIcon fontSize="var(--icon-fontSize-md)" />
+                        <Typography variant="body1">{tt('Thành tiền:', 'Total Amount:')}</Typography>
+                      </Stack>
+                      <Typography variant="body1">{formatPrice(transaction.totalAmount || 0)}</Typography>
+                    </Grid>
+                  </Stack>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader title={tt('Tùy chọn bổ sung', 'Additional Options')} />
+                <Divider />
+                <CardContent>
+                  <Stack spacing={2}>
+                    <Grid container spacing={1} alignItems="center">
+                      <Grid xs>
+                        <Typography variant="body2">{tt('Ảnh đại diện cho khách mời', 'Guest Avatar')}</Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          {tt('Bạn cần tải lên ảnh đại diện cho khách mời.', 'You need to upload an avatar for guests.')}
                         </Typography>
-                      )}
-                    </Stack>
-                  </Grid>
-
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <CoinsIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">{tt('Thành tiền:', 'Total Amount:')}</Typography>
-                    </Stack>
-                    <Typography variant="body1">{formatPrice(transaction.totalAmount || 0)}</Typography>
-                  </Grid>
-                </Stack>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader title={tt('Tùy chọn bổ sung', 'Additional Options')} />
-              <Divider />
-              <CardContent>
-                <Stack spacing={2}>
-                  <Grid container spacing={1} alignItems="center">
-                    <Grid xs>
-                      <Typography variant="body2">{tt('Ảnh đại diện cho khách mời', 'Guest Avatar')}</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {tt('Bạn cần tải lên ảnh đại diện cho khách mời.', 'You need to upload an avatar for guests.')}
-                      </Typography>
+                      </Grid>
+                      <Grid>
+                        <Checkbox
+                          checked={requireGuestAvatar}
+                          onChange={(_e, checked) => {
+                            setRequireGuestAvatar(checked);
+                          }}
+                        />
+                      </Grid>
                     </Grid>
-                    <Grid>
-                      <Checkbox
-                        checked={requireGuestAvatar}
-                        onChange={(_e, checked) => {
-                          setRequireGuestAvatar(checked);
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                </Stack>
+                  </Stack>
 
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader title={tt('Lịch sử gửi', 'Sending History')} subheader={tt('Lịch sử gửi email và gửi Zalo đến khách hàng', 'History of sending emails and Zalo messages to customers')} />
-              <Divider />
-              <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 300 }}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      {/* <TableCell sx={{ width: '20px' }}></TableCell> */}
-                      <TableCell>{tt('Thời gian', 'Time')}</TableCell>
-                      <TableCell sx={{ minWidth: '200px' }}>{tt('Nội dung', 'Content')}</TableCell>
-                      <TableCell>{tt('Kênh', 'Channel')}</TableCell>
-                      <TableCell>{tt('Người thực hiện', 'Performed By')}</TableCell>
-                      {/* <TableCell>Địa chỉ</TableCell>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader title={tt('Lịch sử gửi', 'Sending History')} subheader={tt('Lịch sử gửi email và gửi Zalo đến khách hàng', 'History of sending emails and Zalo messages to customers')} />
+                <Divider />
+                <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 300 }}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        {/* <TableCell sx={{ width: '20px' }}></TableCell> */}
+                        <TableCell>{tt('Thời gian', 'Time')}</TableCell>
+                        <TableCell sx={{ minWidth: '200px' }}>{tt('Nội dung', 'Content')}</TableCell>
+                        <TableCell>{tt('Kênh', 'Channel')}</TableCell>
+                        <TableCell>{tt('Người thực hiện', 'Performed By')}</TableCell>
+                        {/* <TableCell>Địa chỉ</TableCell>
                       <TableCell></TableCell> */}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {transaction.historySendings.map((historySending: HistorySending) => (
-                      <TableRow hover key={historySending.id}>
-                        <TableCell>
-                          {dayjs(historySending.createdAt || 0).format('HH:mm:ss DD/MM/YYYY')}
-                        </TableCell>
-                        <TableCell>
-                          {getHistorySendingTypeDetails(historySending.type, tt)}
-                        </TableCell>
-                        <TableCell>
-                          {getHistorySendingChannelDetails(historySending.channel, tt)}
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">{historySending.creator?.fullName}</Typography>
-                          <Typography variant="body2">{historySending.creator?.email}</Typography>
-                        </TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader title={tt('Lịch sử thao tác', 'Action History')} />
-              <Divider />
-              <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 300 }}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      {/* <TableCell sx={{ width: '20px' }}></TableCell> */}
-                      <TableCell>{tt('Thời gian', 'Time')}</TableCell>
-                      <TableCell sx={{ minWidth: '240px' }}>{tt('Nội dung', 'Content')}</TableCell>
-                      <TableCell>{tt('Người thực hiện', 'Performed By')}</TableCell>
-                      {/* <TableCell>Địa chỉ</TableCell>
+                    </TableHead>
+                    <TableBody>
+                      {transaction.historySendings.map((historySending: HistorySending) => (
+                        <TableRow hover key={historySending.id}>
+                          <TableCell>
+                            {dayjs(historySending.createdAt || 0).format('HH:mm:ss DD/MM/YYYY')}
+                          </TableCell>
+                          <TableCell>
+                            {getHistorySendingTypeDetails(historySending.type, tt)}
+                          </TableCell>
+                          <TableCell>
+                            {getHistorySendingChannelDetails(historySending.channel, tt)}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{historySending.creator?.fullName}</Typography>
+                            <Typography variant="body2">{historySending.creator?.email}</Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader title={tt('Lịch sử thao tác', 'Action History')} />
+                <Divider />
+                <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 300 }}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        {/* <TableCell sx={{ width: '20px' }}></TableCell> */}
+                        <TableCell>{tt('Thời gian', 'Time')}</TableCell>
+                        <TableCell sx={{ minWidth: '240px' }}>{tt('Nội dung', 'Content')}</TableCell>
+                        <TableCell>{tt('Người thực hiện', 'Performed By')}</TableCell>
+                        {/* <TableCell>Địa chỉ</TableCell>
                       <TableCell></TableCell> */}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {transaction.historyActions.map((historyAction: HistoryAction) => (
-                      <TableRow hover key={historyAction.id}>
-                        <TableCell>
-                          {dayjs(historyAction.createdAt || 0).format('HH:mm:ss DD/MM/YYYY')}
-                        </TableCell>
-                        <TableCell>
-                          {historyAction.content}
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">{historyAction.creator?.fullName}</Typography>
-                          <Typography variant="body2">{historyAction.creator?.email}</Typography>
-                        </TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader
-                title={tt('Lịch sử check-in', 'Check-in History')}
-                subheader={tt('Lịch sử check-in của khách hàng', 'Customer check-in history')}
-              />
-              <Divider />
-              <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 600 }}>
-                <Table sx={{ width: '100%' }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>{tt('Thời gian', 'Time')}</TableCell>
-                      <TableCell sx={{ minWidth: '200px' }}>{tt('Nội dung', 'Content')}</TableCell>
-                      <TableCell>{tt('Ảnh', 'Image')}</TableCell>
-                      <TableCell>{tt('Người thực hiện', 'Performed By')}</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {transaction.transactionTicketCategories.map((transactionTicketCategory: TransactionTicketCategory) => (
-                      transactionTicketCategory.tickets.map((ticket: Ticket) => {
-                        const checkInHistory = ticket.historyCheckIns || [];
-                        return (
-                          <React.Fragment key={ticket.id}>
-                            <TableRow>
-                              <TableCell colSpan={4} sx={{ backgroundColor: 'action.hover', fontWeight: 'bold', py: 1.5 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 'bold', m: 0 }}>
-                                  {tt('Lịch sử check-in của TID-', 'Check-in history for TID-')}{ticket.id} {ticket.holderTitle} {ticket.holderName}
-                                </Typography>
-                              </TableCell>
-                            </TableRow>
-                            {checkInHistory.length > 0 ? (
-                              checkInHistory.map((history: CheckInHistory) => (
-                                <TableRow hover key={history.id}>
-                                  <TableCell>
-                                    {dayjs(history.createdAt || 0).format('HH:mm:ss DD/MM/YYYY')}
-                                  </TableCell>
-                                  <TableCell>
-                                    {history.type === 'check-in' ? tt('Check-in thành công', 'Check-in successful') : tt('Check-out thành công', 'Check-out successful')}
-                                  </TableCell>
-                                  <TableCell>
-                                    {history.imageUrl ? (
-                                      <Box
-                                        component="img"
-                                        src={history.imageUrl}
-                                        alt="Check-in image"
-                                        sx={{
-                                          width: 60,
-                                          height: 60,
-                                          objectFit: 'cover',
-                                          borderRadius: 1,
-                                          cursor: 'pointer'
-                                        }}
-                                        onClick={() => window.open(history.imageUrl || '', '_blank')}
-                                      />
-                                    ) : (
-                                      <Typography variant="body2" color="text.secondary">
-                                        {tt('Không có ảnh', 'No image')}
-                                      </Typography>
-                                    )}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Typography variant="body2">{history.creator?.fullName || 'N/A'}</Typography>
-                                    <Typography variant="body2" color="text.secondary">{history.creator?.email || ''}</Typography>
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            ) : (
+                    </TableHead>
+                    <TableBody>
+                      {transaction.historyActions.map((historyAction: HistoryAction) => (
+                        <TableRow hover key={historyAction.id}>
+                          <TableCell>
+                            {dayjs(historyAction.createdAt || 0).format('HH:mm:ss DD/MM/YYYY')}
+                          </TableCell>
+                          <TableCell>
+                            {historyAction.content}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{historyAction.creator?.fullName}</Typography>
+                            <Typography variant="body2">{historyAction.creator?.email}</Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader
+                  title={tt('Lịch sử check-in', 'Check-in History')}
+                  subheader={tt('Lịch sử check-in của khách hàng', 'Customer check-in history')}
+                />
+                <Divider />
+                <CardContent sx={{ overflow: 'auto', padding: 0, maxHeight: 600 }}>
+                  <Table sx={{ width: '100%' }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>{tt('Thời gian', 'Time')}</TableCell>
+                        <TableCell sx={{ minWidth: '200px' }}>{tt('Nội dung', 'Content')}</TableCell>
+                        <TableCell>{tt('Ảnh', 'Image')}</TableCell>
+                        <TableCell>{tt('Người thực hiện', 'Performed By')}</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {transaction.transactionTicketCategories.map((transactionTicketCategory: TransactionTicketCategory) => (
+                        transactionTicketCategory.tickets.map((ticket: Ticket) => {
+                          const checkInHistory = ticket.historyCheckIns || [];
+                          return (
+                            <React.Fragment key={ticket.id}>
                               <TableRow>
-                                <TableCell colSpan={4} align="center">
-                                  <Typography variant="body2" color="text.secondary">
-                                    {tt('Chưa có lịch sử check-in', 'No check-in history')}
+                                <TableCell colSpan={4} sx={{ backgroundColor: 'action.hover', fontWeight: 'bold', py: 1.5 }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 'bold', m: 0 }}>
+                                    {tt('Lịch sử check-in của TID-', 'Check-in history for TID-')}{ticket.id} {ticket.holderTitle} {ticket.holderName}
                                   </Typography>
                                 </TableCell>
                               </TableRow>
-                            )}
-                          </React.Fragment>
-                        );
-                      })
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                              {checkInHistory.length > 0 ? (
+                                checkInHistory.map((history: CheckInHistory) => (
+                                  <TableRow hover key={history.id}>
+                                    <TableCell>
+                                      {dayjs(history.createdAt || 0).format('HH:mm:ss DD/MM/YYYY')}
+                                    </TableCell>
+                                    <TableCell>
+                                      {history.type === 'check-in' ? tt('Check-in thành công', 'Check-in successful') : tt('Check-out thành công', 'Check-out successful')}
+                                    </TableCell>
+                                    <TableCell>
+                                      {history.imageUrl ? (
+                                        <Box
+                                          component="img"
+                                          src={history.imageUrl}
+                                          alt="Check-in image"
+                                          sx={{
+                                            width: 60,
+                                            height: 60,
+                                            objectFit: 'cover',
+                                            borderRadius: 1,
+                                            cursor: 'pointer'
+                                          }}
+                                          onClick={() => window.open(history.imageUrl || '', '_blank')}
+                                        />
+                                      ) : (
+                                        <Typography variant="body2" color="text.secondary">
+                                          {tt('Không có ảnh', 'No image')}
+                                        </Typography>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Typography variant="body2">{history.creator?.fullName || 'N/A'}</Typography>
+                                      <Typography variant="body2" color="text.secondary">{history.creator?.email || ''}</Typography>
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              ) : (
+                                <TableRow>
+                                  <TableCell colSpan={4} align="center">
+                                    <Typography variant="body2" color="text.secondary">
+                                      {tt('Chưa có lịch sử check-in', 'No check-in history')}
+                                    </Typography>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </React.Fragment>
+                          );
+                        })
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
               <Modal open={editCategoryModalOpen} onClose={() => setEditCategoryModalOpen(false)} aria-labelledby="edit-ticket-category-modal-title" aria-describedby="edit-ticket-category-modal-description">
                 <Container maxWidth="xl">
                   <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { md: '700px', xs: '95%' }, maxHeight: '90vh', bgcolor: 'background.paper', boxShadow: 24 }}>
@@ -2131,9 +2126,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   </Card>
                 </Container>
               </Modal>
-          </Stack>
+            </Stack>
+          </Grid>
         </Grid>
-      </Grid>
       </Stack>
       <PrintTagModal
         open={printTagModalOpen}

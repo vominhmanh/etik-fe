@@ -32,11 +32,14 @@ import Card from '@mui/material/Card';
 import IconButton from '@mui/material/IconButton';
 import { ArrowLeft, X, Plus, Pencil } from '@phosphor-icons/react/dist/ssr';
 import NotificationContext from '@/contexts/notification-context';
+import { useSearchParams } from 'next/navigation';
 
 type FieldType = 'text' | 'number' | 'radio' | 'checkbox' | 'date' | 'time' | 'datetime';
 
 interface FieldDefinition {
   id: number;
+  kind: 'builtin_core' | 'builtin_optional' | 'custom';
+  builtinKey: string | null;
   name: string;
   label: string;
   type: FieldType;
@@ -64,6 +67,8 @@ interface NewFieldState {
 const INITIAL_FIELDS: FieldDefinition[] = [
   {
     id: 1,
+    kind: 'builtin_core',
+    builtinKey: 'title',
     name: 'title',
     label: 'Danh xưng',
     type: 'text',
@@ -77,6 +82,8 @@ const INITIAL_FIELDS: FieldDefinition[] = [
   },
   {
     id: 2,
+    kind: 'builtin_core',
+    builtinKey: 'name',
     name: 'name',
     label: 'Họ tên',
     type: 'text',
@@ -90,6 +97,8 @@ const INITIAL_FIELDS: FieldDefinition[] = [
   },
   {
     id: 3,
+    kind: 'builtin_core',
+    builtinKey: 'email',
     name: 'email',
     label: 'Email',
     type: 'text',
@@ -103,6 +112,8 @@ const INITIAL_FIELDS: FieldDefinition[] = [
   },
   {
     id: 4,
+    kind: 'builtin_core',
+    builtinKey: 'phone_number',
     name: 'phone_number',
     label: 'Số điện thoại',
     type: 'text',
@@ -115,7 +126,9 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     nonDeletable: true,
   },
   {
-    id: 4,
+    id: 5,
+    kind: 'builtin_optional',
+    builtinKey: 'address',
     name: 'address',
     label: 'Địa chỉ',
     type: 'text',
@@ -128,7 +141,9 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     nonDeletable: true,
   },
   {
-    id: 5,
+    id: 6,
+    kind: 'builtin_optional',
+    builtinKey: 'dob',
     name: 'dob',
     label: 'Ngày sinh',
     type: 'date',
@@ -141,9 +156,11 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     nonDeletable: true,
   },
   {
-    id: 6,
+    id: 7,
+    kind: 'builtin_optional',
+    builtinKey: 'idcard_number',
     name: 'idcard_number',
-    label: 'Căn cước công dân', 
+    label: 'Căn cước công dân',
     type: 'text',
     visible: false,
     required: false,
@@ -175,6 +192,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   });
 
   const notificationCtx = React.useContext(NotificationContext);
+  const searchParams = useSearchParams();
+  const backTo = searchParams.get('back_to');
 
   const editingField = React.useMemo(
     () => (editingFieldId != null ? fields.find((f) => f.id === editingFieldId) || null : null),
@@ -188,46 +207,54 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         const resp = await baseHttpServiceInstance.get(
           `/event-studio/events/${params.event_id}/forms/checkout/config`
         );
-        const apiFields = resp.data.fields as any[];
-        if (!apiFields || apiFields.length === 0) return;
+        const apiFields = (resp.data.fields as any[]) || [];
+        if (apiFields.length === 0) return;
 
-        const mapped: FieldDefinition[] = apiFields.map((f: any) => {
-          const builtinKey = f.builtinKey as string | null;
-          const isCore =
-            builtinKey === 'title' || builtinKey === 'name' || builtinKey === 'email' || builtinKey === 'phone_number';
-          const isOptional =
-            builtinKey === 'address' ||
-            builtinKey === 'dob' ||
-            builtinKey === 'idcard_number';
+        // Bắt đầu với bản sao của INITIAL_FIELDS để đảm bảo thứ tự
+        const mappedBuiltin = INITIAL_FIELDS.map(builtin => {
+          const apiField = apiFields.find(f => f.builtinKey === builtin.builtinKey);
+          if (apiField) {
+            return {
+              ...builtin,
+              id: apiField.id,
+              label: apiField.label,
+              type: apiField.fieldType,
+              visible: apiField.visible,
+              required: apiField.required,
+              note: apiField.note || '',
+              showInTransactionHistory: builtin.kind === 'builtin_core' ? true : (apiField.showInTransactionHistory || false),
+              showInTicketEmail: builtin.kind === 'builtin_core' ? true : (apiField.showInTicketEmail || false),
+              options: apiField.options && apiField.options.length > 0
+                ? (apiField.options as any[]).map(opt => opt.label as string)
+                : undefined,
+            };
+          }
+          return builtin;
+        });
 
-          const locked = !!isCore;
-          const nonDeletable = !!(isCore || isOptional);
-
-          const options =
-            f.options && f.options.length > 0
-              ? (f.options as any[]).map((opt) => opt.label as string)
-              : undefined;
-
-          // Chỉ 4 trường core (title, name, email, phone_number) luôn true, các trường khác dùng giá trị từ API
-          const isCoreField = builtinKey === 'title' || builtinKey === 'name' || builtinKey === 'email' || builtinKey === 'phone_number';
-          
-          return {
+        // Lấy các custom fields từ API
+        const mappedCustom: FieldDefinition[] = apiFields
+          .filter(f => f.kind === 'custom')
+          .map(f => ({
             id: f.id,
+            kind: 'custom',
+            builtinKey: null,
             name: f.internalName,
             label: f.label,
             type: f.fieldType,
             visible: f.visible,
             required: f.required,
             note: f.note || '',
-            showInTransactionHistory: isCoreField ? true : (f.showInTransactionHistory || false),
-            showInTicketEmail: isCoreField ? true : (f.showInTicketEmail || false),
-            locked,
-            nonDeletable,
-            options,
-          } as FieldDefinition;
-        });
+            showInTransactionHistory: f.showInTransactionHistory || false,
+            showInTicketEmail: f.showInTicketEmail || false,
+            locked: false,
+            nonDeletable: false,
+            options: f.options && f.options.length > 0
+              ? (f.options as any[]).map(opt => opt.label as string)
+              : undefined,
+          }));
 
-        setFields(mapped);
+        setFields([...mappedBuiltin, ...mappedCustom]);
       } catch (error) {
         // nếu chưa có form trong DB thì giữ cấu hình mặc định
         console.error('Failed to load checkout form config', error);
@@ -309,6 +336,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const nextId = fields.length ? Math.max(...fields.map((f) => f.id)) + 1 : 1;
       const created: FieldDefinition = {
         id: nextId,
+        kind: 'custom',
+        builtinKey: null,
         name: newField.label.trim(),
         label: newField.label.trim(),
         type: newField.type,
@@ -333,7 +362,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
           // Chỉ 4 trường core (title, name, email, phone_number) luôn true, các trường khác cho phép edit
           const isCoreField = field.name === 'title' || field.name === 'name' || field.name === 'email' || field.name === 'phone_number';
-          
+
           return {
             ...field,
             label: canEditLabel ? newField.label.trim() : field.label,
@@ -345,8 +374,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             showInTicketEmail: isCoreField ? true : newField.showInTicketEmail,
             options:
               (newField.type === 'radio' || newField.type === 'checkbox') &&
-              cleanedOptions &&
-              cleanedOptions.length > 0
+                cleanedOptions &&
+                cleanedOptions.length > 0
                 ? cleanedOptions
                 : undefined,
           };
@@ -380,34 +409,23 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleSaveConfigToServer = async () => {
     try {
-      const builtinCore = new Set(['title', 'name', 'email', 'phone_number']);
-      const builtinOptional = new Set(['address', 'dob', 'idcard_number']);
-
       const payloadFields = fields.map((field, index) => {
-        const isBuiltinCore = builtinCore.has(field.name);
-        const isBuiltinOptional = builtinOptional.has(field.name);
-
-        const kind = isBuiltinCore
-          ? 'builtin_core'
-          : isBuiltinOptional
-          ? 'builtin_optional'
-          : 'custom';
-
-        const builtinKey = isBuiltinCore || isBuiltinOptional ? field.name : null;
+        const kind = field.kind;
+        const builtinKey = field.builtinKey;
 
         const sortOrder = (index + 1) * 10;
 
         const options =
           (field.type === 'radio' || field.type === 'checkbox') && field.options
             ? field.options
-                .filter((opt) => opt.trim() !== '')
-                .map((label, optIndex) => ({
-                  // id bỏ trống để backend tự tạo / sync
-                  value: label,
-                  label,
-                  sortOrder: (optIndex + 1) * 10,
-                  isActive: true,
-                }))
+              .filter((opt) => opt.trim() !== '')
+              .map((label, optIndex) => ({
+                // id bỏ trống để backend tự tạo / sync
+                value: label,
+                label,
+                sortOrder: (optIndex + 1) * 10,
+                isActive: true,
+              }))
             : undefined;
 
         return {
@@ -429,7 +447,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       });
 
       await baseHttpServiceInstance.put(
-       `/event-studio/events/${params.event_id}/forms/checkout/config`,
+        `/event-studio/events/${params.event_id}/forms/checkout/config`,
         {
           name: 'Form mua vé',
           description: 'Form dùng khi khách mua vé',
@@ -448,7 +466,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Stack direction="row" spacing={3} alignItems="center">
           <IconButton
             component={LocalizedLink}
-            href={`/event-studio/events/${params.event_id}/etik-forms`}
+            href={backTo || `/event-studio/events/${params.event_id}/etik-forms`}
             sx={{ mr: 1 }}
           >
             <ArrowLeft fontSize="var(--icon-fontSize-md)" />
@@ -489,14 +507,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                {fields.map((field) => (
-                  <TableRow key={field.id}>
-                    <TableCell sx={{ minWidth: 220 }}>
-                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                        {field.label}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={{ minWidth: 120 }}>
+                  {fields.map((field) => (
+                    <TableRow key={field.id}>
+                      <TableCell sx={{ minWidth: 220 }}>
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                          {field.label}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ minWidth: 120 }}>
                         <Stack spacing={0.5}>
                           <Typography variant="body2">
                             {renderTypeLabel(field.type)}
@@ -507,39 +525,39 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             </Typography>
                           )}
                         </Stack>
-                    </TableCell>
-                    <TableCell sx={{ minWidth: 80 }}>
-                      <Checkbox
-                        checked={field.visible}
+                      </TableCell>
+                      <TableCell sx={{ minWidth: 80 }}>
+                        <Checkbox
+                          checked={field.visible}
                           // chỉ hiển thị, không chỉnh trong bảng
                           disabled
-                      />
-                    </TableCell>
-                    <TableCell sx={{ minWidth: 80 }}>
-                      <Checkbox
-                        checked={field.required}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ minWidth: 80 }}>
+                        <Checkbox
+                          checked={field.required}
                           // chỉ hiển thị, không chỉnh trong bảng
                           disabled
-                      />
-                    </TableCell>
-                    <TableCell sx={{ minWidth: 200 }}>
+                        />
+                      </TableCell>
+                      <TableCell sx={{ minWidth: 200 }}>
                         <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
                           {field.note || '—'}
                         </Typography>
-                    </TableCell>
-                    <TableCell sx={{ minWidth: 80 }}>
-                      <Checkbox
-                        checked={field.showInTransactionHistory}
-                        disabled
-                      />
-                    </TableCell>
-                    <TableCell sx={{ minWidth: 80 }}>
-                      <Checkbox
-                        checked={field.showInTicketEmail}
-                        disabled
-                      />
-                    </TableCell>
-                    <TableCell align="right">
+                      </TableCell>
+                      <TableCell sx={{ minWidth: 80 }}>
+                        <Checkbox
+                          checked={field.showInTransactionHistory}
+                          disabled
+                        />
+                      </TableCell>
+                      <TableCell sx={{ minWidth: 80 }}>
+                        <Checkbox
+                          checked={field.showInTicketEmail}
+                          disabled
+                        />
+                      </TableCell>
+                      <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
                           {!field.locked && (
                             <IconButton
@@ -549,24 +567,24 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               <Pencil />
                             </IconButton>
                           )}
-                        
+
                         </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+
+                  <TableRow>
+                    <TableCell colSpan={8}>
+                      <Button
+                        startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
+                        onClick={handleOpenAddFieldModal}
+                      >
+                        Thêm trường
+                      </Button>
                     </TableCell>
                   </TableRow>
-                ))}
-
-                <TableRow>
-                  <TableCell colSpan={8}>
-                    <Button
-                      startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
-                      onClick={handleOpenAddFieldModal}
-                    >
-                      Thêm trường
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+                </TableBody>
+              </Table>
             </Box>
           </CardContent>
         </Card>

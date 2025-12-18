@@ -13,6 +13,8 @@ import {
   FormGroup,
   IconButton,
   InputAdornment,
+  Menu,
+  MenuItem,
   Radio,
   RadioGroup,
   TextField,
@@ -24,7 +26,6 @@ import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
-import MenuItem from '@mui/material/MenuItem';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
@@ -35,6 +36,8 @@ import { AxiosResponse } from 'axios';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
+import { LocalizedLink } from '@/components/localized-link';
+
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
 
@@ -42,7 +45,7 @@ import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
-import { Pencil } from '@phosphor-icons/react/dist/ssr';
+import { DotsThreeOutlineVertical, Pencil } from '@phosphor-icons/react/dist/ssr';
 import { Plus } from '@phosphor-icons/react/dist/ssr';
 import { X } from '@phosphor-icons/react/dist/ssr';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone } from '@/config/phone-countries';
@@ -77,6 +80,7 @@ export type Show = {
 };
 
 export type EventResponse = {
+  id: number;
   name: string;
   organizer: string;
   description: string;
@@ -88,6 +92,7 @@ export type EventResponse = {
   slug: string;
   locationInstruction: string | null;
   shows: Show[];
+  checkoutFormFields: CheckoutRuntimeField[];
 };
 type TicketHolderInfo = { title: string; name: string; email: string; phone: string; phoneCountryIso2?: string; avatar?: string };
 
@@ -165,6 +170,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [voucherDetailModalOpen, setVoucherDetailModalOpen] = React.useState<boolean>(false);
   const [selectedVoucherForDetail, setSelectedVoucherForDetail] = React.useState<any | null>(null);
 
+  const [formMenuAnchorEl, setFormMenuAnchorEl] = React.useState<null | HTMLElement>(null);
+  const handleOpenFormMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setFormMenuAnchorEl(event.currentTarget);
+  };
+  const handleCloseFormMenu = () => {
+    setFormMenuAnchorEl(null);
+  };
+
   const selectedPhoneCountry = React.useMemo(() => {
     return PHONE_COUNTRIES.find((c) => c.iso2 === customer.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
   }, [customer.phoneCountryIso2]);
@@ -190,6 +203,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             `/event-studio/events/${params.event_id}/transactions/get-info-to-create-transaction`
           );
           setEvent(response.data);
+          setCheckoutFormFields(response.data.checkoutFormFields || []);
           // setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
           notificationCtx.error(error);
@@ -220,23 +234,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   }, [params.event_id]);
 
-  // Fetch checkout form runtime configuration
-  React.useEffect(() => {
-    const fetchCheckoutForm = async () => {
-      if (!params.event_id) return;
-      try {
-        const resp: AxiosResponse<{ fields: CheckoutRuntimeField[] }> =
-          await baseHttpServiceInstance.get(
-            `/event-studio/events/${params.event_id}/forms/checkout/runtime`
-          );
-        setCheckoutFormFields(resp.data.fields || []);
-      } catch (error) {
-        // Nếu form chưa cấu hình, bỏ qua, dùng mặc định hiện tại
-        console.error('Failed to load checkout form runtime', error);
-      }
-    };
-    fetchCheckoutForm();
-  }, [params.event_id]);
 
   const builtinInternalNames = React.useMemo(
     () => new Set(['title', 'name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
@@ -382,10 +379,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     try {
       // Create local preview URL instead of uploading to S3
       const previewUrl = createLocalPreviewUrl(file);
-      
+
       // Store the file for later upload
       setPendingCustomerAvatarFile(file);
-      
+
       // update customer avatar with preview URL
       setCustomer(prev => ({ ...prev, avatar: previewUrl }));
       // also sync into the customer-holder (index 0)
@@ -416,11 +413,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     try {
       // Create local preview URL instead of uploading to S3
       const previewUrl = createLocalPreviewUrl(file);
-      
+
       // Store the file for later upload
       const fileKey = `${showId}-${categoryId}-${index}`;
       setPendingHolderAvatarFiles(prev => ({ ...prev, [fileKey]: file }));
-      
+
       const key = `${showId}-${categoryId}`;
       setTicketHoldersByCategory(prev => {
         const existing = prev[key] || [];
@@ -813,13 +810,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         Object.entries(catMap || {}).map(([categoryIdStr, qty]) => {
           const key = `${showId}-${categoryIdStr}`;
           const holders = ticketHoldersByCategory[key] || [];
-          
+
           // Replace preview URLs with S3 URLs if requireGuestAvatar is true
           // Also convert phoneCountryIso2 to phoneCountry and phoneNationalNumber
           const holdersWithS3Urls = holders.map((h, index) => {
             const fileKey = `${showId}-${categoryIdStr}-${index}`;
             const holderData: any = { ...h };
-            
+
             // Only include avatar if requireGuestAvatar is true
             if (requireGuestAvatar && holderAvatarUrls[fileKey]) {
               holderData.avatar = holderAvatarUrls[fileKey];
@@ -827,7 +824,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               // Remove avatar field if not required
               delete holderData.avatar;
             }
-            
+
             // Convert phoneCountryIso2 to phoneCountry and phoneNationalNumber
             if (holderData.phone) {
               // Derive NSN from phone number (strip leading '0' if present)
@@ -838,10 +835,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               // Keep phoneCountryIso2 for internal use, but also send phoneCountry
               delete holderData.phoneCountryIso2; // Remove from final payload
             }
-            
+
             return holderData;
           });
-          
+
           // Send holders based on requireTicketHolderInfo or qrOption
           let holdersToSend = undefined;
           if (qrOption === 'separate') {
@@ -856,7 +853,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               // Don't include email and phone - will use customer's
             }));
           }
-          
+
           return {
             showId: parseInt(showId),
             ticketCategoryId: parseInt(categoryIdStr),
@@ -890,7 +887,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       if (isFieldVisible('idcard_number')) {
         customerData.idcard_number = customer.idcard_number;
       }
-      
+
       if (requireGuestAvatar && customerAvatarUrl) {
         customerData.avatarUrl = customerAvatarUrl;
       }
@@ -983,7 +980,33 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           <Stack spacing={3}>
             {/* Customer Information Card */}
             <Card>
-              <CardHeader subheader={tt("Vui lòng điền các trường thông tin phía dưới.", "Please fill in the information fields below.")} title={tt("Thông tin người mua", "Buyer Information")} />
+              <CardHeader
+                subheader={tt("Vui lòng điền các trường thông tin phía dưới.", "Please fill in the information fields below.")}
+                title={tt("Thông tin người mua", "Buyer Information")}
+                action={
+                  <>
+                    <IconButton onClick={handleOpenFormMenu}>
+                      <DotsThreeOutlineVertical />
+                    </IconButton>
+                    <Menu
+                      anchorEl={formMenuAnchorEl}
+                      open={Boolean(formMenuAnchorEl)}
+                      onClose={handleCloseFormMenu}
+                      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                      transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                    >
+                      <MenuItem onClick={handleCloseFormMenu}>
+                        <LocalizedLink
+                          style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
+                          href={`/event-studio/events/${params.event_id}/etik-forms/checkout-form?back_to=/event-studio/events/${params.event_id}/transactions/create`}
+                        >
+                          {tt("Thêm câu hỏi vào biểu mẫu này", "Add questions to this form")}
+                        </LocalizedLink>
+                      </MenuItem>
+                    </Menu>
+                  </>
+                }
+              />
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
@@ -1154,7 +1177,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     );
                   })()}
 
-                  
+
 
                   {/* Custom checkout fields (ETIK Forms) */}
                   {customCheckoutFields.map((field) => (
@@ -1193,8 +1216,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               field.fieldType === 'date'
                                 ? 'date'
                                 : field.fieldType === 'time'
-                                ? 'time'
-                                : 'datetime-local'
+                                  ? 'time'
+                                  : 'datetime-local'
                             }
                             InputLabelProps={{ shrink: true }}
                             value={checkoutCustomAnswers[field.internalName] ?? ''}
@@ -1371,33 +1394,33 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                         </Typography>
                                         <br />
                                         {qrOption === 'separate' && (
-                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                          {(() => {
-                                            const email = holderInfo?.email || tt('Chưa có email', 'No email');
-                                            if (!holderInfo?.phone) {
-                                              return `${email} - ${tt('Chưa có SĐT', 'No phone')}`;
-                                            }
-                                            // Use phoneCountryIso2 from user input, or parse E.164 if not available
-                                            const countryIso2 = holderInfo?.phoneCountryIso2;
-                                            
-                                            if (countryIso2) {
-                                              // Use country from user input
-                                              const country = PHONE_COUNTRIES.find(c => c.iso2 === countryIso2) || DEFAULT_PHONE_COUNTRY;
-                                              // Format phone number (remove leading 0 if present)
-                                              const digits = holderInfo.phone.replace(/\D/g, '');
-                                              const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
-                                              return `${email} - ${country.dialCode} ${phoneNSN}`;
-                                            } else {
-                                              // Try to parse E.164 format (fallback)
-                                              const parsedPhone = parseE164Phone(holderInfo.phone);
-                                              if (parsedPhone) {
-                                                const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
-                                                return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
+                                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                            {(() => {
+                                              const email = holderInfo?.email || tt('Chưa có email', 'No email');
+                                              if (!holderInfo?.phone) {
+                                                return `${email} - ${tt('Chưa có SĐT', 'No phone')}`;
                                               }
-                                              return `${email} - ${holderInfo.phone}`;
-                                            }
-                                          })()}
-                                        </Typography>
+                                              // Use phoneCountryIso2 from user input, or parse E.164 if not available
+                                              const countryIso2 = holderInfo?.phoneCountryIso2;
+
+                                              if (countryIso2) {
+                                                // Use country from user input
+                                                const country = PHONE_COUNTRIES.find(c => c.iso2 === countryIso2) || DEFAULT_PHONE_COUNTRY;
+                                                // Format phone number (remove leading 0 if present)
+                                                const digits = holderInfo.phone.replace(/\D/g, '');
+                                                const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+                                                return `${email} - ${country.dialCode} ${phoneNSN}`;
+                                              } else {
+                                                // Try to parse E.164 format (fallback)
+                                                const parsedPhone = parseE164Phone(holderInfo.phone);
+                                                if (parsedPhone) {
+                                                  const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
+                                                  return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
+                                                }
+                                                return `${email} - ${holderInfo.phone}`;
+                                              }
+                                            })()}
+                                          </Typography>
                                         )}
                                       </Box>
                                     </Stack>
@@ -1439,43 +1462,43 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   </Grid>
                   {totalSelectedTickets > 1 && (
                     <>
-                    <Grid container spacing={1} alignItems="center">
-                      <Grid xs>
-                        <Typography variant="body2">{tt("Nhập thông tin người sở hữu cho từng vé", "Enter ticket holder information for each ticket")}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {tt("Chọn nếu bạn biết thông tin của từng khách mời.", "Select if you know the information of each guest.")}
-                      </Typography>
+                      <Grid container spacing={1} alignItems="center">
+                        <Grid xs>
+                          <Typography variant="body2">{tt("Nhập thông tin người sở hữu cho từng vé", "Enter ticket holder information for each ticket")}</Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {tt("Chọn nếu bạn biết thông tin của từng khách mời.", "Select if you know the information of each guest.")}
+                          </Typography>
+                        </Grid>
+                        <Grid>
+                          <Checkbox
+                            checked={requireTicketHolderInfo}
+                            onChange={(_e, checked) => {
+                              setRequireTicketHolderInfo(checked);
+                              if (checked) {
+                                notificationCtx.info(tt('Vui lòng điền thông tin người sở hữu cho từng vé', 'Please fill in information for each ticket holder'));
+                              }
+                            }}
+                          />
+                        </Grid>
                       </Grid>
-                      <Grid>
-                        <Checkbox
-                          checked={requireTicketHolderInfo}
-                          onChange={(_e, checked) => {
-                            setRequireTicketHolderInfo(checked);
-                            if (checked) {
-                              notificationCtx.info(tt('Vui lòng điền thông tin người sở hữu cho từng vé', 'Please fill in information for each ticket holder'));
-                            }
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-                    {requireTicketHolderInfo && (
-                    <Grid container spacing={1} alignItems="center">
-                      <Grid xs>
-                        <Typography variant="body2">{tt("Sử dụng mã QR riêng cho từng vé", "Use separate QR code for each ticket")}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {tt("Chọn nếu bạn muốn tạo và gửi mã QR riêng qua email từng khách mời.", "Select if you want to send separate QR codes for each guest.")}
-                        </Typography>
-                      </Grid>
-                      <Grid>
-                        <Checkbox
-                          checked={qrOption === 'separate'}
-                          onChange={(_e, checked) => {
-                            setQrOption(checked ? 'separate' : 'shared');
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-                    )}
+                      {requireTicketHolderInfo && (
+                        <Grid container spacing={1} alignItems="center">
+                          <Grid xs>
+                            <Typography variant="body2">{tt("Sử dụng mã QR riêng cho từng vé", "Use separate QR code for each ticket")}</Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {tt("Chọn nếu bạn muốn tạo và gửi mã QR riêng qua email từng khách mời.", "Select if you want to send separate QR codes for each guest.")}
+                            </Typography>
+                          </Grid>
+                          <Grid>
+                            <Checkbox
+                              checked={qrOption === 'separate'}
+                              onChange={(_e, checked) => {
+                                setQrOption(checked ? 'separate' : 'shared');
+                              }}
+                            />
+                          </Grid>
+                        </Grid>
+                      )}
                     </>
                   )}
                 </Stack>
@@ -1504,15 +1527,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 title={tt("Khuyến mãi", "Discount")}
                 action={
                   !appliedVoucher && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <OutlinedInput
-                      size="small"
-                      name="discountCode"
-                      placeholder={tt("Nhập mã khuyến mãi", "Enter discount code")}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <OutlinedInput
+                        size="small"
+                        name="discountCode"
+                        placeholder={tt("Nhập mã khuyến mãi", "Enter discount code")}
                         value={manualDiscountCode}
                         onChange={(e) => setManualDiscountCode(e.target.value)}
-                      sx={{ maxWidth: 180 }}
-                    />
+                        sx={{ maxWidth: 180 }}
+                      />
                       <Button
                         variant="outlined"
                         size="small"
@@ -1521,7 +1544,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             notificationCtx.warning(tt('Vui lòng nhập mã khuyến mãi', 'Please enter discount code'));
                             return;
                           }
-                          
+
                           try {
                             // First try to find in available vouchers (public vouchers)
                             const voucher = availableVouchers.find((v) => v.code.toLowerCase() === manualDiscountCode.toLowerCase());
@@ -1530,13 +1553,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                               setManualDiscountCode('');
                               return;
                             }
-                            
+
                             // If not found in public list, call API to validate
                             const response = await baseHttpServiceInstance.get(
                               `/event-studio/events/${params.event_id}/voucher-campaigns/validate-voucher`,
                               { params: { code: manualDiscountCode.trim() } }
                             );
-                            
+
                             if (response.data) {
                               handleValidateAndDisplayVoucher(response.data);
                               setManualDiscountCode('');
@@ -1547,239 +1570,239 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           }
                         }}
                       >
-                      {tt("Áp dụng", "Apply")}
-                    </Button>
-                  </Box>
+                        {tt("Áp dụng", "Apply")}
+                      </Button>
+                    </Box>
                   )
                 }
               />
               {(appliedVoucher || availableVouchers.length > 0) && (
                 <>
-              <Divider />
+                  <Divider />
                   <CardContent sx={{ maxHeight: '300px', overflowY: 'auto' }}>
                     {appliedVoucher ? (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      p: 2,
-                      border: '1px solid',
-                      borderColor: voucherValidation.valid ? 'success.main' : 'error.main',
-                      borderRadius: 1,
-                      bgcolor: voucherValidation.valid ? 'success.50' : 'error.50',
-                      gap: 2,
-                    }}
-                  >
-                    <Box sx={{ flex: 1 }}>
-                      <Stack spacing={0.5}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body1" sx={{ fontWeight: 600, color: voucherValidation.valid ? 'success.main' : 'error.main' }}>
-                            {tt('Đã áp dụng:', 'Applied:')} {appliedVoucher.code}
-                          </Typography>
-                          {voucherValidation.valid && (
-                            <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
-                              - {appliedVoucher.discountType === 'percentage'
-                                ? `${appliedVoucher.discountValue}%`
-                                : `${appliedVoucher.discountValue.toLocaleString('vi-VN')} đ`}
-                              {appliedVoucher.applicationType === 'per_ticket' && (
-                                <Typography component="span" variant="body2" sx={{ ml: 0.5, fontWeight: 400 }}>
-                                  {tt('mỗi vé', 'per ticket')}
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          p: 2,
+                          border: '1px solid',
+                          borderColor: voucherValidation.valid ? 'success.main' : 'error.main',
+                          borderRadius: 1,
+                          bgcolor: voucherValidation.valid ? 'success.50' : 'error.50',
+                          gap: 2,
+                        }}
+                      >
+                        <Box sx={{ flex: 1 }}>
+                          <Stack spacing={0.5}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="body1" sx={{ fontWeight: 600, color: voucherValidation.valid ? 'success.main' : 'error.main' }}>
+                                {tt('Đã áp dụng:', 'Applied:')} {appliedVoucher.code}
+                              </Typography>
+                              {voucherValidation.valid && (
+                                <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
+                                  - {appliedVoucher.discountType === 'percentage'
+                                    ? `${appliedVoucher.discountValue}%`
+                                    : `${appliedVoucher.discountValue.toLocaleString('vi-VN')} đ`}
+                                  {appliedVoucher.applicationType === 'per_ticket' && (
+                                    <Typography component="span" variant="body2" sx={{ ml: 0.5, fontWeight: 400 }}>
+                                      {tt('mỗi vé', 'per ticket')}
+                                    </Typography>
+                                  )}
                                 </Typography>
                               )}
-                            </Typography>
-                          )}
-                        </Box>
-                        {!voucherValidation.valid ? (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                            <Typography variant="caption" color="error.main" sx={{ fontWeight: 600 }}>
-                              {tt('Mã khuyến mãi không hợp lệ', 'Invalid discount code')}
-                              {voucherValidation.message && `: ${voucherValidation.message}`}
-                            </Typography>
-                            <Button
-                              variant="text"
-                              size="small"
-                              sx={{
-                                p: 0,
-                                minWidth: 'auto',
-                                fontSize: '0.75rem',
-                                textTransform: 'none',
-                                color: 'primary.main',
-                                '&:hover': { textDecoration: 'underline' }
-                              }}
-                              onClick={() => {
-                                setSelectedVoucherForDetail(appliedVoucher);
-                                setVoucherDetailModalOpen(true);
-                              }}
-                            >
-                              {tt('Xem thêm', 'View Details')}
-                            </Button>
-                          </Box>
-                        ) : (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                            <Typography variant="caption" color="text.secondary">
-                              {appliedVoucher.name}
-                            </Typography>
-                            <Button
-                              variant="text"
-                              size="small"
-                              sx={{
-                                p: 0,
-                                minWidth: 'auto',
-                                fontSize: '0.75rem',
-                                textTransform: 'none',
-                                color: 'primary.main',
-                                '&:hover': { textDecoration: 'underline' }
-                              }}
-                              onClick={() => {
-                                setSelectedVoucherForDetail(appliedVoucher);
-                                setVoucherDetailModalOpen(true);
-                              }}
-                            >
-                              {tt('Xem thêm', 'View Details')}
-                            </Button>
-                          </Box>
-                        )}
-                      </Stack>
-                    </Box>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setAppliedVoucher(null);
-                        notificationCtx.info(tt('Đã xóa mã khuyến mãi', 'Removed discount code'));
-                      }}
-                      sx={{ color: 'error.main' }}
-                    >
-                      <X size={20} />
-                    </IconButton>
-                  </Box>
-                ) : (
-                  availableVouchers.length > 0 && (
-                <Stack spacing={2}>
-                      {availableVouchers.map((voucher) => {
-                        const formatDiscount = (type: string, value: number) => {
-                          if (type === 'percentage') {
-                            return `${value}%`;
-                          }
-                          return `${value.toLocaleString('vi-VN')} đ`;
-                        };
-
-                        const formatDate = (dateStr: string) => {
-                          return dayjs(dateStr).format('DD/MM/YYYY HH:mm');
-                        };
-
-                        const conditions: string[] = [];
-                        if (voucher.minTicketsRequired) {
-                          conditions.push(tt(`Tối thiểu ${voucher.minTicketsRequired} vé`, `Min ${voucher.minTicketsRequired} tickets`));
-                        }
-                        if (voucher.maxTicketsAllowed) {
-                          conditions.push(tt(`Tối đa ${voucher.maxTicketsAllowed} vé`, `Max ${voucher.maxTicketsAllowed} tickets`));
-                        }
-                        if (voucher.maxUsesPerUser) {
-                          conditions.push(tt(`Tối đa ${voucher.maxUsesPerUser} lần/người`, `Max ${voucher.maxUsesPerUser} uses/person`));
-                        }
-                        if (voucher.requireLogin) {
-                          conditions.push(tt('Yêu cầu đăng nhập', 'Requires login'));
-                        }
-
-                        return (
-                          <Box
-                            key={voucher.id}
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              p: 2,
-                              border: '1px solid',
-                              borderColor: 'divider',
-                              borderRadius: 1,
-                              gap: 2,
-                            }}
-                          >
-                            <Box sx={{ flex: 1 }}>
-                              <Stack spacing={0.5}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                    {voucher.code}
-                                  </Typography>
-                                  <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
-                                    - {formatDiscount(voucher.discountType, voucher.discountValue)}
-                                    {voucher.applicationType === 'per_ticket' && (
-                                      <Typography component="span" variant="body2" sx={{ ml: 0.5, fontWeight: 400 }}>
-                                        {tt('mỗi vé', 'per ticket')}
-                                      </Typography>
-                                    )}
-                                  </Typography>
-                                </Box>
-                                <Typography variant="caption" color="text.secondary">
-                                  {tt('Thời gian:', 'Valid:')} {formatDate(voucher.validFrom)} - {formatDate(voucher.validUntil)}
-                                </Typography>
-                                {conditions.length > 0 && (
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                                    <Typography variant="caption" color="text.secondary">
-                                      {tt('Điều kiện:', 'Conditions:')} {conditions.join(', ')}
-                                    </Typography>
-                                    <Button
-                                      variant="text"
-                                      size="small"
-                                      sx={{
-                                        p: 0,
-                                        minWidth: 'auto',
-                                        fontSize: '0.75rem',
-                                        textTransform: 'none',
-                                        color: 'primary.main',
-                                        '&:hover': { textDecoration: 'underline' }
-                                      }}
-                                      onClick={() => {
-                                        setSelectedVoucherForDetail(voucher);
-                                        setVoucherDetailModalOpen(true);
-                                      }}
-                                    >
-                                      {tt('Xem thêm', 'View Details')}
-                                    </Button>
-                                  </Box>
-                                )}
-                                {conditions.length === 0 && (
-                                  <Button
-                                    variant="text"
-                                    size="small"
-                                    sx={{
-                                      alignSelf: 'flex-start',
-                                      p: 0,
-                                      minWidth: 'auto',
-                                      fontSize: '0.75rem',
-                                      textTransform: 'none',
-                                      color: 'primary.main',
-                                      '&:hover': { textDecoration: 'underline' }
-                                    }}
-                                    onClick={() => {
-                                      setSelectedVoucherForDetail(voucher);
-                                      setVoucherDetailModalOpen(true);
-                                    }}
-                                  >
-                                    {tt('Xem thêm', 'View Details')}
-                                  </Button>
-                                )}
-                </Stack>
                             </Box>
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              onClick={() => {
-                                handleApplyVoucher(voucher);
-                              }}
-                            >
-                              {tt('Áp dụng', 'Apply')}
-                            </Button>
-                          </Box>
-                        );
-                      })}
-                    </Stack>
-                  )
-                )}
-              </CardContent>
-                  </>
-                )}
+                            {!voucherValidation.valid ? (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                                <Typography variant="caption" color="error.main" sx={{ fontWeight: 600 }}>
+                                  {tt('Mã khuyến mãi không hợp lệ', 'Invalid discount code')}
+                                  {voucherValidation.message && `: ${voucherValidation.message}`}
+                                </Typography>
+                                <Button
+                                  variant="text"
+                                  size="small"
+                                  sx={{
+                                    p: 0,
+                                    minWidth: 'auto',
+                                    fontSize: '0.75rem',
+                                    textTransform: 'none',
+                                    color: 'primary.main',
+                                    '&:hover': { textDecoration: 'underline' }
+                                  }}
+                                  onClick={() => {
+                                    setSelectedVoucherForDetail(appliedVoucher);
+                                    setVoucherDetailModalOpen(true);
+                                  }}
+                                >
+                                  {tt('Xem thêm', 'View Details')}
+                                </Button>
+                              </Box>
+                            ) : (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                                <Typography variant="caption" color="text.secondary">
+                                  {appliedVoucher.name}
+                                </Typography>
+                                <Button
+                                  variant="text"
+                                  size="small"
+                                  sx={{
+                                    p: 0,
+                                    minWidth: 'auto',
+                                    fontSize: '0.75rem',
+                                    textTransform: 'none',
+                                    color: 'primary.main',
+                                    '&:hover': { textDecoration: 'underline' }
+                                  }}
+                                  onClick={() => {
+                                    setSelectedVoucherForDetail(appliedVoucher);
+                                    setVoucherDetailModalOpen(true);
+                                  }}
+                                >
+                                  {tt('Xem thêm', 'View Details')}
+                                </Button>
+                              </Box>
+                            )}
+                          </Stack>
+                        </Box>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setAppliedVoucher(null);
+                            notificationCtx.info(tt('Đã xóa mã khuyến mãi', 'Removed discount code'));
+                          }}
+                          sx={{ color: 'error.main' }}
+                        >
+                          <X size={20} />
+                        </IconButton>
+                      </Box>
+                    ) : (
+                      availableVouchers.length > 0 && (
+                        <Stack spacing={2}>
+                          {availableVouchers.map((voucher) => {
+                            const formatDiscount = (type: string, value: number) => {
+                              if (type === 'percentage') {
+                                return `${value}%`;
+                              }
+                              return `${value.toLocaleString('vi-VN')} đ`;
+                            };
+
+                            const formatDate = (dateStr: string) => {
+                              return dayjs(dateStr).format('DD/MM/YYYY HH:mm');
+                            };
+
+                            const conditions: string[] = [];
+                            if (voucher.minTicketsRequired) {
+                              conditions.push(tt(`Tối thiểu ${voucher.minTicketsRequired} vé`, `Min ${voucher.minTicketsRequired} tickets`));
+                            }
+                            if (voucher.maxTicketsAllowed) {
+                              conditions.push(tt(`Tối đa ${voucher.maxTicketsAllowed} vé`, `Max ${voucher.maxTicketsAllowed} tickets`));
+                            }
+                            if (voucher.maxUsesPerUser) {
+                              conditions.push(tt(`Tối đa ${voucher.maxUsesPerUser} lần/người`, `Max ${voucher.maxUsesPerUser} uses/person`));
+                            }
+                            if (voucher.requireLogin) {
+                              conditions.push(tt('Yêu cầu đăng nhập', 'Requires login'));
+                            }
+
+                            return (
+                              <Box
+                                key={voucher.id}
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  p: 2,
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                  borderRadius: 1,
+                                  gap: 2,
+                                }}
+                              >
+                                <Box sx={{ flex: 1 }}>
+                                  <Stack spacing={0.5}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                        {voucher.code}
+                                      </Typography>
+                                      <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
+                                        - {formatDiscount(voucher.discountType, voucher.discountValue)}
+                                        {voucher.applicationType === 'per_ticket' && (
+                                          <Typography component="span" variant="body2" sx={{ ml: 0.5, fontWeight: 400 }}>
+                                            {tt('mỗi vé', 'per ticket')}
+                                          </Typography>
+                                        )}
+                                      </Typography>
+                                    </Box>
+                                    <Typography variant="caption" color="text.secondary">
+                                      {tt('Thời gian:', 'Valid:')} {formatDate(voucher.validFrom)} - {formatDate(voucher.validUntil)}
+                                    </Typography>
+                                    {conditions.length > 0 && (
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                                        <Typography variant="caption" color="text.secondary">
+                                          {tt('Điều kiện:', 'Conditions:')} {conditions.join(', ')}
+                                        </Typography>
+                                        <Button
+                                          variant="text"
+                                          size="small"
+                                          sx={{
+                                            p: 0,
+                                            minWidth: 'auto',
+                                            fontSize: '0.75rem',
+                                            textTransform: 'none',
+                                            color: 'primary.main',
+                                            '&:hover': { textDecoration: 'underline' }
+                                          }}
+                                          onClick={() => {
+                                            setSelectedVoucherForDetail(voucher);
+                                            setVoucherDetailModalOpen(true);
+                                          }}
+                                        >
+                                          {tt('Xem thêm', 'View Details')}
+                                        </Button>
+                                      </Box>
+                                    )}
+                                    {conditions.length === 0 && (
+                                      <Button
+                                        variant="text"
+                                        size="small"
+                                        sx={{
+                                          alignSelf: 'flex-start',
+                                          p: 0,
+                                          minWidth: 'auto',
+                                          fontSize: '0.75rem',
+                                          textTransform: 'none',
+                                          color: 'primary.main',
+                                          '&:hover': { textDecoration: 'underline' }
+                                        }}
+                                        onClick={() => {
+                                          setSelectedVoucherForDetail(voucher);
+                                          setVoucherDetailModalOpen(true);
+                                        }}
+                                      >
+                                        {tt('Xem thêm', 'View Details')}
+                                      </Button>
+                                    )}
+                                  </Stack>
+                                </Box>
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={() => {
+                                    handleApplyVoucher(voucher);
+                                  }}
+                                >
+                                  {tt('Áp dụng', 'Apply')}
+                                </Button>
+                              </Box>
+                            );
+                          })}
+                        </Stack>
+                      )
+                    )}
+                  </CardContent>
+                </>
+              )}
             </Card>
             {Object.values(selectedCategories).some((catMap) => Object.keys(catMap || {}).length > 0) && (
               <Card>
@@ -1814,14 +1837,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </Box>
                     )}
                     <Divider />
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
                         {tt("Tổng cộng:", "Total:")}
                       </Typography>
                       <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
                         {formatPrice(finalTotal)}
-                    </Typography>
-                  </Box>
+                      </Typography>
+                    </Box>
                   </Stack>
                 </CardContent>
               </Card>
@@ -2007,7 +2030,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Typography variant="body2">{formatPrice(extraFee)}</Typography>
                   </Box>
                   <Stack spacing={1}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2" color="text.secondary">
                         {tt("Tổng tiền vé:", "Ticket Total:")}
                       </Typography>
@@ -2042,8 +2065,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </Typography>
                       <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
                         {formatPrice(finalTotal)}
-                    </Typography>
-                  </Box>
+                      </Typography>
+                    </Box>
                   </Stack>
                 </Stack>
               </DialogContent>
