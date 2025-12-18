@@ -107,7 +107,7 @@ export default function GiftTicketModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
-  
+
   // Helper function to get title options based on language
   const getTitleOptions = React.useCallback(() => {
     if (lang === 'en') {
@@ -268,12 +268,12 @@ export default function GiftTicketModal({
 
     try {
       const ticketIds = giftMode === 'all' ? null : selectedTicketIds;
-      
+
       // Process phone number: derive NSN from phone number (strip leading '0' if present)
       const phoneCountry = customerInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2;
       const digits = customerInfo.phone_number.replace(/\D/g, '');
       const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
-      
+
       const response: AxiosResponse<{ message: string; newTransactionId: number }> =
         await baseHttpServiceInstance.post(
           `/account/transactions/${transaction.id}/transfer-tickets?token=${transaction.customerResponseToken || ''}`,
@@ -294,7 +294,7 @@ export default function GiftTicketModal({
       onClose();
     } catch (error: any) {
       let errorMessage = tt('Có lỗi xảy ra khi chuyển nhượng vé', 'An error occurred while transferring tickets');
-      
+
       if (error?.response?.data) {
         // Handle FastAPI error response format
         if (error.response.data.detail) {
@@ -307,7 +307,7 @@ export default function GiftTicketModal({
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
+
       notificationCtx.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -315,7 +315,7 @@ export default function GiftTicketModal({
   };
 
   const builtinInternalNames = React.useMemo(
-    () => new Set(['name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
+    () => new Set(['title', 'name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
     []
   );
 
@@ -658,8 +658,8 @@ export default function GiftTicketModal({
                                   field.fieldType === 'date'
                                     ? 'date'
                                     : field.fieldType === 'time'
-                                    ? 'time'
-                                    : 'datetime-local'
+                                      ? 'time'
+                                      : 'datetime-local'
                                 }
                                 value={rawValue}
                                 onChange={(e) => handleFormAnswerChange(field.internalName, e.target.value)}
@@ -715,14 +715,14 @@ export default function GiftTicketModal({
                             {!['text', 'number', 'date', 'time', 'datetime', 'radio', 'checkbox'].includes(
                               field.fieldType
                             ) && (
-                              <OutlinedInput
-                                fullWidth
-                                size="small"
-                                value={rawValue}
-                                onChange={(e) => handleFormAnswerChange(field.internalName, e.target.value)}
-                                required={field.required}
-                              />
-                            )}
+                                <OutlinedInput
+                                  fullWidth
+                                  size="small"
+                                  value={rawValue}
+                                  onChange={(e) => handleFormAnswerChange(field.internalName, e.target.value)}
+                                  required={field.required}
+                                />
+                              )}
                           </Stack>
                         </Grid>
                       );

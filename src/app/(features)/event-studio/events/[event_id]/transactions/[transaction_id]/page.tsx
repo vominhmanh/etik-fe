@@ -34,6 +34,7 @@ import dayjs from 'dayjs';
 import NotificationContext from '@/contexts/notification-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PrintTagModal from './print-tag-modal';
+import AdminGiftTicketModal from './admin-gift-ticket-modal';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone, formatToE164 } from '@/config/phone-countries';
 import { useTranslation } from '@/contexts/locale-context';
 
@@ -340,6 +341,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [pendingHolderAvatarFiles, setPendingHolderAvatarFiles] = useState<Record<number, File>>({});
   const [requireGuestAvatar, setRequireGuestAvatar] = useState<boolean>(false);
   const [printTagModalOpen, setPrintTagModalOpen] = useState<boolean>(false);
+  const [giftTicketModalOpen, setGiftTicketModalOpen] = useState<boolean>(false);
   const [checkoutFormFields, setCheckoutFormFields] = useState<CheckoutRuntimeField[]>([]);
   const [checkoutCustomAnswers, setCheckoutCustomAnswers] = useState<Record<string, any>>({});
 
@@ -1143,13 +1145,26 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           >
                             {tt('In tag vé', 'Print Ticket Tags')}
                           </Button>
-                          <Button
-                            onClick={() => setGiftTicketModalOpen(true)}
-                            size="small"
-                            startIcon={<Gift />}
-                          >
-                            {tt('Tặng vé', 'Gift Ticket')}
-                          </Button>
+                          {(() => {
+                            const hasAvailableTickets = transaction?.transactionTicketCategories.some(
+                              ttc => ttc.tickets.some(ticket => ticket.status === 'normal')
+                            );
+                            const otherConditionsMet = transaction?.status === 'normal' &&
+                              transaction?.paymentStatus === 'paid' &&
+                              transaction?.exportedTicketAt !== null &&
+                              hasAvailableTickets;
+
+                            return (
+                              <Button
+                                onClick={() => setGiftTicketModalOpen(true)}
+                                size="small"
+                                startIcon={<Gift />}
+                                disabled={!otherConditionsMet}
+                              >
+                                {tt('Tặng vé', 'Gift Ticket')}
+                              </Button>
+                            );
+                          })()}
                         </Stack>
                       </>
                     )}
@@ -2136,6 +2151,23 @@ export default function Page({ params }: { params: { event_id: number; transacti
         transaction={transaction}
         eventId={event_id}
       />
+      {transaction && (
+        <AdminGiftTicketModal
+          open={giftTicketModalOpen}
+          onClose={() => setGiftTicketModalOpen(false)}
+          transaction={transaction}
+          event={transaction.event}
+          onSuccess={() => {
+            // Reload transaction data
+            // Since we don't have a direct reload function exposed easily without recreating it, 
+            // the simplest way in Next.js app router or this setup is likely forcing a router refresh or calling a fetch function if available.
+            // Looking at the code: no straightforward `fetchTransaction` in scope of render.
+            // But we can reload the page or trigger a re-fetch if we had extracted it.
+            // Let's assume window.location.reload() for Admin simplicity or router.refresh()
+            window.location.reload();
+          }}
+        />
+      )}
     </>
   );
 }
