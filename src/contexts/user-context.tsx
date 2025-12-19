@@ -4,7 +4,6 @@ import * as React from 'react';
 
 import { User } from '@/types/auth';
 import { authClient } from '@/lib/auth/client';
-import { logger } from '@/lib/default-logger';
 
 export interface UserContextValue {
   user: User | null;
@@ -34,10 +33,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           ? (data as unknown as User)
           : data
             ? {
-                fullName: (data as any).fullName ?? (data as any).name ?? '',
-                email: (data as any).email ?? '',
-                phoneNumber: (data as any).phoneNumber ?? '',
-              }
+              fullName: (data as any).fullName ?? (data as any).name ?? '',
+              email: (data as any).email ?? '',
+              phoneNumber: (data as any).phoneNumber ?? '',
+            }
             : null;
         setUser(normalized);
       }
@@ -50,7 +49,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   React.useEffect(() => {
-    checkSession().catch(() => {});
+    checkSession().catch(() => { });
   }, [checkSession]);
 
   return (
