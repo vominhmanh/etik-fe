@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface Seat {
   id: string;
+  rowId: string;
   left: number;
   top: number;
   radius: number;
@@ -12,6 +13,14 @@ interface Seat {
   text: string;
   textSize: number;
   textColor: string;
+}
+
+interface Row {
+  id: string;
+  name: string;
+  color?: string; // Optional color for the row
+  showLabelLeft?: boolean;
+  showLabelRight?: boolean;
 }
 
 interface Zone {
@@ -25,6 +34,7 @@ export type Mode =
   | 'one-seat'
   | 'multiple-seat'
   | 'shape-square'
+  | 'shape-polygon'
   | 'text';
 export type Action = null | 'delete' | 'copy' | 'cut' | 'paste';
 
@@ -35,6 +45,16 @@ interface EventGuiState {
   // ::::::::::: Canvas
   canvas: fabric.Canvas | null;
   setCanvas: (canvas: fabric.Canvas) => void;
+
+  // ::::::::::: Rows
+  rows: Row[];
+  setRows: (rows: Row[]) => void;
+  addRow: (row: Row) => void;
+  updateRow: (id: string, updates: Partial<Row>) => void;
+  deleteRow: (id: string) => void;
+  selectedRowId: string | null;
+  setSelectedRowId: (id: string | null) => void;
+
   seats: Seat[];
   addSeat: (seat: Seat) => void;
   updateSeat: (id: string, updates: Partial<Seat>) => void;
@@ -83,6 +103,23 @@ export const useEventGuiStore = create<EventGuiState>((set, get) => ({
   // ::::::::::::::::::: Canvas state
   canvas: null,
   setCanvas: (canvas) => set({ canvas }),
+
+  // ::::::::::::::::::: Row states
+  rows: [],
+  setRows: (rows) => set({ rows }),
+  addRow: (row) => set((state) => ({ rows: [...state.rows, row] })),
+  updateRow: (id, updates) =>
+    set((state) => ({
+      rows: state.rows.map((row) =>
+        row.id === id ? { ...row, ...updates } : row
+      ),
+    })),
+  deleteRow: (id) =>
+    set((state) => ({
+      rows: state.rows.filter((row) => row.id !== id),
+    })),
+  selectedRowId: null,
+  setSelectedRowId: (id) => set({ selectedRowId: id }),
 
   // ::::::::::::::::::: Seat states
   seats: [],

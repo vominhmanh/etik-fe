@@ -5,5 +5,9 @@ const SeatPickerClient = dynamic(() => import("./SeatPickerClient"), {
 });
 
 export default function Page() {
-    return <SeatPickerClient />;
+    return (
+        <div style={{ width: "100%", height: "87vh" }}>
+            <SeatPickerClient />
+        </div>
+    );
 }

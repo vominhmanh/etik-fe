@@ -176,6 +176,20 @@ export const useObjectUpdater = (
         }
       }
 
+      // Special handling for seatNumber in groups (sync to text object)
+      if ('seatNumber' in updates && selectedObject.type === 'group') {
+        const group = selectedObject as fabric.Group;
+        const objects = group.getObjects();
+        const textObj = objects.find(
+          (o) => o.type === 'text' || o.type === 'i-text'
+        ) as fabric.Text;
+
+        if (textObj) {
+          textObj.set('text', String(updates.seatNumber));
+          group.addWithUpdate(); // important to refresh group bounds/cache
+        }
+      }
+
       selectedObject.set(updatedProperties);
 
       // :::::::::::: Ensures the text's scales remains 1, only font-size should change

@@ -31,47 +31,59 @@ const createRect = (left: number, top: number) => {
     ml: false,
     mr: false,
   });
-  
-  return rect;    
+
+  return rect;
 };
 
 // ::::::::::::::: Create seat object
 const createSeat = (
   left: number,
   top: number,
+  rowId: string,
+  seatNumber: string,
   canvas?: fabric.Canvas | null
 ) => {
-  const seatNumber = getNextSeatNumber(canvas);
-  const seat = new fabric.Circle({
-    left,
-    top,
-    fill: 'transparent',
+  const circle = new fabric.Circle({
+    radius: 10,
+    fill: 'rgba(255,255,255,0.8)',
     stroke: 'black',
     strokeWidth: 1,
-    radius: 10,
-    selectable: true,
-    borderColor: 'green',
-    borderDashArray: [2, 4],
-    padding: 2,
-    cornerColor: 'lightblue',
-    cornerSize: 5,
-    cornerStrokeColor: 'blue',
-    transparentCorners: false,
-    rx: 0.25,
-    ry: 0.25,
-    id: uuidv4(),
-    strokeUniform: true,
-    seatNumber: String(seatNumber),
+    originX: 'center',
+    originY: 'center',
   });
 
-  seat.setControlsVisibility({
+  const text = new fabric.Text(seatNumber || '', {
+    fontSize: 10,
+    fontFamily: 'sans-serif',
+    fill: 'black',
+    originX: 'center',
+    originY: 'center',
+  });
+
+  const group = new fabric.Group([circle, text], {
+    left,
+    top,
+    selectable: true,
+    padding: 2,
+    cornerSize: 5,
+    transparentCorners: false,
+    borderColor: 'green',
+    cornerColor: 'lightblue',
+    cornerStrokeColor: 'blue',
+    borderDashArray: [2, 4],
+    id: uuidv4(),
+    rowId: rowId,
+    seatNumber: seatNumber,
+  } as any);
+
+  group.setControlsVisibility({
     mt: false,
     mb: false,
     ml: false,
     mr: false,
   });
-  
-  return seat;    
+
+  return group;
 };
 
 // ::::::::::::::: Create text object
@@ -100,7 +112,7 @@ const createText = (left: number, top: number, text: string = 'Type here') => {
     ml: false,
     mr: false,
   });
-  
+
   return textObject;
 };
 

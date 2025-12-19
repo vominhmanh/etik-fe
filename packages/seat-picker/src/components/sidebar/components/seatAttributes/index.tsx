@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Properties } from '../../hooks';
 import { useEventGuiStore } from '@/zustand';
 import CurrencySelect from './CurrencySelect';
@@ -31,44 +31,116 @@ const SeatAttributes: React.FC<SeatAttributesProps> = ({
   updateObject,
   Select,
 }) => {
-  const { canvas } = useEventGuiStore();
-  const [error, setError] = useState('');
+  const { canvas, rows } = useEventGuiStore();
+  const [inputValue, setInputValue] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
 
-  // Helper to check if a seat number is unique
-  function isSeatNumberUnique(num: string) {
-    if (!canvas || !num) return true;
-    const allSeats = canvas.getObjects('circle');
-    return !allSeats.some(
-      (obj: any) => obj.seatNumber === num && obj !== canvas.getActiveObject()
-    );
-  }
+  const currentRow = rows.find((r: any) => r.id === properties.rowId);
+  const rowLabel = currentRow
+    ? currentRow.name
+    : properties.rowId === 'mixed'
+      ? 'Mixed'
+      : '';
 
-  function handleSeatNumberChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const value = e.target.value;
-    if (value && !isSeatNumberUnique(value)) {
-      setError('Seat number already used');
-    } else {
-      setError('');
-      updateObject({ seatNumber: value });
+  const rowIdDisplay =
+    properties.rowId === 'mixed' ? 'Mixed' : properties.rowId || '';
+
+  useEffect(() => {
+    if (!isFocused) {
+      setInputValue(
+        properties.seatNumber === 'mixed' ? '' : properties.seatNumber || ''
+      );
     }
-  }
+  }, [properties.seatNumber, isFocused]);
+
+  const isDuplicate = useMemo(() => {
+    if (
+      !canvas ||
+      !inputValue ||
+      properties.rowId === 'mixed' ||
+      !properties.rowId
+    )
+      return false;
+    const rowSeats = canvas
+      .getObjects()
+      .filter((obj: any) => obj.rowId === properties.rowId);
+
+    return rowSeats.some(
+      (obj: any) =>
+        obj.seatNumber === inputValue && obj !== canvas.getActiveObject()
+    );
+  }, [canvas, inputValue, properties.rowId]);
+
+  const handleSeatNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInputValue(val);
+    updateObject({ seatNumber: val });
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  };
 
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Row Label
+          </label>
+          <input
+            type="text"
+            disabled
+            value={rowLabel}
+            className="mt-1 w-full rounded-md border border-solid border-gray-200 bg-gray-100 px-2 py-1 text-gray-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Row ID
+          </label>
+          <input
+            type="text"
+            disabled
+            value={rowIdDisplay}
+            className="mt-1 w-full truncate rounded-md border border-solid border-gray-200 bg-gray-100 px-2 py-1 text-gray-500"
+            title={rowIdDisplay}
+          />
+        </div>
+      </div>
+
       <div>
         <label className="block text-sm font-medium text-gray-700">
           Seat Number
         </label>
         <input
           type="text"
-          value={
-            properties.seatNumber === 'mixed' ? '' : properties.seatNumber || ''
-          }
+          value={inputValue}
           placeholder={properties.seatNumber === 'mixed' ? '—' : ''}
           onChange={handleSeatNumberChange}
-          className="mt-1 w-full rounded-md border border-solid border-gray-300 px-2 py-1"
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          className={`mt-1 w-full rounded-md border border-solid px-2 py-1 ${isDuplicate && !isFocused
+              ? 'border-orange-500 focus:ring-orange-500'
+              : 'border-gray-300'
+            }`}
         />
-        {error && <div className="mt-1 text-xs text-red-500">{error}</div>}
+        {isDuplicate && !isFocused && (
+          <div className="mt-1 text-xs text-orange-500">
+            Trùng seat number
+          </div>
+        )}
       </div>
       <div>
         <label className="mb-2 block text-sm font-medium text-gray-700">

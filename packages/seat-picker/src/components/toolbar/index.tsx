@@ -21,6 +21,9 @@ import {
   LuZoomOut,
   LuLock,
   LuDownload,
+  LuMaximize,
+  LuMinimize,
+  LuHexagon,
 } from 'react-icons/lu';
 import {
   RiText,
@@ -36,9 +39,16 @@ import { CanvasObject } from '@/types/data.types';
 interface ToolbarProps {
   onSave?: (json: any) => void;
   onBgLayout?: () => void;
+  onToggleFullScreen?: () => void;
+  isFullScreen?: boolean;
 }
 
-const Toolbar: React.FC<ToolbarProps> = ({ onSave, onBgLayout }) => {
+const Toolbar: React.FC<ToolbarProps> = ({
+  onSave,
+  onBgLayout,
+  onToggleFullScreen,
+  isFullScreen,
+}) => {
   const {
     toolMode,
     setToolMode,
@@ -47,9 +57,11 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onBgLayout }) => {
     canvas,
     snapEnabled,
     setSnapEnabled,
+    zoomLevel,
+    setZoomLevel,
+    rows,
+    setRows,
   } = useEventGuiStore();
-
-  const [zoomLevel, setZoomLevel] = useState(100);
 
   const { copySelectedObjects, cutSelectedObjects, pasteObjects } =
     useClipboardActions();
@@ -68,32 +80,28 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onBgLayout }) => {
     'info'
   );
 
-  // Update canvas zoom when zoomLevel changes
-  useEffect(() => {
-    if (!canvas) return;
-
-    const zoom = zoomLevel / 100;
-    canvas.setZoom(zoom);
-
-    // Always center the canvas content in the viewport after zoom
-    const viewportWidth = canvas.getWidth();
-    const viewportHeight = canvas.getHeight();
-    const contentWidth = canvas.width! * zoom;
-    const contentHeight = canvas.height! * zoom;
-
-    canvas.absolutePan({
-      x: (viewportWidth - contentWidth) / 2,
-      y: (viewportHeight - contentHeight) / 2,
-    });
-
-    canvas.renderAll();
-  }, [zoomLevel, canvas]);
-
   // Export handler
   const handleExport = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canvas) return;
-    const json = JSON.stringify(canvas.toJSON());
+
+    const canvasJson = canvas.toJSON([
+      'id',
+      'rowId',
+      'seatNumber',
+      'isRowLabel',
+      'selectable',
+      'evented',
+      'lockMovementX',
+      'lockMovementY',
+    ]);
+
+    const exportData = {
+      rows,
+      canvas: canvasJson,
+    };
+
+    const json = JSON.stringify(exportData);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -137,7 +145,16 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onBgLayout }) => {
     try {
       const text = await openFile.text();
       const json = JSON.parse(text);
-      canvas.loadFromJSON(json, () => {
+
+      let canvasData = json;
+
+      // Handle extended JSON with rows
+      if (json.rows && Array.isArray(json.rows)) {
+        setRows(json.rows);
+        if (json.canvas) canvasData = json.canvas;
+      }
+
+      canvas.loadFromJSON(canvasData, () => {
         canvas.getObjects().forEach((obj) => {
           if (
             obj.type === 'circle' ||
@@ -165,11 +182,11 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onBgLayout }) => {
   };
 
   const handleZoomIn = () => {
-    setZoomLevel(Math.min(zoomLevel + 10, 120)); // Max zoom 120%
+    setZoomLevel(Math.min(zoomLevel + 10, 200)); // Max zoom 200%
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(Math.max(zoomLevel - 10, 80)); // Min zoom 80%
+    setZoomLevel(Math.max(zoomLevel - 10, 50)); // Min zoom 50%
   };
 
   // ::::::::::::::::::: Buttons data
@@ -186,9 +203,24 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onBgLayout }) => {
         tooltip: 'Save',
         onClick: () => {
           if (canvas && onSave) {
+            const canvasJson = canvas.toJSON([
+              'customType',
+              'seatData',
+              'zoneData',
+              'id',
+              'rowId',
+              'seatNumber',
+              'isRowLabel',
+              'selectable',
+              'evented',
+              'lockMovementX',
+              'lockMovementY',
+            ]);
+
             const json = {
               type: 'canvas',
-              ...canvas.toJSON(['customType', 'seatData', 'zoneData']),
+              rows,
+              canvas: canvasJson,
             } as unknown as CanvasObject;
             onSave(json);
           }
@@ -236,11 +268,12 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onBgLayout }) => {
         state: toolMode === 'shape-square',
       },
       {
-        icon: LuPlus,
-        tooltip: 'Add Seat',
-        onClick: () => setToolMode('one-seat'),
-        state: toolMode === 'one-seat',
+        icon: LuHexagon,
+        tooltip: 'Add Polygon (Double click to finish)',
+        onClick: () => setToolMode('shape-polygon'),
+        state: toolMode === 'shape-polygon',
       },
+
       {
         icon: RiApps2AddLine,
         tooltip: 'Add Rows',
@@ -318,6 +351,23 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onBgLayout }) => {
         onClick={handleZoomIn}
       />
 
+      <Separator />
+
+      {/* ::::::::::::::: Full Screen Button */}
+      {onToggleFullScreen && (
+        <Button
+          icon={
+            isFullScreen ? (
+              <LuMinimize className="h-4 w-4" />
+            ) : (
+              <LuMaximize className="h-4 w-4" />
+            )
+          }
+          tooltip={isFullScreen ? 'Exit Full Screen' : 'Full Screen'}
+          onClick={onToggleFullScreen}
+        />
+      )}
+
       {/* ::::::::::::::: add space */}
       <div className="flex-1" />
 
@@ -330,7 +380,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onBgLayout }) => {
             <RiLockUnlockLine className="h-4 w-4" />
           )
         }
-        tooltip={isSelectionLocked() ? 'Unlock Selection' : 'Lock Selection'}
+        tooltip={isSelectionLocked() ? 'Unlock' : 'Lock'}
         onClick={toggleLockSelection}
       />
 
@@ -396,8 +446,8 @@ const Button: React.FC<ButtonProps> = ({ icon, tooltip, state, ...props }) => {
 
       <div
         className={`absolute left-1/2 -translate-x-1/2 transform ${showTooltip
-            ? 'top-[calc(100%+0.5rem)] opacity-100'
-            : 'top-[100%] opacity-0'
+          ? 'top-[calc(100%+0.5rem)] opacity-100'
+          : 'top-[100%] opacity-0'
           } ease-250 whitespace-nowrap rounded bg-gray-200 px-2 py-1 text-[0.625rem] text-gray-900 shadow-md`}
       >
         {tooltip}

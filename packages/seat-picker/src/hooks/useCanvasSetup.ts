@@ -9,7 +9,8 @@ const useCanvasSetup = (
   width: number = 800,
   height: number = 600,
   backgroundColor: string = '#f8fafc',
-  allowSelection: boolean = true
+  allowSelection: boolean = true,
+  responsive: boolean = true
 ) => {
   useEffect(() => {
     if (!canvasRef.current || !canvasParent.current) return;
@@ -32,8 +33,10 @@ const useCanvasSetup = (
       }
     };
 
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    if (responsive) {
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+    }
 
     const seat = createSeat(100, 100);
     seat.angle = 45;
@@ -93,10 +96,12 @@ const useCanvasSetup = (
     });
 
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
+      if (responsive) {
+        window.removeEventListener('resize', resizeCanvas);
+      }
       c.dispose();
     };
-  }, [canvasRef, canvasParent, setCanvas, width, height]);
+  }, [canvasRef, canvasParent, setCanvas, width, height, responsive]);
 };
 
 export default useCanvasSetup;

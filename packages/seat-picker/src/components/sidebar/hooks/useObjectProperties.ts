@@ -18,6 +18,7 @@ export interface Properties {
   top: number;
   rx?: number;
   ry?: number;
+  rowId?: string | 'mixed';
   seatNumber?: string | 'mixed';
   category?: string | 'mixed';
   price?: number | 'mixed';
@@ -55,7 +56,24 @@ export const useObjectProperties = (
 
   useEffect(() => {
     if (!selectedObjects || selectedObjects.length === 0) return;
-    const objs = selectedObjects;
+
+    // Map seat groups to effective objects containing visual props from inner circle
+    const objs = selectedObjects.map((obj) => {
+      if (obj.type === 'group' && (obj.rowId || obj.seatNumber)) {
+        const group = obj as fabric.Group;
+        const circle = group.getObjects().find(o => o.type === 'circle');
+        if (circle) {
+          return {
+            ...obj,
+            fill: circle.fill,
+            stroke: circle.stroke,
+            radius: (circle as any).radius
+          };
+        }
+      }
+      return obj;
+    });
+
     setProperties({
       angle: getMergedValue(objs, 'angle'),
       radius: getMergedValue(objs, 'radius'),
@@ -73,6 +91,7 @@ export const useObjectProperties = (
       top: getMergedValue(objs, 'top'),
       rx: getMergedValue(objs, 'rx'),
       ry: getMergedValue(objs, 'ry'),
+      rowId: getMergedValue(objs, 'rowId'),
       seatNumber: getMergedValue(objs, 'seatNumber'),
       category: getMergedValue(objs, 'category'),
       price: getMergedValue(objs, 'price'),

@@ -11,6 +11,7 @@ import useObjectCreator from '@/hooks/useObjectCreator';
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import useUndoRedo from '@/hooks/useUndoRedo';
 import { useSmartSnap } from '@/hooks/useSmartSnap';
+import useRowLabelRenderer from '@/hooks/useRowLabelRenderer';
 import '@/index.css';
 import '../fabricCustomRegistration';
 import { CanvasObject, SeatCanvasProps, SeatData } from '@/types/data.types';
@@ -61,11 +62,11 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasParent = useRef<HTMLDivElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
-  const { canvas, setCanvas, toolMode, setToolMode, toolAction, snapEnabled } =
+  const { canvas, setCanvas, toolMode, setToolMode, toolAction, snapEnabled, zoomLevel } =
     useEventGuiStore();
   const [selectedSeat, setSelectedSeat] = useState<SeatData | null>(null);
-  const [bgImage, setBgImage] = useState<string | null>(null);
-  const [bgOpacity] = useState(0.3);
+  const [hasBgImage, setHasBgImage] = useState(false);
+  const [bgOpacity] = useState(0.5); // Increased opacity for better visibility as object
 
   // Merge default styles with custom styles
   const mergedStyle = {
@@ -91,10 +92,25 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   const handleBgImageUpload = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      setBgImage(e.target?.result as string);
-      if (canvas && canvas.getElement && canvas.getElement()) {
+      if (canvas) {
+        // Remove existing background layout if any
+        const existingBg = canvas
+          .getObjects()
+          .find((obj: any) => obj.customType === 'layout-background');
+        if (existingBg) {
+          canvas.remove(existingBg);
+        }
+
         fabric.Image.fromURL(e.target?.result as string, (img) => {
-          img.set({ opacity: bgOpacity });
+          img.set({
+            opacity: bgOpacity,
+            selectable: !readOnly,
+            evented: !readOnly,
+            hasControls: true,
+            lockRotation: true,
+            // @ts-ignore
+            customType: 'layout-background',
+          });
 
           // Calculate scale to fit while maintaining aspect ratio
           const canvasRatio = canvas.width! / canvas.height!;
@@ -111,18 +127,16 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
             scaleX = scaleY;
           }
 
-          // Center the image
-          const scaledWidth = img.width! * scaleX;
-          const scaledHeight = img.height! * scaleY;
-          const left = (canvas.width! - scaledWidth) / 2;
-          const top = (canvas.height! - scaledHeight) / 2;
+          img.scale(scaleX); // Uniform scaling
 
-          canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
-            scaleX,
-            scaleY,
-            left,
-            top,
-          });
+          // Center the image
+          img.center();
+
+          canvas.add(img);
+          img.sendToBack();
+          canvas.setActiveObject(img);
+          canvas.renderAll();
+          setHasBgImage(true);
         });
       }
     };
@@ -131,27 +145,53 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
 
   // Remove background image
   const handleRemoveBgImage = () => {
-    setBgImage(null);
-    if (canvas && canvas.getElement && canvas.getElement()) {
-      canvas.setBackgroundImage(null as any, canvas.renderAll.bind(canvas));
+    if (canvas) {
+      const bgObj = canvas
+        .getObjects()
+        .find((obj: any) => obj.customType === 'layout-background');
+      if (bgObj) {
+        canvas.remove(bgObj);
+        canvas.renderAll();
+      }
+      setHasBgImage(false);
     }
   };
 
-  // Keep background image in sync with canvas
+  // Sync validation of hasBgImage and lock status on readOnly change
   useEffect(() => {
-    if (bgImage && canvas && canvas.getElement && canvas.getElement()) {
-      fabric.Image.fromURL(bgImage, (img) => {
-        img.set({ opacity: bgOpacity });
-        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
-          scaleX: canvas.width! / img.width!,
-          scaleY: canvas.height! / img.height!,
-        });
+    if (!canvas) return;
+
+    const bgObj = canvas
+      .getObjects()
+      .find((obj: any) => obj.customType === 'layout-background');
+
+    if (bgObj) {
+      setHasBgImage(true);
+      bgObj.set({
+        selectable: !readOnly,
+        evented: !readOnly,
+        hasControls: !readOnly,
       });
+      canvas.requestRenderAll();
+    } else {
+      setHasBgImage(false);
     }
-    if (!bgImage && canvas && canvas.getElement && canvas.getElement()) {
-      canvas.setBackgroundImage(null as any, canvas.renderAll.bind(canvas));
-    }
-  }, [bgImage, canvas, bgOpacity]);
+  }, [canvas, readOnly]);
+
+  // Handle zoom changes
+  useEffect(() => {
+    if (!canvas) return;
+    const scale = zoomLevel / 100;
+    canvas.setDimensions(
+      {
+        width: mergedStyle.width * scale,
+        height: mergedStyle.height * scale,
+      },
+      { cssOnly: false }
+    );
+    canvas.setZoom(scale);
+    canvas.requestRenderAll();
+  }, [canvas, zoomLevel, mergedStyle.width, mergedStyle.height]);
 
   useCanvasSetup(
     canvasRef,
@@ -160,10 +200,12 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     mergedStyle.width,
     mergedStyle.height,
     mergedStyle.backgroundColor,
-    !readOnly
+    !readOnly,
+    false
   );
   useSelectionHandler(canvas);
   useMultipleSeatCreator(canvas, toolMode, setToolMode);
+  useRowLabelRenderer(canvas);
   useObjectDeletion(canvas, toolAction);
   useObjectCreator(canvas, toolMode, setToolMode);
   if (!readOnly) {
@@ -176,15 +218,28 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   useEffect(() => {
     if (!canvas || !layout) return;
 
-    // Remove background image if present when layout changes
-    setBgImage(null);
-    canvas.setBackgroundImage(null as any, canvas.renderAll.bind(canvas));
+    // Clear canvas
     canvas.clear();
 
     // Store handler reference so we can remove it
     let readOnlyMouseDownHandler: ((options: any) => void) | null = null;
 
     canvas.loadFromJSON(layout, () => {
+      // Check for background image object and send to back
+      const bgObj = canvas.getObjects().find((obj: any) => obj.customType === 'layout-background');
+      if (bgObj) {
+        setHasBgImage(true);
+        bgObj.sendToBack();
+        bgObj.set({
+          selectable: !readOnly,
+          evented: !readOnly,
+          hasControls: !readOnly,
+          lockRotation: true,
+        });
+      } else {
+        setHasBgImage(false);
+      }
+
       if (readOnly) {
         // Label each seat by number if enabled
         if (mergedStyle.showSeatNumbers) {
@@ -196,8 +251,8 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
             }
             const label = new fabric.Text(
               seat.attributes?.number?.toString() ||
-                seat.seatNumber?.toString() ||
-                '',
+              seat.seatNumber?.toString() ||
+              '',
               {
                 left:
                   (seat.left ?? 0) +
@@ -258,6 +313,16 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
         // Enable selection and make objects selectable in edit mode
         canvas.selection = true;
         canvas.getObjects().forEach((obj: any) => {
+          // Keep layout background behavior consistent
+          if (obj.customType === 'layout-background') {
+            obj.set({
+              selectable: true,
+              evented: true,
+              hasControls: true
+            });
+            return;
+          }
+
           obj.selectable = true;
           obj.evented = true;
         });
@@ -330,22 +395,15 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     }
   };
 
-  // Save handler that excludes background image from saved file
+  // Save handler
   const handleSave = () => {
     if (!canvas || !onSave) return;
-    // Temporarily remove background image
-    const currentBg = canvas.backgroundImage;
-    canvas.setBackgroundImage(null as any, canvas.renderAll.bind(canvas), {
-      dirty: false,
-    });
+
     const json = {
       type: 'canvas',
       ...canvas.toJSON(['customType', 'seatData', 'zoneData']),
     } as unknown as CanvasObject;
-    // Restore background image
-    if (currentBg) {
-      canvas.setBackgroundImage(currentBg, canvas.renderAll.bind(canvas));
-    }
+
     onSave(json);
   };
 
@@ -359,9 +417,42 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     />
   );
 
+  // Full screen handler
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    };
+  }, []);
+
+  const handleToggleFullScreen = async () => {
+    if (!containerRef.current) return;
+
+    if (!document.fullscreenElement) {
+      try {
+        await containerRef.current.requestFullscreen();
+      } catch (err) {
+        console.error('Error attempting to enable full-screen mode:', err);
+      }
+    } else {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+    }
+  };
+
   return (
     <div
-      className={`relative flex h-full w-full flex-col bg-gray-200 ${className}`}
+      ref={containerRef}
+      className={`relative flex h-full w-full flex-col bg-gray-200 ${className} ${isFullScreen ? 'p-4' : ''
+        }`}
     >
       <input
         type="file"
@@ -379,7 +470,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
           renderToolbar({
             onSave: handleSave,
             onBgLayout: () => {
-              if (bgImage) {
+              if (hasBgImage) {
                 handleRemoveBgImage();
               } else {
                 bgInputRef.current?.click();
@@ -390,36 +481,41 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
           <Toolbar
             onSave={handleSave}
             onBgLayout={() => {
-              if (bgImage) {
+              if (hasBgImage) {
                 handleRemoveBgImage();
               } else {
                 bgInputRef.current?.click();
               }
             }}
+            onToggleFullScreen={handleToggleFullScreen}
+            isFullScreen={isFullScreen}
           />
         ))}
-      <div className="flex h-0 w-full flex-1 overflow-hidden pt-12">
+      <div className="flex h-0 min-h-0 w-full flex-1 overflow-hidden pt-12">
         <div
-          className="m-auto flex flex-1 items-center justify-center overflow-auto bg-gray-100"
+          className="flex flex-1 overflow-auto bg-gray-100 p-[2%] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:w-1"
           ref={canvasParent}
-          style={{
-            width: '100%',
-            height: '100%',
-            maxWidth: mergedStyle.width,
-            maxHeight: mergedStyle.height,
-          }}
+          style={{ scrollbarWidth: 'thin' }}
         >
-          <canvas ref={canvasRef} />
+          <div
+            className="m-auto relative shadow-lg bg-white"
+            style={{
+              width: mergedStyle.width * (zoomLevel / 100),
+              height: mergedStyle.height * (zoomLevel / 100),
+            }}
+          >
+            <canvas ref={canvasRef} />
+          </div>
         </div>
         {!readOnly && (renderSidebar ? renderSidebar() : <Sidebar />)}
       </div>
       {/* Only show the default modal if renderSeatDetails is not provided */}
       {renderSeatDetails
         ? renderSeatDetails({
-            seat: selectedSeat!,
-            onClose: () => setSelectedSeat(null),
-            onAction: handleSeatAction,
-          })
+          seat: selectedSeat!,
+          onClose: () => setSelectedSeat(null),
+          onAction: handleSeatAction,
+        })
         : defaultSeatDetails}
     </div>
   );

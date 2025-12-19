@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { fabric } from 'fabric';
+import { v4 as uuidv4 } from 'uuid';
 import { createSeat } from '../components/createObject';
-import { Mode } from '@/zustand/store/eventGuiStore';
+import { Mode, useEventGuiStore } from '@/zustand/store/eventGuiStore';
 
 const useMultipleSeatCreator = (
   canvas: fabric.Canvas | null,
@@ -10,6 +11,21 @@ const useMultipleSeatCreator = (
 ) => {
   const startPointRef = useRef<{ x: number; y: number } | null>(null);
   const highlightRectRef = useRef<fabric.Rect | null>(null);
+  const infoTextRef = useRef<fabric.Text | null>(null);
+
+  const { addRow, rows: existingRows } = useEventGuiStore();
+
+  function getExcelAlpha(n: number) {
+    let ordA = 'A'.charCodeAt(0);
+    let ordZ = 'Z'.charCodeAt(0);
+    let len = ordZ - ordA + 1;
+    let s = '';
+    while (n >= 0) {
+      s = String.fromCharCode((n % len) + ordA) + s;
+      n = Math.floor(n / len) - 1;
+    }
+    return s;
+  }
 
   useEffect(() => {
     if (!canvas) return;
@@ -34,7 +50,24 @@ const useMultipleSeatCreator = (
       });
       highlightRectRef.current = rect;
       canvas.add(rect);
+
+      // Create info text
+      const text = new fabric.Text('1 X 1', {
+        left: pointer.x,
+        top: pointer.y,
+        fontSize: 14,
+        fill: 'blue',
+        selectable: false,
+        evented: false,
+        originX: 'center',
+        originY: 'center',
+        excludeFromExport: true,
+      });
+      infoTextRef.current = text;
+      canvas.add(text);
+
       canvas.bringToFront(rect);
+      canvas.bringToFront(text);
     };
 
     const handleMouseMove = (event: fabric.IEvent) => {
@@ -46,12 +79,31 @@ const useMultipleSeatCreator = (
         return;
       const pointer = canvas.getPointer(event.e);
       const rect = highlightRectRef.current;
+
+      const width = Math.abs(pointer.x - startPointRef.current.x);
+      const height = Math.abs(pointer.y - startPointRef.current.y);
+      const left = Math.min(pointer.x, startPointRef.current.x);
+      const top = Math.min(pointer.y, startPointRef.current.y);
+
       rect.set({
-        width: Math.abs(pointer.x - startPointRef.current.x),
-        height: Math.abs(pointer.y - startPointRef.current.y),
-        left: Math.min(pointer.x, startPointRef.current.x),
-        top: Math.min(pointer.y, startPointRef.current.y),
+        width,
+        height,
+        left,
+        top,
       });
+
+      // Update info text
+      if (infoTextRef.current) {
+        const rows = Math.max(1, Math.floor(height / 25));
+        const cols = Math.max(1, Math.floor(width / 25));
+        infoTextRef.current.set({
+          text: `${rows} X ${cols}`,
+          left: left + width / 2,
+          top: top + height / 2,
+        });
+        canvas.bringToFront(infoTextRef.current);
+      }
+
       canvas.requestRenderAll();
       canvas.bringToFront(rect);
     };
@@ -62,22 +114,50 @@ const useMultipleSeatCreator = (
       const startPoint = startPointRef.current;
       const width = Math.abs(endPoint.x - startPoint.x);
       const height = Math.abs(endPoint.y - startPoint.y);
-      const rows = Math.floor(height / 60);
-      const cols = Math.floor(width / 60);
-      for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < cols; j++) {
-          const left = startPoint.x + j * 60;
-          const top = startPoint.y + i * 60;
-          const seat = createSeat(left, top, canvas);
+
+      const rowsCount = Math.max(1, Math.floor(height / 25));
+      const colsCount = Math.max(1, Math.floor(width / 25));
+
+      // Normalize start coordinates
+      const startX = Math.min(startPoint.x, endPoint.x);
+      const startY = Math.min(startPoint.y, endPoint.y);
+
+      // Generate Rows and Seats
+      const currentRowsCount = existingRows.length;
+
+      for (let i = 0; i < rowsCount; i++) {
+        const rowId = uuidv4();
+        const rowName = getExcelAlpha(currentRowsCount + i);
+
+        addRow({
+          id: rowId,
+          name: rowName,
+          showLabelLeft: true,
+          showLabelRight: true,
+        });
+
+        for (let j = 0; j < colsCount; j++) {
+          const left = startX + j * 25;
+          const top = startY + i * 25;
+          const seatNumber = String(j + 1);
+
+          // Updated createSeat call with correct signature: left, top, rowId, seatNumber, canvas
+          const seat = createSeat(left, top, rowId, seatNumber, canvas);
           canvas.add(seat);
         }
       }
       canvas.renderAll();
-      // Remove highlight rectangle
+
+      // Cleanup
       if (highlightRectRef.current) {
         canvas.remove(highlightRectRef.current);
         highlightRectRef.current = null;
       }
+      if (infoTextRef.current) {
+        canvas.remove(infoTextRef.current);
+        infoTextRef.current = null;
+      }
+
       startPointRef.current = null;
       setToolMode('select');
     };
@@ -91,7 +171,7 @@ const useMultipleSeatCreator = (
       canvas.off('mouse:move', handleMouseMove);
       canvas.off('mouse:up', handleMouseUp);
     };
-  }, [canvas, toolMode, setToolMode]);
+  }, [canvas, toolMode, setToolMode, existingRows, addRow]);
 };
 
 export default useMultipleSeatCreator;

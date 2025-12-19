@@ -16,6 +16,7 @@ import TextProperties from './components/textProperties';
 import ColorProperties from './components/colorProperties';
 import SeatAttributes from './components/seatAttributes';
 import GridSpacing from './components/gridSpacing';
+import RowProperties from './components/RowProperties';
 
 export type Mode =
   | 'select'
@@ -25,7 +26,7 @@ export type Mode =
   | 'text';
 
 const Sidebar: React.FC = () => {
-  const { canvas } = useEventGuiStore();
+  const { canvas, selectedRowId } = useEventGuiStore();
   const [selectedObjects, setSelectedObjects] = useState<CustomFabricObject[]>(
     []
   );
@@ -49,34 +50,75 @@ const Sidebar: React.FC = () => {
     if (!canvas) return;
 
     const updateSelectedObjects = () => {
-      const activeObjects = canvas.getActiveObjects() as CustomFabricObject[];
+      const allActive = canvas.getActiveObjects() as CustomFabricObject[];
+      // Filter out row labels if we have other objects (e.g. seats) to prioritize main content
+      const nonLabels = allActive.filter((o) => !o.isRowLabel);
+      const activeObjects = nonLabels.length > 0 ? nonLabels : allActive;
+
       const activeObject = canvas.getActiveObject();
+
+      const getObjType = (obj: CustomFabricObject) => {
+        if (obj.type === 'group' && (obj.rowId || obj.seatNumber)) return 'circle';
+        return obj.type;
+      };
+
       setSelectedObjects(activeObjects);
       setSelectedObject(activeObjects[0] || null);
-      setObjectType(
-        activeObjects[0]?.type as 'circle' | 'rect' | 'i-text' | null
-      );
+
+      const primaryType = activeObjects[0]
+        ? getObjType(activeObjects[0])
+        : null;
+
+      setObjectType(primaryType as 'circle' | 'rect' | 'i-text' | null);
+
       setObjectTypes(
         Array.from(
           new Set(
             activeObjects
-              .map((obj) => obj.type)
+              .map((obj) => getObjType(obj))
               .filter((type): type is string => typeof type === 'string')
           )
         )
       );
-      // --- Sync sidebar properties with group if group is selected ---
+
+      // --- Sync sidebar properties ---
+      // We need to handle Seat Groups specifically to extract visual props from inner Circle
+      const getVisualProps = (obj: CustomFabricObject) => {
+        if (obj.type === 'group' && (obj.rowId || obj.seatNumber)) {
+          // It's a seat group
+          const group = obj as fabric.Group;
+          const circle = group.getObjects().find(o => o.type === 'circle');
+          if (circle) {
+            return {
+              ...obj, // Group props (left, top, rowId...)
+              fill: circle.fill,
+              stroke: circle.stroke,
+              radius: (circle as any).radius,
+              // For width/height, rely on Group's width/height * scale
+              width: obj.width,
+              height: obj.height,
+              scaleX: obj.scaleX,
+              scaleY: obj.scaleY
+            };
+          }
+        }
+        return obj;
+      };
+
       if (activeObject && activeObject.type === 'activeSelection') {
+        const representative = getVisualProps(activeObjects[0]); // fallback to first item
+        // Note: activeSelection properties are often singular if all items match, or mixed.
+        // For simplicity, we stick to existing behavior but aliased.
         setProperties((prev) => ({
           ...prev,
           angle: activeObject.angle ?? prev.angle,
-          radius: (activeObject as any).radius ?? prev.radius,
+          radius: (representative as any).radius ?? prev.radius,
           width:
             (activeObject.width ?? prev.width) * (activeObject.scaleX ?? 1),
           height:
             (activeObject.height ?? prev.height) * (activeObject.scaleY ?? 1),
-          fill: activeObject.fill ?? prev.fill,
-          stroke: activeObject.stroke ?? prev.stroke,
+          fill: (representative as any).fill ?? prev.fill,
+          stroke: (representative as any).stroke ?? prev.stroke,
           text: (activeObject as any).text ?? prev.text,
           fontSize: (activeObject as any).fontSize ?? prev.fontSize,
           fontWeight: (activeObject as any).fontWeight ?? prev.fontWeight,
@@ -87,26 +129,29 @@ const Sidebar: React.FC = () => {
           ry: (activeObject as any).ry ?? prev.ry,
         }));
       } else if (activeObjects[0]) {
+        const visualObj = getVisualProps(activeObjects[0]);
         setProperties((prev) => ({
           ...prev,
-          angle: activeObjects[0].angle ?? prev.angle,
-          radius: (activeObjects[0] as any).radius ?? prev.radius,
+          angle: visualObj.angle ?? prev.angle,
+          radius: (visualObj as any).radius ?? prev.radius,
           width:
-            (activeObjects[0].width ?? prev.width) *
-            (activeObjects[0].scaleX ?? 1),
+            (visualObj.width ?? prev.width) *
+            (visualObj.scaleX ?? 1),
           height:
-            (activeObjects[0].height ?? prev.height) *
-            (activeObjects[0].scaleY ?? 1),
-          fill: activeObjects[0].fill ?? prev.fill,
-          stroke: activeObjects[0].stroke ?? prev.stroke,
-          text: (activeObjects[0] as any).text ?? prev.text,
-          fontSize: (activeObjects[0] as any).fontSize ?? prev.fontSize,
-          fontWeight: (activeObjects[0] as any).fontWeight ?? prev.fontWeight,
-          fontFamily: (activeObjects[0] as any).fontFamily ?? prev.fontFamily,
-          left: activeObjects[0].left ?? prev.left,
-          top: activeObjects[0].top ?? prev.top,
-          rx: (activeObjects[0] as any).rx ?? prev.rx,
-          ry: (activeObjects[0] as any).ry ?? prev.ry,
+            (visualObj.height ?? prev.height) *
+            (visualObj.scaleY ?? 1),
+          fill: visualObj.fill ?? prev.fill,
+          stroke: visualObj.stroke ?? prev.stroke,
+          text: (visualObj as any).text ?? prev.text,
+          fontSize: (visualObj as any).fontSize ?? prev.fontSize,
+          fontWeight: (visualObj as any).fontWeight ?? prev.fontWeight,
+          fontFamily: (visualObj as any).fontFamily ?? prev.fontFamily,
+          left: visualObj.left ?? prev.left,
+          top: visualObj.top ?? prev.top,
+          rx: (visualObj as any).rx ?? prev.rx,
+          ry: (visualObj as any).ry ?? prev.ry,
+          // Ensure we capture custom props too if needed, but setProperties only updates known keys usually?
+          // properties hook handles the rest.
         }));
       }
     };
@@ -157,7 +202,10 @@ const Sidebar: React.FC = () => {
   }, [canvas]);
 
   return (
-    <div className="h-full w-[20rem] space-y-4 border-0 border-l border-solid border-gray-200 bg-gray-50 p-4">
+    <div className="h-full w-[20rem] space-y-4 overflow-y-auto border-0 border-l border-solid border-gray-200 bg-gray-50 p-4 scrollbar-thin">
+      {selectedRowId && (
+        <RowProperties />
+      )}
       {selectedObjects.length > 1 &&
         objectTypes.length === 1 &&
         objectTypes[0] === 'circle' && (
@@ -215,21 +263,19 @@ const Sidebar: React.FC = () => {
           {objectType === 'circle' && (
             <div className="mb-4 flex items-center gap-2 border-0 border-b border-solid border-gray-200">
               <button
-                className={`px-3 py-1.5 text-sm font-medium ${
-                  activeTab === 'basic'
-                    ? 'border-0 border-b-2 border-solid border-gray-500 text-gray-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
+                className={`px-3 py-1.5 text-sm font-medium ${activeTab === 'basic'
+                  ? 'border-0 border-b-2 border-solid border-gray-500 text-gray-600'
+                  : 'text-gray-500 hover:text-gray-700'
+                  }`}
                 onClick={() => setActiveTab('basic')}
               >
                 Properties
               </button>
               <button
-                className={`px-3 py-1.5 text-sm font-medium ${
-                  activeTab === 'attributes'
-                    ? 'border-0 border-b-2 border-solid border-gray-500 text-gray-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
+                className={`px-3 py-1.5 text-sm font-medium ${activeTab === 'attributes'
+                  ? 'border-0 border-b-2 border-solid border-gray-500 text-gray-600'
+                  : 'text-gray-500 hover:text-gray-700'
+                  }`}
                 onClick={() => setActiveTab('attributes')}
               >
                 Attributes
@@ -238,8 +284,8 @@ const Sidebar: React.FC = () => {
           )}
 
           {objectTypes.length === 1 &&
-          objectTypes[0] === 'circle' &&
-          activeTab === 'attributes' ? (
+            objectTypes[0] === 'circle' &&
+            activeTab === 'attributes' ? (
             <SeatAttributes
               properties={properties}
               updateObject={updateObject}
