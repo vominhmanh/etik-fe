@@ -45,7 +45,7 @@ import { LocalizedLink } from '@/components/localized-link';
 
 import 'react-quill/dist/quill.snow.css';
 
-import SendRequestEventAgencyAndEventApproval from '../../../../../../components/events/event/send-request-event-agency-and-event-approval';
+import SendRequestEventAgencyAndEventApproval from '@/components/events/event/send-request-event-agency-and-event-approval';
 
 // Define the event response type
 type EventResponse = {
@@ -186,9 +186,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         setEventAgencyRegistrationAndEventApprovalRequest(
           eventAgencyRegistrationAndEventApprovalRequest
             ? {
-                ...eventAgencyRegistrationAndEventApprovalRequest,
-                eventApprovalRequest: 'waiting_for_acceptance',
-              }
+              ...eventAgencyRegistrationAndEventApprovalRequest,
+              eventApprovalRequest: 'waiting_for_acceptance',
+            }
             : eventAgencyRegistrationAndEventApprovalRequest
         );
         setOpenConfirmSubmitEventApprovalModal(false);
@@ -205,9 +205,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     setEventAgencyRegistrationAndEventApprovalRequest(
       eventAgencyRegistrationAndEventApprovalRequest
         ? {
-            ...eventAgencyRegistrationAndEventApprovalRequest,
-            eventApprovalRequest: 'waiting_for_acceptance',
-          }
+          ...eventAgencyRegistrationAndEventApprovalRequest,
+          eventApprovalRequest: 'waiting_for_acceptance',
+        }
         : eventAgencyRegistrationAndEventApprovalRequest
     );
   };
@@ -270,13 +270,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         error instanceof Error
           ? error.message
           : // 2) If it’s an AxiosError with a response body
-            error.response?.data?.message
+          error.response?.data?.message
             ? error.response.data.message
             : // 3) If it’s a plain string
-              typeof error === 'string'
+            typeof error === 'string'
               ? error
               : // 4) Fallback to JSON‐dump of the object
-                JSON.stringify(error);
+              JSON.stringify(error);
       notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
     } finally {
       setIsLoading(false);
@@ -329,13 +329,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         error instanceof Error
           ? error.message
           : // 2) If it’s an AxiosError with a response body
-            error.response?.data?.message
+          error.response?.data?.message
             ? error.response.data.message
             : // 3) If it’s a plain string
-              typeof error === 'string'
+            typeof error === 'string'
               ? error
               : // 4) Fallback to JSON‐dump of the object
-                JSON.stringify(error);
+              JSON.stringify(error);
       notificationCtx.error(`Lỗi tải ảnh:  ${message}`);
     } finally {
       setIsLoading(false);
@@ -827,12 +827,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         )}
                         {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest ==
                           'waiting_for_acceptance' && (
-                          <Button fullWidth variant="outlined" size="small" disabled>
-                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                              <span>{tt('Sự kiện đang chờ duyệt', 'Event Pending Approval')}</span>
-                            </Stack>
-                          </Button>
-                        )}
+                            <Button fullWidth variant="outlined" size="small" disabled>
+                              <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                                <span>{tt('Sự kiện đang chờ duyệt', 'Event Pending Approval')}</span>
+                              </Stack>
+                            </Button>
+                          )}
                         {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest == 'rejected' && (
                           <Button
                             fullWidth
@@ -851,18 +851,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         )}
                         {eventAgencyRegistrationAndEventApprovalRequest.eventApprovalRequest ==
                           'no_request_from_user' && (
-                          <Button fullWidth variant="contained" size="small" onClick={handleRequestEventApprovalClick}>
-                            <Stack spacing={0} sx={{ alignItems: 'center' }}>
-                              <span>{tt('nâng cấp thành Sự kiện Được xác thực', 'Upgrade to Verified Event')}</span>
-                              <small>
-                                {tt(
-                                  'Để bật thanh toán online, gửi email marketing,...',
-                                  'To enable online payment, send marketing emails,...'
-                                )}
-                              </small>
-                            </Stack>
-                          </Button>
-                        )}
+                            <Button fullWidth variant="contained" size="small" onClick={handleRequestEventApprovalClick}>
+                              <Stack spacing={0} sx={{ alignItems: 'center' }}>
+                                <span>{tt('nâng cấp thành Sự kiện Được xác thực', 'Upgrade to Verified Event')}</span>
+                                <small>
+                                  {tt(
+                                    'Để bật thanh toán online, gửi email marketing,...',
+                                    'To enable online payment, send marketing emails,...'
+                                  )}
+                                </small>
+                              </Stack>
+                            </Button>
+                          )}
                       </>
                     )}
                   </Box>

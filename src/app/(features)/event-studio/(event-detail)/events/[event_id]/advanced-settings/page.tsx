@@ -31,7 +31,7 @@ import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import SendRequestEventAgencyAndEventApproval from '../../../../../../components/events/event/send-request-event-agency-and-event-approval';
+import SendRequestEventAgencyAndEventApproval from '@/components/events/event/send-request-event-agency-and-event-approval';
 
 // Define the event response type
 type EventResponse = {
@@ -95,7 +95,7 @@ import PrinterModal, { TicketTagPrinter } from './printer-modal';
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const { tt } = useTranslation();
-  
+
   React.useEffect(() => {
     document.title = tt("Cài đặt nâng cao | ETIK - Vé điện tử & Quản lý sự kiện", "Advanced Settings | ETIK - Electronic Tickets & Event Management");
   }, [tt]);

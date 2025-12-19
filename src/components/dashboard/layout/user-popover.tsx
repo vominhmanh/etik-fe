@@ -96,7 +96,7 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
           </ListItemIcon>
           {tt('Trang tổng quan', 'Dashboard')}
         </MenuItem>
-        
+
         <MenuItem component={LocalizedLink} href={'/account'} onClick={onClose}>
           <ListItemIcon>
             <UserIcon fontSize="var(--icon-fontSize-md)" />
@@ -107,9 +107,9 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
           <ListItemIcon>
             <Wallet fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          <span>{tt('Ví trả trước: ', 'Prepaid Wallet: ')}</span><b style={{marginLeft: '8px'}}>0</b><span style={{marginLeft: '8px'}}>{tt('VNĐ', 'VND')}</span>
+          <span>{tt('Ví trả trước: ', 'Prepaid Wallet: ')}</span><b style={{ marginLeft: '8px' }}>0</b><span style={{ marginLeft: '8px' }}>{tt('VNĐ', 'VND')}</span>
         </MenuItem>
-        
+
         <MenuItem component={LocalizedLink} href={'/account/my-tickets'} onClick={onClose}>
           <ListItemIcon>
             <TicketIcon fontSize="var(--icon-fontSize-md)" />
@@ -122,7 +122,7 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
           </ListItemIcon>
           {tt('Đơn hàng của tôi', 'My Orders')}
         </MenuItem>
-        <MenuItem component={LocalizedLink} href={'/account-event-agency'} onClick={onClose}>
+        <MenuItem component={LocalizedLink} href={'/event-studio/account-event-agency'} onClick={onClose}>
           <ListItemIcon>
             <SealCheck fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>

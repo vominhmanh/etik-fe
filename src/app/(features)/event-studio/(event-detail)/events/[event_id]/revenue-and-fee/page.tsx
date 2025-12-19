@@ -18,19 +18,13 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { ArrowSquareIn, Clipboard, CurrencyDollar, Eye, Storefront } from '@phosphor-icons/react/dist/ssr';
-import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
-import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
-import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
+import { CurrencyDollar } from '@phosphor-icons/react/dist/ssr';
 import { AxiosResponse } from 'axios';
-import dayjs from 'dayjs';
-import { LocalizedLink } from '@/components/localized-link';
 
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import SendRequestEventAgencyAndEventApproval from '../../../../../../components/events/event/send-request-event-agency-and-event-approval';
 
 // Define the event response type
 type EventResponse = {

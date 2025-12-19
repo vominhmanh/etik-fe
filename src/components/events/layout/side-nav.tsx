@@ -26,6 +26,7 @@ export function SideNav(): React.JSX.Element {
   const navItems = React.useMemo(() => getNavItems(tt), [tt]);
   const { key: firstKey, ...firstItem } = navItems[0];
   const { key: secondKey, ...secondItem } = navItems[1];
+  const { key: thirdKey, ...thirdItem } = navItems[2];
   const logo = locale === 'en' ? logoImageEn : logoImage;
 
   return (
@@ -56,25 +57,26 @@ export function SideNav(): React.JSX.Element {
         '&::-webkit-scrollbar': { display: 'none' },
       }}
     >
-      <Stack sx={{position: 'sticky', top: 0}}>
+      <Stack sx={{ position: 'sticky', top: 0 }}>
         <Stack spacing={2} sx={{ p: 2 }}>
-        <Box component={LocalizedLink} href={paths.dashboard.overview} sx={{ display: 'inline-flex' }}>
+          <Box component={LocalizedLink} href={paths.dashboard.overview} sx={{ display: 'inline-flex' }}>
             <Image
-                src={logo}
-                alt="Left Logo"
-                height={40}
-                className="mr-2" // Khoảng cách giữa hai logo
-              />
-        </Box>
-      </Stack>
-      <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
-      <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
-        <Stack component="ul" spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }}>
-          <NavItem key={firstKey} pathname={pathname} {...firstItem} />
-          <NavItem key={secondKey} pathname={pathname} {...secondItem} />
+              src={logo}
+              alt="Left Logo"
+              height={40}
+              className="mr-2" // Khoảng cách giữa hai logo
+            />
+          </Box>
         </Stack>
-        {/*{renderNavItems({ pathname, items: navItems })}*/}
-      </Box>
+        <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
+        <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
+          <Stack component="ul" spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }}>
+            <NavItem key={firstKey} pathname={pathname} {...firstItem} />
+            <NavItem key={secondKey} pathname={pathname} {...secondItem} />
+            <NavItem key={thirdKey} pathname={pathname} {...thirdItem} />
+          </Stack>
+          {/*{renderNavItems({ pathname, items: navItems })}*/}
+        </Box>
       </Stack>
     </Box>
   );
@@ -93,11 +95,11 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
       <Box
         {...(href
           ? {
-              component: external ? 'a' : LocalizedLink,
-              href,
-              target: external ? '_blank' : undefined,
-              rel: external ? 'noreferrer' : undefined,
-            }
+            component: external ? 'a' : LocalizedLink,
+            href,
+            target: external ? '_blank' : undefined,
+            rel: external ? 'noreferrer' : undefined,
+          }
           : { role: 'button' })}
         sx={{
           alignItems: 'center',

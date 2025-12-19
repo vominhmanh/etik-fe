@@ -38,6 +38,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
   const logo = locale === 'en' ? logoImageEn : logoImage;
   const { key: firstKey, ...firstItem } = navItems[0];
   const { key: secondKey, ...secondItem } = navItems[1];
+  const { key: thirdKey, ...thirdItem } = navItems[2];
 
   return (
     <Drawer
@@ -82,6 +83,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
         <Stack component="ul" spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }}>
           <NavItem key={firstKey} pathname={pathname} {...firstItem} />
           <NavItem key={secondKey} pathname={pathname} {...secondItem} />
+          <NavItem key={thirdKey} pathname={pathname} {...thirdItem} />
         </Stack>
       </Box>
     </Drawer>
@@ -101,11 +103,11 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
       <Box
         {...(href
           ? {
-              component: external ? 'a' : LocalizedLink,
-              href,
-              target: external ? '_blank' : undefined,
-              rel: external ? 'noreferrer' : undefined,
-            }
+            component: external ? 'a' : LocalizedLink,
+            href,
+            target: external ? '_blank' : undefined,
+            rel: external ? 'noreferrer' : undefined,
+          }
           : { role: 'button' })}
         sx={{
           alignItems: 'center',
