@@ -281,7 +281,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ onSave, onBgLayout }) => {
   ];
 
   return (
-    <div className="fixed left-0 top-0 z-[200] flex w-full items-center justify-center gap-1 bg-white px-[1rem] py-[0.5rem] shadow">
+    <div className="absolute left-0 top-0 z-[200] flex w-full items-center justify-center gap-1 bg-white px-[1rem] py-[0.5rem] shadow">
       {/* :::::::::::::::: add space */}
       <div className="flex-1" />
 
@@ -385,9 +385,8 @@ const Button: React.FC<ButtonProps> = ({ icon, tooltip, state, ...props }) => {
   return (
     <div className="relative">
       <button
-        className={`rounded-md p-2 hover:bg-gray-200/60 ${
-          state ? 'shadow-sm shadow-gray-400 ring-1 ring-gray-400' : ''
-        } ease-250 active:bg-gray-200 `}
+        className={`rounded-md p-2 hover:bg-gray-200/60 ${state ? 'shadow-sm shadow-gray-400 ring-1 ring-gray-400' : ''
+          } ease-250 active:bg-gray-200 `}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
         {...props}
@@ -396,11 +395,10 @@ const Button: React.FC<ButtonProps> = ({ icon, tooltip, state, ...props }) => {
       </button>
 
       <div
-        className={`absolute left-1/2 -translate-x-1/2 transform ${
-          showTooltip
+        className={`absolute left-1/2 -translate-x-1/2 transform ${showTooltip
             ? 'top-[calc(100%+0.5rem)] opacity-100'
             : 'top-[100%] opacity-0'
-        } ease-250 whitespace-nowrap rounded bg-gray-200 px-2 py-1 text-[0.625rem] text-gray-900 shadow-md`}
+          } ease-250 whitespace-nowrap rounded bg-gray-200 px-2 py-1 text-[0.625rem] text-gray-900 shadow-md`}
       >
         {tooltip}
       </div>

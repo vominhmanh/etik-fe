@@ -4,6 +4,7 @@ import type { Viewport } from 'next';
 import { NotificationProvider } from '@/contexts/notification-context';
 
 import '@/styles/global.css';
+import "seat-picker/dist/index.css";
 
 import { UserProvider } from '@/contexts/user-context';
 import { LocaleProvider } from '@/contexts/locale-context';
