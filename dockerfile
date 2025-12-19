@@ -3,21 +3,22 @@ LABEL author="etik"
 
 WORKDIR /app
 
-# Copy manifests first to leverage Docker cache
+# 1) Copy root manifests
 COPY package.json package-lock.json ./
 
-# Install deps (uses package-lock for reproducible builds)
+# 2) Copy workspace manifests (tối thiểu phải có package.json của từng workspace)
+COPY packages/seat-picker/package.json packages/seat-picker/package.json
+
+# 3) Install deps
 RUN npm ci --legacy-peer-deps && npm cache clean --force
 
-# Copy the rest
+# 4) Copy the rest source
 COPY . .
 
-# Optional: disable Next telemetry in CI
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build
+# Build (nhớ build script của bạn có thể build seat-picker + next)
 RUN npm run build
 
 EXPOSE 3000
-
 CMD ["npm", "start"]
