@@ -3,7 +3,8 @@ import { fabric } from 'fabric';
 import { useEventGuiStore } from '@/zustand/store/eventGuiStore';
 
 const useSelectionHandler = (canvas: fabric.Canvas | null) => {
-  const { selectedRowId, setSelectedRowId } = useEventGuiStore();
+  const { selectedRowId, setSelectedRowId, toolMode, setToolMode } =
+    useEventGuiStore();
   const ignoreNextSelectionRef = useRef(false);
 
   useEffect(() => {
@@ -13,10 +14,17 @@ const useSelectionHandler = (canvas: fabric.Canvas | null) => {
       // Clear selection if clicked on empty space
       if (!e.target) {
         setSelectedRowId(null);
+        // Auto-revert to Row Selection mode when clearing selection
+        if (toolMode === 'select-seat') {
+          setToolMode('select');
+        }
       }
     };
 
     const handleDoubleClick = (e: fabric.IEvent) => {
+      // Switch mode to 'select-seat' on double click
+      setToolMode('select-seat');
+
       const activeObject = canvas.getActiveObject();
       // If we have a row group selected, find the clicked seat and select it directly
       if (
@@ -54,6 +62,12 @@ const useSelectionHandler = (canvas: fabric.Canvas | null) => {
 
       if (selected.length === 0) {
         // Handled by mouse:down/cleared, but safe to ignore here
+        return;
+      }
+
+      // If in 'select-seat' mode, allow granular selection without row grouping
+      if (toolMode === 'select-seat') {
+        if (selectedRowId) setSelectedRowId(null);
         return;
       }
 
@@ -113,11 +127,18 @@ const useSelectionHandler = (canvas: fabric.Canvas | null) => {
       const activeObject = canvas.getActiveObject();
       if (activeObject && activeObject.type === 'activeSelection') {
         activeObject.setControlsVisibility({
-          mt: false,
-          mb: false,
-          ml: false,
-          mr: false,
+          mt: true,
+          mb: true,
+          ml: true,
+          mr: true,
+          bl: true,
+          br: true,
+          tl: true,
+          tr: true,
+          mtr: true,
         });
+
+        activeObject.set('lockUniScaling', false);
 
         activeObject.borderColor = 'green';
         activeObject.borderDashArray = [2, 4];
@@ -140,7 +161,7 @@ const useSelectionHandler = (canvas: fabric.Canvas | null) => {
       canvas.off('selection:created', handleSelection);
       canvas.off('selection:updated', handleSelection);
     };
-  }, [canvas, selectedRowId, setSelectedRowId]);
+  }, [canvas, selectedRowId, setSelectedRowId, toolMode, setToolMode]);
 };
 
 export default useSelectionHandler;

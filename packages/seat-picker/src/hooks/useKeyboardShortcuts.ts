@@ -49,6 +49,54 @@ const useKeyboardShortcuts = (onSave?: (json: any) => void) => {
             }
             break;
         }
+      } else {
+        // Non-Ctrl shortcuts (Arrows, Esc)
+        const activeObject = canvas.getActiveObject();
+        const step = e.shiftKey ? 10 : 1; // Shift for larger jumps
+
+        switch (e.key) {
+          case 'Escape':
+            e.preventDefault();
+            canvas.discardActiveObject();
+            canvas.requestRenderAll();
+            break;
+          case 'ArrowUp':
+            if (activeObject) {
+              e.preventDefault();
+              activeObject.set('top', (activeObject.top || 0) - step);
+              activeObject.setCoords();
+              canvas.requestRenderAll();
+              canvas.fire('object:modified', { target: activeObject });
+            }
+            break;
+          case 'ArrowDown':
+            if (activeObject) {
+              e.preventDefault();
+              activeObject.set('top', (activeObject.top || 0) + step);
+              activeObject.setCoords();
+              canvas.requestRenderAll();
+              canvas.fire('object:modified', { target: activeObject });
+            }
+            break;
+          case 'ArrowLeft':
+            if (activeObject) {
+              e.preventDefault();
+              activeObject.set('left', (activeObject.left || 0) - step);
+              activeObject.setCoords();
+              canvas.requestRenderAll();
+              canvas.fire('object:modified', { target: activeObject });
+            }
+            break;
+          case 'ArrowRight':
+            if (activeObject) {
+              e.preventDefault();
+              activeObject.set('left', (activeObject.left || 0) + step);
+              activeObject.setCoords();
+              canvas.requestRenderAll();
+              canvas.fire('object:modified', { target: activeObject });
+            }
+            break;
+        }
       }
     };
 

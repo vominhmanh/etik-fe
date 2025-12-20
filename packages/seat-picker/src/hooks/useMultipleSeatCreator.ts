@@ -27,6 +27,17 @@ const useMultipleSeatCreator = (
     return s;
   }
 
+  function getAlphaIndex(s: string) {
+    // Basic validation to ensure it's an alpha string
+    if (!/^[A-Z]+$/i.test(s)) return -1;
+    const upper = s.toUpperCase();
+    let n = 0;
+    for (let i = 0; i < upper.length; i++) {
+      n = n * 26 + (upper.charCodeAt(i) - 'A'.charCodeAt(0) + 1);
+    }
+    return n - 1;
+  }
+
   useEffect(() => {
     if (!canvas) return;
 
@@ -123,11 +134,30 @@ const useMultipleSeatCreator = (
       const startY = Math.min(startPoint.y, endPoint.y);
 
       // Generate Rows and Seats
-      const currentRowsCount = existingRows.length;
+      // Determine start index based on existing rows logic (Max Char + 1)
+      // Scan valid row names from CANVAS objects (Labels) instead of Store
+      // This ensures we only count rows that actually exist visually.
+      const canvasObjects = canvas.getObjects() as any[];
+      const usedRowNames = new Set<string>();
+
+      canvasObjects.forEach(obj => {
+        if (obj.isRowLabel && obj.text) {
+          usedRowNames.add(obj.text);
+        }
+      });
+
+      const existingIndices = Array.from(usedRowNames)
+        .map((name) => getAlphaIndex(name))
+        .filter((n) => n >= 0);
+
+      const maxIndex =
+        existingIndices.length > 0 ? Math.max(...existingIndices) : -1;
+      const startIndex = maxIndex + 1;
+      const newSeats: fabric.Object[] = []; // Restored
 
       for (let i = 0; i < rowsCount; i++) {
         const rowId = uuidv4();
-        const rowName = getExcelAlpha(currentRowsCount + i);
+        const rowName = getExcelAlpha(startIndex + i);
 
         addRow({
           id: rowId,
@@ -143,9 +173,13 @@ const useMultipleSeatCreator = (
 
           // Updated createSeat call with correct signature: left, top, rowId, seatNumber, canvas
           const seat = createSeat(left, top, rowId, seatNumber, canvas);
-          canvas.add(seat);
+          newSeats.push(seat);
         }
       }
+
+      canvas.renderOnAddRemove = false;
+      canvas.add(...newSeats);
+      canvas.renderOnAddRemove = true;
       canvas.renderAll();
 
       // Cleanup
@@ -160,6 +194,28 @@ const useMultipleSeatCreator = (
 
       startPointRef.current = null;
       setToolMode('select');
+
+      // Auto-select the newly created seats AND their labels
+      // We use a small timeout to allow useRowLabelRenderer to react to the store update and create the labels
+      setTimeout(() => {
+        if (!canvas) return;
+
+        // Collect all row IDs we just created
+        const createdRowIds = new Set(newSeats.map((s: any) => s.rowId));
+
+        // Find all objects that belong to these rows (seats + labels)
+        const objectsToSelect = canvas.getObjects().filter((obj: any) => {
+          return obj.rowId && createdRowIds.has(obj.rowId);
+        });
+
+        if (objectsToSelect.length > 0) {
+          const selection = new fabric.ActiveSelection(objectsToSelect, {
+            canvas: canvas,
+          });
+          canvas.setActiveObject(selection);
+          canvas.requestRenderAll();
+        }
+      }, 100);
     };
 
     canvas.on('mouse:down', handleMouseDown);

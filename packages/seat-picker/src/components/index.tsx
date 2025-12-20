@@ -104,10 +104,13 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
         fabric.Image.fromURL(e.target?.result as string, (img) => {
           img.set({
             opacity: bgOpacity,
-            selectable: !readOnly,
-            evented: !readOnly,
-            hasControls: true,
+            selectable: false, // Default locked
+            evented: !readOnly, // Allow events if editable (so we can double click)
+            hasControls: false,
             lockRotation: true,
+            lockMovementX: true,
+            lockMovementY: true,
+            hoverCursor: 'default',
             // @ts-ignore
             customType: 'layout-background',
           });
@@ -157,25 +160,103 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     }
   };
 
-  // Sync validation of hasBgImage and lock status on readOnly change
+  // Sync validation of hasBgImage and lock status (BG & Zones) on readOnly change
   useEffect(() => {
     if (!canvas) return;
 
     const bgObj = canvas
       .getObjects()
       .find((obj: any) => obj.customType === 'layout-background');
+    if (bgObj) setHasBgImage(true);
+    else setHasBgImage(false);
 
-    if (bgObj) {
-      setHasBgImage(true);
-      bgObj.set({
-        selectable: !readOnly,
-        evented: !readOnly,
-        hasControls: !readOnly,
+    // Lock/Unlock Logic for BG and Zones
+    canvas.getObjects().forEach((obj: any) => {
+      if (
+        obj.customType === 'layout-background' ||
+        obj.customType === 'zone' ||
+        obj.type === 'rect' ||
+        obj.type === 'polygon' ||
+        ((obj.type === 'i-text' || obj.type === 'text') && !obj.isRowLabel)
+      ) {
+        obj.set({
+          selectable: false,
+          evented: !readOnly,
+          hasControls: false,
+          lockRotation: true,
+          lockMovementX: true,
+          lockMovementY: true,
+          hoverCursor: !readOnly ? 'default' : undefined,
+        });
+      }
+    });
+
+    canvas.requestRenderAll();
+  }, [canvas, readOnly]);
+
+  // Handle Background Image Interaction (Lock/Unlock)
+  useEffect(() => {
+    if (!canvas || readOnly) return;
+
+    const handleDblClick = (opt: fabric.IEvent) => {
+      const target = opt.target as any;
+      if (
+        target &&
+        (target.customType === 'layout-background' ||
+          target.customType === 'zone' ||
+          target.type === 'rect' ||
+          target.type === 'polygon' ||
+          ((target.type === 'i-text' || target.type === 'text') && !target.isRowLabel))
+      ) {
+        target.set({
+          selectable: true,
+          evented: true,
+          hasControls: true,
+          lockMovementX: false,
+          lockMovementY: false,
+          lockRotation: false,
+          hoverCursor: 'move',
+        });
+        canvas.setActiveObject(target);
+        canvas.requestRenderAll();
+      }
+    };
+
+    const handleSelectionChange = () => {
+      canvas.getObjects().forEach((obj: any) => {
+        if (
+          (obj.customType === 'layout-background' ||
+            obj.customType === 'zone' ||
+            obj.type === 'rect' ||
+            obj.type === 'polygon' ||
+            ((obj.type === 'i-text' || obj.type === 'text') && !obj.isRowLabel)) &&
+          canvas.getActiveObject() !== obj
+        ) {
+          obj.set({
+            selectable: false,
+            evented: true,
+            hasControls: false,
+            lockMovementX: true,
+            lockMovementY: true,
+            lockRotation: true,
+            hoverCursor: 'default',
+          });
+        }
       });
       canvas.requestRenderAll();
-    } else {
-      setHasBgImage(false);
-    }
+    };
+
+    canvas.on('mouse:dblclick', handleDblClick);
+    canvas.on('selection:cleared', handleSelectionChange);
+    canvas.on('selection:created', handleSelectionChange);
+    canvas.on('selection:updated', handleSelectionChange);
+
+    return () => {
+      canvas.off('mouse:dblclick', handleDblClick);
+      canvas.off('selection:cleared', handleSelectionChange);
+      canvas.off('selection:created', handleSelectionChange);
+      canvas.off('selection:updated', handleSelectionChange);
+    };
   }, [canvas, readOnly]);
 
   // Handle zoom changes
@@ -231,10 +312,13 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
         setHasBgImage(true);
         bgObj.sendToBack();
         bgObj.set({
-          selectable: !readOnly,
+          selectable: false,
           evented: !readOnly,
-          hasControls: !readOnly,
+          hasControls: false,
           lockRotation: true,
+          lockMovementX: true,
+          lockMovementY: true,
+          hoverCursor: 'default',
         });
       } else {
         setHasBgImage(false);
@@ -313,12 +397,22 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
         // Enable selection and make objects selectable in edit mode
         canvas.selection = true;
         canvas.getObjects().forEach((obj: any) => {
-          // Keep layout background behavior consistent
-          if (obj.customType === 'layout-background') {
+          // Keep layout background AND ZONES behavior consistent (Locked by default)
+          if (
+            obj.customType === 'layout-background' ||
+            obj.customType === 'zone' ||
+            obj.type === 'rect' ||
+            obj.type === 'polygon' ||
+            ((obj.type === 'i-text' || obj.type === 'text') && !obj.isRowLabel)
+          ) {
             obj.set({
-              selectable: true,
+              selectable: false,
               evented: true,
-              hasControls: true
+              hasControls: false,
+              lockRotation: true,
+              lockMovementX: true,
+              lockMovementY: true,
+              hoverCursor: 'default',
             });
             return;
           }
@@ -354,7 +448,19 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
       if (onChange) {
         const json = {
           type: 'canvas',
-          ...canvas.toJSON(['customType', 'seatData', 'zoneData']),
+          ...canvas.toJSON([
+            'customType',
+            'seatData',
+            'zoneData',
+            'fontSize',
+            'opacity',
+            'selectable',
+            'evented',
+            'lockMovementX',
+            'lockMovementY',
+            'lockRotation',
+            'hasControls',
+          ]),
         } as unknown as CanvasObject;
         onChange(json);
       }
@@ -401,7 +507,19 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
 
     const json = {
       type: 'canvas',
-      ...canvas.toJSON(['customType', 'seatData', 'zoneData']),
+      ...canvas.toJSON([
+        'customType',
+        'seatData',
+        'zoneData',
+        'fontSize',
+        'opacity',
+        'selectable',
+        'evented',
+        'lockMovementX',
+        'lockMovementY',
+        'lockRotation',
+        'hasControls',
+      ]),
     } as unknown as CanvasObject;
 
     onSave(json);

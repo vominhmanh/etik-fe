@@ -56,6 +56,7 @@ const RowProperties: React.FC = () => {
         let nextNum = 1;
         let left = 100;
         let top = 100;
+        let sourceSeat: CustomFabricObject | null = null;
 
         if (rowSeats.length > 0) {
             // Find max seat number
@@ -73,6 +74,7 @@ const RowProperties: React.FC = () => {
             if (lastSeat) {
                 left = (lastSeat.left || 0) + 25;
                 top = lastSeat.top || 100;
+                sourceSeat = lastSeat;
             } else {
                 // Fallback to visual right-most using absolute coordinates
                 let rightMost = rowSeats[0];
@@ -87,10 +89,27 @@ const RowProperties: React.FC = () => {
 
                 left = (rightMost.left || 0) + 25;
                 top = rightMost.top || 100;
+                sourceSeat = rightMost;
             }
         }
 
-        const seat = createSeat(left, top, selectedRowId, String(nextNum), canvas);
+        let radius = 10;
+        let fontSize = 10;
+        if (sourceSeat && sourceSeat.type === 'group') {
+            const group = sourceSeat as fabric.Group;
+            const scale = group.scaleX || 1;
+            const circle = group.getObjects().find(o => o.type === 'circle');
+            const text = group.getObjects().find(o => o.type === 'text' || o.type === 'i-text');
+
+            if (circle) {
+                radius = ((circle as any).radius || 10) * scale;
+            }
+            if (text) {
+                fontSize = ((text as any).fontSize || 10) * scale;
+            }
+        }
+
+        const seat = createSeat(left, top, selectedRowId, String(nextNum), canvas, { radius, fontSize });
         canvas.add(seat);
         canvas.setActiveObject(seat);
         canvas.renderAll();

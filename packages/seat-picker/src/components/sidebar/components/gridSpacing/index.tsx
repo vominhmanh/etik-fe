@@ -98,27 +98,46 @@ const GridSpacing: React.FC<GridSpacingProps> = ({
 
   const handleSpacingChange = (type: 'row' | 'column', val: number) => {
     if (!canvas) return;
-    const minSpacing = 5;
+    const minSpacing = 1;
     const maxSpacing = 500;
     const safeVal = Math.max(minSpacing, Math.min(maxSpacing, val));
 
     if (type === 'column') {
       // Adjust X position within each row, preserving the row structure
+      const allObjects = canvas.getObjects() as CustomFabricObject[];
       visualRows.forEach(row => {
         if (row.length < 2) return;
         const startLeft = row[0].left || 0;
+        const rowId = row[0].rowId;
+
+        // Calculate shift for the last item to update right label
+        const lastIdx = row.length - 1;
+        const oldLeftLast = row[lastIdx].left || 0;
+        const newLeftLast = startLeft + lastIdx * safeVal;
+        const deltaLast = newLeftLast - oldLeftLast;
+
         row.forEach((obj, idx) => {
           // obj 0 stays at startLeft. obj 1 moves to startLeft + val, etc.
           const newLeft = startLeft + idx * safeVal;
           obj.set({ left: newLeft });
           obj.setCoords();
         });
+
+        // Sync Right Label (Left label stays since startLeft is fixed)
+        if (rowId) {
+          const rightLabel = allObjects.find(o => o.isRowLabel && o.rowId === rowId && o.originX === 'left');
+          if (rightLabel) {
+            rightLabel.set({ left: (rightLabel.left || 0) + deltaLast });
+            rightLabel.setCoords();
+          }
+        }
       });
       setColSpacing(safeVal);
     } else {
       // Adjust Y position of entire rows
       if (visualRows.length < 2) return;
       const startTop = visualRows[0][0].top || 0;
+      const allObjects = canvas.getObjects() as CustomFabricObject[];
 
       visualRows.forEach((row, rowIndex) => {
         // Row 0 stays attached to startTop.
@@ -126,11 +145,21 @@ const GridSpacing: React.FC<GridSpacingProps> = ({
         const targetRowTop = startTop + rowIndex * safeVal;
         const currentRowTop = row[0].top || 0;
         const shift = targetRowTop - currentRowTop;
+        const rowId = row[0].rowId;
 
         row.forEach(obj => {
           obj.set({ top: (obj.top || 0) + shift });
           obj.setCoords();
         });
+
+        // Sync Labels (Vertical Shift)
+        if (rowId) {
+          const labels = allObjects.filter(o => o.isRowLabel && o.rowId === rowId);
+          labels.forEach(l => {
+            l.set({ top: (l.top || 0) + shift });
+            l.setCoords();
+          });
+        }
       });
       setRowSpacing(safeVal);
     }
@@ -159,7 +188,7 @@ const GridSpacing: React.FC<GridSpacingProps> = ({
                 <button
                   className="flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 text-xs transition-colors hover:bg-gray-100 disabled:opacity-50"
                   onClick={() =>
-                    handleSpacingChange('row', (typeof rowSpacing === 'number' ? rowSpacing : 20) - 5)
+                    handleSpacingChange('row', (typeof rowSpacing === 'number' ? rowSpacing : 20) - 1)
                   }
                   disabled={visualRows.length <= 1}
                   title="Decrease row spacing"
@@ -175,14 +204,14 @@ const GridSpacing: React.FC<GridSpacingProps> = ({
                     handleSpacingChange('row', Number(e.target.value))
                   }
                   className="w-12 rounded border border-solid border-gray-200 bg-white px-1 py-0.5 text-center text-xs [appearance:textfield] focus:outline-none focus:ring-1 focus:ring-gray-500 disabled:bg-gray-100 disabled:text-gray-400 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  min="5"
+                  min="1"
                   max="500"
-                  step="5"
+                  step="1"
                 />
                 <button
                   className="flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 text-xs transition-colors hover:bg-gray-100 disabled:opacity-50"
                   onClick={() =>
-                    handleSpacingChange('row', (typeof rowSpacing === 'number' ? rowSpacing : 20) + 5)
+                    handleSpacingChange('row', (typeof rowSpacing === 'number' ? rowSpacing : 20) + 1)
                   }
                   disabled={visualRows.length <= 1}
                   title="Increase row spacing"
@@ -199,7 +228,7 @@ const GridSpacing: React.FC<GridSpacingProps> = ({
                 <button
                   className="flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 text-xs transition-colors hover:bg-gray-100 disabled:opacity-50"
                   onClick={() =>
-                    handleSpacingChange('column', (typeof colSpacing === 'number' ? colSpacing : 20) - 5)
+                    handleSpacingChange('column', (typeof colSpacing === 'number' ? colSpacing : 20) - 1)
                   }
                   title="Decrease column spacing"
                 >
@@ -213,14 +242,14 @@ const GridSpacing: React.FC<GridSpacingProps> = ({
                     handleSpacingChange('column', Number(e.target.value))
                   }
                   className="w-12 rounded border border-solid border-gray-200 bg-white px-1 py-0.5 text-center text-xs [appearance:textfield] focus:outline-none focus:ring-1 focus:ring-gray-500 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  min="5"
+                  min="1"
                   max="500"
-                  step="5"
+                  step="1"
                 />
                 <button
                   className="flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 text-xs transition-colors hover:bg-gray-100 disabled:opacity-50"
                   onClick={() =>
-                    handleSpacingChange('column', (typeof colSpacing === 'number' ? colSpacing : 20) + 5)
+                    handleSpacingChange('column', (typeof colSpacing === 'number' ? colSpacing : 20) + 1)
                   }
                   title="Increase column spacing"
                 >

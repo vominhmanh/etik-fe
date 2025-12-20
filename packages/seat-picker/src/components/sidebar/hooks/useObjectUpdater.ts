@@ -1,6 +1,7 @@
 import { fabric } from 'fabric';
 import { CustomFabricObject } from '@/types/fabric-types';
 import { Properties } from './useObjectProperties';
+import { useEventGuiStore } from '@/zustand/store/eventGuiStore';
 import { useEffect } from 'react';
 
 export const useObjectUpdater = (
@@ -8,12 +9,46 @@ export const useObjectUpdater = (
   setProperties: React.Dispatch<React.SetStateAction<Properties>>,
   lockAspect: boolean = false
 ) => {
+  const { updateRow } = useEventGuiStore();
+
   // --- Effect: Listen for scaling circles and update radius ---
   useEffect(() => {
     if (!canvas) return;
     const handleScaling = (e: fabric.IEvent) => {
       const obj = e.target as CustomFabricObject;
       if (!obj) return;
+
+      // Handle Seat Group Scaling
+      if (obj.type === 'group' && (obj.rowId || obj.seatNumber)) {
+        const group = obj as fabric.Group;
+        const circle = group.getObjects().find(o => o.type === 'circle') as CustomFabricObject;
+        if (circle) {
+          const scale = group.scaleX || 1;
+          const visualRadius = (circle.radius || 0) * scale;
+          setProperties((prev) => ({ ...prev, radius: visualRadius }));
+        }
+        return;
+      }
+
+      // Handle Spacing-Only Scaling for Selections
+      if (obj.type === 'activeSelection' && 'getObjects' in obj) {
+        const selection = obj as fabric.ActiveSelection;
+        const objects = selection.getObjects() as CustomFabricObject[];
+        const hasSeats = objects.some(o => (o.type === 'group' && (o.rowId || o.seatNumber)) || o.type === 'circle');
+
+        if (hasSeats) {
+          const sx = obj.scaleX || 1;
+          const sy = obj.scaleY || 1;
+          objects.forEach(child => {
+            child.set({
+              scaleX: 1 / sx,
+              scaleY: 1 / sy
+            });
+          });
+          return;
+        }
+      }
+
       if (obj.type === 'circle') {
         // Single circle scaling
         const newRadius =
@@ -58,9 +93,29 @@ export const useObjectUpdater = (
         }));
       }
     };
+
+    const handleModified = (e: fabric.IEvent) => {
+      const obj = e.target as CustomFabricObject;
+      if (obj?.type === 'activeSelection' && (obj.scaleX !== 1 || obj.scaleY !== 1)) {
+        const selection = obj as fabric.ActiveSelection;
+        const objects = selection.getObjects() as CustomFabricObject[];
+        const hasSeats = objects.some(o => (o.type === 'group' && (o.rowId || o.seatNumber)) || o.type === 'circle');
+
+        if (hasSeats) {
+          const savedObjects = [...objects];
+          canvas.discardActiveObject();
+          const newSel = new fabric.ActiveSelection(savedObjects, { canvas: canvas });
+          canvas.setActiveObject(newSel);
+          canvas.requestRenderAll();
+        }
+      }
+    };
+
     canvas.on('object:scaling', handleScaling);
+    canvas.on('object:modified', handleModified);
     return () => {
       canvas.off('object:scaling', handleScaling);
+      canvas.off('object:modified', handleModified);
     };
   }, [canvas, setProperties]);
 
@@ -113,6 +168,9 @@ export const useObjectUpdater = (
       }
     }
 
+    const effectiveUpdates: Partial<Properties> = {};
+    let shouldRender = false;
+
     activeObjects.forEach((selectedObject) => {
       const updatedProperties: Partial<CustomFabricObject> = {};
       for (const [key, value] of Object.entries(updates)) {
@@ -129,8 +187,52 @@ export const useObjectUpdater = (
         updatedProperties.stroke = String(updatedProperties.stroke);
       }
 
+      // Special handling for Seat Groups (Radius Update)
+      if (selectedObject.type === 'group' && (selectedObject.rowId || selectedObject.seatNumber)) {
+        const group = selectedObject as fabric.Group;
+
+        if ('radius' in updates && typeof updates.radius === 'number') {
+          const circle = group.getObjects().find(o => o.type === 'circle') as CustomFabricObject;
+          if (circle) {
+            const scale = group.scaleX || 1;
+            const newBaseRadius = updates.radius / scale;
+
+            circle.set({
+              radius: newBaseRadius,
+              width: newBaseRadius * 2,
+              height: newBaseRadius * 2
+            });
+            // Trigger group recalc to fit new circle size
+            group.addWithUpdate();
+          }
+          delete updatedProperties.radius;
+        }
+
+        if ('fontSize' in updates && typeof updates.fontSize === 'number') {
+          const textObj = group.getObjects().find(o => o.type === 'text' || o.type === 'i-text');
+          if (textObj) {
+            (textObj as fabric.Text).set({ fontSize: updates.fontSize });
+            group.addWithUpdate();
+          }
+          delete updatedProperties.fontSize;
+        }
+      }
+
       // Special handling for circle objects - only use radius
       if (selectedObject.type === 'circle') {
+        // Handle explicit Radius update
+        if ('radius' in updates && typeof updates.radius === 'number') {
+          const r = updates.radius;
+          selectedObject.set({
+            radius: r,
+            width: r * 2,
+            height: r * 2,
+            scaleX: 1,
+            scaleY: 1
+          });
+          selectedObject.setCoords();
+        }
+
         if ('width' in updates || 'height' in updates) {
           const currentRadius = selectedObject.radius || 0;
           const newRadius = updates.width
@@ -234,13 +336,27 @@ export const useObjectUpdater = (
         }
       }
 
-      canvas.renderAll();
-
-      setProperties((prev) => ({
-        ...prev,
-        ...updatedProperties,
-      }));
+      shouldRender = true;
+      Object.assign(effectiveUpdates, updatedProperties);
     });
+
+    if (shouldRender) canvas.renderAll();
+
+    setProperties((prev) => ({
+      ...prev,
+      ...effectiveUpdates,
+    }));
+
+    // Detect Row Label updates for Store Sync
+    // This is crucial because useRowLabelRenderer relies on Store State (row.fontSize)
+    // If we only update the visual object, the renderer will reset it to default on next sync.
+    if ('fontSize' in updates && typeof updates.fontSize === 'number') {
+      activeObjects.forEach((obj) => {
+        if (obj.isRowLabel && obj.rowId) {
+          updateRow(obj.rowId, { fontSize: updates.fontSize });
+        }
+      });
+    }
   };
 
   return { updateObject };

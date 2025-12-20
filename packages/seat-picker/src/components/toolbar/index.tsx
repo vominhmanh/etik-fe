@@ -24,12 +24,14 @@ import {
   LuMaximize,
   LuMinimize,
   LuHexagon,
+  LuImage,
 } from 'react-icons/lu';
 import {
   RiText,
   RiShapeLine,
   RiApps2AddLine,
   RiLockUnlockLine,
+  RiCursorFill,
 } from 'react-icons/ri';
 import { ExportModal, OpenFileModal } from '@/components/modals';
 import Toast from '@/components/ui/Toast';
@@ -237,24 +239,37 @@ const Toolbar: React.FC<ToolbarProps> = ({
     [
       {
         icon: LuMousePointer,
-        tooltip: 'Select',
+        tooltip: 'Select Row',
         onClick: () => setToolMode('select'),
         state: toolMode === 'select',
       },
       {
-        icon: LuGrid2X2,
-        tooltip: snapEnabled ? 'Remove Grid' : 'Smart Grid',
-        onClick: () => setSnapEnabled(!snapEnabled),
-        state: snapEnabled,
+        icon: RiCursorFill,
+        tooltip: 'Select Seat',
+        onClick: () => setToolMode('select-seat'),
+        state: toolMode === 'select-seat',
+      },
+      // {
+      //   icon: LuGrid2X2,
+      //   tooltip: snapEnabled ? 'Remove Grid' : 'Smart Grid',
+      //   onClick: () => setSnapEnabled(!snapEnabled),
+      //   state: snapEnabled,
+      // },
+
+    ],
+    [
+      {
+        icon: RiApps2AddLine,
+        tooltip: 'Add Rows',
+        onClick: toggleMultipleSeatMode,
+        state: toolMode === 'multiple-seat',
       },
       {
-        icon: LuLayoutDashboard,
-        tooltip: 'Layout View',
+        icon: LuImage,
+        tooltip: 'Layout Image',
         onClick: onBgLayout,
         state: false,
       },
-    ],
-    [
       {
         icon: RiText,
         tooltip: 'Add Text',
@@ -272,14 +287,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         tooltip: 'Add Polygon (Double click to finish)',
         onClick: () => setToolMode('shape-polygon'),
         state: toolMode === 'shape-polygon',
-      },
-
-      {
-        icon: RiApps2AddLine,
-        tooltip: 'Add Rows',
-        onClick: toggleMultipleSeatMode,
-        state: toolMode === 'multiple-seat',
-      },
+      }
     ],
     [
       { icon: LuUndo, tooltip: 'Undo', onClick: undo, state: false },

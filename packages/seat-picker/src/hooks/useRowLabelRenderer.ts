@@ -6,15 +6,23 @@ import { CustomFabricObject } from '@/types/fabric-types';
 const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
     const { rows, updateRow } = useEventGuiStore();
 
-    const syncLabels = useCallback(() => {
+    const syncLabels = useCallback((snapToDefault = false) => {
         if (!canvas) return;
         const allObjects = canvas.getObjects() as CustomFabricObject[];
 
-        // Map of existing labels for quick lookup
-        const labelMap = new Map<string, fabric.IText>();
-        allObjects.forEach((obj) => {
-            if (obj.isRowLabel && obj.id) {
-                labelMap.set(obj.id, obj as fabric.IText);
+        // Group Seats and Labels by RowId for O(1) lookup
+        const seatsByRow: Record<string, CustomFabricObject[]> = {};
+        const labelsByRow: Record<string, CustomFabricObject[]> = {};
+
+        allObjects.forEach(obj => {
+            if (obj.rowId) {
+                if (obj.isRowLabel) {
+                    if (!labelsByRow[obj.rowId]) labelsByRow[obj.rowId] = [];
+                    labelsByRow[obj.rowId].push(obj);
+                } else {
+                    if (!seatsByRow[obj.rowId]) seatsByRow[obj.rowId] = [];
+                    seatsByRow[obj.rowId].push(obj);
+                }
             }
         });
 
@@ -22,18 +30,16 @@ const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
 
         rows.forEach((row) => {
             activeRowIds.add(row.id);
-            const rowSeats = allObjects.filter((obj) => obj.rowId === row.id && !(obj as any).isRowLabel);
+            const rowSeats = seatsByRow[row.id] || [];
 
             // If no seats, hide labels if they exist
             if (rowSeats.length === 0) {
-                ['left', 'right'].forEach(side => {
-                    const label = labelMap.get(`label-${side}-${row.id}`);
-                    if (label) label.set('visible', false);
-                });
+                const rowLabels = labelsByRow[row.id] || [];
+                rowLabels.forEach(l => l.set('visible', false));
                 return;
             }
 
-            // Find Edge Seats (First and Last in terms of X position)
+            // Find Edge Seats
             let minLeftSeat = rowSeats[0];
             let maxLeftSeat = rowSeats[0];
 
@@ -45,67 +51,119 @@ const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
 
             const createLabel = (id: string, originX: string) => new fabric.IText(row.name, {
                 id,
-                fontSize: 16,
+                fontSize: row.fontSize || 16,
                 fill: '#666',
                 selectable: true,
                 evented: true,
-                lockMovementX: true,
-                lockMovementY: true,
+                lockMovementX: false,
+                lockMovementY: false,
                 hasControls: false,
+                hasBorders: true,
                 excludeFromExport: true,
                 originY: 'center',
                 originX: originX,
                 isRowLabel: true,
                 rowId: row.id
-            } as any);
+            } as any) as unknown as CustomFabricObject;
+
+            // Find ALL labels for this row
+            const rowLabels = labelsByRow[row.id] || [];
 
             // --- Sync Left Label ---
-            const leftId = `label-left-${row.id}`;
-            let leftLabel = labelMap.get(leftId);
+            const leftCandidates = rowLabels.filter(l => l.originX === 'right');
+            let leftLabel = leftCandidates[0];
 
-            if (!leftLabel) {
-                leftLabel = createLabel(leftId, 'right');
-                canvas.add(leftLabel);
+            // Deduplicate
+            if (leftCandidates.length > 1) {
+                for (let i = 1; i < leftCandidates.length; i++) canvas.remove(leftCandidates[i] as any);
             }
 
-            // Align Left Label to the left of the leftmost seat
-            // Center Y aligned with that specific seat
-            const leftSeatCenterY = (minLeftSeat.top || 0) + ((minLeftSeat.height || 0) * (minLeftSeat.scaleY || 1)) / 2;
+            const leftId = `label-left-${row.id}`;
+            if (leftLabel && leftLabel.id !== leftId) {
+                (leftLabel as any).id = leftId;
+            }
 
-            leftLabel.set({
-                text: row.name,
-                left: (minLeftSeat.left || 0) - 10, // 10px padding
-                top: leftSeatCenterY,
-                originX: 'right',
-                visible: !!row.showLabelLeft
-            });
+            if (!leftLabel || snapToDefault) {
+                const leftSeatCenterY =
+                    (minLeftSeat.top || 0) +
+                    ((minLeftSeat.height || 0) * (minLeftSeat.scaleY || 1)) / 2;
+                const defaultLeftX = (minLeftSeat.left || 0) - 10;
+
+                if (!leftLabel) {
+                    leftLabel = createLabel(leftId, 'right');
+                    canvas.add(leftLabel as any);
+                }
+
+                leftLabel.set({
+                    text: row.name,
+                    left: defaultLeftX,
+                    top: leftSeatCenterY,
+                    originX: 'right',
+                    visible: !!row.showLabelLeft,
+                    fontSize: row.fontSize || 16,
+                    lockMovementX: false,
+                    lockMovementY: false,
+                });
+            } else {
+                leftLabel.set({
+                    text: row.name,
+                    visible: !!row.showLabelLeft,
+                    fontSize: row.fontSize || 16,
+                });
+            }
 
             // --- Sync Right Label ---
-            const rightId = `label-right-${row.id}`;
-            let rightLabel = labelMap.get(rightId);
+            const rightCandidates = rowLabels.filter(l => l.originX === 'left');
+            let rightLabel = rightCandidates[0];
 
-            if (!rightLabel) {
-                rightLabel = createLabel(rightId, 'left');
-                canvas.add(rightLabel);
+            // Deduplicate
+            if (rightCandidates.length > 1) {
+                for (let i = 1; i < rightCandidates.length; i++) canvas.remove(rightCandidates[i] as any);
             }
 
-            // Align Right Label to the right of the rightmost seat
-            const rightSeatWidth = (maxLeftSeat.width || 0) * (maxLeftSeat.scaleX || 1);
-            const rightSeatCenterY = (maxLeftSeat.top || 0) + ((maxLeftSeat.height || 0) * (maxLeftSeat.scaleY || 1)) / 2;
+            const rightId = `label-right-${row.id}`;
+            if (rightLabel && rightLabel.id !== rightId) {
+                (rightLabel as any).id = rightId;
+            }
 
-            rightLabel.set({
-                text: row.name,
-                left: (maxLeftSeat.left || 0) + rightSeatWidth + 10, // 10px padding
-                top: rightSeatCenterY,
-                originX: 'left',
-                visible: !!row.showLabelRight
-            });
+            if (!rightLabel || snapToDefault) {
+                const rightSeatWidth =
+                    (maxLeftSeat.width || 0) * (maxLeftSeat.scaleX || 1);
+                const rightSeatCenterY =
+                    (maxLeftSeat.top || 0) +
+                    ((maxLeftSeat.height || 0) * (maxLeftSeat.scaleY || 1)) / 2;
+                const defaultRightX =
+                    (maxLeftSeat.left || 0) + rightSeatWidth + 10;
+
+                if (!rightLabel) {
+                    rightLabel = createLabel(rightId, 'left');
+                    canvas.add(rightLabel as any);
+                }
+
+                rightLabel.set({
+                    text: row.name,
+                    left: defaultRightX,
+                    top: rightSeatCenterY,
+                    originX: 'left',
+                    visible: !!row.showLabelRight,
+                    fontSize: row.fontSize || 16,
+                    lockMovementX: false,
+                    lockMovementY: false,
+                });
+            } else {
+                rightLabel.set({
+                    text: row.name,
+                    visible: !!row.showLabelRight,
+                    fontSize: row.fontSize || 16,
+                });
+            }
         });
 
         // Cleanup orphaned labels (rows that were deleted)
-        labelMap.forEach((label) => {
-            const rId = (label as any).rowId;
-            if (rId && !activeRowIds.has(rId)) canvas.remove(label);
+        Object.keys(labelsByRow).forEach(rId => {
+            if (!activeRowIds.has(rId)) {
+                labelsByRow[rId].forEach(l => canvas.remove(l as any));
+            }
         });
 
         canvas.requestRenderAll();
@@ -116,10 +174,24 @@ const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
     useEffect(() => {
         if (!canvas) return;
 
-        const handleSync = (e: fabric.IEvent) => {
+        const handleModified = (e: fabric.IEvent) => {
             const t = e.target as any;
             if (t?.isRowLabel) return;
-            syncLabels();
+            // Existing seat moved -> KEEP independent positions
+            syncLabels(false);
+        };
+
+        let debounceTimer: NodeJS.Timeout;
+
+        const handleTopologyChange = (e: fabric.IEvent) => {
+            // Debounce the heavy label sync
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                // Inspecting 'e' inside timeout might be stale if we relied on it, 
+                // but syncLabels scans everything.
+                // We generally assume if topology changed (add/remove), we should snap labels (true).
+                syncLabels(true);
+            }, 10);
         };
 
         const handleTextChange = (e: fabric.IEvent) => {
@@ -130,17 +202,17 @@ const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
             }
         };
 
-        canvas.on('object:modified', handleSync);
-        canvas.on('object:added', handleSync);
-        canvas.on('object:removed', handleSync);
-        canvas.on('text:changed', handleTextChange); // For IText editing
+        canvas.on('object:modified', handleModified);
+        canvas.on('object:added', handleTopologyChange);
+        canvas.on('object:removed', handleTopologyChange);
+        canvas.on('text:changed', handleTextChange);
 
-        syncLabels();
+        syncLabels(false); // Initial render
 
         return () => {
-            canvas.off('object:modified', handleSync);
-            canvas.off('object:added', handleSync);
-            canvas.off('object:removed', handleSync);
+            canvas.off('object:modified', handleModified);
+            canvas.off('object:added', handleTopologyChange);
+            canvas.off('object:removed', handleTopologyChange);
             canvas.off('text:changed', handleTextChange);
         };
     }, [canvas, syncLabels, updateRow]);

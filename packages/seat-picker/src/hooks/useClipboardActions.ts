@@ -4,8 +4,28 @@ import { v4 as uuidv4 } from 'uuid';
 import { applyCustomStyles } from '@/components/createObject/applyCustomStyles';
 
 const useClipboardActions = () => {
-  const { canvas, clipboard, setClipboard, lastClickedPoint, setToolAction } =
-    useEventGuiStore();
+  const {
+    canvas,
+    clipboard,
+    setClipboard,
+    setToolAction,
+    rows,
+    addRow,
+  } = useEventGuiStore();
+
+  const CUSTOM_PROPS = [
+    'id',
+    'rowId',
+    'seatNumber',
+    'isRowLabel',
+    'selectable',
+    'evented',
+    'lockMovementX',
+    'lockMovementY',
+    'customType',
+    'stroke',
+    'strokeWidth',
+  ];
 
   // :::::::::::::::::::::::::: Function: copy objects
   const copySelectedObjects = async () => {
@@ -14,18 +34,34 @@ const useClipboardActions = () => {
     const activeObjects = canvas.getActiveObjects();
     if (activeObjects.length === 0) return;
 
-    // ::::::::::::: Set action to copy
     setToolAction('copy');
 
+    // Identify rows involved in the selection
+    const rowIds = new Set<string>();
+    activeObjects.forEach((obj: any) => {
+      if (obj.rowId) rowIds.add(obj.rowId);
+    });
+
+    // Create a Set of objects to clone, starting with the user's selection
+    const objectsToClone = new Set<fabric.Object>(activeObjects);
+
+    // If we have rows selected, ensure their labels are included
+    if (rowIds.size > 0) {
+      canvas.getObjects().forEach((obj: any) => {
+        if (obj.isRowLabel && obj.rowId && rowIds.has(obj.rowId)) {
+          objectsToClone.add(obj);
+        }
+      });
+    }
+
     const clonedObjects: fabric.Object[] = [];
-    for (const obj of activeObjects) {
+    for (const obj of Array.from(objectsToClone)) {
       await new Promise<void>((resolve) => {
         obj.clone((cloned: fabric.Object) => {
-          // Assign a new ID if needed
           if ('id' in cloned) (cloned as any).id = uuidv4();
           clonedObjects.push(cloned);
           resolve();
-        });
+        }, CUSTOM_PROPS);
       });
     }
     setClipboard(clonedObjects);
@@ -38,7 +74,6 @@ const useClipboardActions = () => {
     const activeObjects = canvas.getActiveObjects();
     if (activeObjects.length === 0) return;
 
-    // ::::::::::::: Set action to cut
     setToolAction('cut');
 
     const clonedObjects: fabric.Object[] = [];
@@ -48,7 +83,7 @@ const useClipboardActions = () => {
           if ('id' in cloned) (cloned as any).id = uuidv4();
           clonedObjects.push(cloned);
           resolve();
-        });
+        }, CUSTOM_PROPS);
       });
     }
     setClipboard(clonedObjects);
@@ -60,33 +95,114 @@ const useClipboardActions = () => {
 
   // :::::::::::::::::::::::::: Function: paste objects
   const pasteObjects = async () => {
-    if (!canvas || !clipboard || !lastClickedPoint) return;
+    if (!canvas || !clipboard) return;
 
     setToolAction('paste');
 
-    const pastedObjects: fabric.Object[] = [];
+    const rowIdMap = new Map<string, string>();
+    const pendingClones: Promise<fabric.Object | null>[] = [];
+
+    // 1. Create Clones first
     for (const obj of clipboard) {
-      await new Promise<void>((resolve) => {
-        obj.clone((cloned: fabric.Object) => {
-          if ('id' in cloned) (cloned as any).id = uuidv4();
-          applyCustomStyles(cloned);
-          // Offset the new object so it's not directly on top
-          cloned.set({
-            left: (cloned.left || 0) + 20,
-            top: (cloned.top || 0) + 20,
-            evented: true,
-          });
-          canvas.add(cloned);
-          pastedObjects.push(cloned);
-          resolve();
-        });
-      });
+      pendingClones.push(
+        new Promise((resolve) => {
+          obj.clone((cloned: any) => {
+            cloned.id = uuidv4();
+
+            // Handle Row Logic
+            if (cloned.rowId) {
+              const oldRowId = cloned.rowId;
+              if (!rowIdMap.has(oldRowId)) {
+                const newRowId = uuidv4();
+                rowIdMap.set(oldRowId, newRowId);
+
+                const oldRowData = rows.find((r) => r.id === oldRowId);
+                if (oldRowData) {
+                  addRow({
+                    ...oldRowData,
+                    id: newRowId,
+                    name: oldRowData.name,
+                  });
+                } else {
+                  addRow({ id: newRowId, name: 'Row', type: 'normal' });
+                }
+              }
+              cloned.rowId = rowIdMap.get(oldRowId);
+            }
+
+            // Handle Row Label Logic
+            // We include the label in the paste so it becomes part of the ActiveSelection.
+            if (cloned.isRowLabel && cloned.rowId) {
+              // Deduce side from originX
+              // Left Label: originX = 'right'
+              // Right Label: originX = 'left'
+              let side = 'left';
+              if (cloned.originX === 'left') {
+                side = 'right';
+              }
+
+              cloned.id = `label-${side}-${cloned.rowId}`;
+              cloned.set({
+                selectable: true,
+                evented: true,
+                lockMovementX: true,
+                lockMovementY: true,
+              });
+            }
+
+            applyCustomStyles(cloned);
+            resolve(cloned);
+          }, CUSTOM_PROPS);
+        })
+      );
     }
 
-    if (pastedObjects.length === 1) {
-      canvas.setActiveObject(pastedObjects[0]);
-    } else if (pastedObjects.length > 1) {
-      const selection = new fabric.ActiveSelection(pastedObjects, { canvas });
+    const validObjects = (await Promise.all(pendingClones)).filter(
+      (obj): obj is fabric.Object => obj !== null
+    );
+
+    // Sort objects: Row Labels FIRST
+    // This ensures they are added to the canvas before the seats, helping the renderer
+    // (triggered by object:added) to find them immediately.
+    validObjects.sort((a, b) => {
+      const isLabelA = (a as any).isRowLabel ? -1 : 1;
+      const isLabelB = (b as any).isRowLabel ? -1 : 1;
+      return isLabelA - isLabelB;
+    });
+
+    // 2. Calculate Bounds and Clamp
+    const bbox = getBoundingBox(validObjects);
+    const canvasW = canvas.getWidth();
+    const canvasH = canvas.getHeight();
+
+    let dx = 20;
+    let dy = 20;
+
+    if (bbox.left + bbox.width + dx > canvasW) {
+      dx = canvasW - (bbox.left + bbox.width) - 20;
+    }
+    if (bbox.top + bbox.height + dy > canvasH) {
+      dy = canvasH - (bbox.top + bbox.height) - 20;
+    }
+    if (bbox.left + dx < 0) dx = -bbox.left + 20;
+    if (bbox.top + dy < 0) dy = -bbox.top + 20;
+
+    // 3. Apply Offset and Add to Canvas
+    validObjects.forEach((obj) => {
+      obj.set({
+        left: (obj.left || 0) + dx,
+        top: (obj.top || 0) + dy,
+        evented: true,
+        selectable: true,
+      });
+      canvas.add(obj);
+    });
+
+    // 4. Select all pasted objects (Seats + Labels)
+    if (validObjects.length === 1) {
+      canvas.setActiveObject(validObjects[0]);
+    } else if (validObjects.length > 1) {
+      const selection = new fabric.ActiveSelection(validObjects, { canvas });
       canvas.setActiveObject(selection);
     }
     canvas.requestRenderAll();

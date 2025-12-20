@@ -1,1 +1,1 @@
-export { useEventGuiStore } from './store/eventGuiStore';
+export { useEventGuiStore, PROPERTIES_TO_INCLUDE } from './store/eventGuiStore';

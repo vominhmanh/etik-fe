@@ -9,6 +9,7 @@ interface Properties {
   category?: string | 'mixed';
   price?: number | 'mixed';
   status?: 'available' | 'reserved' | 'sold' | 'mixed';
+  fontSize?: number | 'mixed';
 }
 
 interface CirclePropertiesProps {
@@ -112,7 +113,7 @@ const CircleProperties: React.FC<CirclePropertiesProps> = ({
             value={
               properties.radius === 'mixed' ? '' : toFloat(properties.radius)
             }
-            placeholder={properties.radius === 'mixed' ? '—' : ''}
+            placeholder={properties.radius === 'mixed' ? 'Mixed' : ''}
             onChange={(e) => updateObject({ radius: Number(e.target.value) })}
             className="w-12 rounded border border-solid border-gray-200 bg-white px-1 py-0.5 text-center text-xs [appearance:textfield] focus:outline-none focus:ring-1 focus:ring-gray-500 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
@@ -130,9 +131,8 @@ const CircleProperties: React.FC<CirclePropertiesProps> = ({
         </div>
         <div className="mb-1 flex items-center gap-1">
           <button
-            className={`flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 ${
-              properties.radius === 0 ? 'bg-gray-200' : 'bg-white'
-            } transition-colors`}
+            className={`flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 ${properties.radius === 0 ? 'bg-gray-200' : 'bg-white'
+              } transition-colors`}
             onClick={() => updateObject({ radius: 6 })}
             title="None"
           >
@@ -148,33 +148,65 @@ const CircleProperties: React.FC<CirclePropertiesProps> = ({
             </svg>
           </button>
           <button
-            className={`flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 ${
-              properties.radius === 4 ? 'bg-gray-200' : 'bg-white'
-            } text-xs transition-colors`}
+            className={`flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 ${properties.radius === 4 ? 'bg-gray-200' : 'bg-white'
+              } text-xs transition-colors`}
             onClick={() => updateObject({ radius: 8 })}
             title="Small"
           >
             sm
           </button>
           <button
-            className={`flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 ${
-              properties.radius === 10 ? 'bg-gray-200' : 'bg-white'
-            } text-xs transition-colors`}
+            className={`flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 ${properties.radius === 10 ? 'bg-gray-200' : 'bg-white'
+              } text-xs transition-colors`}
             onClick={() => updateObject({ radius: 10 })}
             title="Medium"
           >
             md
           </button>
           <button
-            className={`flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 ${
-              properties.radius === 20 ? 'bg-gray-200' : 'bg-white'
-            } text-xs transition-colors`}
+            className={`flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 ${properties.radius === 20 ? 'bg-gray-200' : 'bg-white'
+              } text-xs transition-colors`}
             onClick={() => updateObject({ radius: 16 })}
             title="Large"
           >
             lg
           </button>
         </div>
+      </div>
+
+      <label className="block text-sm font-medium text-gray-700">Text Size</label>
+      <div className="flex items-center gap-1">
+        <button
+          className="flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 text-xs transition-colors hover:bg-gray-100"
+          onClick={() => {
+            if (typeof properties.fontSize === 'number') {
+              updateObject({ fontSize: properties.fontSize - 1 });
+            }
+          }}
+          disabled={typeof properties.fontSize !== 'number'}
+        >
+          -
+        </button>
+        <input
+          type="number"
+          value={
+            typeof properties.fontSize === 'number' ? properties.fontSize : ''
+          }
+          placeholder={properties.fontSize === 'mixed' ? 'Mixed' : ''}
+          onChange={(e) => updateObject({ fontSize: Number(e.target.value) })}
+          className="w-12 rounded border border-solid border-gray-200 bg-white px-1 py-0.5 text-center text-xs [appearance:textfield] focus:outline-none focus:ring-1 focus:ring-gray-500 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        <button
+          className="flex h-6 w-6 items-center justify-center rounded border border-solid border-gray-200 text-xs transition-colors hover:bg-gray-100"
+          onClick={() => {
+            if (typeof properties.fontSize === 'number') {
+              updateObject({ fontSize: properties.fontSize + 1 });
+            }
+          }}
+          disabled={typeof properties.fontSize !== 'number'}
+        >
+          +
+        </button>
       </div>
     </div>
   );

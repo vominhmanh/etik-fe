@@ -58,37 +58,58 @@ export const useObjectProperties = (
     if (!selectedObjects || selectedObjects.length === 0) return;
 
     // Map seat groups to effective objects containing visual props from inner circle
+    // Map seat groups to effective objects containing visual props from inner circle and text
     const objs = selectedObjects.map((obj) => {
       if (obj.type === 'group' && (obj.rowId || obj.seatNumber)) {
         const group = obj as fabric.Group;
         const circle = group.getObjects().find(o => o.type === 'circle');
+        const text = group.getObjects().find(o => o.type === 'text' || o.type === 'i-text');
+
+        let effectiveObj = { ...obj };
+
         if (circle) {
-          return {
-            ...obj,
+          effectiveObj = {
+            ...effectiveObj,
             fill: circle.fill,
             stroke: circle.stroke,
             radius: (circle as any).radius
           };
         }
+
+        if (text) {
+          effectiveObj = {
+            ...effectiveObj,
+            text: (text as any).text,
+            fontSize: (text as any).fontSize,
+            fontWeight: (text as any).fontWeight,
+            fontFamily: (text as any).fontFamily
+          };
+        }
+        return effectiveObj;
       }
       return obj;
     });
 
+    const activeObject = canvas?.getActiveObject();
+    const isActiveSelection = activeObject?.type === 'activeSelection';
+
     setProperties({
-      angle: getMergedValue(objs, 'angle'),
+      angle: isActiveSelection ? (activeObject?.angle ?? 0) : getMergedValue(objs, 'angle'),
       radius: getMergedValue(objs, 'radius'),
-      width:
-        getMergedValue(objs, 'width') * (getMergedValue(objs, 'scaleX') || 1),
-      height:
-        getMergedValue(objs, 'height') * (getMergedValue(objs, 'scaleY') || 1),
+      width: isActiveSelection
+        ? (activeObject?.getScaledWidth() ?? 0)
+        : getMergedValue(objs, 'width') * (getMergedValue(objs, 'scaleX') || 1),
+      height: isActiveSelection
+        ? (activeObject?.getScaledHeight() ?? 0)
+        : getMergedValue(objs, 'height') * (getMergedValue(objs, 'scaleY') || 1),
       fill: getMergedValue(objs, 'fill'),
       stroke: getMergedValue(objs, 'stroke'),
       text: getMergedValue(objs, 'text'),
       fontSize: getMergedValue(objs, 'fontSize'),
       fontWeight: getMergedValue(objs, 'fontWeight'),
       fontFamily: getMergedValue(objs, 'fontFamily'),
-      left: getMergedValue(objs, 'left'),
-      top: getMergedValue(objs, 'top'),
+      left: isActiveSelection ? (activeObject?.left ?? 0) : getMergedValue(objs, 'left'),
+      top: isActiveSelection ? (activeObject?.top ?? 0) : getMergedValue(objs, 'top'),
       rx: getMergedValue(objs, 'rx'),
       ry: getMergedValue(objs, 'ry'),
       rowId: getMergedValue(objs, 'rowId'),

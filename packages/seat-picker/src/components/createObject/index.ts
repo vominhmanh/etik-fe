@@ -41,10 +41,11 @@ const createSeat = (
   top: number,
   rowId: string,
   seatNumber: string,
-  canvas?: fabric.Canvas | null
+  canvas?: fabric.Canvas | null,
+  options: { radius?: number; fontSize?: number } = {}
 ) => {
   const circle = new fabric.Circle({
-    radius: 10,
+    radius: options.radius ?? 10,
     fill: 'rgba(255,255,255,0.8)',
     stroke: 'black',
     strokeWidth: 1,
@@ -53,7 +54,7 @@ const createSeat = (
   });
 
   const text = new fabric.Text(seatNumber || '', {
-    fontSize: 10,
+    fontSize: options.fontSize ?? 10,
     fontFamily: 'sans-serif',
     fill: 'black',
     originX: 'center',

@@ -21,6 +21,9 @@ interface Row {
   color?: string; // Optional color for the row
   showLabelLeft?: boolean;
   showLabelRight?: boolean;
+  labelOffsetLeft?: { x: number; y: number };
+  labelOffsetRight?: { x: number; y: number };
+  fontSize?: number;
 }
 
 interface Zone {
@@ -31,7 +34,7 @@ interface Zone {
 
 export type Mode =
   | 'select'
-  | 'one-seat'
+  | 'select-seat'
   | 'multiple-seat'
   | 'shape-square'
   | 'shape-polygon'
@@ -95,6 +98,32 @@ interface EventGuiState {
   snapEnabled: boolean;
   setSnapEnabled: (enabled: boolean) => void;
 }
+
+export const PROPERTIES_TO_INCLUDE = [
+  'id',
+  'rowId',
+  'seatNumber',
+  'isRowLabel',
+  'customType',
+  'seatData',
+  'zoneData',
+  'fontSize',
+  'opacity',
+  'selectable',
+  'evented',
+  'lockMovementX',
+  'lockMovementY',
+  'lockRotation',
+  'hasControls',
+  'borderColor',
+  'borderDashArray',
+  'cornerColor',
+  'cornerSize',
+  'cornerStrokeColor',
+  'transparentCorners',
+  'rx',
+  'ry',
+];
 
 export const useEventGuiStore = create<EventGuiState>((set, get) => ({
   // ::::::::::::::::::: Loading state
@@ -208,7 +237,7 @@ export const useEventGuiStore = create<EventGuiState>((set, get) => ({
       // :::::::::::::::: set loading to true
       set({ loading: true });
 
-      const currentState = JSON.stringify(canvas.toJSON());
+      const currentState = JSON.stringify(canvas.toJSON(PROPERTIES_TO_INCLUDE));
       const previousState = undoStack[undoStack.length - 2];
 
       // ::::::::::::: update the canvas
@@ -261,17 +290,7 @@ export const useEventGuiStore = create<EventGuiState>((set, get) => ({
         });
         canvas.renderAll();
         const currentState = JSON.stringify(
-          canvas.toJSON([
-            'id',
-            'borderColor',
-            'borderDashArray',
-            'cornerColor',
-            'cornerSize',
-            'cornerStrokeColor',
-            'transparentCorners',
-            'rx',
-            'ry',
-          ])
+          canvas.toJSON(PROPERTIES_TO_INCLUDE)
         );
         set({
           undoStack: [...undoStack, currentState],

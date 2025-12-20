@@ -37,6 +37,7 @@ const Sidebar: React.FC = () => {
     'circle' | 'rect' | 'i-text' | null
   >(null);
   const [activeTab, setActiveTab] = useState<'basic' | 'attributes'>('basic');
+  const [isActiveSelection, setIsActiveSelection] = useState(false);
 
   const { properties, setProperties } = useObjectProperties(
     canvas,
@@ -56,6 +57,7 @@ const Sidebar: React.FC = () => {
       const activeObjects = nonLabels.length > 0 ? nonLabels : allActive;
 
       const activeObject = canvas.getActiveObject();
+      setIsActiveSelection(activeObject?.type === 'activeSelection');
 
       const getObjType = (obj: CustomFabricObject) => {
         if (obj.type === 'group' && (obj.rowId || obj.seatNumber)) return 'circle';
@@ -300,6 +302,28 @@ const Sidebar: React.FC = () => {
               <CommonProperties
                 properties={{ ...properties, type: objectType || undefined }}
                 updateObject={updateObject}
+                onLayerAction={(action) => {
+                  if (!canvas) return;
+                  const activeObject = canvas.getActiveObject();
+                  if (!activeObject) return;
+
+                  switch (action) {
+                    case 'front': activeObject.bringToFront(); break;
+                    case 'back': activeObject.sendToBack(); break;
+                    case 'forward': activeObject.bringForward(); break;
+                    case 'backward': activeObject.sendBackwards(); break;
+                  }
+
+                  // Enforce Background as bottom-most layer
+                  const bgObj = canvas.getObjects().find((o: any) => o.customType === 'layout-background');
+                  if (bgObj) {
+                    bgObj.sendToBack();
+                  }
+
+                  canvas.requestRenderAll();
+                  // Fire modified event just in case for history
+                  canvas.fire('object:modified', { target: activeObject });
+                }}
               />
 
               {objectType === 'circle' && (

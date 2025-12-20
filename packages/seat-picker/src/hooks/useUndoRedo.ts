@@ -1,29 +1,33 @@
 // import '../fabricCustomRegistration';
-import { useEffect, useCallback } from 'react';
-import { useEventGuiStore } from '@/zustand';
+import { useEffect, useCallback, useRef } from 'react';
+import { useEventGuiStore, PROPERTIES_TO_INCLUDE } from '@/zustand';
 
 const useUndoRedo = () => {
   const { canvas, addToUndoStack, undo, redo, undoStack } = useEventGuiStore();
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // :::::::::::::::: Function: appends undo state
   const handleObjectModified = useCallback(() => {
-    if (canvas) {
+    if (!canvas) return;
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
       const jsonState = JSON.stringify(
-        canvas.toJSON([
-          'id',
-          'borderColor',
-          'borderDashArray',
-          'cornerColor',
-          'cornerSize',
-          'cornerStrokeColor',
-          'transparentCorners',
-          'rx',
-          'ry',
-        ])
+        canvas.toJSON(PROPERTIES_TO_INCLUDE)
       );
       addToUndoStack(jsonState);
-    }
+    }, 300);
   }, [canvas, addToUndoStack]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!canvas) return;

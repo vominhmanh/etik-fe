@@ -12,6 +12,7 @@ interface Properties {
 interface CommonPropertiesProps {
   properties: Properties;
   updateObject: (updates: Partial<Properties>) => void;
+  onLayerAction?: (action: 'front' | 'back' | 'forward' | 'backward') => void;
 }
 
 const angleOptions = [
@@ -24,6 +25,7 @@ const angleOptions = [
 const CommonProperties: React.FC<CommonPropertiesProps> = ({
   properties,
   updateObject,
+  onLayerAction,
 }) => (
   <div className="space-y-2">
     <div className="grid grid-cols-2 gap-2">
@@ -237,6 +239,43 @@ const CommonProperties: React.FC<CommonPropertiesProps> = ({
         </div>
       </div>
     </div>
+    {onLayerAction && (
+      <div>
+        <label className="mb-1 block text-xs font-medium text-gray-600">
+          Layering
+        </label>
+        <div className="flex items-center gap-1">
+          <button
+            className="flex h-6 px-2 items-center justify-center rounded border border-solid border-gray-200 text-xs transition-colors hover:bg-gray-100"
+            onClick={() => onLayerAction('back')}
+            title="Send to Back"
+          >
+            Bottom
+          </button>
+          <button
+            className="flex h-6 px-2 items-center justify-center rounded border border-solid border-gray-200 text-xs transition-colors hover:bg-gray-100"
+            onClick={() => onLayerAction('backward')}
+            title="Send Backward"
+          >
+            Down
+          </button>
+          <button
+            className="flex h-6 px-2 items-center justify-center rounded border border-solid border-gray-200 text-xs transition-colors hover:bg-gray-100"
+            onClick={() => onLayerAction('forward')}
+            title="Bring Forward"
+          >
+            Up
+          </button>
+          <button
+            className="flex h-6 px-2 items-center justify-center rounded border border-solid border-gray-200 text-xs transition-colors hover:bg-gray-100"
+            onClick={() => onLayerAction('front')}
+            title="Bring to Front"
+          >
+            Top
+          </button>
+        </div>
+      </div>
+    )}
   </div>
 );
 
