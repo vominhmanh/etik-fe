@@ -102,7 +102,7 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
         }
       );
       notificationCtx.success(tt('Đã cập nhật suất diễn thành công.', 'Show updated successfully.'));
-      const path = `/event-studio/events/${eventId}/schedules`;
+      const path = `/event-studio/events/${eventId}/shows`;
       router.push(locale === 'en' ? `/en${path}` : path);
     } catch (error) {
       notificationCtx.error(tt('Lỗi khi cập nhật suất diễn.', 'Error updating show.'), error);

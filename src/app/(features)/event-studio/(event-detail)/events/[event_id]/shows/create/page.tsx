@@ -88,7 +88,7 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
         }
       );
       notificationCtx.success(tt('Thêm suất diễn thành công', 'Show added successfully'));
-      const path = `/event-studio/events/${eventId}/schedules`;
+      const path = `/event-studio/events/${eventId}/shows`;
       router.push(locale === 'en' ? `/en${path}` : path);
     } catch (error) {
       notificationCtx.error(tt('Lỗi', 'Error'), error);

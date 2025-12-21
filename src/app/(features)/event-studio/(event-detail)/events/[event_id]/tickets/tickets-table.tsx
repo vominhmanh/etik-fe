@@ -227,13 +227,11 @@ export function TicketsTable({
                   }}
                 />
               </TableCell>
+              <TableCell sx={{ minWidth: '100px' }}>{tt('ID', 'ID')}</TableCell>
               <TableCell sx={{ minWidth: '200px' }}>{tt('Họ tên', 'Full Name')}</TableCell>
-              <TableCell sx={{ minWidth: '150px' }}>{tt('Suất diễn', 'Show')}</TableCell>
-              <TableCell sx={{ minWidth: '80px' }}>{tt('Loại vé', 'Ticket Type')}</TableCell>
-              <TableCell>{tt('Trạng thái', 'Status')}</TableCell>
-              <TableCell>{tt('Trạng thái vé', 'Ticket Status')}</TableCell>
-              <TableCell>{tt('Thanh toán', 'Payment')}</TableCell>
-              <TableCell>{tt('Xuất vé', 'Ticket Issued')}</TableCell>
+              <TableCell sx={{ minWidth: '150px' }}>{tt('Suất diễn / Loại vé', 'Show / Ticket Type')}</TableCell>
+              <TableCell>{tt('Đơn hàng', 'Order')}</TableCell>
+              <TableCell>{tt('Vé', 'Ticket Status')}</TableCell>
               <TableCell>
                 <TableSortLabel
                   active={orderBy === 'createdAt'}
@@ -252,15 +250,23 @@ export function TicketsTable({
                   {tt('Thời gian check-in', 'Check-in Time')}
                 </TableSortLabel>
               </TableCell>
-              <TableCell> </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {rows.map((row) => {
               const isSelected = selected?.has(row.id);
               return (
-                <TableRow hover key={row.id} selected={isSelected}>
-                  <TableCell padding="checkbox">
+                <TableRow
+                  hover
+                  key={row.id}
+                  selected={isSelected}
+                  onClick={() => {
+                    const url = `/event-studio/events/${eventId}/transactions/${row.transactionId}`;
+                    window.open(url, '_blank');
+                  }}
+                  sx={{ cursor: 'pointer' }}
+                >
+                  <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={isSelected}
                       onChange={(event) => {
@@ -275,80 +281,98 @@ export function TicketsTable({
                     />
                   </TableCell>
                   <TableCell>
+                    <Stack spacing={0.5}>
+                      <Typography variant="body2">{row.transactionId}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        TID-{row.id}
+                      </Typography>
+                    </Stack>
+                  </TableCell>
+                  <TableCell>
                     <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
                       <Tooltip title={
                         <Stack spacing={1}>
-                          <Typography>{tt('ID đơn hàng:', 'Order ID:')} {row.transactionId} - {tt('ID vé:', 'Ticket ID:')} {row.id}</Typography>
-                          <Typography>{tt('Tên người mua:', 'Buyer Name:')} {row.transactionTicketCategory.transaction.name}</Typography>
-                          <Typography>{tt('Email:', 'Email:')} {row.transactionTicketCategory.transaction.email}</Typography>
-                          <Typography>{tt('SĐT:', 'Phone:')} {row.transactionTicketCategory.transaction.phoneNumber}</Typography>
+                          <Typography variant="caption">{tt('Họ tên:', 'Full Name:')} {row.holderName}</Typography>
+                          <Typography variant="caption">{tt('Email:', 'Email:')} {row.holderEmail || row.transactionTicketCategory.transaction.email}</Typography>
+                          <Typography variant="caption">{tt('SĐT:', 'Phone:')} {row.holderPhone || row.transactionTicketCategory.transaction.phoneNumber}</Typography>
                         </Stack>
                       }>
                         <Avatar {...stringAvatar(row.holderName)} />
                       </Tooltip>
                       <Tooltip title={
                         <Stack spacing={1}>
-                          <Typography>{tt('ID đơn hàng:', 'Order ID:')} {row.transactionId} - {tt('ID vé:', 'Ticket ID:')} {row.id}</Typography>
-                          <Typography>{tt('Tên người mua:', 'Buyer Name:')} {row.transactionTicketCategory.transaction.name}</Typography>
-                          <Typography>{tt('Email:', 'Email:')} {row.transactionTicketCategory.transaction.email}</Typography>
-                          <Typography>{tt('SĐT:', 'Phone:')} {row.transactionTicketCategory.transaction.phoneNumber}</Typography>
+                          <Typography variant="caption">{tt('Họ tên:', 'Full Name:')} {row.holderName}</Typography>
+                          <Typography variant="caption">{tt('Email:', 'Email:')} {row.holderEmail || row.transactionTicketCategory.transaction.email}</Typography>
+                          <Typography variant="caption">{tt('SĐT:', 'Phone:')} {row.holderPhone || row.transactionTicketCategory.transaction.phoneNumber}</Typography>
                         </Stack>
                       }>
-                        <Typography variant="subtitle2">{row.holderName}</Typography>
+                        <Stack spacing={0}>
+                          <Typography variant="subtitle2">{row.holderName}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>
+                            {row.holderEmail || row.transactionTicketCategory.transaction.email}
+                          </Typography>
+                        </Stack>
                       </Tooltip>
 
                     </Stack>
                   </TableCell>
-                  <TableCell>{row.transactionTicketCategory.ticketCategory.show.name}</TableCell>
-                  <TableCell>{row.transactionTicketCategory.ticketCategory.name}</TableCell>
                   <TableCell>
-                    <Stack spacing={0} direction={'row'}>
-                      <Chip
-                        color={getRowStatusDetails(row.transactionTicketCategory.transaction.status, tt).color}
-                        label={getRowStatusDetails(row.transactionTicketCategory.transaction.status, tt).label}
-                        size="small"
-                      />
-                      {row.transactionTicketCategory.transaction.cancelRequestStatus == 'pending' &&
-                        <Tooltip title={
-                          <Typography>{tt('Khách hàng yêu cầu hủy', 'Customer requested cancellation')}</Typography>
-                        }>
-                          <Chip size="small" color={'error'} label={<WarningCircle size={16} />} />
-                        </Tooltip>
-                      }
+                    <Stack spacing={0.5}>
+                      <Typography variant="body2">{row.transactionTicketCategory.ticketCategory.show.name}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {row.transactionTicketCategory.ticketCategory.name}
+                      </Typography>
                     </Stack>
-
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      color={getRowStatusDetails(row.status, tt).color}
-                      label={getRowStatusDetails(row.status, tt).label}
-                      size="small"
-                    />
+                    <Stack spacing={0.5} alignItems="flex-start">
+                      <Stack spacing={0.5} direction={'row'} alignItems="center">
+                        {row.transactionTicketCategory.transaction.status !== 'normal' && (
+                          <Chip
+                            color={getRowStatusDetails(row.transactionTicketCategory.transaction.status, tt).color}
+                            label={getRowStatusDetails(row.transactionTicketCategory.transaction.status, tt).label}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                        {row.transactionTicketCategory.transaction.cancelRequestStatus == 'pending' &&
+                          <Tooltip title={
+                            <Typography>{tt('Khách hàng yêu cầu hủy', 'Customer requested cancellation')}</Typography>
+                          }>
+                            <Chip size="small" color={'error'} label={<WarningCircle size={16} />} variant="outlined" />
+                          </Tooltip>
+                        }
+                      </Stack>
+                      <Chip
+                        color={getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus, tt).color as ChipProps['color']}
+                        label={
+                          getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus, tt).label
+                        }
+                        size="small"
+                        variant="outlined"
+                      />
+                    </Stack>
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      color={getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus, tt).color as ChipProps['color']}
-                      label={
-                        getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus, tt).label
-                      }
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      color={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent', tt).color as ChipProps['color']}
-                      label={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent', tt).label}
-                      size="small"
-                    />
+                    <Stack spacing={0.5} alignItems="flex-start">
+                      {row.status !== 'normal' && (
+                        <Chip
+                          color={getRowStatusDetails(row.status, tt).color}
+                          label={getRowStatusDetails(row.status, tt).label}
+                          size="small"
+                          variant="outlined"
+                        />
+                      )}
+                      <Chip
+                        color={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent', tt).color as ChipProps['color']}
+                        label={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent', tt).label}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </Stack>
                   </TableCell>
                   <TableCell>{dayjs(row.createdAt).format('HH:mm:ss DD/MM/YYYY')}</TableCell>
                   <TableCell>{row.checkInAt ? dayjs(row.checkInAt).format('HH:mm:ss DD/MM/YYYY') : ''}</TableCell>
-                  <TableCell>
-                    <IconButton color="primary" target='_blank' component={LocalizedLink}
-                      href={`/event-studio/events/${eventId}/transactions/${row.transactionId}`}>
-                      <ArrowSquareUpRightIcon />
-                    </IconButton>
-                  </TableCell>
                 </TableRow>
               );
             })}

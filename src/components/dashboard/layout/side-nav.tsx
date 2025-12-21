@@ -220,6 +220,13 @@ export function SideNav(): React.JSX.Element {
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
+                key="configuration-shows-ticket-categories"
+                title={tt("Hạng mục vé", "Ticket Categories")}
+                href={`/event-studio/events/${dynamicId}/shows`}
+                icon={TicketIcon}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
                 key="advanced-settings"
                 title={tt("Cài đặt nâng cao", "Advanced Settings")}
                 href={`/event-studio/events/${dynamicId}/advanced-settings`}
@@ -252,20 +259,6 @@ export function SideNav(): React.JSX.Element {
                 title={tt("Thiết kế tem vé", "Ticket Tag Design")}
                 href={`/event-studio/events/${dynamicId}/ticket-tag-designs`}
                 icon={Tag}
-              />
-              <NavItemCollapseChildItem
-                pathname={pathname}
-                key="configuration-date-time"
-                title={tt("Suất diễn", "Shows")}
-                href={`/event-studio/events/${dynamicId}/schedules`}
-                icon={CalendarDotsIcon}
-              />
-              <NavItemCollapseChildItem
-                pathname={pathname}
-                key="configuration-shows-ticket-categories"
-                title={tt("Hạng mục vé", "Ticket Categories")}
-                href={`/event-studio/events/${dynamicId}/shows`}
-                icon={TicketIcon}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}

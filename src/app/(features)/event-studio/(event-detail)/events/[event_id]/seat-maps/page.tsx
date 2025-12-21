@@ -72,9 +72,9 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const { tt } = useTranslation();
   const statusMap = getStatusMap(tt);
   const typeMap = getTypeMap(tt);
-  
+
   React.useEffect(() => {
-    document.title = tt("Suất diễn | ETIK - Vé điện tử & Quản lý sự kiện", "Shows | ETIK - E-tickets & Event Management");
+    document.title = tt("Sơ đồ ghế | ETIK - Vé điện tử & Quản lý sự kiện", "Shows | ETIK - E-tickets & Event Management");
   }, [tt]);
   const { event_id } = params;
   const notificationCtx = React.useContext(NotificationContext);
@@ -86,7 +86,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       try {
         setIsLoading(true);
         const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${params.event_id}/shows`
+          `/event-studio/events/${params.event_id}/seat-maps/shows`
         );
         setShows(response.data);
       } catch (error) {
@@ -113,20 +113,13 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       </Backdrop>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">{tt("Suất diễn", "Shows")}</Typography>
+          <Typography variant="h4">{tt("Sơ đồ ghế", "Seat Maps")}</Typography>
         </Stack>
-        <div>
-          <Button
-            component={LocalizedLink}
-            startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
-            variant="contained"
-            href="shows/create"
-          >
-            {tt("Thêm suất diễn", "Add Show")}
-          </Button>
-        </div>
       </Stack>
-      <CompaniesFilters />
+      <Stack spacing={3}>
+        <CompaniesFilters />
+        <Typography variant="body1">{tt("Vui lòng chọn một suất diễn để tạo sơ đồ ghế", "Please select a show to create a seat map")}</Typography>
+      </Stack>
       <Grid container spacing={3}>
         {shows.map((show) => (
           <Grid key={show.id} lg={4} md={6} xs={12}>

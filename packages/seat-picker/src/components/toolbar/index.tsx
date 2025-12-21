@@ -361,6 +361,22 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
       <Separator />
 
+      {/* ::::::::::::::: Lock/Unlock button */}
+      <Button
+        icon={
+          isSelectionLocked() ? (
+            <LuLock className="h-4 w-4" />
+          ) : (
+            <RiLockUnlockLine className="h-4 w-4" />
+          )
+        }
+        tooltip={isSelectionLocked() ? 'Unlock' : 'Lock'}
+        onClick={toggleLockSelection}
+      />
+
+      {/* ::::::::::::::: add space */}
+      <div className="flex-1" />
+
       {/* ::::::::::::::: Full Screen Button */}
       {onToggleFullScreen && (
         <Button
@@ -376,21 +392,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
         />
       )}
 
-      {/* ::::::::::::::: add space */}
-      <div className="flex-1" />
-
-      {/* ::::::::::::::: Lock/Unlock button */}
-      <Button
-        icon={
-          isSelectionLocked() ? (
-            <LuLock className="h-4 w-4" />
-          ) : (
-            <RiLockUnlockLine className="h-4 w-4" />
-          )
-        }
-        tooltip={isSelectionLocked() ? 'Unlock' : 'Lock'}
-        onClick={toggleLockSelection}
-      />
 
       {/* Export Modal */}
       <ExportModal

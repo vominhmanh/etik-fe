@@ -114,6 +114,10 @@ export interface Transaction {
   createdAt: Date;
   exportedTicketAt: string | null;
   customerResponseToken: string | null;
+  paymentStatus: string | null;
+  paymentMethod: string | null;
+  sentPaymentInstructionAt: string | null;
+  sentTicketViaZalo?: boolean;
 }
 
 const options = {
@@ -400,7 +404,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
 
 
   const builtinInternalNames = React.useMemo(
-    () => new Set(['name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
+    () => new Set(['title', 'name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
     []
   );
 
@@ -1691,11 +1695,6 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 {/* Submit Button */}
                 <Grid spacing={3} container sx={{ alignItems: 'center', mt: '3' }}>
                   <Grid item sm={9} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
-                    <ReCAPTCHA
-                      sitekey="6LdRnq4aAAAAAFT6htBYNthM-ksGymg70CsoYqHR"
-                      ref={captchaRef}
-                      hl={lang}
-                    />
                   </Grid>
                   <Grid item sm={3} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>
                     <div>
@@ -1882,6 +1881,13 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 </Typography>
               </Box>
             </Stack>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+              <ReCAPTCHA
+                sitekey="6LdRnq4aAAAAAFT6htBYNthM-ksGymg70CsoYqHR"
+                ref={captchaRef}
+                hl={lang}
+              />
+            </Box>
           </Stack>
         </DialogContent>
         <DialogActions>
@@ -2101,10 +2107,41 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 <Stack spacing={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '450px', maxWidth: '100%' }}>
                   <Typography variant="h5">{tt('Đăng ký thành công !', 'Registration successful!')}</Typography>
                   <Typography variant="body2" sx={{ textAlign: 'justify' }}>
-                    {lang === 'vi'
-                      ? `Cảm ơn ${customer.title} ${customer.name} đã sử dụng ETIK. Hãy kiểm tra Email để xem vé. Nếu ${customer.title} cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ `
-                      : `Thank you ${customer.title} ${customer.name} for using ETIK. Please check your email for your tickets. If you need support, submit a request `}
-                    <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">{tt('tại đây.', 'here.')}</a>
+                    {(() => {
+                      if (!responseTransaction) return null;
+
+                      // Case 1: Waiting for approval
+                      if (responseTransaction.status === 'wait_for_response') {
+                        return lang === 'vi'
+                          ? `Cảm ơn ${customer.title} ${customer.name} đã đăng ký. Đơn hàng của ${customer.title} đang chờ Ban Tổ Chức xét duyệt. Kết quả sẽ được gửi qua Email trong thời gian sớm nhất.`
+                          : `Thank you ${customer.title} ${customer.name}. Your order is pending approval by the Organizer. The result will be sent via Email shortly.`;
+                      }
+
+                      // Case 2: Waiting for payment
+                      if (responseTransaction.paymentStatus === 'waiting_for_payment') {
+                        return lang === 'vi'
+                          ? `Cảm ơn ${customer.title} ${customer.name} đã đăng ký. Vui lòng kiểm tra Email để nhận hướng dẫn thanh toán. Vé sẽ được gửi sau khi thanh toán thành công.`
+                          : `Thank you ${customer.title} ${customer.name}. Please check your email for payment instructions. Tickets will be sent after successful payment.`;
+                      }
+
+                      // Case 3: Paid but ticket not yet exported (Manual issuing or processing)
+                      if (responseTransaction.paymentStatus === 'paid' && !responseTransaction.exportedTicketAt) {
+                        return lang === 'vi'
+                          ? `Cảm ơn ${customer.title} ${customer.name}. Thanh toán thành công! Vé đang được xử lý và sẽ gửi tới ${customer.title} trong giây lát.`
+                          : `Thank you ${customer.title} ${customer.name}. Payment successful! Tickets are being processed and will be sent to you momentarily.`;
+                      }
+
+                      // Case 4: Ticket exported (Success) / Default fallback
+                      const checkChannels = responseTransaction.sentTicketViaZalo ? (lang === 'vi' ? 'Email và Zalo' : 'Email and Zalo') : 'Email';
+                      return (
+                        <>
+                          {lang === 'vi'
+                            ? `Cảm ơn ${customer.title} ${customer.name} đã sử dụng ETIK. Hãy kiểm tra ${checkChannels} để xem vé. Nếu ${customer.title} cần hỗ trợ thêm, vui lòng gửi yêu cầu hỗ trợ `
+                            : `Thank you ${customer.title} ${customer.name} for using ETIK. Please check your ${checkChannels} for your tickets. If you need support, submit a request `}
+                          <a style={{ textDecoration: 'none' }} target='_blank' href="https://forms.gle/2mogBbdUxo9A2qRk8">{tt('tại đây.', 'here.')}</a>
+                        </>
+                      );
+                    })()}
                   </Typography>
                 </Stack>
               </Stack>

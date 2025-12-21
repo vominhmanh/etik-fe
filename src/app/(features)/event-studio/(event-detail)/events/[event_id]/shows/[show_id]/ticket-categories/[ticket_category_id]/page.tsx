@@ -15,6 +15,12 @@ import MenuItem from '@mui/material/MenuItem';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { AxiosResponse } from 'axios';
@@ -65,7 +71,7 @@ export default function Page({
     limitPerCustomer: 4,
     description: '', // Ensure this is part of the state
     status: 'on_sale',
-    approvalMethod: 'auto'
+    approvalMethod: 'auto',
   });
   const router = useRouter();
 
@@ -87,7 +93,7 @@ export default function Page({
           quantity: ticketCategory.quantity,
           limitPerTransaction: ticketCategory.limitPerTransaction || null,
           limitPerCustomer: ticketCategory.limitPerCustomer || null,
-          approvalMethod: ticketCategory.approvalMethod
+          approvalMethod: ticketCategory.approvalMethod,
         });
         setShowName(ticketCategory.show.name)
         // Set the checkbox states based on the fetched values
@@ -180,7 +186,8 @@ export default function Page({
           limitPerTransaction: formData.limitPerTransaction,
           limitPerCustomer: formData.limitPerCustomer,
           status: formData.status,
-          approvalMethod: formData.approvalMethod
+          approvalMethod: formData.approvalMethod,
+          // Note: creationMethod, issuingMethod, etc. are currently mocked and not saved to backend
         }
       );
       notificationCtx.success(response.data.message);
@@ -251,10 +258,10 @@ export default function Page({
                         <FormControl fullWidth required>
                           <InputLabel>{tt("Cách phê duyệt đơn hàng", "Order Approval Method")}</InputLabel>
                           <Select label={tt("Cách phê duyệt yêu cầu mua vé của khách hàng", "How to approve customer ticket purchase requests")} name="approvalMethod" value={formData.approvalMethod} onChange={(event: any) => handleChange(event)}>
-                            <MenuItem value="auto">{tt("Tự động phê duyệt", "Auto Approve")}</MenuItem>
+                            <MenuItem value="auto">{tt("Theo mặc định sự kiện", "Auto Approve")}</MenuItem>
                             <MenuItem value="manual">{tt("Phê duyệt thủ công", "Manual Approval")}</MenuItem>
                           </Select>
-                          <FormHelperText>{tt("Phê duyệt thủ công: bạn phải kiểm tra và xuất vé cho khách hàng", "Manual approval: you must check and issue tickets to customers")}</FormHelperText>
+                          <FormHelperText>{tt("Phê duyệt thủ công: nếu đơn hàng có vé này, bạn phải kiểm tra và xuất vé cho khách hàng", "Manual approval: you must check and issue tickets to customers")}</FormHelperText>
                         </FormControl>
                       </Grid>
                     )}

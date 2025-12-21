@@ -3,8 +3,8 @@
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Avatar, Box, CardMedia, Checkbox, Container, FormControlLabel, FormGroup, FormHelperText, IconButton, InputAdornment, MenuItem, Modal, Radio, Select, Stack, TableBody, Table, TextField, TableHead, TableCell, TableRow } from '@mui/material';
-import { PencilSimple, Trash } from '@phosphor-icons/react/dist/ssr';
+import { Avatar, Box, CardMedia, Checkbox, Container, FormControlLabel, FormGroup, FormHelperText, IconButton, InputAdornment, MenuItem, Modal, Radio, Select, Stack, TableBody, Table, TextField, TableHead, TableCell, TableRow, Switch } from '@mui/material';
+import { Gift, PencilSimple, Trash } from '@phosphor-icons/react/dist/ssr';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -78,17 +78,53 @@ export interface EmailTemplateConfig {
   templateOtherNameTicket?: string;
 }
 
-export interface SendTicketMethodsRequest {
-  useEmailMethod: boolean;
-  useEmailMethodAsDefault: boolean;
-  useZaloMethod: boolean;
-  useZaloMethodAsDefault: boolean;
-}
+
 export interface CheckInFaceConfig {
   useCheckInFace: boolean;
 }
 export interface TicketTransferConfig {
   allowTicketTransfer: boolean;
+}
+
+export interface OrderFlowConfig {
+  id: number;
+  name: string;
+  isDefault: boolean;
+  conditionTicketCategoryIds: number[];
+  approvalMethod: string;
+  issuingMethod: string;
+  sendPaymentInstruction: boolean;
+  adminSendPaymentInstruction: boolean; // Note: schema says adminSendPaymentInstruction is in base, check consistency. Yes it is.
+  emailMethod: string;
+  zaloMethod: string;
+  adminApprovalMethod: string;
+  adminIssuingMethod: string;
+  adminEmailMethod: string;
+  adminZaloMethod: string;
+}
+
+export interface TransactionFlowsConfigResponse {
+  useEmailMethod: boolean;
+  useZaloMethod: boolean;
+  flows: OrderFlowConfig[];
+}
+
+export interface TransactionFlowsConfigUpdate {
+  useEmailMethod: boolean;
+  useZaloMethod: boolean;
+  flows: OrderFlowConfig[];
+}
+
+export interface TicketCategoryResponse {
+  id: number;
+  name: string;
+  showName?: string;
+}
+
+export interface ShowWithTicketCategoryResponse {
+  id: number;
+  name: string;
+  ticketCategories: TicketCategoryResponse[];
 }
 
 import PrinterModal, { TicketTagPrinter } from './printer-modal';
@@ -138,12 +174,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     templateOtherNameTicket: "",
   });
 
-  const [sendTicketMethods, setSendTicketMethods] = useState<SendTicketMethodsRequest>({
-    useEmailMethod: false,
-    useEmailMethodAsDefault: false,
-    useZaloMethod: false,
-    useZaloMethodAsDefault: false,
-  });
+
   const [checkInFaceConfig, setCheckInFaceConfig] = useState<CheckInFaceConfig>({
     useCheckInFace: false,
   });
@@ -157,6 +188,20 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [openPrinterModal, setOpenPrinterModal] = useState<boolean>(false);
   const [editingPrinter, setEditingPrinter] = useState<TicketTagPrinter | null>(null);
 
+  const [orderFlows, setOrderFlows] = useState<OrderFlowConfig[]>([]);
+  // sendTicketMethods state is still needed for UI toggles, but now it's part of the transaction flow config
+  // We can keep it or merge it. Let's keep it but simplified.
+  const [globalFlowConfig, setGlobalFlowConfig] = useState<{ useEmailMethod: boolean; useZaloMethod: boolean }>({
+    useEmailMethod: false,
+    useZaloMethod: false,
+  });
+
+  const [allTicketCategories, setAllTicketCategories] = useState<TicketCategoryResponse[]>([]);
+  const [isOrderFlowLoading, setIsOrderFlowLoading] = useState<boolean>(false);
+  const [isTicketCategoriesLoading, setIsTicketCategoriesLoading] = useState<boolean>(false);
+  const [openTicketSelectModal, setOpenTicketSelectModal] = useState<boolean>(false);
+  const [activeFlowId, setActiveFlowId] = useState<number | null>(null);
+
 
   useEffect(() => {
     async function fetchData() {
@@ -165,7 +210,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         const [smtpRes, emailTplRes, sendMethodsRes, faceCfgRes, transferCfgRes, eventRes] = await Promise.allSettled([
           getSMTPSettings(params.event_id),
           getEmailTemplateSettings(params.event_id),
-          getSendTicketMethods(params.event_id),
+          getTransactionFlowsConfig(params.event_id),
           getCheckInFaceConfig(params.event_id),
           getTicketTransferConfig(params.event_id),
           baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}`),
@@ -184,9 +229,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         }
 
         if (sendMethodsRes.status === 'fulfilled' && sendMethodsRes.value) {
-          setSendTicketMethods(sendMethodsRes.value);
+          setGlobalFlowConfig({
+            useEmailMethod: sendMethodsRes.value.useEmailMethod,
+            useZaloMethod: sendMethodsRes.value.useZaloMethod,
+          });
+          setOrderFlows(sendMethodsRes.value.flows);
         } else if (sendMethodsRes.status === 'rejected') {
-          notificationCtx.warning(tt('Không tải được phương thức gửi vé', 'Failed to load ticket sending methods'));
+          notificationCtx.warning(tt('Không tải được cấu hình luồng đơn hàng', 'Failed to load transaction flow configuration'));
         }
 
         if (faceCfgRes.status === 'fulfilled' && faceCfgRes.value) {
@@ -211,7 +260,28 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
     fetchData();
     fetchPrinters();
+    fetchTicketCategories();
   }, [params.event_id]);
+
+  const fetchTicketCategories = async () => {
+    try {
+      setIsTicketCategoriesLoading(true);
+      const response: AxiosResponse<ShowWithTicketCategoryResponse[]> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${params.event_id}/shows-ticket-categories/get-shows-with-ticket-categories`
+      );
+      const allCategories: TicketCategoryResponse[] = [];
+      response.data.forEach(show => {
+        show.ticketCategories.forEach(cat => {
+          allCategories.push({ ...cat, showName: show.name });
+        });
+      });
+      setAllTicketCategories(allCategories);
+    } catch (error) {
+      console.error('Failed to fetch ticket categories', error);
+    } finally {
+      setIsTicketCategoriesLoading(false);
+    }
+  };
 
   const fetchPrinters = async () => {
     if (!params.event_id) return;
@@ -298,30 +368,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   };
 
-  const handleSendTicketMethodsChange = (name: keyof SendTicketMethodsRequest, checked: boolean) => {
-    setSendTicketMethods((prev) => {
-      const next = { ...prev, [name]: checked } as SendTicketMethodsRequest;
-      if (name === 'useEmailMethod' && !checked) {
-        next.useEmailMethodAsDefault = false;
-      }
-      if (name === 'useZaloMethod' && !checked) {
-        next.useZaloMethodAsDefault = false;
-      }
-      return next;
-    });
+  const handleSendTicketMethodsChange = (name: 'useEmailMethod' | 'useZaloMethod', checked: boolean) => {
+    setGlobalFlowConfig((prev) => ({
+      ...prev,
+      [name]: checked,
+    }));
   };
 
-  const handleSaveSendTicketMethods = async () => {
-    try {
-      setIsSendTicketMethodsLoading(true);
-      await saveSendTicketMethods(event_id, sendTicketMethods);
-      notificationCtx.success(tt('Cập nhật thành công', 'Updated successfully'));
-    } catch (error) {
-      notificationCtx.error(error);
-    } finally {
-      setIsSendTicketMethodsLoading(false);
-    }
-  };
+
 
   const handleCheckInFaceChange = (_e: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
     setCheckInFaceConfig((prev) => ({ ...prev, useCheckInFace: checked }));
@@ -488,10 +542,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   };
 
-  async function getSendTicketMethods(eventId: number): Promise<SendTicketMethodsRequest | null> {
+  async function getTransactionFlowsConfig(eventId: number): Promise<TransactionFlowsConfigResponse | null> {
     try {
-      const response: AxiosResponse<SendTicketMethodsRequest> = await baseHttpServiceInstance.get(
-        `/event-studio/events/${eventId}/send-ticket-methods`
+      const response: AxiosResponse<TransactionFlowsConfigResponse> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${eventId}/transaction-flows-config`
       );
       return response.data;
     } catch (error) {
@@ -499,9 +553,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   }
 
-  async function saveSendTicketMethods(eventId: number, payload: SendTicketMethodsRequest): Promise<void> {
+  async function saveTransactionFlowsConfig(eventId: number, payload: TransactionFlowsConfigUpdate): Promise<void> {
     try {
-      await baseHttpServiceInstance.post(`/event-studio/events/${eventId}/send-ticket-methods`, payload);
+      await baseHttpServiceInstance.put(`/event-studio/events/${eventId}/transaction-flows-config`, payload);
     } catch (error) {
       throw error;
     }
@@ -608,6 +662,85 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
 
 
+  const handleOrderFlowInputChange = (flowId: number, event: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+    setOrderFlows((prev) =>
+      prev.map((flow) =>
+        flow.id === flowId ? { ...flow, [event.target.name as string]: event.target.value } : flow
+      )
+    );
+  };
+
+  const handleOrderFlowCheckboxChange = (flowId: number, name: string, checked: boolean) => {
+    setOrderFlows((prev) =>
+      prev.map((flow) =>
+        flow.id === flowId ? { ...flow, [name]: checked } : flow
+      )
+    );
+  };
+
+  const handleAddFlow = () => {
+    const newFlow: OrderFlowConfig = {
+      id: Date.now(), // Temporary ID using number type
+
+      name: tt('Luồng mới', 'New Flow'),
+      isDefault: false,
+      conditionTicketCategoryIds: [],
+      approvalMethod: 'auto',
+      issuingMethod: 'auto',
+      sendPaymentInstruction: true,
+      adminSendPaymentInstruction: true,
+      emailMethod: 'auto',
+      zaloMethod: 'auto',
+      adminApprovalMethod: 'auto',
+      adminIssuingMethod: 'auto',
+      adminEmailMethod: 'auto',
+      adminZaloMethod: 'auto',
+    };
+    setOrderFlows((prev) => [...prev, newFlow]);
+  };
+
+  const handleRemoveFlow = (id: number) => {
+    setOrderFlows((prev) => prev.filter((flow) => flow.id !== id));
+  };
+
+  const handleOpenTicketSelect = (flowId: number) => {
+    setActiveFlowId(flowId);
+    setOpenTicketSelectModal(true);
+  };
+
+  const handleToggleTicketInFlow = (categoryId: number) => {
+    if (!activeFlowId) return;
+    setOrderFlows((prev) =>
+      prev.map((flow) => {
+        if (flow.id === activeFlowId) {
+          const isSelected = flow.conditionTicketCategoryIds.includes(categoryId);
+          const newIds = isSelected
+            ? flow.conditionTicketCategoryIds.filter((id) => id !== categoryId)
+            : [...flow.conditionTicketCategoryIds, categoryId];
+          return { ...flow, conditionTicketCategoryIds: newIds };
+        }
+        return flow;
+      })
+    );
+  };
+
+  const handleSaveOrderFlowSettings = async () => {
+    try {
+      setIsOrderFlowLoading(true);
+      await saveTransactionFlowsConfig(event_id, {
+        useEmailMethod: globalFlowConfig.useEmailMethod,
+        useZaloMethod: globalFlowConfig.useZaloMethod,
+        flows: orderFlows,
+      });
+      notificationCtx.success(tt("Cấu hình luồng đơn hàng đã được lưu thành công!", "Order flow configuration has been saved successfully!"));
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsOrderFlowLoading(false);
+    }
+  };
+
+
   if (!event || !formValues) {
     return <Typography>{tt('Loading...', 'Loading...')}</Typography>;
   }
@@ -632,63 +765,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Grid container spacing={3}>
           <Grid lg={4} md={6} xs={12}>
             <Stack spacing={3}>
-              <Card>
-                <CardHeader title={tt("Phương thức gửi vé điện tử", "Electronic Ticket Sending Methods")} />
-                <Divider />
-                <CardContent>
-                  <Grid container spacing={6} wrap="wrap">
-                    <Grid md={12} sm={12} xs={12}>
-                      <Stack spacing={1}>
-                        <Typography variant="h6">{tt("Email", "Email")}</Typography>
-                        <FormGroup>
-                          <FormControlLabel
-                            control={<Checkbox checked={sendTicketMethods.useEmailMethod}
-                              onChange={(_e, checked) => handleSendTicketMethodsChange('useEmailMethod', checked)} />}
-                            label={tt("Sử dụng phương thức này", "Use this method")}
-                          />
-                          <FormControlLabel
-                            control={<Checkbox checked={sendTicketMethods.useEmailMethodAsDefault}
-                              onChange={(_e, checked) => handleSendTicketMethodsChange('useEmailMethodAsDefault', checked)}
-                              disabled={!sendTicketMethods.useEmailMethod}
-                            />}
-                            label={tt("Tự động sử dụng khi tạo đơn hàng", "Automatically use when creating orders")}
-                          />
-                        </FormGroup>
-                      </Stack>
-                    </Grid>
-                    <Grid md={12} sm={12} xs={12}>
-                      <Stack spacing={1}>
-                        <Typography variant="h6">{tt("Zalo", "Zalo")}</Typography>
-                        <FormGroup>
-                          <FormControlLabel
-                            control={<Checkbox checked={sendTicketMethods.useZaloMethod}
-                              onChange={(_e, checked) => handleSendTicketMethodsChange('useZaloMethod', checked)} />}
-                            label={tt("Sử dụng phương thức này", "Use this method")}
-                          />
-                          <FormControlLabel
-                            control={<Checkbox checked={sendTicketMethods.useZaloMethodAsDefault}
-                              onChange={(_e, checked) => handleSendTicketMethodsChange('useZaloMethodAsDefault', checked)}
-                              disabled={!sendTicketMethods.useZaloMethod}
-                            />}
-                            label={tt("Tự động sử dụng khi tạo đơn hàng", "Automatically use when creating orders")}
-                          />
-                          <FormHelperText>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {tt("Phương thức này chỉ khả dụng với một số sự kiện. Vui lòng liên hệ ETIK để biết thêm chi tiết.", "This method is only available for some events. Please contact ETIK for more details.")}
-                            </Typography>
-                          </FormHelperText>
-                        </FormGroup>
-                      </Stack>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-                <Divider />
-                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <Button variant="contained" color="primary" onClick={handleSaveSendTicketMethods} disabled={isSendTicketMethodsLoading}>
-                    {isSendTicketMethodsLoading ? <CircularProgress size={24} /> : tt("Lưu cài đặt", "Save Settings")}
-                  </Button>
-                </CardActions>
-              </Card>
+
               <Card>
                 <CardHeader title={tt("Check-in bằng khuôn mặt", "Face Check-in")} />
                 <Divider />
@@ -745,7 +822,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </CardContent>
                 <Divider />
                 <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <Button variant="contained" color="primary" onClick={handleSaveTicketTransferConfig} startIcon={<ScanSmileyIcon />} disabled={isTicketTransferLoading}>
+                  <Button variant="contained" color="primary" onClick={handleSaveTicketTransferConfig} startIcon={<Gift />} disabled={isTicketTransferLoading}>
                     {isTicketTransferLoading ? <CircularProgress size={24} /> : tt("Lưu cài đặt", "Save Settings")}
                   </Button>
                 </CardActions>
@@ -990,8 +1067,298 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               </Card>
             </Stack>
           </Grid>
+          <Grid lg={12} md={12} xs={12}>
+            <Stack spacing={3}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h5">{tt("Luồng đơn hàng", "Order Flows")}</Typography>
+                <Stack direction="row" spacing={2}>
+                  <Button variant="contained" color="primary" onClick={handleSaveOrderFlowSettings} disabled={isOrderFlowLoading}>
+                    {isOrderFlowLoading ? <CircularProgress size={24} /> : tt("Lưu tất cả", "Save All")}
+                  </Button>
+                  <Button variant="outlined" onClick={handleAddFlow} startIcon={<PencilSimple />}>
+                    {tt("Thêm luồng mới", "Add new flow")}
+                  </Button>
+                </Stack>
+              </Box>
+
+              {orderFlows.map((flow) => (
+                <Card key={flow.id}>
+                  <CardHeader
+                    title={
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="subtitle1">
+                          {flow.isDefault ? tt("Luồng mặc định", "Default Flow") : tt("Luồng tùy chỉnh", "Custom Flow")}
+                        </Typography>
+                        {!flow.isDefault && (
+                          <Typography variant="body2" color="text.secondary" sx={{ ml: 1, fontWeight: 'normal' }}>
+                            • {tt("Khi đơn hàng có các hạng mục vé:", "When order contains ticket categories:")} {flow.conditionTicketCategoryIds.length > 0
+                              ? allTicketCategories
+                                .filter(cat => flow.conditionTicketCategoryIds.includes(cat.id))
+                                .map(cat => `${cat.showName} - ${cat.name}`)
+                                .join(', ')
+                              : tt("Chưa chọn hạng vé", "No ticket selected")}
+                          </Typography>
+                        )}
+                      </Stack>
+                    }
+                    action={
+                      <Stack direction="row" spacing={1}>
+                        {!flow.isDefault && (
+                          <IconButton size="small" onClick={() => handleOpenTicketSelect(flow.id)}>
+                            <PencilSimple size={18} />
+                          </IconButton>
+                        )}
+                        {!flow.isDefault && (
+                          <IconButton size="small" color="error" onClick={() => handleRemoveFlow(flow.id)}>
+                            <Trash size={18} />
+                          </IconButton>
+                        )}
+                      </Stack>
+                    }
+                  />
+                  <Divider />
+                  <CardContent sx={{ p: 0 }}>
+                    <Box sx={{ overflowX: 'auto' }}>
+                      <Table size="small" sx={{ minWidth: 800 }}>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ minWidth: 100 }}>{tt("Đối tượng", "Target")}</TableCell>
+                            <TableCell sx={{ minWidth: 80 }}>{tt("1. Tạo đơn", "1. Create")}</TableCell>
+                            <TableCell sx={{ minWidth: 120 }}>{tt("2. Duyệt đơn", "2. Approve")}</TableCell>
+                            <TableCell sx={{ minWidth: 150 }}>{tt("3. Thanh toán", "3. Payment")}</TableCell>
+                            <TableCell sx={{ minWidth: 120 }}>{tt("4. Xuất vé", "4. Issue")}</TableCell>
+                            <TableCell sx={{ minWidth: 120 }}>
+                              <Stack direction="row" alignItems="center" spacing={0.5}>
+                                <Switch
+                                  size="small"
+                                  checked={globalFlowConfig.useEmailMethod}
+                                  onChange={(_e, checked) => handleSendTicketMethodsChange('useEmailMethod', checked)}
+                                />
+                                <span>{tt("5A. Email", "5A. Email")}</span>
+                              </Stack>
+                            </TableCell>
+                            <TableCell sx={{ minWidth: 120 }}>
+                              <Stack direction="row" alignItems="center" spacing={0.5}>
+                                <Switch
+                                  size="small"
+                                  checked={globalFlowConfig.useZaloMethod}
+                                  onChange={(_e, checked) => handleSendTicketMethodsChange('useZaloMethod', checked)}
+                                />
+                                <span>{tt("5B. Zalo", "5B. Zalo")}</span>
+                              </Stack>
+                            </TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          <TableRow>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{tt("Khách", "Customer")}</Typography>
+                              <Typography variant="caption" color="text.secondary">{tt("Tự tạo", "Self")}</Typography>
+                            </TableCell>
+                            <TableCell></TableCell>
+                            <TableCell>
+                              <Select
+                                size="small"
+                                name="approvalMethod"
+                                value={flow.approvalMethod}
+                                onChange={(e: any) => handleOrderFlowInputChange(flow.id, e)}
+                                sx={{ width: 'fit-content', minWidth: 110 }}
+                              >
+                                <MenuItem value="auto">{tt("Tự động", "Auto")}</MenuItem>
+                                <MenuItem value="manual">{tt("Thủ công", "Manual")}</MenuItem>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <FormGroup>
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox
+                                      size="small"
+                                      checked={flow.sendPaymentInstruction}
+                                      onChange={(e) => handleOrderFlowCheckboxChange(flow.id, 'sendPaymentInstruction', e.target.checked)}
+                                    />
+                                  }
+                                  label={
+                                    <Typography variant="caption" color="text.secondary">
+                                      {tt("Gửi hướng dẫn qua email", "Send inst. via email")}
+                                    </Typography>
+                                  }
+                                />
+                              </FormGroup>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                size="small"
+                                name="issuingMethod"
+                                value={flow.issuingMethod}
+                                onChange={(e: any) => handleOrderFlowInputChange(flow.id, e)}
+                                sx={{ width: 'fit-content', minWidth: 110 }}
+                              >
+                                <MenuItem value="auto">{tt("Tự động", "Auto")}</MenuItem>
+                                <MenuItem value="manual">{tt("Thủ công", "Manual")}</MenuItem>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                size="small"
+                                name="emailMethod"
+                                value={flow.emailMethod}
+                                onChange={(e: any) => handleOrderFlowInputChange(flow.id, e)}
+                                sx={{ width: 'fit-content', minWidth: 110 }}
+                                disabled={!globalFlowConfig.useEmailMethod}
+                              >
+                                <MenuItem value="auto">{tt("Tự động", "Auto")}</MenuItem>
+                                <MenuItem value="manual">{tt("Thủ công", "Manual")}</MenuItem>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                size="small"
+                                name="zaloMethod"
+                                value={flow.zaloMethod}
+                                onChange={(e: any) => handleOrderFlowInputChange(flow.id, e)}
+                                sx={{ width: 'fit-content', minWidth: 110 }}
+                                disabled={!globalFlowConfig.useZaloMethod}
+                              >
+                                <MenuItem value="auto">{tt("Tự động", "Auto")}</MenuItem>
+                                <MenuItem value="manual">{tt("Thủ công", "Manual")}</MenuItem>
+                              </Select>
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{tt("Quản trị viên", "Admin")}</Typography>
+                              <Typography variant="caption" color="text.secondary">{tt("Tạo hộ", "For cust")}</Typography>
+                            </TableCell>
+                            <TableCell></TableCell>
+                            <TableCell>
+                              <Select
+                                size="small"
+                                name="adminApprovalMethod"
+                                value={flow.adminApprovalMethod}
+                                onChange={(e: any) => handleOrderFlowInputChange(flow.id, e)}
+                                sx={{ width: 'fit-content', minWidth: 110 }}
+                              >
+                                <MenuItem value="auto">{tt("Tự động", "Auto")}</MenuItem>
+                                <MenuItem value="manual">{tt("Thủ công", "Manual")}</MenuItem>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <FormGroup>
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox
+                                      size="small"
+                                      checked={flow.adminSendPaymentInstruction}
+                                      onChange={(e) => handleOrderFlowCheckboxChange(flow.id, 'adminSendPaymentInstruction', e.target.checked)}
+                                    />
+                                  }
+                                  label={
+                                    <Typography variant="caption" color="text.secondary">
+                                      {tt("Gửi hướng dẫn qua email", "Send inst. via email")}                                    </Typography>
+                                  }
+                                />
+                              </FormGroup>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                size="small"
+                                name="adminIssuingMethod"
+                                value={flow.adminIssuingMethod}
+                                onChange={(e: any) => handleOrderFlowInputChange(flow.id, e)}
+                                sx={{ width: 'fit-content', minWidth: 110 }}
+                              >
+                                <MenuItem value="auto">{tt("Tự động", "Auto")}</MenuItem>
+                                <MenuItem value="manual">{tt("Thủ công", "Manual")}</MenuItem>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                size="small"
+                                name="adminEmailMethod"
+                                value={flow.adminEmailMethod}
+                                onChange={(e: any) => handleOrderFlowInputChange(flow.id, e)}
+                                sx={{ width: 'fit-content', minWidth: 110 }}
+                                disabled={!globalFlowConfig.useEmailMethod}
+                              >
+                                <MenuItem value="auto">{tt("Tự động", "Auto")}</MenuItem>
+                                <MenuItem value="manual">{tt("Thủ công", "Manual")}</MenuItem>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                size="small"
+                                name="adminZaloMethod"
+                                value={flow.adminZaloMethod}
+                                onChange={(e: any) => handleOrderFlowInputChange(flow.id, e)}
+                                sx={{ width: 'fit-content', minWidth: 110 }}
+                                disabled={!globalFlowConfig.useZaloMethod}
+                              >
+                                <MenuItem value="auto">{tt("Tự động", "Auto")}</MenuItem>
+                                <MenuItem value="manual">{tt("Thủ công", "Manual")}</MenuItem>
+                              </Select>
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                <Button variant="contained" color="primary" size="large" onClick={handleSaveOrderFlowSettings} disabled={isOrderFlowLoading}>
+                  {isOrderFlowLoading ? <CircularProgress size={24} /> : tt("Lưu tất cả cài đặt luồng", "Save All Flow Settings")}
+                </Button>
+              </Box>
+            </Stack>
+          </Grid>
         </Grid>
       </Stack>
+      <Modal
+        open={openTicketSelectModal}
+        onClose={() => setOpenTicketSelectModal(false)}
+      >
+        <Container maxWidth="sm">
+          <Card sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: '100%',
+            bgcolor: "background.paper",
+            boxShadow: 24,
+          }}>
+            <CardHeader title={tt("Chọn hạng vé áp dụng", "Select Applicable Ticket Categories")} />
+            <Divider />
+            <CardContent>
+              <FormGroup>
+                {allTicketCategories.map((cat) => (
+                  <FormControlLabel
+                    key={cat.id}
+                    control={
+                      <Checkbox
+                        checked={orderFlows.find(f => f.id === activeFlowId)?.conditionTicketCategoryIds.includes(cat.id) || false}
+                        onChange={() => handleToggleTicketInFlow(cat.id)}
+                      />
+                    }
+                    label={`${cat.showName} - ${cat.name}`}
+                  />
+                ))}
+                {allTicketCategories.length === 0 && (
+                  <Typography variant="body2" color="text.secondary">
+                    {tt("Không tìm thấy hạng vé nào.", "No ticket categories found.")}
+                  </Typography>
+                )}
+              </FormGroup>
+              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+                <Button variant="contained" onClick={() => setOpenTicketSelectModal(false)}>
+                  {tt("Xong", "Done")}
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
       <SendRequestEventAgencyAndEventApproval open={openEventAgencyRegistrationModal} onClose={handleOnCloseEventAgencyRegistrationModal} eventId={event_id} />
       <PrinterModal
         eventId={event_id}

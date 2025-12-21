@@ -4,3 +4,9 @@ import type { Theme as BaseTheme } from '@mui/material/styles/createTheme';
 export type Theme = Omit<BaseTheme, 'palette'> & CssVarsTheme;
 
 export type ColorScheme = 'dark' | 'light';
+
+declare module '@mui/material/Chip' {
+    interface ChipPropsVariantOverrides {
+        soft: true;
+    }
+}

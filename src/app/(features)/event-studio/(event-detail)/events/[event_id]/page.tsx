@@ -399,11 +399,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Button sx={{ minWidth: '100px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/check-in/qr`} size="small">
                   Check-in
                 </Button>
-                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
-                  {tt("Thiết lập show diễn", "Setup Shows")}
-                </Button>
                 <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/shows`} size="small">
-                  {tt("Thiết lập loại vé", "Setup Ticket Categories")}
+                  {tt("Thiết lập hạng mục vé", "Setup Ticket Categories")}
                 </Button>
                 {(eventId === 43 || eventId === 44) &&
                   <>
@@ -621,11 +618,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Button sx={{ minWidth: '100px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/check-in/qr`} size="small">
                   Check-in
                 </Button>
-                <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/schedules`} size="small">
-                  {tt("Thiết lập show diễn", "Setup Shows")}
-                </Button>
                 <Button sx={{ minWidth: '150px' }} color="primary" variant="text" target="_blank" component={LocalizedLink} href={`/event-studio/events/${eventId}/shows`} size="small">
-                  {tt("Thiết lập loại vé", "Setup Ticket Categories")}
+                  {tt("Thiết lập hạng mục vé", "Setup Ticket Categories")}
                 </Button>
                 {(eventId === 43 || eventId === 44) &&
                   <>

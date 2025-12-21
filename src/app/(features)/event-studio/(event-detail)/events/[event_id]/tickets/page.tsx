@@ -74,6 +74,8 @@ export interface Ticket {
   createdAt: string; // ISO date string
   ticketCategoryId: number;
   holderName: string;
+  holderEmail?: string;
+  holderPhone?: string;
   checkInAt?: string | null; // ISO date string or null
   status: string;
   transactionTicketCategory: TransactionTicketCategory;

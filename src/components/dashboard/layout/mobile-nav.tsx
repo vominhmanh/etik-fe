@@ -187,6 +187,14 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             />
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
+              key="configuration-shows-ticket-categories"
+              title={tt("Hạng mục vé", "Ticket Categories")}
+              href={`/event-studio/events/${dynamicId}/shows`}
+              icon={TicketIcon}
+              onClose={onClose}
+            />
+            <NavItemCollapseChildItem
+              pathname={normalizedPathname}
               key="advanced-settings"
               title={tt("Cài đặt nâng cao", "Advanced Settings")}
               href={`/event-studio/events/${dynamicId}/advanced-settings`}
@@ -225,22 +233,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               icon={Tag}
               onClose={onClose}
             />
-            <NavItemCollapseChildItem
-              pathname={normalizedPathname}
-              key="configuration-date-time"
-              title={tt("Suất diễn", "Shows")}
-              href={`/event-studio/events/${dynamicId}/schedules`}
-              icon={CalendarDotsIcon}
-              onClose={onClose}
-            />
-            <NavItemCollapseChildItem
-              pathname={normalizedPathname}
-              key="configuration-shows-ticket-categories"
-              title={tt("Hạng mục vé", "Ticket Categories")}
-              href={`/event-studio/events/${dynamicId}/shows`}
-              icon={TicketIcon}
-              onClose={onClose}
-            />
+
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
               key="vouchers"

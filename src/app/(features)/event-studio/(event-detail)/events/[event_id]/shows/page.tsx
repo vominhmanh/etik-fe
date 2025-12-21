@@ -11,7 +11,9 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import { cyan, deepOrange, deepPurple, green, indigo, pink, yellow } from '@mui/material/colors';
 import Divider from '@mui/material/Divider';
+import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
@@ -23,8 +25,8 @@ import * as React from 'react';
 import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
-import { Accordion, AccordionDetails, AccordionSummary, CardHeader, Container, FormControlLabel, InputLabel, Modal, OutlinedInput, Switch } from '@mui/material';
-import { ArrowRight } from '@phosphor-icons/react';
+import { Accordion, AccordionDetails, AccordionSummary, CardHeader, Container, FormControlLabel, IconButton, InputLabel, Modal, OutlinedInput, Switch } from '@mui/material';
+import { ArrowRight, Calendar, Clock, Users } from '@phosphor-icons/react';
 import { Pencil } from '@phosphor-icons/react/dist/ssr';
 import dayjs from 'dayjs';
 
@@ -49,16 +51,23 @@ interface Show {
   id: number;
   eventId: number;
   name: string;
+  status: string;
+  type: string;
+  disabled: boolean;
   startDateTime?: string | null; // ISO string format for datetime
   endDateTime?: string | null;   // ISO string format for datetime
   ticketCategories: TicketCategory[];
 }
 
+type StatusKey = 'not_opened_for_sale' | 'on_sale' | 'out_of_stock' | 'temporarily_locked';
+type TypeKey = 'private' | 'public';
+
+
 const getStatusMap = (tt: (vi: string, en: string) => string) => ({
-  not_opened_for_sale: { label: tt('Trạng thái: Chưa mở bán', 'Status: Not Open for Sale'), color: 'secondary' as const },
-  on_sale: { label: tt('Trạng thái: Đang mở bán', 'Status: On Sale'), color: 'success' as const },
-  // out_of_stock: { label: tt('Trạng thái: Đã hết', 'Status: Out of Stock'), color: 'secondary' },
-  temporarily_locked: { label: tt('Trạng thái: Đang tạm khoá', 'Status: Temporarily Locked'), color: 'warning' as const },
+  not_opened_for_sale: { label: tt('Chưa mở bán', 'Not opened for sale'), color: 'secondary' as const },
+  on_sale: { label: tt('Đang mở bán', 'On sale'), color: 'success' as const },
+  out_of_stock: { label: tt('Đã hết', 'Out of stock'), color: 'secondary' as const },
+  temporarily_locked: { label: tt('Đang tạm khoá', 'Temporarily locked'), color: 'warning' as const },
 });
 
 const getTypeMap = (tt: (vi: string, en: string) => string) => ({
@@ -82,6 +91,9 @@ const colorMap: ColorMap = {
 };
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   const { tt, locale } = useTranslation();
+  const statusMap = getStatusMap(tt);
+  const typeMap = getTypeMap(tt);
+
   React.useEffect(() => {
     document.title = tt("Hạng mục vé | ETIK - Vé điện tử & Quản lý sự kiện", "Ticket Categories | ETIK - E-tickets & Event Management");
   }, [tt]);
@@ -156,150 +168,259 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         >
           <CircularProgress color="inherit" />
         </Backdrop>
-        <Stack direction="row" spacing={3}>
-          <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-            <Typography variant="h4">{tt("Hạng mục vé", "Ticket Categories")}</Typography>
+        <Stack spacing={4}>
+          <Stack direction="row" spacing={3}>
+            <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
+              <Typography variant="h4">{tt("Hạng mục vé", "Ticket Categories")}</Typography>
+            </Stack>
+            <div>
+              <Button
+                component={LocalizedLink}
+                startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
+                variant="contained"
+                href="shows/create"
+              >
+                {tt("Thêm suất diễn", "Add Show")}
+              </Button>
+            </div>
           </Stack>
-
-        </Stack>
-        <CompaniesFilters />
-        <Grid container spacing={3}>
-          {shows.map((show) => (
-            <Accordion key={show.id} defaultExpanded sx={{ width: '100%' }}>
-              <AccordionSummary>
-                <Stack direction={{ md: 'row', xs: 'column' }} style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                  <Typography variant="h6">{show.name}</Typography>
-                  <Typography variant="body2">
-                    {show.startDateTime && show.endDateTime ?
-                      `${tt('Bắt đầu:', 'Start:')} ${dayjs(show.startDateTime).format('HH:mm:ss DD/MM/YYYY')} - ${tt('Kết thúc:', 'End:')} ${dayjs(show.endDateTime).format('HH:mm:ss DD/MM/YYYY')}`
-                      : tt('Thời gian: Chưa xác định', 'Time: Not specified')
-                    }
-                  </Typography>
-                  <Button
-                    startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
-                    variant="outlined"
-                    component={LocalizedLink}
-                    onClick={(event) => event.stopPropagation()}
-                    href={`shows/${show.id}/ticket-categories/create`}
+          <CompaniesFilters />
+          <Grid container spacing={3}>
+            {shows.map((show) => (
+              <Accordion key={show.id} defaultExpanded sx={{ width: '100%', borderRadius: 1, overflow: 'hidden', boxShadow: 'none', border: '1px solid', borderColor: 'divider', mb: 2 }}>
+                <AccordionSummary
+                  expandIcon={<ArrowRight style={{ transform: 'rotate(90deg)' }} />}
+                  sx={{
+                    backgroundColor: 'neutral.50',
+                    '& .MuiAccordionSummary-content': { width: '100%', margin: '12px 0' },
+                    '&.Mui-expanded': { minHeight: 64, backgroundColor: 'neutral.100' }
+                  }}
+                >
+                  <Stack
+                    direction={{ xs: 'column', md: 'row' }}
+                    spacing={2}
+                    sx={{
+                      alignItems: { xs: 'flex-start', md: 'center' },
+                      justifyContent: 'space-between',
+                      width: '100%',
+                      pr: 2
+                    }}
                   >
-                    {tt("Thêm loại vé", "Add Ticket Category")}
-                  </Button>
-                </Stack>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Grid container spacing={3}>
-                  {show.ticketCategories.map((ticketCategory) => {
-                    return (
-                      <Grid key={ticketCategory.id} lg={4} md={6} xs={12}>
-                        <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                          <CardContent sx={{ flex: '1 1 auto' }}>
-                            <Stack spacing={2}>
-                              <Stack spacing={1} direction="row">
-                                <Box sx={{ display: 'flex', justifyContent: 'center', mr: 2, width: '50px', height: '50px' }}>
-                                  <Avatar
-                                    src={ticketCategory.avatar || undefined}
+                    <Stack spacing={0.5}>
+                      <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 600 }}>{show.name}</Typography>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
+                        <Clock size={16} />
+                        <Typography variant="body2">
+                          {show.startDateTime && show.endDateTime ?
+                            `${dayjs(show.startDateTime).format('HH:mm DD/MM/YYYY')} - ${dayjs(show.endDateTime).format('HH:mm DD/MM/YYYY')}`
+                            : tt('Thời gian: Chưa xác định', 'Time: Not specified')
+                          }
+                        </Typography>
+                      </Stack>
+                    </Stack>
+
+                    <Stack
+                      direction={{ xs: 'row', md: 'row' }}
+                      spacing={2}
+                      sx={{
+                        alignItems: 'center',
+                        width: { xs: '100%', md: 'auto' },
+                        justifyContent: { xs: 'space-between', md: 'flex-end' }
+                      }}
+                    >
+                      <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+                        <Chip
+                          label={statusMap[show.status as StatusKey]?.label || show.status}
+                          color={statusMap[show.status as StatusKey]?.color || 'default'}
+                          size="small"
+                          variant="soft"
+                          sx={{ fontWeight: 500 }}
+                        />
+                        <Chip
+                          label={typeMap[show.type as TypeKey]?.label || show.type}
+                          color={typeMap[show.type as TypeKey]?.color || 'default'}
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontWeight: 500 }}
+                        />
+                        {show.disabled === true &&
+                          <Chip
+                            label={tt('Bị khóa', 'Locked')}
+                            color={'error'}
+                            size="small"
+                            variant="soft"
+                          />}
+                      </Stack>
+                      <Stack direction="row" spacing={1}>
+                        <Tooltip title={tt("Chỉnh sửa suất diễn", "Edit Show")}>
+                          <IconButton
+                            component={LocalizedLink}
+                            onClick={(event) => event.stopPropagation()}
+                            href={`/event-studio/events/${params.event_id}/shows/${show.id}`}
+                            size="small"
+                            sx={{
+                              color: 'primary.main',
+                              bgcolor: 'primary.lightest',
+                              '&:hover': { bgcolor: 'primary.light' }
+                            }}
+                          >
+                            <Pencil size={18} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title={tt("Thêm hạng mục vé", "Add Category")}>
+                          <IconButton
+                            component={LocalizedLink}
+                            onClick={(event) => event.stopPropagation()}
+                            href={`shows/${show.id}/ticket-categories/create`}
+                            size="small"
+                            sx={{
+                              color: 'success.main',
+                              bgcolor: 'success.lightest',
+                              '&:hover': { bgcolor: 'success.light' }
+                            }}
+                          >
+                            <PlusIcon size={18} />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    </Stack>
+                  </Stack>
+                </AccordionSummary>
+                <AccordionDetails sx={{ pt: 3, pb: 2 }}>
+                  <Grid container spacing={3}>
+                    {show.ticketCategories.map((ticketCategory) => {
+                      const remaining = ticketCategory.quantity - ticketCategory.sold;
+                      const soldPercent = (ticketCategory.sold / (ticketCategory.quantity || 1)) * 100;
+
+                      return (
+                        <Grid key={ticketCategory.id} lg={4} md={6} xs={12}>
+                          <Card sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            height: '100%',
+                            borderRadius: 2,
+                            transition: 'all 0.2s',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            '&:hover': {
+                              boxShadow: (theme) => theme.shadows[4],
+                              borderColor: 'primary.light',
+                            }
+                          }}>
+                            <CardContent sx={{ flex: '1 1 auto', p: 2 }}>
+                              <Stack spacing={1.5}>
+                                {/* Header row: Avatar, Name, Price, and Edit */}
+                                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center', overflow: 'hidden' }}>
+                                    <Avatar
+                                      src={ticketCategory.avatar || undefined}
+                                      sx={{
+                                        height: 36,
+                                        width: 36,
+                                        borderRadius: 1,
+                                        bgcolor: colorMap[ticketCategory.id % 8],
+                                        fontSize: '1rem',
+                                        fontWeight: 600
+                                      }}
+                                      variant="rounded"
+                                    >
+                                      {ticketCategory.avatar ? '' : ticketCategory.name.charAt(0).toUpperCase()}
+                                    </Avatar>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {ticketCategory.name}
+                                    </Typography>
+                                  </Stack>
+                                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                                    <Typography variant="subtitle2" color="primary.main" sx={{ fontWeight: 800 }}>
+                                      {ticketCategory.price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                                    </Typography>
+                                    <Tooltip title={tt("Chỉnh sửa", "Edit")}>
+                                      <IconButton
+                                        component={LocalizedLink}
+                                        href={`/event-studio/events/${params.event_id}/shows/${show.id}/ticket-categories/${ticketCategory.id}`}
+                                        size="small"
+                                        sx={{ color: 'text.secondary', p: 0.5 }}
+                                      >
+                                        <Pencil size={16} />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </Stack>
+                                </Stack>
+
+                                {/* Sales Progress */}
+                                <Box>
+                                  <LinearProgress
+                                    variant="determinate"
+                                    value={soldPercent}
                                     sx={{
-                                      height: '45px',
-                                      width: '45px',
-                                      fontSize: '2rem',
-                                      borderRadius: '5px',
-                                      bgcolor: colorMap[ticketCategory.id % 8],
+                                      height: 4,
+                                      borderRadius: 2,
+                                      bgcolor: 'neutral.100',
+                                      mb: 0.5,
+                                      '& .MuiLinearProgress-bar': {
+                                        borderRadius: 2,
+                                        backgroundColor: soldPercent > 90 ? 'error.main' : soldPercent > 70 ? 'warning.main' : 'primary.main'
+                                      }
                                     }}
-                                    variant="square"
-                                  >
-                                    {ticketCategory.avatar ? '' : ticketCategory.name[ticketCategory.name.length - 1]}
-                                  </Avatar>
+                                  />
+                                  <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography variant="caption" color="text.secondary">
+                                      {tt('Bán:', 'Sold:')} <strong>{ticketCategory.sold}</strong>/{ticketCategory.quantity}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{
+                                      fontWeight: 700,
+                                      color: remaining < 10 ? 'error.main' : 'text.primary',
+                                    }}>
+                                      {tt('Còn:', 'Rem:')} {remaining}
+                                    </Typography>
+                                  </Stack>
                                 </Box>
-                                <Stack spacing={1}>
-                                  <Typography align="left" variant="h6">
-                                    {ticketCategory.name}
-                                  </Typography>
-                                  <Typography align="left" variant="body2">
-                                    {ticketCategory.price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
-                                  </Typography>
+
+                                {/* Footer row: Status Chips and Compact Limits */}
+                                <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <Stack direction="row" spacing={0.5}>
+                                    <Chip
+                                      label={statusMap[ticketCategory.status as StatusKey]?.label || ticketCategory.status}
+                                      color={statusMap[ticketCategory.status as StatusKey]?.color || 'default'}
+                                      size="small"
+                                      variant="soft"
+                                      sx={{ height: 20, fontSize: '0.625rem' }}
+                                    />
+                                    <Chip
+                                      label={typeMap[ticketCategory.type as TypeKey]?.label || ticketCategory.type}
+                                      color={typeMap[ticketCategory.type as TypeKey]?.color || 'default'}
+                                      size="small"
+                                      variant="outlined"
+                                      sx={{ height: 20, fontSize: '0.625rem' }}
+                                    />
+                                  </Stack>
+                                  <Stack direction="row" spacing={1.5} sx={{ color: 'text.secondary' }}>
+                                    <Tooltip title={tt('Giới hạn vé / Đơn hàng', 'Tickets per Order')}>
+                                      <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                                        <Users size={14} weight="duotone" />
+                                        <Typography variant="caption" sx={{ fontWeight: 600 }}>{ticketCategory.limitPerTransaction || '∞'}</Typography>
+                                      </Stack>
+                                    </Tooltip>
+                                    <Tooltip title={tt('Giới hạn vé / Khách hàng', 'Tickets per Customer')}>
+                                      <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                                        <Calendar size={14} weight="duotone" />
+                                        <Typography variant="caption" sx={{ fontWeight: 600 }}>{ticketCategory.limitPerCustomer || '∞'}</Typography>
+                                      </Stack>
+                                    </Tooltip>
+                                  </Stack>
                                 </Stack>
                               </Stack>
-                              <Typography align="left" variant="body2">
-                                {tt('Còn', 'Remaining')} {ticketCategory.quantity - ticketCategory.sold}/{ticketCategory.quantity} {tt('vé', 'tickets')}
-                              </Typography>
-                              <Stack sx={{ alignItems: 'center', flexWrap: 'wrap' }} direction="row" spacing={1}>
-                                {(() => {
-                                  const statusMap = getStatusMap(tt);
-                                  return (
-                                    <Chip
-                                      label={statusMap[ticketCategory.status as keyof typeof statusMap]?.label}
-                                      color={statusMap[ticketCategory.status as keyof typeof statusMap]?.color}
-                                      size="small"
-                                    />
-                                  );
-                                })()}
-                                {(() => {
-                                  const typeMap = getTypeMap(tt);
-                                  return (
-                                    <Chip
-                                      label={typeMap[ticketCategory.type as keyof typeof typeMap]?.label}
-                                      color={typeMap[ticketCategory.type as keyof typeof typeMap]?.color}
-                                      size="small"
-                                    />
-                                  );
-                                })()}
-                                {ticketCategory.disabled === true &&
-                                  <Chip
-                                    label={tt('Đang khóa bởi hệ thống', 'Locked by System')}
-                                    color={'secondary'}
-                                    size="small"
-                                  />}
-                              </Stack>
-                            </Stack>
-                            {ticketCategory?.description ? (
-                              <Box
-                                sx={{
-                                  margin: 0,
-                                  padding: 0,
-                                  '& img': {
-                                    maxWidth: '100%', // Set images to scale down if they exceed container width
-                                    height: 'auto', // Maintain aspect ratio
-                                  },
-                                }}
-                                dangerouslySetInnerHTML={{ __html: ticketCategory?.description }}
-                              />
-                            ) : (
-                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                {tt('Chưa có mô tả', 'No description')}
-                              </Typography>
-                            )}
-                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                              {tt('Số vé tối đa mỗi đơn hàng:', 'Maximum tickets per order:')} {ticketCategory.limitPerTransaction || tt("Không giới hạn", "Unlimited")}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                              {tt('Số vé tối đa mỗi khách hàng:', 'Maximum tickets per customer:')} {ticketCategory.limitPerCustomer || tt("Không giới hạn", "Unlimited")}
-                            </Typography>
-                          </CardContent>
-                          <Divider />
-                          <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', p: 2 }}>
-                            <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
-
-                            </Stack>
-                            <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
-                              <Button
-                                component={LocalizedLink}
-                                href={`/event-studio/events/${params.event_id}/shows/${show.id}/ticket-categories/${ticketCategory.id}`}
-                                size="small"
-                                startIcon={<Pencil />}
-                              >
-                                {tt("Chỉnh sửa", "Edit")}
-                              </Button>
-                            </Stack>
-                          </Stack>
-                        </Card>
-                      </Grid>
-                    );
-                  })}
-                </Grid>
-              </AccordionDetails>
-            </Accordion>
-          ))}
-        </Grid>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
+                </AccordionDetails>
+              </Accordion>
+            ))}
+          </Grid>
+        </Stack>
       </Stack>
 
       <Modal
