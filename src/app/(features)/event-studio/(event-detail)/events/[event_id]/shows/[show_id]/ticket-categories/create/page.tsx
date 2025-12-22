@@ -34,7 +34,6 @@ type TicketcategoryFormData = {
   limitPerTransaction: number | null;
   limitPerCustomer: number | null;
   description: string;
-  approvalMethod: string;
 }
 
 
@@ -53,7 +52,6 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
     limitPerTransaction: 2,
     limitPerCustomer: 4,
     description: '', // Ensure this is part of the state
-    approvalMethod: 'auto'
   });
   const router = useRouter();
   const notificationCtx = React.useContext(NotificationContext);
@@ -145,7 +143,6 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
           limitPerTransaction: formData.limitPerTransaction,
           limitPerCustomer: formData.limitPerCustomer,
           description: formData.description,
-          approvalMethod: formData.approvalMethod
         }
       );
       notificationCtx.success(response.data.message);
@@ -205,18 +202,7 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
                         <FormHelperText>{tt("Vé công khai: Cho phép Người mua tự truy cập và mua vé này", "Public ticket: Allows buyers to access and purchase this ticket")}</FormHelperText>
                       </FormControl>
                     </Grid>
-                    {formData.type === 'public' && (
-                      <Grid md={4} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>{tt("Cách phê duyệt đơn hàng", "Order Approval Method")}</InputLabel>
-                          <Select label={tt("Cách phê duyệt yêu cầu mua vé của khách hàng", "How to approve customer ticket purchase requests")} name="approvalMethod" value={formData.approvalMethod} onChange={(event: any) => handleChange(event)}>
-                            <MenuItem value="auto">{tt("Tự động phê duyệt", "Auto Approve")}</MenuItem>
-                            <MenuItem value="manual">{tt("Phê duyệt thủ công", "Manual Approval")}</MenuItem>
-                          </Select>
-                          <FormHelperText>{tt("Phê duyệt thủ công: bạn phải kiểm tra và xuất vé cho khách hàng", "Manual approval: you must check and issue tickets to customers")}</FormHelperText>
-                        </FormControl>
-                      </Grid>
-                    )}
+
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth>
                         <ReactQuill value={formData.description} onChange={handleDescriptionChange} placeholder={tt("Mô tả", "Description")} />

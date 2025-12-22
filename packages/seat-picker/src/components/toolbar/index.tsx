@@ -322,7 +322,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   ];
 
   return (
-    <div className="absolute left-0 top-0 z-[200] flex w-full items-center justify-center gap-1 bg-white px-[1rem] py-[0.5rem] shadow">
+    <div className="relative z-[200] flex w-full items-center justify-center gap-1 bg-white px-[1rem] py-[0.5rem] shadow border-b border-gray-200">
       {/* :::::::::::::::: add space */}
       <div className="flex-1" />
 

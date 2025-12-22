@@ -16,6 +16,9 @@ import '@/index.css';
 import '../fabricCustomRegistration';
 import { CanvasObject, SeatCanvasProps, SeatData } from '@/types/data.types';
 import Modal, { DefaultSeatModal } from './ui/Modal';
+import { TicketCategoryModal } from './ui/TicketCategoryModal';
+import { IconButton, Stack, Tooltip } from '@mui/material';
+import { LuArmchair, LuTicket } from 'react-icons/lu';
 
 const defaultStyle = {
   width: 800,
@@ -67,6 +70,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   const [selectedSeat, setSelectedSeat] = useState<SeatData | null>(null);
   const [hasBgImage, setHasBgImage] = useState(false);
   const [bgOpacity] = useState(0.5); // Increased opacity for better visibility as object
+  const [openTicketModal, setOpenTicketModal] = useState(false);
 
   // Merge default styles with custom styles
   const mergedStyle = {
@@ -569,8 +573,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full w-full flex-col bg-gray-200 ${className} ${isFullScreen ? 'p-4' : ''
-        }`}
+      className={`relative flex h-full w-full flex-row bg-gray-200 ${className}`}
     >
       <input
         type="file"
@@ -583,49 +586,82 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
           }
         }}
       />
-      {!readOnly &&
-        (renderToolbar ? (
-          renderToolbar({
-            onSave: handleSave,
-            onBgLayout: () => {
-              if (hasBgImage) {
-                handleRemoveBgImage();
-              } else {
-                bgInputRef.current?.click();
-              }
-            },
-          })
-        ) : (
-          <Toolbar
-            onSave={handleSave}
-            onBgLayout={() => {
-              if (hasBgImage) {
-                handleRemoveBgImage();
-              } else {
-                bgInputRef.current?.click();
-              }
-            }}
-            onToggleFullScreen={handleToggleFullScreen}
-            isFullScreen={isFullScreen}
-          />
-        ))}
-      <div className="flex h-0 min-h-0 w-full flex-1 overflow-hidden pt-12">
-        <div
-          className="flex flex-1 overflow-auto bg-gray-100 p-[2%] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:w-1"
-          ref={canvasParent}
-          style={{ scrollbarWidth: 'thin' }}
-        >
-          <div
-            className="m-auto relative shadow-lg bg-white"
-            style={{
-              width: mergedStyle.width * (zoomLevel / 100),
-              height: mergedStyle.height * (zoomLevel / 100),
+
+      {/* Left Sidebar (Hardcoded) - Now at top level */}
+      {!readOnly && (
+        <div className="flex-none h-full z-[60] border-r border-gray-300 bg-white shadow-[1px_0_3px_rgba(0,0,0,0.1)]">
+          <Stack
+            spacing={2}
+            sx={{
+              width: 50,
+              height: "100%",
+              bgcolor: 'background.paper',
+              alignItems: 'center',
+              py: 2
             }}
           >
-            <canvas ref={canvasRef} />
-          </div>
+            <Tooltip title="Hạng mục vé" placement="right">
+              <IconButton onClick={() => setOpenTicketModal(true)} size="small">
+                <LuTicket size={20} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Sơ đồ ghế" placement="right">
+              <IconButton color="primary" size="small">
+                <LuArmchair size={20} />
+              </IconButton>
+            </Tooltip>
+          </Stack>
         </div>
-        {!readOnly && (renderSidebar ? renderSidebar() : <Sidebar />)}
+      )}
+
+      {/* Main Content Area (Toolbar + Canvas) */}
+      <div className="flex flex-col flex-1 h-full min-w-0 overflow-hidden">
+        {!readOnly &&
+          (renderToolbar ? (
+            renderToolbar({
+              onSave: handleSave,
+              onBgLayout: () => {
+                if (hasBgImage) {
+                  handleRemoveBgImage();
+                } else {
+                  bgInputRef.current?.click();
+                }
+              },
+            })
+          ) : (
+            <Toolbar
+              onSave={handleSave}
+              onBgLayout={() => {
+                if (hasBgImage) {
+                  handleRemoveBgImage();
+                } else {
+                  bgInputRef.current?.click();
+                }
+              }}
+              onToggleFullScreen={handleToggleFullScreen}
+              isFullScreen={isFullScreen}
+            />
+          ))}
+
+        <div className="flex h-0 min-h-0 w-full flex-1 overflow-hidden relative">
+          {/* Canvas Area */}
+          <div
+            className="flex flex-1 overflow-auto bg-gray-100 p-[2%] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:w-1"
+            ref={canvasParent}
+            style={{ scrollbarWidth: 'thin' }}
+          >
+            <div
+              className="m-auto relative shadow-lg bg-white"
+              style={{
+                width: mergedStyle.width * (zoomLevel / 100),
+                height: mergedStyle.height * (zoomLevel / 100),
+              }}
+            >
+              <canvas ref={canvasRef} />
+            </div>
+          </div>
+          {!readOnly && (renderSidebar ? renderSidebar() : <Sidebar />)}
+        </div>
       </div>
       {/* Only show the default modal if renderSeatDetails is not provided */}
       {renderSeatDetails
@@ -635,6 +671,11 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
           onAction: handleSeatAction,
         })
         : defaultSeatDetails}
+
+      <TicketCategoryModal
+        open={openTicketModal}
+        onClose={() => setOpenTicketModal(false)}
+      />
     </div>
   );
 };

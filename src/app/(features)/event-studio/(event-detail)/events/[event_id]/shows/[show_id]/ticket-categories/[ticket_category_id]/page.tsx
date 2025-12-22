@@ -42,7 +42,6 @@ type TicketcategoryFormData = {
   limitPerCustomer: number | null;
   status: string;
   description: string;
-  approvalMethod: string;
 }
 export default function Page({
   params,
@@ -71,7 +70,6 @@ export default function Page({
     limitPerCustomer: 4,
     description: '', // Ensure this is part of the state
     status: 'on_sale',
-    approvalMethod: 'auto',
   });
   const router = useRouter();
 
@@ -93,7 +91,6 @@ export default function Page({
           quantity: ticketCategory.quantity,
           limitPerTransaction: ticketCategory.limitPerTransaction || null,
           limitPerCustomer: ticketCategory.limitPerCustomer || null,
-          approvalMethod: ticketCategory.approvalMethod,
         });
         setShowName(ticketCategory.show.name)
         // Set the checkbox states based on the fetched values
@@ -186,8 +183,6 @@ export default function Page({
           limitPerTransaction: formData.limitPerTransaction,
           limitPerCustomer: formData.limitPerCustomer,
           status: formData.status,
-          approvalMethod: formData.approvalMethod,
-          // Note: creationMethod, issuingMethod, etc. are currently mocked and not saved to backend
         }
       );
       notificationCtx.success(response.data.message);
@@ -253,34 +248,7 @@ export default function Page({
                         <FormHelperText>{tt("Chế độ công khai: Cho phép Người mua nhìn thấy và mua vé này", "Public mode: Allows buyers to see and purchase this ticket")}</FormHelperText>
                       </FormControl>
                     </Grid>
-                    {formData.type === 'public' && (
-                      <Grid md={4} xs={12}>
-                        <FormControl fullWidth required>
-                          <InputLabel>{tt("Cách phê duyệt đơn hàng", "Order Approval Method")}</InputLabel>
-                          <Select label={tt("Cách phê duyệt yêu cầu mua vé của khách hàng", "How to approve customer ticket purchase requests")} name="approvalMethod" value={formData.approvalMethod} onChange={(event: any) => handleChange(event)}>
-                            <MenuItem value="auto">{tt("Theo mặc định sự kiện", "Auto Approve")}</MenuItem>
-                            <MenuItem value="manual">{tt("Phê duyệt thủ công", "Manual Approval")}</MenuItem>
-                          </Select>
-                          <FormHelperText>{tt("Phê duyệt thủ công: nếu đơn hàng có vé này, bạn phải kiểm tra và xuất vé cho khách hàng", "Manual approval: you must check and issue tickets to customers")}</FormHelperText>
-                        </FormControl>
-                      </Grid>
-                    )}
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth>
-                        <ReactQuill
-                          value={formData.description}
-                          onChange={(value) => setFormData((prev) => ({ ...prev, description: value }))}
-                          placeholder={tt("Nhập mô tả sự kiện...", "Enter event description...")}
-                        />
-                      </FormControl>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <Grid container spacing={3}>
-                    <Grid md={12} xs={12}>
+                    <Grid md={4} xs={12}>
                       <FormControl fullWidth required>
                         <InputLabel>{tt("Trạng thái", "Status")}</InputLabel>
                         <Select
@@ -293,6 +261,15 @@ export default function Page({
                           <MenuItem value="not_opened_for_sale">{tt("Chưa mở bán", "Not Open for Sale")}</MenuItem>
                           <MenuItem value="temporarily_locked">{tt("Đang tạm khoá", "Temporarily Locked")}</MenuItem>
                         </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid md={12} xs={12}>
+                      <FormControl fullWidth>
+                        <ReactQuill
+                          value={formData.description}
+                          onChange={(value) => setFormData((prev) => ({ ...prev, description: value }))}
+                          placeholder={tt("Nhập mô tả sự kiện...", "Enter event description...")}
+                        />
                       </FormControl>
                     </Grid>
                   </Grid>

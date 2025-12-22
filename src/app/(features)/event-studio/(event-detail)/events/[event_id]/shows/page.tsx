@@ -21,13 +21,13 @@ import { AxiosResponse } from 'axios';
 import { LocalizedLink } from '@/components/localized-link';
 
 import * as React from 'react';
-
-import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
+import InputAdornment from '@mui/material/InputAdornment';
+import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
 import { Accordion, AccordionDetails, AccordionSummary, CardHeader, Container, FormControlLabel, IconButton, InputLabel, Modal, OutlinedInput, Switch } from '@mui/material';
 import { ArrowRight, Calendar, Clock, Users } from '@phosphor-icons/react';
-import { Pencil } from '@phosphor-icons/react/dist/ssr';
+import { Armchair, Pencil } from '@phosphor-icons/react/dist/ssr';
 import dayjs from 'dayjs';
 
 interface TicketCategory {
@@ -105,6 +105,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [selectedTicketCategory, setSelectedTicketCategory] = React.useState<TicketCategory | null>(null);
   const [formDataQuantity, setFormDataQuantity] = React.useState(0);
   const [formDataDisabled, setFormDataDisabled] = React.useState(false);
+  const [useSeatMap, setUseSeatMap] = React.useState(false);
 
   const handleCloseEditorModal = (event: {}, reason: "backdropClick" | "escapeKeyDown") => {
     setOpenEditorModal(false);
@@ -184,7 +185,30 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
               </Button>
             </div>
           </Stack>
-          <CompaniesFilters />
+          <Card sx={{ p: 2 }}>
+            <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              <OutlinedInput
+                defaultValue=""
+                fullWidth
+                placeholder="Tìm"
+                startAdornment={
+                  <InputAdornment position="start">
+                    <MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />
+                  </InputAdornment>
+                }
+                sx={{ maxWidth: '500px' }}
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={useSeatMap}
+                    onChange={(e) => setUseSeatMap(e.target.checked)}
+                  />
+                }
+                label={tt("Sử dụng sơ đồ ghế", "Use Seat Map")}
+              />
+            </Stack>
+          </Card>
           <Grid container spacing={3}>
             {shows.map((show) => (
               <Accordion key={show.id} defaultExpanded sx={{ width: '100%', borderRadius: 1, overflow: 'hidden', boxShadow: 'none', border: '1px solid', borderColor: 'divider', mb: 2 }}>
@@ -252,6 +276,23 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                           />}
                       </Stack>
                       <Stack direction="row" spacing={1}>
+                        {useSeatMap && (
+                          <Tooltip title={tt("Thiết kế sơ đồ ghế", "Design Seat Map")}>
+                            <IconButton
+                              component={LocalizedLink}
+                              onClick={(event) => event.stopPropagation()}
+                              href={`/event-studio/events/${params.event_id}/seat-maps/${show.id}`}
+                              size="small"
+                              sx={{
+                                color: 'info.main',
+                                bgcolor: 'info.lightest',
+                                '&:hover': { bgcolor: 'info.light' }
+                              }}
+                            >
+                              <Armchair size={18} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         <Tooltip title={tt("Chỉnh sửa suất diễn", "Edit Show")}>
                           <IconButton
                             component={LocalizedLink}
