@@ -13,7 +13,7 @@ interface TextPropertiesProps {
   properties: Properties;
   updateObject: (updates: Partial<Properties>) => void;
   Select: React.ComponentType<{
-    options: Array<{ value: string; label: string }>;
+    options: Array<{ value: string; label: string | React.ReactNode }>;
     value: string;
     onChange: (value: string) => void;
   }>;

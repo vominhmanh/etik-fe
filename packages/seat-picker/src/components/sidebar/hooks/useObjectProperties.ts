@@ -22,7 +22,7 @@ export interface Properties {
   seatNumber?: string | 'mixed';
   category?: string | 'mixed';
   price?: number | 'mixed';
-  status?: 'available' | 'reserved' | 'sold' | 'mixed';
+  status?: 'available' | 'reserved' | 'sold' | 'blocked' | 'held' | 'mixed';
   currencySymbol?: string | 'mixed';
   currencyCode?: string | 'mixed';
   currencyCountry?: string | 'mixed';

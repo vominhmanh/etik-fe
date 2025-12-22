@@ -96,6 +96,19 @@ const Toolbar: React.FC<ToolbarProps> = ({
       'evented',
       'lockMovementX',
       'lockMovementY',
+      'lockScalingX',
+      'lockScalingY',
+      'lockRotation',
+      'category',
+      'status',
+      'price',
+      'currencySymbol',
+      'currencyCode',
+      'currencyCountry',
+      'hasTooltip',
+      'seatData',
+      'zoneData',
+      'customType'
     ]);
 
     const exportData = {
@@ -217,6 +230,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
               'evented',
               'lockMovementX',
               'lockMovementY',
+              'lockScalingX',
+              'lockScalingY',
+              'lockRotation',
+              'category',
+              'status',
+              'price',
+              'currencySymbol',
+              'currencyCode',
+              'currencyCountry',
+              'hasTooltip',
             ]);
 
             const json = {

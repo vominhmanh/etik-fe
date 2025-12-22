@@ -123,6 +123,15 @@ export const PROPERTIES_TO_INCLUDE = [
   'transparentCorners',
   'rx',
   'ry',
+  'category',
+  'status',
+  'price',
+  'currencySymbol',
+  'currencyCode',
+  'currencyCountry',
+  'hasTooltip',
+  'lockScalingX',
+  'lockScalingY',
 ];
 
 export const useEventGuiStore = create<EventGuiState>((set, get) => ({

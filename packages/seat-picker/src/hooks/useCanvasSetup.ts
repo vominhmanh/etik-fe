@@ -38,7 +38,7 @@ const useCanvasSetup = (
       window.addEventListener('resize', resizeCanvas);
     }
 
-    const seat = createSeat(100, 100);
+    const seat = createSeat(100, 100, 'A', '1');
     seat.angle = 45;
     // c.add(seat);
 

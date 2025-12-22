@@ -23,6 +23,7 @@ import {
   LockKey,
   ArrowsLeftRight,
   ArrowUUpLeft,
+  HouseLine,
 } from '@phosphor-icons/react/dist/ssr';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
@@ -238,6 +239,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </Typography>
 
                       {/* Info Rows - Icon + Text */}
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <HouseLine size={14} color="var(--mui-palette-text-secondary)" />
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                          {transaction.event.organizer}
+                        </Typography>
+                      </Stack>
+
                       <Stack direction="row" spacing={1} alignItems="center">
                         <ClockIcon size={14} color="var(--mui-palette-text-secondary)" />
                         <Typography variant="caption" color="text.secondary" noWrap>

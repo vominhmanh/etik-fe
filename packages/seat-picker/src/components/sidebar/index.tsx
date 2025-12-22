@@ -25,7 +25,13 @@ export type Mode =
   | 'shape-square'
   | 'text';
 
-const Sidebar: React.FC = () => {
+import { TicketCategory } from '@/types/data.types';
+
+interface SidebarProps {
+  categories?: TicketCategory[];
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ categories }) => {
   const { canvas, selectedRowId } = useEventGuiStore();
   const [selectedObjects, setSelectedObjects] = useState<CustomFabricObject[]>(
     []
@@ -293,6 +299,7 @@ const Sidebar: React.FC = () => {
               updateObject={updateObject}
               Select={Select}
               selectedObjects={selectedObjects}
+              categories={categories}
             />
           ) : (
             <>

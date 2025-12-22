@@ -48,6 +48,39 @@ const defaultLabels = {
   status: 'Status',
 };
 
+const SERIALIZABLE_PROPERTIES = [
+  'id',
+  'width',
+  'height',
+  'fill',
+  'stroke',
+  'strokeWidth',
+  'angle',
+  'opacity',
+  'selectable',
+  'evented',
+  'hasControls',
+  'lockMovementX',
+  'lockMovementY',
+  'lockRotation',
+  'customType',
+  'rowId',
+  'seatNumber',
+  'category',
+  'status',
+  'price',
+  'currencySymbol',
+  'currencyCode',
+  'currencyCountry',
+  'fontSize',
+  'fontWeight',
+  'fontFamily',
+  'seatData',
+  'zoneData',
+];
+
+
+
 const SeatPicker: React.FC<SeatCanvasProps> = ({
   className = '',
   onChange,
@@ -61,6 +94,8 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   onSeatClick,
   onSeatAction,
   labels = {},
+  categories,
+  onSaveCategories,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasParent = useRef<HTMLDivElement>(null);
@@ -309,133 +344,144 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     // Store handler reference so we can remove it
     let readOnlyMouseDownHandler: ((options: any) => void) | null = null;
 
-    canvas.loadFromJSON(layout, () => {
-      // Check for background image object and send to back
-      const bgObj = canvas.getObjects().find((obj: any) => obj.customType === 'layout-background');
-      if (bgObj) {
-        setHasBgImage(true);
-        bgObj.sendToBack();
-        bgObj.set({
-          selectable: false,
-          evented: !readOnly,
-          hasControls: false,
-          lockRotation: true,
-          lockMovementX: true,
-          lockMovementY: true,
-          hoverCursor: 'default',
-        });
-      } else {
-        setHasBgImage(false);
-      }
-
-      if (readOnly) {
-        // Label each seat by number if enabled
-        if (mergedStyle.showSeatNumbers) {
-          canvas.getObjects('circle').forEach((seat: any) => {
-            // Remove any previous label
-            if (seat.labelObj) {
-              canvas.remove(seat.labelObj);
-              seat.labelObj = null;
-            }
-            const label = new fabric.Text(
-              seat.attributes?.number?.toString() ||
-              seat.seatNumber?.toString() ||
-              '',
-              {
-                left:
-                  (seat.left ?? 0) +
-                  (seat.radius ?? mergedStyle.seatStyle.radius),
-                top:
-                  (seat.top ?? 0) +
-                  (seat.radius ?? mergedStyle.seatStyle.radius),
-                ...mergedStyle.seatNumberStyle,
-                originX: 'center',
-                originY: 'center',
-                selectable: false,
-                evented: false,
-              }
-            );
-            seat.labelObj = label;
-            canvas.add(label);
-            canvas.bringToFront(label);
+    canvas.loadFromJSON(
+      layout,
+      () => {
+        // Check for background image object and send to back
+        const bgObj = canvas.getObjects().find((obj: any) => obj.customType === 'layout-background');
+        if (bgObj) {
+          setHasBgImage(true);
+          bgObj.sendToBack();
+          bgObj.set({
+            selectable: false,
+            evented: !readOnly,
+            hasControls: false,
+            lockRotation: true,
+            lockMovementX: true,
+            lockMovementY: true,
+            hoverCursor: 'default',
           });
+        } else {
+          setHasBgImage(false);
         }
 
-        // Make all objects not selectable/editable, only seats (circles) are clickable
-        canvas.getObjects().forEach((obj: any) => {
-          obj.selectable = false;
-          obj.evented = obj.type === 'circle';
-        });
-        canvas.selection = false;
-
-        // Add click handler for seats (read-only mode only)
-        readOnlyMouseDownHandler = (options) => {
-          if (!options.target || options.target.type !== 'circle') return;
-
-          const seat = options.target as any;
-          const seatData: SeatData = {
-            number: seat.attributes?.number ?? seat.seatNumber ?? '',
-            price: seat.attributes?.price ?? seat.price ?? '',
-            category: seat.attributes?.category ?? seat.category ?? '',
-            status: seat.attributes?.status ?? seat.status ?? '',
-            currencySymbol:
-              seat.attributes?.currencySymbol ?? seat.currencySymbol ?? '',
-            currencyCode:
-              seat.attributes?.currencyCode ?? seat.currencyCode ?? '',
-            currencyCountry:
-              seat.attributes?.currencyCountry ?? seat.currencyCountry ?? '',
-          };
-
-          if (onSeatClick) {
-            onSeatClick(seatData);
-          } else {
-            setSelectedSeat(seatData);
-          }
-        };
-        canvas.on('mouse:down', readOnlyMouseDownHandler);
-      } else {
-        // Remove any previous read-only handler
-        if (readOnlyMouseDownHandler) {
-          canvas.off('mouse:down', readOnlyMouseDownHandler);
-        }
-        // Enable selection and make objects selectable in edit mode
-        canvas.selection = true;
-        canvas.getObjects().forEach((obj: any) => {
-          // Keep layout background AND ZONES behavior consistent (Locked by default)
-          if (
-            obj.customType === 'layout-background' ||
-            obj.customType === 'zone' ||
-            obj.type === 'rect' ||
-            obj.type === 'polygon' ||
-            ((obj.type === 'i-text' || obj.type === 'text') && !obj.isRowLabel)
-          ) {
-            obj.set({
-              selectable: false,
-              evented: true,
-              hasControls: false,
-              lockRotation: true,
-              lockMovementX: true,
-              lockMovementY: true,
-              hoverCursor: 'default',
+        if (readOnly) {
+          // Label each seat by number if enabled
+          if (mergedStyle.showSeatNumbers) {
+            canvas.getObjects('circle').forEach((seat: any) => {
+              // Remove any previous label
+              if (seat.labelObj) {
+                canvas.remove(seat.labelObj);
+                seat.labelObj = null;
+              }
+              const label = new fabric.Text(
+                seat.attributes?.number?.toString() ||
+                seat.seatNumber?.toString() ||
+                '',
+                {
+                  left:
+                    (seat.left ?? 0) +
+                    (seat.radius ?? mergedStyle.seatStyle.radius),
+                  top:
+                    (seat.top ?? 0) +
+                    (seat.radius ?? mergedStyle.seatStyle.radius),
+                  ...mergedStyle.seatNumberStyle,
+                  originX: 'center',
+                  originY: 'center',
+                  selectable: false,
+                  evented: false,
+                }
+              );
+              seat.labelObj = label;
+              canvas.add(label);
+              canvas.bringToFront(label);
             });
-            return;
           }
 
-          obj.selectable = true;
-          obj.evented = true;
+          // Make all objects not selectable/editable, only seats (circles) are clickable
+          canvas.getObjects().forEach((obj: any) => {
+            obj.selectable = false;
+            obj.evented = obj.type === 'circle';
+          });
+          canvas.selection = false;
+
+          // Add click handler for seats (read-only mode only)
+          readOnlyMouseDownHandler = (options) => {
+            if (!options.target || options.target.type !== 'circle') return;
+
+            const seat = options.target as any;
+            const seatData: SeatData = {
+              number: seat.attributes?.number ?? seat.seatNumber ?? '',
+              price: seat.attributes?.price ?? seat.price ?? '',
+              category: seat.attributes?.category ?? seat.category ?? '',
+              status: seat.attributes?.status ?? seat.status ?? '',
+              currencySymbol:
+                seat.attributes?.currencySymbol ?? seat.currencySymbol ?? '',
+              currencyCode:
+                seat.attributes?.currencyCode ?? seat.currencyCode ?? '',
+              currencyCountry:
+                seat.attributes?.currencyCountry ?? seat.currencyCountry ?? '',
+            };
+
+            if (onSeatClick) {
+              onSeatClick(seatData);
+            } else {
+              setSelectedSeat(seatData);
+            }
+          };
+          canvas.on('mouse:down', readOnlyMouseDownHandler);
+        } else {
+          // Remove any previous read-only handler
+          if (readOnlyMouseDownHandler) {
+            canvas.off('mouse:down', readOnlyMouseDownHandler);
+          }
+          // Enable selection and make objects selectable in edit mode
+          canvas.selection = true;
+          canvas.getObjects().forEach((obj: any) => {
+            // Keep layout background AND ZONES behavior consistent (Locked by default)
+            if (
+              obj.customType === 'layout-background' ||
+              obj.customType === 'zone' ||
+              obj.type === 'rect' ||
+              obj.type === 'polygon' ||
+              ((obj.type === 'i-text' || obj.type === 'text') && !obj.isRowLabel)
+            ) {
+              obj.set({
+                selectable: false,
+                evented: true,
+                hasControls: false,
+                lockRotation: true,
+                lockMovementX: true,
+                lockMovementY: true,
+                hoverCursor: 'default',
+              });
+              return;
+            }
+
+            obj.selectable = true;
+            obj.evented = true;
+          });
+          // Debug log to check object properties
+          console.log(
+            'Edit mode objects:',
+            canvas.getObjects().map((obj) => ({
+              type: obj.type,
+              selectable: obj.selectable,
+              evented: obj.evented,
+            }))
+          );
+        }
+        canvas.renderAll();
+      },
+      ((o: any, object: any) => {
+        // Restore all serializable properties
+        SERIALIZABLE_PROPERTIES.forEach((prop) => {
+          if (o[prop] !== undefined) {
+            object[prop] = o[prop];
+          }
         });
-        // Debug log to check object properties
-        console.log(
-          'Edit mode objects:',
-          canvas.getObjects().map((obj) => ({
-            type: obj.type,
-            selectable: obj.selectable,
-            evented: obj.evented,
-          }))
-        );
-      }
-      canvas.renderAll();
-    });
+      }) as any
+    );
 
     // Cleanup: always remove the handler when effect cleans up
     return () => {
@@ -452,19 +498,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
       if (onChange) {
         const json = {
           type: 'canvas',
-          ...canvas.toJSON([
-            'customType',
-            'seatData',
-            'zoneData',
-            'fontSize',
-            'opacity',
-            'selectable',
-            'evented',
-            'lockMovementX',
-            'lockMovementY',
-            'lockRotation',
-            'hasControls',
-          ]),
+          ...canvas.toJSON(SERIALIZABLE_PROPERTIES),
         } as unknown as CanvasObject;
         onChange(json);
       }
@@ -506,24 +540,13 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   };
 
   // Save handler
+  // Save handler
   const handleSave = () => {
     if (!canvas || !onSave) return;
 
     const json = {
       type: 'canvas',
-      ...canvas.toJSON([
-        'customType',
-        'seatData',
-        'zoneData',
-        'fontSize',
-        'opacity',
-        'selectable',
-        'evented',
-        'lockMovementX',
-        'lockMovementY',
-        'lockRotation',
-        'hasControls',
-      ]),
+      ...canvas.toJSON(SERIALIZABLE_PROPERTIES),
     } as unknown as CanvasObject;
 
     onSave(json);
@@ -569,6 +592,49 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
       }
     }
   };
+
+  useEffect(() => {
+    if (!canvas || !categories) return;
+
+    const categoryMap = new Map(categories.map((c) => [c.id.toString(), c.color]));
+
+    let needsRender = false;
+    canvas.getObjects().forEach((obj: any) => {
+      // Check for seats (circles or groups) that have a category
+      const category = obj.category;
+
+      if (!category) return;
+
+      const catId = category.toString();
+      const newColor = categoryMap.get(catId);
+
+      if (!newColor) return;
+
+      const isAvailable = obj.status === 'available' || !obj.status;
+
+      if (isAvailable) {
+        if (obj.type === 'circle') {
+          if (obj.fill !== newColor) {
+            obj.set('fill', newColor);
+            needsRender = true;
+          }
+        } else if (obj.type === 'group' && (obj.rowId || obj.seatNumber)) {
+          // It's a seat group, find the inner circle
+          const group = obj as fabric.Group;
+          const circle = group.getObjects().find((o: any) => o.type === 'circle');
+          if (circle && circle.fill !== newColor) {
+            circle.set('fill', newColor);
+            group.addWithUpdate(); // Needed to update group cache/display
+            needsRender = true;
+          }
+        }
+      }
+    });
+
+    if (needsRender) {
+      canvas.requestRenderAll();
+    }
+  }, [canvas, categories]);
 
   return (
     <div
@@ -660,7 +726,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
               <canvas ref={canvasRef} />
             </div>
           </div>
-          {!readOnly && (renderSidebar ? renderSidebar() : <Sidebar />)}
+          {!readOnly && (renderSidebar ? renderSidebar() : <Sidebar categories={categories} />)}
         </div>
       </div>
       {/* Only show the default modal if renderSeatDetails is not provided */}
@@ -675,6 +741,8 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
       <TicketCategoryModal
         open={openTicketModal}
         onClose={() => setOpenTicketModal(false)}
+        categories={categories || []}
+        onSave={(newCategories) => onSaveCategories?.(newCategories)}
       />
     </div>
   );

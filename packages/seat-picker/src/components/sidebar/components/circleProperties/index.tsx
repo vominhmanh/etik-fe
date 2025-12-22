@@ -1,87 +1,18 @@
-import { toFloat, PropertiesType } from '@/utils';
+import { toFloat, PropertiesType, formatPrice } from '@/utils';
 // import { toFloat } from '../utils';
 import React from 'react';
 import { Properties as SidebarProperties } from '../../hooks';
 
-interface Properties {
-  radius: number | 'mixed';
-  seatNumber?: string | 'mixed';
-  category?: string | 'mixed';
-  price?: number | 'mixed';
-  status?: 'available' | 'reserved' | 'sold' | 'mixed';
-  fontSize?: number | 'mixed';
-}
-
 interface CirclePropertiesProps {
-  properties: Properties;
+  properties: SidebarProperties;
   updateObject: (updates: Partial<SidebarProperties>) => void;
   Select: React.FC<{
-    options: { value: string; label: string }[];
+    options: { value: string; label: string | React.ReactNode }[];
     value: string;
     onChange: (value: string) => void;
+    disabled?: boolean;
   }>;
 }
-
-const statusOptions = [
-  { value: 'available', label: 'Available' },
-  { value: 'reserved', label: 'Reserved' },
-  { value: 'sold', label: 'Sold' },
-];
-
-const categoryOptions = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'vip', label: 'VIP' },
-  { value: 'premium', label: 'Premium' },
-];
-
-const SeatAttributes: React.FC<CirclePropertiesProps> = ({
-  properties,
-  updateObject,
-  Select,
-}) => (
-  <div className="space-y-4">
-    <div>
-      <label className="block text-sm font-medium text-gray-700">
-        Seat Number
-      </label>
-      <input
-        type="text"
-        value={properties.seatNumber || ''}
-        onChange={(e) => updateObject({ seatNumber: e.target.value })}
-        className="mt-1 w-full rounded-md border px-2 py-1"
-      />
-    </div>
-    <div>
-      <label className="block text-sm font-medium text-gray-700">
-        Category
-      </label>
-      <Select
-        options={categoryOptions}
-        value={properties.category || 'standard'}
-        onChange={(value) => updateObject({ category: value })}
-      />
-    </div>
-    <div>
-      <label className="block text-sm font-medium text-gray-700">Price</label>
-      <input
-        type="number"
-        value={properties.price || 0}
-        onChange={(e) => updateObject({ price: Number(e.target.value) })}
-        className="mt-1 w-full rounded-md border px-2 py-1"
-      />
-    </div>
-    <div>
-      <label className="block text-sm font-medium text-gray-700">Status</label>
-      <Select
-        options={statusOptions}
-        value={properties.status || 'available'}
-        onChange={(value) =>
-          updateObject({ status: value as Properties['status'] })
-        }
-      />
-    </div>
-  </div>
-);
 
 const CircleProperties: React.FC<CirclePropertiesProps> = ({
   properties,

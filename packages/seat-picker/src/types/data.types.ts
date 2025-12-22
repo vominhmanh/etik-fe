@@ -38,6 +38,13 @@ export interface ObjectProperties {
   customType?: 'seat' | 'zone' | 'text';
 }
 
+export interface TicketCategory {
+  id: number;
+  name: string;
+  color: string;
+  price?: number;
+}
+
 // Circle specific properties (for seats)
 export interface CircleObject extends ObjectProperties {
   type: 'circle';
@@ -131,6 +138,8 @@ export interface SeatCanvasProps {
     price?: string;
     status?: string;
   };
+  categories?: TicketCategory[];
+  onSaveCategories?: (categories: TicketCategory[]) => void;
 }
 
 export interface SeatData {

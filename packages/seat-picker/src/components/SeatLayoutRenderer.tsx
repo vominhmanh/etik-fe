@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { fabric } from 'fabric';
 import Modal from '@/components/ui/Modal';
+import { formatPrice } from '../utils';
 
 interface SeatDetails {
   number: string | number;
@@ -53,8 +54,8 @@ const SeatLayoutRenderer: React.FC<SeatLayoutRendererProps> = ({
         }
         const label = new fabric.Text(
           seat.attributes?.number?.toString() ||
-            seat.seatNumber?.toString() ||
-            '',
+          seat.seatNumber?.toString() ||
+          '',
           {
             left: (seat.left ?? 0) + (seat.radius ?? 0),
             top: (seat.top ?? 0) + (seat.radius ?? 0),
@@ -134,11 +135,7 @@ const SeatLayoutRenderer: React.FC<SeatLayoutRendererProps> = ({
                   Price
                 </label>
                 <p className="text-lg font-semibold">
-                  {selectedSeat.currencySymbol}
-                  {selectedSeat.price}{' '}
-                  <span className="text-sm text-gray-500">
-                    ({selectedSeat.currencyCode})
-                  </span>
+                  {formatPrice(selectedSeat.price)}
                 </p>
               </div>
               <div>

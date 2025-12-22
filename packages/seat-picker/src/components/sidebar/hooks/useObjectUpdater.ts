@@ -216,6 +216,77 @@ export const useObjectUpdater = (
           }
           delete updatedProperties.fontSize;
         }
+
+        if ('fill' in updates) {
+          const circle = group.getObjects().find(o => o.type === 'circle') as CustomFabricObject;
+          if (circle) {
+            circle.set({ fill: updates.fill });
+          }
+          // Remove fill from updatedProperties to prevent it from being set on the group itself if unexpected
+          delete updatedProperties.fill;
+          group.addWithUpdate();
+        }
+
+        if ('stroke' in updates) {
+          const circle = group.getObjects().find(o => o.type === 'circle') as CustomFabricObject;
+          if (circle) {
+            (circle as fabric.Object).set({ stroke: String(updates.stroke) });
+          }
+          delete updatedProperties.stroke;
+          group.addWithUpdate();
+        }
+
+        if ('status' in updates) {
+          const status = updates.status;
+
+          // Remove existing status icons
+          const existingIcons = group.getObjects().filter(o => o.name === 'status_icon');
+          existingIcons.forEach(icon => group.remove(icon)); // Use remove instead of removeWithUpdate inside loop
+
+          // Add new icon if needed
+          let iconPath = '';
+          if (status === 'blocked') {
+            // Lock icon
+            iconPath = 'M12 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm6-9h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zM9 6a3 3 0 1 1 6 0v2H9V6z';
+          } else if (status === 'held') {
+            // Hourglass icon
+            iconPath = 'M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6V22h12v-5.99h-.01L18 16l-4-4 4-3.99-.01-.01H18V2H6z';
+          } else if (status === 'sold') {
+            // User icon
+            iconPath = 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z';
+          }
+
+          if (iconPath) {
+            const path = new fabric.Path(iconPath, {
+              fill: '#ffffff',
+              scaleX: 0.5,
+              scaleY: 0.5,
+              originX: 'center',
+              originY: 'center',
+              name: 'status_icon',
+              opacity: 0.9,
+              shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.5)', blur: 2 })
+            });
+
+            const circle = group.getObjects().find(o => o.type === 'circle') as CustomFabricObject;
+            if (circle) {
+              const radius = (circle as any).radius || 10;
+              // Scale icon to be roughly 60% of diameter (approximate visual check)
+              // Path dimensions typically ~24x24 for these SVGs
+              const iconSize = Math.max(path.width || 0, path.height || 0);
+              if (iconSize > 0) {
+                const targetSize = radius * 1.2;
+                const scale = targetSize / iconSize;
+                path.set({ scaleX: scale, scaleY: scale });
+              }
+              // Center icon relative to circle (which is usually at 0,0 in group)
+              path.set({ left: circle.left, top: circle.top });
+            }
+
+            group.add(path);
+          }
+          group.addWithUpdate();
+        }
       }
 
       // Special handling for circle objects - only use radius

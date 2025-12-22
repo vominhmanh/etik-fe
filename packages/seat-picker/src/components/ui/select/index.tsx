@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 
 interface SelectOption {
   value: string;
-  label: string;
+  label: string | React.ReactNode;
 }
 
 interface SelectProps {
@@ -103,11 +103,10 @@ const Select: React.FC<SelectProps> = ({
           {options.map((option) => (
             <li
               key={option.value}
-              className={`relative cursor-pointer select-none py-2 pl-3 pr-9 ${
-                value === option.value
-                  ? 'bg-gray-100 text-gray-600'
-                  : 'text-gray-900 hover:bg-gray-50'
-              }`}
+              className={`relative cursor-pointer select-none py-2 pl-3 pr-9 ${value === option.value
+                ? 'bg-gray-100 text-gray-600'
+                : 'text-gray-900 hover:bg-gray-50'
+                }`}
               onClick={() => handleOptionClick(option.value)}
             >
               <span className="block truncate">{option.label}</span>

@@ -21,3 +21,11 @@ export interface PropertiesType {
   left?: number;
   top?: number;
 }
+
+export const formatPrice = (price: string | number) => {
+  if (price === 'mixed') return '—';
+  if (!price && price !== 0) return '';
+  const num = Number(price);
+  if (isNaN(num)) return '';
+  return num.toLocaleString('vi-VN').replace(/,/g, '.') + ' đ';
+};
