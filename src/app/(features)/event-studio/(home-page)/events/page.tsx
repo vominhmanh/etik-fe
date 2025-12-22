@@ -2,14 +2,13 @@
 
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { CardMedia } from '@mui/material';
+import { CardMedia, Tooltip, Avatar, Box } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActionArea from '@mui/material/CardActionArea';
 import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
-import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
@@ -29,6 +28,7 @@ import { useTranslation } from '@/contexts/locale-context';
 type EventResponse = {
   id: number;
   name: string;
+  avatarUrl: string;
   organizer: string;
   organizerEmail: string;
   organizerPhoneNumber: string;
@@ -69,7 +69,7 @@ export default function Page(): React.JSX.Element {
     };
 
     fetchEvents();
-  }, []);
+  }, [notificationCtx, tt]);
 
   return (
     <Stack spacing={3}>
@@ -83,17 +83,9 @@ export default function Page(): React.JSX.Element {
       >
         <CircularProgress color="inherit" />
       </Backdrop>
-      <Stack direction="row" spacing={3}>
+      <Stack direction="row" spacing={3} alignItems="center">
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">{tt('Sự kiện của tôi', 'My Events')}</Typography>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            {/* <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Import
-            </Button>
-            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Export
-            </Button> */}
-          </Stack>
         </Stack>
         <div>
           <Button
@@ -107,49 +99,127 @@ export default function Page(): React.JSX.Element {
         </div>
       </Stack>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {events.map((event) => (
-          <Grid key={event.id} lg={4} sm={6} xs={12}>
-            <Card sx={{ height: '100%' }}>
+          <Grid key={event.id} xs={12} sm={6} md={4} lg={3}>
+            <Card sx={{
+              height: '100%',
+              transition: 'transform 0.2s',
+              '&:hover': { transform: 'translateY(-4px)', boxShadow: 6 }
+            }}>
               <CardActionArea
                 component={LocalizedLink}
                 href={`/event-studio/events/${event.id}`}
                 sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
               >
-                <CardMedia sx={{ height: 140 }} image={event.bannerUrl ? event.bannerUrl : ''} title={event.name} />
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography gutterBottom variant="h5" component="div">
-                    {event.name}
-                  </Typography>
-                  <Stack direction="column" spacing={2} sx={{ alignItems: 'left', mt: 2 }}>
-                    <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
-                      <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        {tt('Đơn vị tổ chức:', 'Organizer:')} {event.organizer}
-                      </Typography>
-                    </Stack>
-                    <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
-                      <ClockIcon fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        {event.startDateTime && event.endDateTime
-                          ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                          : tt('Chưa xác định', 'To be determined')} {event.timeInstruction ? `(${event.timeInstruction})` : ''}
-                      </Typography>
-                    </Stack>
-                    <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
-                      <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        {event.place ? event.place : tt('Chưa xác định', 'To be determined')} {event.locationInstruction ? `(${event.locationInstruction})` : ''}
-                      </Typography>
-                    </Stack>
-                    <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
-                      <Storefront fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        {event.displayOnMarketplace ? tt("Đang hiển thị trên Marketplace", "Currently displayed on Marketplace") : tt('Không hiển thị trên Marketplace', 'Not displayed on Marketplace')}
-                      </Typography>
+                {/* Banner Image - Height 120px like My Tickets */}
+                <Box sx={{ position: 'relative', height: 120 }}>
+                  <CardMedia
+                    component="img"
+                    src={event.bannerUrl || ''}
+                    alt={event.name}
+                    sx={{
+                      height: '100%',
+                      objectFit: 'cover',
+                      filter: 'brightness(0.9)',
+                    }}
+                  />
+                  {/* Overlaid Avatar */}
+                  <Box sx={{
+                    position: 'absolute',
+                    bottom: -16,
+                    left: 12,
+                    p: 0.5,
+                    bgcolor: 'background.paper',
+                    borderRadius: '50%',
+                    zIndex: 1,
+                  }}>
+                    {event.avatarUrl ? (
+                      <Avatar src={event.avatarUrl} sx={{ width: 36, height: 36 }} />
+                    ) : (
+                      <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main', fontSize: '0.9rem' }}>
+                        {(event.name[0] ?? 'A').toUpperCase()}
+                      </Avatar>
+                    )}
+                  </Box>
+                </Box>
+
+                <CardContent sx={{ pt: 3, px: 1.5, pb: 1, flexGrow: 1 }}>
+                  <Stack spacing={0.5}>
+                    {/* Event Name */}
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight="bold"
+                      sx={{
+                        lineHeight: 1.3,
+                        fontSize: '0.95rem',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        height: '2.6em',
+                        mb: 0.5
+                      }}
+                    >
+                      {event.name}
+                    </Typography>
+
+                    <Stack spacing={0.5}>
+                      {/* Organizer */}
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <HouseLineIcon size={14} color="var(--mui-palette-text-secondary)" />
+                        <Tooltip title={event.organizer}>
+                          <Typography variant="caption" color="text.secondary" noWrap>
+                            {event.organizer}
+                          </Typography>
+                        </Tooltip>
+                      </Stack>
+
+                      {/* Time */}
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <ClockIcon size={14} color="var(--mui-palette-text-secondary)" />
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                          {event.startDateTime && event.endDateTime
+                            ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
+                            : tt('Chưa xác định', 'To be determined')}
+                        </Typography>
+                      </Stack>
+
+                      {/* Place */}
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <MapPinIcon size={14} color="var(--mui-palette-text-secondary)" />
+                        <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: '90%' }}>
+                          {event.place || tt('Chưa xác định', 'TBD')}
+                        </Typography>
+                      </Stack>
                     </Stack>
                   </Stack>
                 </CardContent>
+
+                {/* Footer - Status Icons */}
+                <Box
+                  sx={{
+                    p: 1,
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'action.hover',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center'
+                  }}
+                >
+                  <Tooltip title={event.displayOnMarketplace ? tt("Đang hiển thị trên Marketplace", "On Marketplace") : tt('Không hiển thị trên Marketplace', 'Hidden from Marketplace')}>
+                    <Stack direction="row" spacing={0.5} alignItems="center" sx={{
+                      color: event.displayOnMarketplace ? 'success.main' : 'text.disabled',
+                      bgcolor: 'background.paper', px: 1, py: 0.3, borderRadius: 1
+                    }}>
+                      <Storefront size={16} weight={event.displayOnMarketplace ? "duotone" : "regular"} />
+                      <Typography variant="caption" fontWeight="medium">
+                        {event.displayOnMarketplace ? tt('Marketplace', 'Marketplace') : tt('Hidden', 'Hidden')}
+                      </Typography>
+                    </Stack>
+                  </Tooltip>
+                </Box>
               </CardActionArea>
             </Card>
           </Grid>

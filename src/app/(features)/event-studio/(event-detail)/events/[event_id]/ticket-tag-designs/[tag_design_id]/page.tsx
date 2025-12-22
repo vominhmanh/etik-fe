@@ -93,12 +93,9 @@ interface VisibleFieldOption {
 
 interface VisibleField {
   id?: number;
-  internal_name?: string;
-  internalName?: string;
+  internalName: string;
   label: string;
-  field_type: string;
-  fieldType?: string;
-  builtin_key?: string | null;
+  fieldType: string;
   builtinKey?: string | null;
   options?: VisibleFieldOption[] | null;
 }
@@ -450,24 +447,24 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
   // Canvas dimensions in mm
   const canvasWidthMm = currentLabelSize.width;
   const canvasHeightMm = currentLabelSize.height;
-  
+
   // Canvas dimensions in pixels (for display, scaled for easier design)
   const rawCanvasWidthPx = useMemo(() => (canvasWidthMm * PX_PER_MM * CANVAS_SCALE), [canvasWidthMm]);
   const rawCanvasHeightPx = useMemo(() => (canvasHeightMm * PX_PER_MM * CANVAS_SCALE), [canvasHeightMm]);
-  
+
   // Auto-scale to fit container
   const canvasScale = useMemo(() => {
     const scaleX = MAX_CANVAS_WIDTH / rawCanvasWidthPx;
     const scaleY = MAX_CANVAS_HEIGHT / rawCanvasHeightPx;
     return Math.min(1, scaleX, scaleY); // Don't scale up, only down
   }, [rawCanvasWidthPx, rawCanvasHeightPx]);
-  
+
   const canvasWidthPx = rawCanvasWidthPx * canvasScale;
   const canvasHeightPx = rawCanvasHeightPx * canvasScale;
 
   // Map API visible field to component key
   const mapFieldToComponentKey = (f: VisibleField): string => {
-    const builtinKey = f.builtinKey || f.builtin_key;
+    const builtinKey = f.builtinKey;
     switch (builtinKey) {
       case 'name':
         return 'name';
@@ -482,7 +479,7 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
       case 'idcard_number':
         return 'idcard_number';
       default:
-        const internalName = f.internalName || f.internal_name;
+        const internalName = f.internalName;
         if (internalName && internalName.trim().length > 0) {
           return `form_${internalName}${f.id ? `_${f.id}` : ''}`;
         }
@@ -546,26 +543,26 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
   // Component list combining static + dynamic fields
   const componentList = useMemo((): Array<{ label: string; key: string; fieldId?: number }> => {
     const staticList = getDefaultComponents(tt);
-    
+
     // Define localized labels for built-in fields
-    const builtinLabels = locale === 'en' 
+    const builtinLabels = locale === 'en'
       ? {
-          name: 'Name (Trxn)',
-          email: 'Email',
-          phone: 'Phone Number',
-          dob: 'Date of Birth',
-          address: 'Address',
-          idcard_number: 'ID Card Number',
-        }
+        name: 'Name (Trxn)',
+        email: 'Email',
+        phone: 'Phone Number',
+        dob: 'Date of Birth',
+        address: 'Address',
+        idcard_number: 'ID Card Number',
+      }
       : {
-          name: 'Họ tên (đơn hàng)',
-          email: 'Email',
-          phone: 'Số điện thoại',
-          dob: 'Ngày sinh',
-          address: 'Địa chỉ',
-          idcard_number: 'CMND/CCCD',
-        };
-    
+        name: 'Họ tên (đơn hàng)',
+        email: 'Email',
+        phone: 'Số điện thoại',
+        dob: 'Ngày sinh',
+        address: 'Địa chỉ',
+        idcard_number: 'CMND/CCCD',
+      };
+
     // Map API builtin_key to component key
     const builtinKeyMapping: Record<string, string> = {
       'name': 'name',
@@ -575,16 +572,16 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
       'address': 'address',
       'idcard_number': 'idcard_number',
     };
-    
+
     // Create a Set of built-in keys that exist in visibleFields
     const visibleBuiltinKeys = new Set<string>();
     visibleFields.forEach((f) => {
-      const builtinKey = f.builtinKey || f.builtin_key;
+      const builtinKey = f.builtinKey;
       if (builtinKey && builtinKeyMapping[builtinKey]) {
         visibleBuiltinKeys.add(builtinKeyMapping[builtinKey]);
       }
     });
-    
+
     // Only include built-in fields that are in visibleFields (with localized labels)
     const builtinKeys = ['name', 'email', 'phone', 'dob', 'address', 'idcard_number'] as const;
     const builtinList = builtinKeys
@@ -593,7 +590,7 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
         label: builtinLabels[key],
         key,
       }));
-    
+
     // Add "Title (Trxn)" only if "name" is visible
     const conditionalList: Array<{ label: string; key: string }> = [];
     if (visibleBuiltinKeys.has('name')) {
@@ -602,12 +599,12 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
         key: 'titleTrxn',
       });
     }
-    
+
     // Only show custom fields from visibleFields (exclude built-in fields)
     const builtinApiKeys = ['name', 'email', 'phone_number', 'dob', 'address', 'idcard_number'];
     const customFieldsList = visibleFields
       .filter((f) => {
-        const builtinKey = f.builtinKey || f.builtin_key;
+        const builtinKey = f.builtinKey;
         return !builtinApiKeys.includes(builtinKey || '');
       })
       .map((f) => {
@@ -619,7 +616,7 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
           fieldId: f.id, // Store field ID for stable mapping with formAnswers
         };
       });
-    
+
     // Deduplicate by key while preserving order priority: static -> builtin -> conditional -> custom
     const combined = [...staticList, ...builtinList, ...conditionalList, ...customFieldsList];
     const seen = new Set<string>();
@@ -640,9 +637,9 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
         setCustomSize(defaultSize);
         setCustomSizeInput({ width: '50', height: '50' });
       } else {
-        setCustomSizeInput({ 
-          width: customSize.width.toString(), 
-          height: customSize.height.toString() 
+        setCustomSizeInput({
+          width: customSize.width.toString(),
+          height: customSize.height.toString()
         });
       }
     } else {
@@ -656,17 +653,17 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
   const handleCustomSizeChange = (field: 'width' | 'height', value: string) => {
     // Update input state immediately to allow empty strings
     setCustomSizeInput((prev) => ({ ...prev, [field]: value }));
-    
+
     // Only update customSize if value is a valid number
     if (value === '') {
       return; // Allow empty input, don't update customSize
     }
-    
+
     const numValue = Number(value);
     if (isNaN(numValue) || numValue <= 0) {
       return; // Ignore invalid values
     }
-    
+
     setCustomSize((prev) => {
       const baseSize = prev || { width: 50, height: 50 };
       const newSize = { ...baseSize, [field]: numValue };
@@ -874,9 +871,9 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
             if (size === 'custom' && apiCustomSize) {
               setShowCustomSize(true);
               setCustomSize(apiCustomSize);
-              setCustomSizeInput({ 
-                width: apiCustomSize.width.toString(), 
-                height: apiCustomSize.height.toString() 
+              setCustomSizeInput({
+                width: apiCustomSize.width.toString(),
+                height: apiCustomSize.height.toString()
               });
             } else {
               setSelectedSize(size);
@@ -965,22 +962,22 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
 
   const buildPreviewBase = (): Record<string, string> => ({
     eventName: 'Sự kiện ETIK',
-  showName: 'Show 1',
-  ticketCategory: 'VIP',
+    showName: 'Show 1',
+    ticketCategory: 'VIP',
     ticketsList: 'Vé VIP - 2 vé',
     eCode: 'FMPJ8A',
     eCodeQr: 'https://api.qrserver.com/v1/create-qr-code/?margin=16&size=140x140&data=FMPJ8A',
     startDateTime: '15/01/2025 19:00',
     endDateTime: '15/01/2025 22:00',
     place: 'Trung tâm Hội nghị Quốc gia',
-  transactionId: '12345',
-  ticketTid: 'TID-9999',
+    transactionId: '12345',
+    ticketTid: 'TID-9999',
   });
 
   const buildPreviewValueForField = (f: VisibleField): string => {
     // Builtin samples
     const today = new Date(2025, 0, 1);
-    const builtinKey = f.builtinKey || f.builtin_key;
+    const builtinKey = f.builtinKey;
     if (builtinKey === 'name') return 'Nguyễn Văn A';
     if (builtinKey === 'email') return 'nguyenvana@example.com';
     if (builtinKey === 'phone_number') return '0901234567';
@@ -989,7 +986,7 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
     if (builtinKey === 'dob') return tt(formatDateVi(today), formatDateEn(today));
 
     // By field type
-    const fieldType = f.fieldType || f.field_type;
+    const fieldType = f.fieldType;
     if (fieldType === 'radio') {
       const first = f.options?.[0];
       return first?.label || 'Option 1';
@@ -1343,153 +1340,153 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
                   flexShrink: 0,
                 }}
               >
-              {components.map((comp) => {
-                const isSelected = comp.id === selectedComponentId;
-                const rotation = comp.rotation ?? 0;
-                const normalizedRotation = ((rotation % 360) + 360) % 360;
-                const isVertical = normalizedRotation === 90 || normalizedRotation === 270;
-                const isUpsideDown = normalizedRotation === 180 || normalizedRotation === 270;
-                // For customText component, always show customText if available
-                const displayText = comp.key === 'customText' && comp.customText
-                  ? comp.customText
-                  : showPreview
-                    ? (previewData[comp.key] || getCurrentLabel(comp))
-                    : getCurrentLabel(comp);
+                {components.map((comp) => {
+                  const isSelected = comp.id === selectedComponentId;
+                  const rotation = comp.rotation ?? 0;
+                  const normalizedRotation = ((rotation % 360) + 360) % 360;
+                  const isVertical = normalizedRotation === 90 || normalizedRotation === 270;
+                  const isUpsideDown = normalizedRotation === 180 || normalizedRotation === 270;
+                  // For customText component, always show customText if available
+                  const displayText = comp.key === 'customText' && comp.customText
+                    ? comp.customText
+                    : showPreview
+                      ? (previewData[comp.key] || getCurrentLabel(comp))
+                      : getCurrentLabel(comp);
 
-                return (
-                  <div
-                    key={comp.id}
-                    style={{
-                      position: 'absolute',
-                      left: `${comp.x}px`,
-                      top: `${comp.y}px`,
-                      zIndex: comp.zIndex ?? 1,
-                    }}
-                  >
-                    <Draggable
-                      position={{ x: 0, y: 0 }}
-                      onStop={(e, data) => {
-                        handleDrag(comp.id, e, data);
+                  return (
+                    <div
+                      key={comp.id}
+                      style={{
+                        position: 'absolute',
+                        left: `${comp.x}px`,
+                        top: `${comp.y}px`,
+                        zIndex: comp.zIndex ?? 1,
                       }}
                     >
-                      <div
-                        onClick={() => setSelectedComponentId(comp.id)}
-                        style={{
-                          width: `${comp.width}px`,
-                          height: `${comp.height}px`,
-                          cursor: 'move',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxSizing: 'border-box',
-                          position: 'relative',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.borderColor = '#2196F3';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.borderColor = '#ccc';
-                          }
+                      <Draggable
+                        position={{ x: 0, y: 0 }}
+                        onStop={(e, data) => {
+                          handleDrag(comp.id, e, data);
                         }}
                       >
                         <div
+                          onClick={() => setSelectedComponentId(comp.id)}
                           style={{
-                            width: '100%',
-                            height: '100%',
-                            border: isSelected ? '2px solid #2196F3' : '1px dashed #ccc',
-                            backgroundColor: comp.backgroundColor ? `#${comp.backgroundColor}` : 'transparent',
-                            padding: '4px',
-                            boxSizing: 'border-box',
+                            width: `${comp.width}px`,
+                            height: `${comp.height}px`,
+                            cursor: 'move',
                             display: 'flex',
-                            alignItems:
-                              comp.verticalAlign === 'top'
-                                ? 'flex-start'
-                                : comp.verticalAlign === 'bottom'
-                                  ? 'flex-end'
-                                  : 'center',
-                            justifyContent:
-                              comp.textAlign === 'center'
-                                ? 'center'
-                                : comp.textAlign === 'right'
-                                  ? 'flex-end'
-                                  : 'flex-start',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxSizing: 'border-box',
+                            position: 'relative',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = '#2196F3';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = '#ccc';
+                            }
                           }}
                         >
-                          {comp.key === 'eCodeQr' && showPreview && previewData[comp.key] ? (
-                            <img src={previewData[comp.key]} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                          ) : comp.key === 'image' && ((comp as any).imageUrl || (comp as any).image_url || (comp as any).customText) ? (
-                            <img src={(comp as any).imageUrl || (comp as any).image_url || (comp as any).customText} alt="Component" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                          ) : (
-                            <span
+                          <div
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              border: isSelected ? '2px solid #2196F3' : '1px dashed #ccc',
+                              backgroundColor: comp.backgroundColor ? `#${comp.backgroundColor}` : 'transparent',
+                              padding: '4px',
+                              boxSizing: 'border-box',
+                              display: 'flex',
+                              alignItems:
+                                comp.verticalAlign === 'top'
+                                  ? 'flex-start'
+                                  : comp.verticalAlign === 'bottom'
+                                    ? 'flex-end'
+                                    : 'center',
+                              justifyContent:
+                                comp.textAlign === 'center'
+                                  ? 'center'
+                                  : comp.textAlign === 'right'
+                                    ? 'flex-end'
+                                    : 'flex-start',
+                            }}
+                          >
+                            {comp.key === 'eCodeQr' && showPreview && previewData[comp.key] ? (
+                              <img src={previewData[comp.key]} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            ) : comp.key === 'image' && ((comp as any).imageUrl || (comp as any).image_url || (comp as any).customText) ? (
+                              <img src={(comp as any).imageUrl || (comp as any).image_url || (comp as any).customText} alt="Component" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            ) : (
+                              <span
+                                style={{
+                                  fontSize: `${comp.fontSize}px`,
+                                  fontFamily: comp.fontFamily || 'Arial',
+                                  fontWeight: comp.fontWeight,
+                                  fontStyle: comp.fontStyle,
+                                  textDecoration: comp.textDecoration,
+                                  color: `#${comp.color}`,
+                                  textAlign: comp.textAlign,
+                                  wordBreak: 'break-word',
+                                  width: '100%',
+                                  writingMode: isVertical ? 'vertical-rl' : 'horizontal-tb',
+                                  transform: isUpsideDown ? 'rotate(180deg)' : 'none',
+                                  transformOrigin: 'center center',
+                                }}
+                              >
+                                {displayText}
+                              </span>
+                            )}
+                          </div>
+                          {/* Resize handle */}
+                          {isSelected && (
+                            <div
+                              className="react-resizable-handle"
                               style={{
-                                fontSize: `${comp.fontSize}px`,
-                                fontFamily: comp.fontFamily || 'Arial',
-                                fontWeight: comp.fontWeight,
-                                fontStyle: comp.fontStyle,
-                                textDecoration: comp.textDecoration,
-                                color: `#${comp.color}`,
-                                textAlign: comp.textAlign,
-                                wordBreak: 'break-word',
-                                width: '100%',
-                                writingMode: isVertical ? 'vertical-rl' : 'horizontal-tb',
-                                transform: isUpsideDown ? 'rotate(180deg)' : 'none',
-                                transformOrigin: 'center center',
+                                position: 'absolute',
+                                width: '20px',
+                                height: '20px',
+                                bottom: 0,
+                                right: 0,
+                                background: 'linear-gradient(-45deg, transparent 0%, transparent 30%, #2196F3 30%, #2196F3 35%, transparent 35%, transparent 70%, #2196F3 70%, #2196F3 75%, transparent 75%)',
+                                cursor: 'nwse-resize',
+                                zIndex: 1000,
                               }}
-                            >
-                              {displayText}
-                            </span>
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                const startX = e.clientX;
+                                const startY = e.clientY;
+                                const startWidth = comp.width;
+                                const startHeight = comp.height;
+
+                                const handleMouseMove = (e: MouseEvent) => {
+                                  const deltaX = e.clientX - startX;
+                                  const deltaY = e.clientY - startY;
+                                  const newWidth = Math.max(20, startWidth + deltaX); // min 20px
+                                  const newHeight = Math.max(20, startHeight + deltaY); // min 20px
+                                  handleResize(comp.id, e as any, {
+                                    size: { width: newWidth, height: newHeight },
+                                    handle: 'se',
+                                  } as ResizeCallbackData);
+                                };
+
+                                const handleMouseUp = () => {
+                                  document.removeEventListener('mousemove', handleMouseMove);
+                                  document.removeEventListener('mouseup', handleMouseUp);
+                                };
+
+                                document.addEventListener('mousemove', handleMouseMove);
+                                document.addEventListener('mouseup', handleMouseUp);
+                              }}
+                            />
                           )}
                         </div>
-                        {/* Resize handle */}
-                        {isSelected && (
-                          <div
-                            className="react-resizable-handle"
-                            style={{
-                              position: 'absolute',
-                              width: '20px',
-                              height: '20px',
-                              bottom: 0,
-                              right: 0,
-                              background: 'linear-gradient(-45deg, transparent 0%, transparent 30%, #2196F3 30%, #2196F3 35%, transparent 35%, transparent 70%, #2196F3 70%, #2196F3 75%, transparent 75%)',
-                              cursor: 'nwse-resize',
-                              zIndex: 1000,
-                            }}
-                            onMouseDown={(e) => {
-                              e.stopPropagation();
-                              const startX = e.clientX;
-                              const startY = e.clientY;
-                              const startWidth = comp.width;
-                              const startHeight = comp.height;
-
-                              const handleMouseMove = (e: MouseEvent) => {
-                                const deltaX = e.clientX - startX;
-                                const deltaY = e.clientY - startY;
-                                const newWidth = Math.max(20, startWidth + deltaX); // min 20px
-                                const newHeight = Math.max(20, startHeight + deltaY); // min 20px
-                                handleResize(comp.id, e as any, {
-                                  size: { width: newWidth, height: newHeight },
-                                  handle: 'se',
-                                } as ResizeCallbackData);
-                              };
-
-                              const handleMouseUp = () => {
-                                document.removeEventListener('mousemove', handleMouseMove);
-                                document.removeEventListener('mouseup', handleMouseUp);
-                              };
-
-                              document.addEventListener('mousemove', handleMouseMove);
-                              document.addEventListener('mouseup', handleMouseUp);
-                            }}
-                          />
-                        )}
-                      </div>
-                    </Draggable>
-                  </div>
-                );
-              })}
+                      </Draggable>
+                    </div>
+                  );
+                })}
               </Box>
             </Box>
           </Box>

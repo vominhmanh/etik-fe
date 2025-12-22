@@ -123,13 +123,13 @@ export interface ECodeResponse {
 type CheckoutRuntimeFieldOption = {
   value: string;
   label: string;
-  sort_order: number;
+  sortOrder: number;
 };
 
 type CheckoutRuntimeField = {
-  internal_name: string;
+  internalName: string;
   label: string;
-  field_type: string;
+  fieldType: string;
   visible: boolean;
   required: boolean;
   note?: string | null;
@@ -155,7 +155,7 @@ export default function Page(): React.JSX.Element {
   );
 
   const customCheckoutFields = React.useMemo(
-    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internal_name)),
+    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internalName)),
     [checkoutFormFields, builtinInternalNames]
   );
 
@@ -517,7 +517,7 @@ export default function Page(): React.JSX.Element {
                     <Grid container spacing={3}>
                       {/* Built-in fields driven by checkout runtime config */}
                       {(() => {
-                        const nameCfg = checkoutFormFields.find((f) => f.internal_name === 'name');
+                        const nameCfg = checkoutFormFields.find((f) => f.internalName === 'name');
                         const visible = !!nameCfg && nameCfg.visible;
                         const label =
                           nameCfg?.label || tt('Tên người mua', 'Buyer Name');
@@ -534,7 +534,7 @@ export default function Page(): React.JSX.Element {
                       })()}
 
                       {(() => {
-                        const emailCfg = checkoutFormFields.find((f) => f.internal_name === 'email');
+                        const emailCfg = checkoutFormFields.find((f) => f.internalName === 'email');
                         const visible = !!emailCfg && emailCfg.visible;
                         const label = emailCfg?.label || 'Email';
                         return (
@@ -550,7 +550,7 @@ export default function Page(): React.JSX.Element {
                       })()}
 
                       {(() => {
-                        const phoneCfg = checkoutFormFields.find((f) => f.internal_name === 'phone_number');
+                        const phoneCfg = checkoutFormFields.find((f) => f.internalName === 'phone_number');
                         const visible = !!phoneCfg && phoneCfg.visible;
                         const label =
                           phoneCfg?.label || tt('Số điện thoại', 'Phone Number');
@@ -567,7 +567,7 @@ export default function Page(): React.JSX.Element {
                       })()}
 
                       {(() => {
-                        const addrCfg = checkoutFormFields.find((f) => f.internal_name === 'address');
+                        const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
                         const visible = !!addrCfg && addrCfg.visible;
                         const label = addrCfg?.label || tt('Địa chỉ', 'Address');
                         return (
@@ -583,7 +583,7 @@ export default function Page(): React.JSX.Element {
                       })()}
 
                       {(() => {
-                        const dobCfg = checkoutFormFields.find((f) => f.internal_name === 'dob');
+                        const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
                         const visible = !!dobCfg && dobCfg.visible;
                         const label =
                           dobCfg?.label || tt('Ngày tháng năm sinh', 'Date of Birth');
@@ -605,7 +605,7 @@ export default function Page(): React.JSX.Element {
 
                       {(() => {
                         const idCfg = checkoutFormFields.find(
-                          (f) => f.internal_name === 'idcard_number'
+                          (f) => f.internalName === 'idcard_number'
                         );
                         const visible = !!idCfg && idCfg.visible;
                         const label =
@@ -628,11 +628,11 @@ export default function Page(): React.JSX.Element {
 
                       {/* Custom checkout fields (visible only, rendered as disabled form controls) */}
                       {customCheckoutFields.map((field) => {
-                        const rawValue = transaction.formAnswers?.[field.internal_name];
+                        const rawValue = transaction.formAnswers?.[field.internalName];
                         const disabled = true;
 
                         return (
-                          <Grid key={field.internal_name} xs={12}>
+                          <Grid key={field.internalName} xs={12}>
                             <Stack spacing={0.5}>
                               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                                 {field.label}
@@ -643,24 +643,24 @@ export default function Page(): React.JSX.Element {
                                 </Typography>
                               )}
 
-                              {['text', 'number'].includes(field.field_type) && (
+                              {['text', 'number'].includes(field.fieldType) && (
                                 <OutlinedInput
                                   fullWidth
                                   size="small"
-                                  type={field.field_type === 'number' ? 'number' : 'text'}
+                                  type={field.fieldType === 'number' ? 'number' : 'text'}
                                   value={rawValue ?? ''}
                                   disabled={disabled}
                                 />
                               )}
 
-                              {['date', 'time', 'datetime'].includes(field.field_type) && (
+                              {['date', 'time', 'datetime'].includes(field.fieldType) && (
                                 <OutlinedInput
                                   fullWidth
                                   size="small"
                                   type={
-                                    field.field_type === 'date'
+                                    field.fieldType === 'date'
                                       ? 'date'
-                                      : field.field_type === 'time'
+                                      : field.fieldType === 'time'
                                         ? 'time'
                                         : 'datetime-local'
                                   }
@@ -670,7 +670,7 @@ export default function Page(): React.JSX.Element {
                                 />
                               )}
 
-                              {field.field_type === 'radio' && field.options && (
+                              {field.fieldType === 'radio' && field.options && (
                                 <FormGroup>
                                   <RadioGroup value={rawValue ?? ''}>
                                     {field.options.map((opt) => (
@@ -685,7 +685,7 @@ export default function Page(): React.JSX.Element {
                                 </FormGroup>
                               )}
 
-                              {field.field_type === 'checkbox' && field.options && (
+                              {field.fieldType === 'checkbox' && field.options && (
                                 <FormGroup>
                                   {field.options.map((opt) => {
                                     const current: string[] = Array.isArray(rawValue) ? rawValue : [];
@@ -702,7 +702,7 @@ export default function Page(): React.JSX.Element {
                               )}
 
                               {!['text', 'number', 'date', 'time', 'datetime', 'radio', 'checkbox'].includes(
-                                field.field_type
+                                field.fieldType
                               ) && (
                                   <Typography variant="body2">{rawValue ?? '—'}</Typography>
                                 )}

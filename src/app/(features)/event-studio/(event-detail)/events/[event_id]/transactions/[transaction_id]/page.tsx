@@ -1355,7 +1355,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
           <Grid lg={7} md={7} xs={12} spacing={3}>
             <Stack spacing={3}>
               <Card>
-                <CardHeader title={tt('Thông tin người mua vé', 'Buyer Information')} />
+                <CardHeader title={tt('Thông tin người mua', 'Buyer Information')} />
                 <Divider />
                 <CardContent>
                   <Grid container spacing={3}>

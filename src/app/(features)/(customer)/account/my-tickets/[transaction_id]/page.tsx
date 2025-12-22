@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, InputAdornment, Stack, Tooltip, Checkbox, FormGroup, FormControlLabel, RadioGroup, Radio } from '@mui/material';
+import { Avatar, Box, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, InputAdornment, Stack, Tooltip, Checkbox, FormGroup, FormControlLabel, RadioGroup, Radio, Select, MenuItem, TextField } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -226,9 +226,9 @@ type CheckoutRuntimeFieldOption = {
 };
 
 type CheckoutRuntimeField = {
-  internal_name: string;
+  internalName: string;
   label: string;
-  field_type: string;
+  fieldType: string;
   visible: boolean;
   required: boolean;
   note?: string | null;
@@ -246,7 +246,7 @@ interface CancelTransactionResponse {
 }
 
 export default function Page({ params }: { params: { transaction_id: number } }): React.JSX.Element {
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [eCode, setECode] = useState<string | null>(null);
   const { transaction_id } = params;
@@ -318,7 +318,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
   );
 
   const customCheckoutFields = React.useMemo(
-    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internal_name)),
+    () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internalName)),
     [checkoutFormFields, builtinInternalNames]
   );
 
@@ -588,13 +588,13 @@ export default function Page({ params }: { params: { transaction_id: number } })
         <Grid lg={7} md={7} xs={12} spacing={3}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader title={tt('Thông tin người mua', 'Information')} />
+              <CardHeader title={tt('Thông tin người mua', 'Buyer Information')} />
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
                   {/* Built-in fields driven by checkout runtime config */}
                   {(() => {
-                    const nameCfg = checkoutFormFields.find((f) => f.internal_name === 'name');
+                    const nameCfg = checkoutFormFields.find((f) => f.internalName === 'name');
                     const visible = !!nameCfg && nameCfg.visible;
                     const label = nameCfg?.label || tt('Danh xưng * - Họ và tên', 'Title * - Full Name');
                     return (
@@ -610,7 +610,17 @@ export default function Page({ params }: { params: { transaction_id: number } })
                               label={label}
                               startAdornment={
                                 <InputAdornment position="start">
-                                  <Typography sx={{ width: 50 }}>{transaction.title}</Typography>
+                                  <Select
+                                    variant="standard"
+                                    disableUnderline
+                                    value={transaction.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
+                                    disabled
+                                    sx={{ minWidth: 70 }}
+                                  >
+                                    {['Anh', 'Chị', 'Bạn', 'Em', 'Ông', 'Bà', 'Cô', 'Mr.', 'Ms.', 'Mx.', 'Miss', 'Thầy'].map((title) => (
+                                      <MenuItem key={title} value={title}>{title}</MenuItem>
+                                    ))}
+                                  </Select>
                                 </InputAdornment>
                               }
                             />
@@ -621,7 +631,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   })()}
 
                   {(() => {
-                    const emailCfg = checkoutFormFields.find((f) => f.internal_name === 'email');
+                    const emailCfg = checkoutFormFields.find((f) => f.internalName === 'email');
                     const visible = !!emailCfg && emailCfg.visible;
                     const label = emailCfg?.label || 'Email';
                     return (
@@ -637,16 +647,46 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   })()}
 
                   {(() => {
-                    const phoneCfg = checkoutFormFields.find((f) => f.internal_name === 'phone_number');
+                    const phoneCfg = checkoutFormFields.find((f) => f.internalName === 'phone_number');
                     const visible = !!phoneCfg && phoneCfg.visible;
                     const label =
                       phoneCfg?.label || tt('Số điện thoại', 'Phone Number');
+
+                    const parsedPhone = parseE164Phone(transaction.phoneNumber || '');
+                    const countryIso = parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2;
+                    const nationalNumber = parsedPhone?.nationalNumber || transaction.phoneNumber;
+
                     return (
                       visible && (
                         <Grid md={6} xs={12}>
                           <FormControl fullWidth>
                             <InputLabel>{label}</InputLabel>
-                            <OutlinedInput value={transaction.phoneNumber} disabled label={label} />
+                            <OutlinedInput
+                              value={nationalNumber}
+                              disabled
+                              label={label}
+                              startAdornment={
+                                <InputAdornment position="start">
+                                  <Select
+                                    variant="standard"
+                                    disableUnderline
+                                    value={countryIso}
+                                    disabled
+                                    sx={{ minWidth: 80 }}
+                                    renderValue={(value) => {
+                                      const country = PHONE_COUNTRIES.find(c => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                      return country.dialCode;
+                                    }}
+                                  >
+                                    {PHONE_COUNTRIES.map((country) => (
+                                      <MenuItem key={country.iso2} value={country.iso2}>
+                                        {country.nameVi} ({country.dialCode})
+                                      </MenuItem>
+                                    ))}
+                                  </Select>
+                                </InputAdornment>
+                              }
+                            />
                           </FormControl>
                         </Grid>
                       )
@@ -654,23 +694,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   })()}
 
                   {(() => {
-                    const addrCfg = checkoutFormFields.find((f) => f.internal_name === 'address');
-                    const visible = !!addrCfg && addrCfg.visible;
-                    const label = addrCfg?.label || tt('Địa chỉ', 'Address');
-                    return (
-                      visible && (
-                        <Grid md={6} xs={12}>
-                          <FormControl fullWidth>
-                            <InputLabel>{label}</InputLabel>
-                            <OutlinedInput value={transaction.address} disabled label={label} />
-                          </FormControl>
-                        </Grid>
-                      )
-                    );
-                  })()}
-
-                  {(() => {
-                    const dobCfg = checkoutFormFields.find((f) => f.internal_name === 'dob');
+                    const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
                     const visible = !!dobCfg && dobCfg.visible;
                     const label =
                       dobCfg?.label || tt('Ngày tháng năm sinh', 'Date of Birth');
@@ -681,6 +705,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                             <InputLabel shrink>{label}</InputLabel>
                             <OutlinedInput
                               label={label}
+                              type="date"
                               value={transaction.dob || ''}
                               disabled
                             />
@@ -691,15 +716,31 @@ export default function Page({ params }: { params: { transaction_id: number } })
                   })()}
 
                   {(() => {
+                    const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
+                    const visible = !!addrCfg && addrCfg.visible;
+                    const label = addrCfg?.label || tt('Địa chỉ', 'Address');
+                    return (
+                      visible && (
+                        <Grid md={12} xs={12}>
+                          <FormControl fullWidth>
+                            <InputLabel>{label}</InputLabel>
+                            <OutlinedInput value={transaction.address} disabled label={label} />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {(() => {
                     const idCfg = checkoutFormFields.find(
-                      (f) => f.internal_name === 'idcard_number'
+                      (f) => f.internalName === 'idcard_number'
                     );
                     const visible = !!idCfg && idCfg.visible;
                     const label =
                       idCfg?.label || tt('Căn cước công dân', 'ID Card Number');
                     return (
                       visible && (
-                        <Grid md={6} xs={12}>
+                        <Grid md={12} xs={12}>
                           <FormControl fullWidth>
                             <InputLabel>{label}</InputLabel>
                             <OutlinedInput
@@ -715,14 +756,15 @@ export default function Page({ params }: { params: { transaction_id: number } })
 
                   {/* Custom checkout fields (visible only, rendered as disabled form controls) */}
                   {customCheckoutFields.map((field) => {
-                    const rawValue = transaction.formAnswers?.[field.internal_name];
+                    const rawValue = transaction.formAnswers?.[field.internalName];
                     const disabled = true;
 
                     return (
-                      <Grid key={field.internal_name} xs={12}>
+                      <Grid key={field.internalName} xs={12}>
                         <Stack spacing={0.5}>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
                             {field.label}
+                            {field.required && ' *'}
                           </Typography>
                           {field.note && (
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -730,34 +772,34 @@ export default function Page({ params }: { params: { transaction_id: number } })
                             </Typography>
                           )}
 
-                          {['text', 'number'].includes(field.field_type) && (
-                            <OutlinedInput
-                              fullWidth
-                              size="small"
-                              type={field.field_type === 'number' ? 'number' : 'text'}
-                              value={rawValue ?? ''}
-                              disabled={disabled}
-                            />
+                          {['text', 'number'].includes(field.fieldType) && (
+                            <FormControl fullWidth size="small">
+                              <OutlinedInput
+                                type={field.fieldType === 'number' ? 'number' : 'text'}
+                                value={rawValue ?? ''}
+                                disabled={disabled}
+                              />
+                            </FormControl>
                           )}
 
-                          {['date', 'time', 'datetime'].includes(field.field_type) && (
-                            <OutlinedInput
-                              fullWidth
-                              size="small"
-                              type={
-                                field.field_type === 'date'
-                                  ? 'date'
-                                  : field.field_type === 'time'
-                                    ? 'time'
-                                    : 'datetime-local'
-                              }
-                              value={rawValue ?? ''}
-                              disabled={disabled}
-                              inputProps={{}}
-                            />
+                          {['date', 'time', 'datetime'].includes(field.fieldType) && (
+                            <FormControl fullWidth size="small">
+                              <OutlinedInput
+                                type={
+                                  field.fieldType === 'date'
+                                    ? 'date'
+                                    : field.fieldType === 'time'
+                                      ? 'time'
+                                      : 'datetime-local'
+                                }
+                                value={rawValue ?? ''}
+                                disabled={disabled}
+                                inputProps={{}}
+                              />
+                            </FormControl>
                           )}
 
-                          {field.field_type === 'radio' && field.options && (
+                          {field.fieldType === 'radio' && field.options && (
                             <FormGroup>
                               <RadioGroup value={rawValue ?? ''}>
                                 {field.options.map((opt) => (
@@ -772,7 +814,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                             </FormGroup>
                           )}
 
-                          {field.field_type === 'checkbox' && field.options && (
+                          {field.fieldType === 'checkbox' && field.options && (
                             <FormGroup>
                               {field.options.map((opt) => {
                                 const current: string[] = Array.isArray(rawValue) ? rawValue : [];
@@ -789,7 +831,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                           )}
 
                           {!['text', 'number', 'date', 'time', 'datetime', 'radio', 'checkbox'].includes(
-                            field.field_type
+                            field.fieldType
                           ) && (
                               <Typography variant="body2">{rawValue ?? '—'}</Typography>
                             )}
