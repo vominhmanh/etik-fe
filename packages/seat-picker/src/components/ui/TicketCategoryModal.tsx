@@ -4,16 +4,17 @@ import * as React from 'react';
 import { LuSave } from 'react-icons/lu';
 import Modal from './Modal';
 
-import { TicketCategory } from '../../types/data.types';
+import { TicketCategory, CategoryStats } from '../../types/data.types';
 
 interface TicketCategoryModalProps {
     open: boolean;
     onClose: () => void;
     categories: TicketCategory[];
     onSave: (categories: TicketCategory[]) => void;
+    stats?: Record<number, CategoryStats>;
 }
 
-export function TicketCategoryModal({ open, onClose, categories: initialCategories, onSave }: TicketCategoryModalProps) {
+export function TicketCategoryModal({ open, onClose, categories: initialCategories, onSave, stats }: TicketCategoryModalProps) {
     const [categories, setCategories] = React.useState<TicketCategory[]>(initialCategories);
 
     React.useEffect(() => {
@@ -58,26 +59,39 @@ export function TicketCategoryModal({ open, onClose, categories: initialCategori
         >
             <div className="border-t border-gray-200 pt-0">
                 <ul className="divide-y divide-gray-100">
-                    {categories.map((category) => (
-                        <li key={category.id} className="relative py-3 flex items-center justify-between gap-4">
-                            <span className="text-sm font-medium text-gray-700 min-w-[120px]">{category.name}</span>
+                    {categories.map((category) => {
+                        const catStats = stats?.[category.id];
+                        return (
+                            <li key={category.id} className="relative py-3 flex items-center justify-between gap-4">
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium text-gray-700 min-w-[120px]">{category.name}</span>
+                                    {catStats && (
+                                        <div className="text-xs text-gray-500 mt-1 flex gap-2">
+                                            <span>Tổng: {catStats.total}</span>
+                                            <span>• Đã đặt: {catStats.booked}</span>
+                                            <span>• Đang chờ: {catStats.pending}</span>
+                                            <span>• Bị khóa: {catStats.locked}</span>
+                                        </div>
+                                    )}
+                                </div>
 
-                            <div className="flex items-center flex-1 justify-end">
-                                <input
-                                    type="color"
-                                    value={category.color}
-                                    onChange={(e) => handleColorChange(category.id, e.target.value)}
-                                    className="h-8 w-8 rounded-md bg-transparent cursor-pointer"
-                                />
-                                <input
-                                    type="text"
-                                    value={category.color.toUpperCase()}
-                                    onChange={(e) => handleColorChange(category.id, e.target.value)}
-                                    className="ml-2 w-24 text-sm rounded-md border border-solid border-gray-200 px-2 py-1 shadow-sm uppercase"
-                                />
-                            </div>
-                        </li>
-                    ))}
+                                <div className="flex items-center flex-1 justify-end">
+                                    <input
+                                        type="color"
+                                        value={category.color}
+                                        onChange={(e) => handleColorChange(category.id, e.target.value)}
+                                        className="h-8 w-8 rounded-md bg-transparent cursor-pointer"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={category.color.toUpperCase()}
+                                        onChange={(e) => handleColorChange(category.id, e.target.value)}
+                                        className="ml-2 w-24 text-sm rounded-md border border-solid border-gray-200 px-2 py-1 shadow-sm uppercase"
+                                    />
+                                </div>
+                            </li>
+                        );
+                    })}
                 </ul>
             </div>
         </Modal>

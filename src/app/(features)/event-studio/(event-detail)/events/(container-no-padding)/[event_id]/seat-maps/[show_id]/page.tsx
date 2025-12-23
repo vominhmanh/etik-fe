@@ -17,15 +17,22 @@ export default function Page() {
   const event_id = params?.event_id as string;
   const show_id = params?.show_id as string;
   const [categories, setCategories] = React.useState<TicketCategory[]>([]);
+  const [layoutJson, setLayoutJson] = React.useState<any>(null);
 
   React.useEffect(() => {
     if (!event_id || !show_id) return;
 
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const res: AxiosResponse<TicketCategory[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${event_id}/seat-maps/shows/${show_id}/ticket-categories`
-        );
+        const [categoriesRes, layoutRes] = await Promise.all([
+          baseHttpServiceInstance.get<TicketCategory[]>(
+            `/event-studio/events/${event_id}/seat-maps/shows/${show_id}/ticket-categories`
+          ),
+          baseHttpServiceInstance.get<{ layoutJson: any }>(
+            `/event-studio/events/${event_id}/seat-maps/shows/${show_id}/layout`
+          )
+        ]);
+
         // Assign random colors
         const colors = [
           '#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5',
@@ -34,23 +41,47 @@ export default function Page() {
           '#ff5722', '#795548', '#9e9e9e', '#607d8b'
         ];
 
-        const categoriesWithColor = res.data.map((cat: any, index: number) => ({
+        let savedCategories: TicketCategory[] = [];
+        if (layoutRes.data && layoutRes.data.layoutJson) {
+          setLayoutJson(layoutRes.data.layoutJson);
+          if ((layoutRes.data.layoutJson as any).categories) {
+            savedCategories = (layoutRes.data.layoutJson as any).categories;
+          }
+        }
+
+        const savedColorMap = new Map(savedCategories.map((c) => [c.id, c.color]));
+
+        const categoriesWithColor = categoriesRes.data.map((cat: any, index: number) => ({
           ...cat,
-          color: colors[index % colors.length]
+          color: savedColorMap.get(cat.id) || colors[index % colors.length]
         }));
 
         setCategories(categoriesWithColor);
       } catch (error) {
-        console.error("Failed to fetch ticket categories:", error);
+        console.error("Failed to fetch data:", error);
       }
     };
 
-    fetchCategories();
+    fetchData();
   }, [event_id, show_id]);
 
   const handleSaveCategories = (newCategories: TicketCategory[]) => {
     console.log('Saving categories:', newCategories);
     setCategories(newCategories);
+  };
+
+  const handleSaveLayout = async (json: any) => {
+    try {
+      if (!event_id || !show_id) return;
+
+      await baseHttpServiceInstance.put(
+        `/event-studio/events/${event_id}/seat-maps/shows/${show_id}/layout`,
+        { layoutJson: json }
+      );
+      console.log('Layout saved successfully');
+    } catch (error) {
+      console.error("Failed to save layout:", error);
+    }
   };
 
   return (
@@ -59,6 +90,9 @@ export default function Page() {
         <SeatPickerClient
           categories={categories}
           onSaveCategories={handleSaveCategories}
+          layout={layoutJson}
+          onSave={handleSaveLayout}
+          readOnly={true}
         />
       </div>
     </>

@@ -8,6 +8,7 @@ export interface CanvasObject {
   background?: string;
   width?: number;
   height?: number;
+  categories?: TicketCategory[];
   [key: string]: any;
 }
 
@@ -43,6 +44,14 @@ export interface TicketCategory {
   name: string;
   color: string;
   price?: number;
+}
+
+export interface CategoryStats {
+  id: number;
+  total: number;
+  booked: number;
+  pending: number;
+  locked: number;
 }
 
 // Circle specific properties (for seats)
@@ -121,6 +130,8 @@ export interface SeatCanvasProps {
   renderToolbar?: (props: {
     onSave?: (json: CanvasObject) => void;
     onBgLayout?: () => void;
+    categories?: TicketCategory[];
+    onSaveCategories?: (categories: TicketCategory[]) => void;
   }) => React.ReactNode;
   renderSidebar?: () => React.ReactNode;
   renderSeatDetails?: (props: {

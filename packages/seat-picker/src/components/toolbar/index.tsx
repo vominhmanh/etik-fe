@@ -43,6 +43,8 @@ interface ToolbarProps {
   onBgLayout?: () => void;
   onToggleFullScreen?: () => void;
   isFullScreen?: boolean;
+  categories?: any[];
+  onSaveCategories?: (categories: any[]) => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -50,6 +52,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onBgLayout,
   onToggleFullScreen,
   isFullScreen,
+  categories,
+  onSaveCategories,
 }) => {
   const {
     toolMode,
@@ -64,6 +68,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
     rows,
     setRows,
   } = useEventGuiStore();
+
+
 
   const { copySelectedObjects, cutSelectedObjects, pasteObjects } =
     useClipboardActions();
@@ -113,6 +119,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     const exportData = {
       rows,
+      categories,
       canvas: canvasJson,
     };
 
@@ -167,6 +174,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
       if (json.rows && Array.isArray(json.rows)) {
         setRows(json.rows);
         if (json.canvas) canvasData = json.canvas;
+      }
+
+      // Handle extended JSON with categories
+      if (json.categories && Array.isArray(json.categories) && onSaveCategories) {
+        onSaveCategories(json.categories);
       }
 
       canvas.loadFromJSON(canvasData, () => {
@@ -245,6 +257,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             const json = {
               type: 'canvas',
               rows,
+              categories,
               canvas: canvasJson,
             } as unknown as CanvasObject;
             onSave(json);

@@ -3,7 +3,8 @@ import { Properties } from '../../hooks';
 import { toFloat, formatPrice } from '@/utils';
 import { fabric } from 'fabric';
 import { useEventGuiStore } from '@/zustand';
-import CurrencySelect from './CurrencySelect';
+import { useEventGuiStore } from '@/zustand';
+import { TicketCategory } from '@/types/data.types';
 import { TicketCategory } from '@/types/data.types';
 
 interface SeatAttributesProps {
@@ -243,21 +244,6 @@ const SeatAttributes: React.FC<SeatAttributesProps> = ({
             Status is read-only: {properties.status}
           </div>
         )}
-      </div>
-      <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">
-          Currency
-        </label>
-        <CurrencySelect
-          value={properties.currencySymbol || ''}
-          onChange={(symbol, code, country) =>
-            updateObject({
-              currencySymbol: symbol,
-              currencyCode: code,
-              currencyCountry: country,
-            })
-          }
-        />
       </div>
     </div>
   );

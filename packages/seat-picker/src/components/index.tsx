@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { fabric } from 'fabric';
 import Toolbar from './toolbar';
 import Sidebar from './sidebar';
@@ -14,11 +14,12 @@ import { useSmartSnap } from '@/hooks/useSmartSnap';
 import useRowLabelRenderer from '@/hooks/useRowLabelRenderer';
 import '@/index.css';
 import '../fabricCustomRegistration';
-import { CanvasObject, SeatCanvasProps, SeatData } from '@/types/data.types';
+import { CanvasObject, SeatCanvasProps, SeatData, CategoryStats } from '@/types/data.types';
 import Modal, { DefaultSeatModal } from './ui/Modal';
 import { TicketCategoryModal } from './ui/TicketCategoryModal';
 import { IconButton, Stack, Tooltip } from '@mui/material';
 import { LuArmchair, LuTicket } from 'react-icons/lu';
+import { applyCustomStyles } from './createObject/applyCustomStyles';
 
 const defaultStyle = {
   width: 800,
@@ -27,13 +28,13 @@ const defaultStyle = {
   showSeatNumbers: true,
   seatNumberStyle: {
     fontSize: 14,
-    fill: '#222',
+    fill: '#222222',
     fontWeight: 'bold',
     fontFamily: 'Arial',
   },
   seatStyle: {
     fill: 'transparent',
-    stroke: 'black',
+    stroke: '#000000',
     strokeWidth: 1,
     radius: 10,
   },
@@ -81,34 +82,74 @@ const SERIALIZABLE_PROPERTIES = [
 
 
 
+const EMPTY_OBJECT = {};
+
 const SeatPicker: React.FC<SeatCanvasProps> = ({
   className = '',
   onChange,
   onSave,
   layout,
   readOnly = false,
-  style = {},
+  style = EMPTY_OBJECT,
   renderToolbar,
   renderSidebar,
   renderSeatDetails,
   onSeatClick,
   onSeatAction,
-  labels = {},
+  labels = EMPTY_OBJECT,
   categories,
   onSaveCategories,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasParent = useRef<HTMLDivElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
-  const { canvas, setCanvas, toolMode, setToolMode, toolAction, snapEnabled, zoomLevel } =
+  const { canvas, setCanvas, toolMode, setToolMode, toolAction, snapEnabled, zoomLevel, setRows } =
     useEventGuiStore();
   const [selectedSeat, setSelectedSeat] = useState<SeatData | null>(null);
   const [hasBgImage, setHasBgImage] = useState(false);
   const [bgOpacity] = useState(0.5); // Increased opacity for better visibility as object
   const [openTicketModal, setOpenTicketModal] = useState(false);
+  const [categoryStats, setCategoryStats] = useState<Record<number, CategoryStats>>({});
+
+  useEffect(() => {
+    if (openTicketModal && canvas) {
+      const stats: Record<number, CategoryStats> = {};
+
+      // Initialize stats for all categories
+      categories?.forEach(cat => {
+        stats[cat.id] = { id: cat.id, total: 0, booked: 0, pending: 0, locked: 0 };
+      });
+
+      canvas.getObjects().forEach((obj: any) => {
+        if (obj.category) {
+          const catId = Number(obj.category);
+          if (stats[catId]) {
+            stats[catId].total++;
+            const status = obj.status || 'available';
+            if (status === 'sold') stats[catId].booked++;
+            else if (status === 'reserved') stats[catId].pending++;
+            else if (status === 'hold') stats[catId].locked++;
+          }
+        } else if (obj.type === 'group' && (obj.rowId || obj.seatNumber)) {
+          // Check inside groups if any
+          // For now assuming group properties mirror seat properties at top level or we need to access inner seat
+          // If group has category, it counts.
+          const catId = Number(obj.category);
+          if (catId && stats[catId]) {
+            stats[catId].total++;
+            const status = obj.status || 'available';
+            if (status === 'sold') stats[catId].booked++;
+            else if (status === 'reserved') stats[catId].pending++;
+            else if (status === 'hold') stats[catId].locked++;
+          }
+        }
+      });
+      setCategoryStats(stats);
+    }
+  }, [openTicketModal, canvas, categories]);
 
   // Merge default styles with custom styles
-  const mergedStyle = {
+  const mergedStyle = useMemo(() => ({
     ...defaultStyle,
     ...style,
     seatNumberStyle: {
@@ -119,13 +160,13 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
       ...defaultStyle.seatStyle,
       ...style.seatStyle,
     },
-  };
+  }), [style]);
 
   // Merge default labels with custom labels
-  const mergedLabels = {
+  const mergedLabels = useMemo(() => ({
     ...defaultLabels,
     ...labels,
-  };
+  }), [labels]);
 
   // Handle background image upload
   const handleBgImageUpload = (file: File) => {
@@ -343,29 +384,43 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
 
     // Store handler reference so we can remove it
     let readOnlyMouseDownHandler: ((options: any) => void) | null = null;
+    let canvasData = layout;
+
+    // Handle extended JSON with rows
+    if ((layout as any).rows && Array.isArray((layout as any).rows)) {
+      setRows((layout as any).rows);
+      if ((layout as any).canvas) canvasData = (layout as any).canvas;
+    }
+
+    // Ensure objects exists to prevent crash
+    if (!canvasData.objects) {
+      canvasData = { ...canvasData, objects: [] };
+    }
+
+
 
     canvas.loadFromJSON(
-      layout,
+      canvasData,
       () => {
-        // Check for background image object and send to back
-        const bgObj = canvas.getObjects().find((obj: any) => obj.customType === 'layout-background');
-        if (bgObj) {
-          setHasBgImage(true);
-          bgObj.sendToBack();
-          bgObj.set({
-            selectable: false,
-            evented: !readOnly,
-            hasControls: false,
-            lockRotation: true,
-            lockMovementX: true,
-            lockMovementY: true,
-            hoverCursor: 'default',
-          });
-        } else {
-          setHasBgImage(false);
-        }
-
         if (readOnly) {
+          // Check for background image object and send to back
+          const bgObj = canvas.getObjects().find((obj: any) => obj.customType === 'layout-background');
+          if (bgObj) {
+            setHasBgImage(true);
+            bgObj.sendToBack();
+            bgObj.set({
+              selectable: false,
+              evented: !readOnly,
+              hasControls: false,
+              lockRotation: true,
+              lockMovementX: true,
+              lockMovementY: true,
+              hoverCursor: 'default',
+            });
+          } else {
+            setHasBgImage(false);
+          }
+
           // Label each seat by number if enabled
           if (mergedStyle.showSeatNumbers) {
             canvas.getObjects('circle').forEach((seat: any) => {
@@ -430,57 +485,41 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
             }
           };
           canvas.on('mouse:down', readOnlyMouseDownHandler);
+          canvas.renderAll();
         } else {
-          // Remove any previous read-only handler
+          // Edit Mode - Logic from Toolbar.tsx handleOpenFile
           if (readOnlyMouseDownHandler) {
             canvas.off('mouse:down', readOnlyMouseDownHandler);
           }
-          // Enable selection and make objects selectable in edit mode
-          canvas.selection = true;
-          canvas.getObjects().forEach((obj: any) => {
-            // Keep layout background AND ZONES behavior consistent (Locked by default)
-            if (
-              obj.customType === 'layout-background' ||
-              obj.customType === 'zone' ||
-              obj.type === 'rect' ||
-              obj.type === 'polygon' ||
-              ((obj.type === 'i-text' || obj.type === 'text') && !obj.isRowLabel)
-            ) {
-              obj.set({
-                selectable: false,
-                evented: true,
-                hasControls: false,
-                lockRotation: true,
-                lockMovementX: true,
-                lockMovementY: true,
-                hoverCursor: 'default',
-              });
-              return;
-            }
 
-            obj.selectable = true;
-            obj.evented = true;
+          // Enable selection
+          canvas.selection = true;
+
+          canvas.getObjects().forEach((obj: any) => {
+            if (
+              obj.type === 'circle' ||
+              obj.type === 'rect' ||
+              obj.type === 'i-text'
+            ) {
+              applyCustomStyles(obj);
+              // Force unlock to ensure editability
+              obj.set({
+                selectable: true,
+                evented: true,
+                lockMovementX: false,
+                lockMovementY: false,
+                lockRotation: false,
+              });
+            }
           });
-          // Debug log to check object properties
-          console.log(
-            'Edit mode objects:',
-            canvas.getObjects().map((obj) => ({
-              type: obj.type,
-              selectable: obj.selectable,
-              evented: obj.evented,
-            }))
-          );
+          canvas.renderAll();
+
+          // Minimal state sync for SeatPicker (not present in Toolbar but needed for UI state)
+          const bgObj = canvas.getObjects().find((obj: any) => obj.customType === 'layout-background');
+          if (bgObj) setHasBgImage(true);
+          else setHasBgImage(false);
         }
-        canvas.renderAll();
-      },
-      ((o: any, object: any) => {
-        // Restore all serializable properties
-        SERIALIZABLE_PROPERTIES.forEach((prop) => {
-          if (o[prop] !== undefined) {
-            object[prop] = o[prop];
-          }
-        });
-      }) as any
+      }
     );
 
     // Cleanup: always remove the handler when effect cleans up
@@ -541,15 +580,25 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
 
   // Save handler
   // Save handler
-  const handleSave = () => {
-    if (!canvas || !onSave) return;
+  const handleSave = (json?: CanvasObject) => {
+    if (!onSave) return;
 
-    const json = {
-      type: 'canvas',
-      ...canvas.toJSON(SERIALIZABLE_PROPERTIES),
-    } as unknown as CanvasObject;
+    if (json) {
+      onSave(json);
+      return;
+    }
 
-    onSave(json);
+    if (canvas) {
+      // Fallback for shortcuts or external calls
+      const rows = useEventGuiStore.getState().rows;
+      const canvasJson = {
+        type: 'canvas',
+        rows,
+        categories,
+        ...canvas.toJSON(SERIALIZABLE_PROPERTIES),
+      } as unknown as CanvasObject;
+      onSave(canvasJson);
+    }
   };
 
   // Default seat details modal
@@ -593,6 +642,8 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     }
   };
 
+
+
   useEffect(() => {
     if (!canvas || !categories) return;
 
@@ -608,7 +659,27 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
       const catId = category.toString();
       const newColor = categoryMap.get(catId);
 
-      if (!newColor) return;
+      if (!newColor) {
+        // Category might have been deleted, or seat has invalid category
+        // Only reset if it HAD a category but now doesn't match any
+        if (catId) {
+          if (obj.type === 'circle') {
+            obj.set({ fill: 'transparent', category: null });
+            needsRender = true;
+          } else if (obj.type === 'group') {
+            // handle group reset if needed
+            const group = obj as fabric.Group;
+            const circle = group.getObjects().find((o: any) => o.type === 'circle');
+            if (circle) {
+              circle.set({ fill: 'transparent' });
+              group.set({ category: null });
+              group.addWithUpdate();
+              needsRender = true;
+            }
+          }
+        }
+        return;
+      }
 
       const isAvailable = obj.status === 'available' || !obj.status;
 
@@ -693,6 +764,8 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
                   bgInputRef.current?.click();
                 }
               },
+              categories,
+              onSaveCategories,
             })
           ) : (
             <Toolbar
@@ -706,6 +779,8 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
               }}
               onToggleFullScreen={handleToggleFullScreen}
               isFullScreen={isFullScreen}
+              categories={categories}
+              onSaveCategories={onSaveCategories}
             />
           ))}
 
@@ -743,6 +818,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
         onClose={() => setOpenTicketModal(false)}
         categories={categories || []}
         onSave={(newCategories) => onSaveCategories?.(newCategories)}
+        stats={categoryStats}
       />
     </div>
   );
