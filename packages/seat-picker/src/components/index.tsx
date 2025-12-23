@@ -99,6 +99,10 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   labels = EMPTY_OBJECT,
   categories,
   onSaveCategories,
+  existingSeats,
+  createCategoryUrl,
+  onUploadBackground,
+  renderOverlay,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasParent = useRef<HTMLDivElement>(null);
@@ -169,61 +173,82 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   }), [labels]);
 
   // Handle background image upload
-  const handleBgImageUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (canvas) {
-        // Remove existing background layout if any
-        const existingBg = canvas
-          .getObjects()
-          .find((obj: any) => obj.customType === 'layout-background');
-        if (existingBg) {
-          canvas.remove(existingBg);
+  const handleBgImageUpload = async (file: File) => {
+    let imageUrl: string | null = null;
+
+    if (onUploadBackground) {
+      try {
+        imageUrl = await onUploadBackground(file);
+      } catch (error) {
+        console.error("Values to upload background image:", error);
+      }
+    }
+
+    if (!imageUrl) {
+      // Fallback to local base64 if no upload handler or upload failed
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setCanvasImage(e.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setCanvasImage(imageUrl);
+    }
+  };
+
+  const setCanvasImage = (url: string) => {
+    if (canvas) {
+      // Remove existing background layout if any
+      const existingBg = canvas
+        .getObjects()
+        .find((obj: any) => obj.customType === 'layout-background');
+      if (existingBg) {
+        canvas.remove(existingBg);
+      }
+
+      fabric.Image.fromURL(url, (img) => {
+        img.set({
+          opacity: bgOpacity,
+          selectable: false, // Default locked
+          evented: !readOnly, // Allow events if editable (so we can double click)
+          hasControls: false,
+          lockRotation: true,
+          lockMovementX: true,
+          lockMovementY: true,
+          hoverCursor: 'default',
+          // @ts-ignore
+          customType: 'layout-background',
+        });
+
+        // Calculate scale to fit while maintaining aspect ratio
+        const canvasRatio = canvas.width! / canvas.height!;
+        const imgRatio = img.width! / img.height!;
+
+        let scaleX, scaleY;
+        if (imgRatio > canvasRatio) {
+          // Image is wider than canvas
+          scaleX = canvas.width! / img.width!;
+          scaleY = scaleX;
+        } else {
+          // Image is taller than canvas
+          scaleY = canvas.height! / img.height!;
+          scaleX = scaleY;
         }
 
-        fabric.Image.fromURL(e.target?.result as string, (img) => {
-          img.set({
-            opacity: bgOpacity,
-            selectable: false, // Default locked
-            evented: !readOnly, // Allow events if editable (so we can double click)
-            hasControls: false,
-            lockRotation: true,
-            lockMovementX: true,
-            lockMovementY: true,
-            hoverCursor: 'default',
-            // @ts-ignore
-            customType: 'layout-background',
-          });
+        img.scale(scaleX); // Uniform scaling
 
-          // Calculate scale to fit while maintaining aspect ratio
-          const canvasRatio = canvas.width! / canvas.height!;
-          const imgRatio = img.width! / img.height!;
+        // Center the image
+        img.center();
 
-          let scaleX, scaleY;
-          if (imgRatio > canvasRatio) {
-            // Image is wider than canvas
-            scaleX = canvas.width! / img.width!;
-            scaleY = scaleX;
-          } else {
-            // Image is taller than canvas
-            scaleY = canvas.height! / img.height!;
-            scaleX = scaleY;
-          }
-
-          img.scale(scaleX); // Uniform scaling
-
-          // Center the image
-          img.center();
-
-          canvas.add(img);
-          img.sendToBack();
-          canvas.setActiveObject(img);
-          canvas.renderAll();
-          setHasBgImage(true);
-        });
-      }
-    };
-    reader.readAsDataURL(file);
+        canvas.add(img);
+        img.sendToBack();
+        canvas.setActiveObject(img);
+        canvas.renderAll();
+        setHasBgImage(true);
+      }, { crossOrigin: 'anonymous' } as any);
+    }
   };
 
   // Remove background image
@@ -339,6 +364,40 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     };
   }, [canvas, readOnly]);
 
+  // Handle Ctrl+Scroll Zoom
+  useEffect(() => {
+    if (!canvas) return;
+
+    const handleWheel = (opt: fabric.IEvent) => {
+      const evt = opt.e as WheelEvent;
+      if (evt.ctrlKey) {
+        evt.preventDefault();
+        evt.stopPropagation();
+
+        const delta = evt.deltaY;
+        let newZoom = zoomLevel;
+
+        if (delta > 0) {
+          // Zoom out
+          newZoom = Math.max(zoomLevel - 10, 50);
+        } else {
+          // Zoom in
+          newZoom = Math.min(zoomLevel + 10, 250);
+        }
+
+        if (newZoom !== zoomLevel) {
+          useEventGuiStore.getState().setZoomLevel(newZoom);
+        }
+      }
+    };
+
+    canvas.on('mouse:wheel', handleWheel);
+
+    return () => {
+      canvas.off('mouse:wheel', handleWheel);
+    };
+  }, [canvas, zoomLevel]);
+
   // Handle zoom changes
   useEffect(() => {
     if (!canvas) return;
@@ -402,6 +461,62 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     canvas.loadFromJSON(
       canvasData,
       () => {
+        // Create map if existing seats are provided
+        const seatMap = existingSeats && Array.isArray(existingSeats) && existingSeats.length > 0
+          ? new Map(existingSeats.map(s => [s.canvasSeatId, s]))
+          : null;
+
+        // Create set of valid category IDs from the source of truth (API)
+        const validCategoryIds = new Set(categories.map(c => c.id.toString()));
+        const categoryMap = new Map(categories.map(c => [c.id.toString(), c]));
+
+        canvas.getObjects().forEach((obj: any) => {
+          // Ensure ID exists for ALL objects
+          if (!obj.id) {
+            obj.id = Math.random().toString(36).substr(2, 9);
+          }
+
+          const isSeat = obj.type === 'circle' || obj.customType === 'seat';
+          if (isSeat) {
+            let categoryId = obj.category;
+
+            // 1. Sync with DB Existing Seats (Priority 1: DB State)
+            if (seatMap && seatMap.has(obj.id)) {
+              const dbSeat = seatMap.get(obj.id);
+              categoryId = dbSeat?.ticketCategoryId;
+              obj.status = dbSeat?.status || 'available';
+            }
+
+            // 2. Validate Category against API List (Source of Truth)
+            // If the resulting categoryId (from DB or JSON) is not in valid list, clear it.
+            if (categoryId && !validCategoryIds.has(categoryId.toString())) {
+              categoryId = null;
+              obj.status = 'available'; // Reset status if category is invalid
+            }
+
+            // Apply validated properties
+            obj.category = categoryId;
+            if (obj.attributes) {
+              obj.attributes.category = categoryId;
+              obj.attributes.status = obj.status;
+            }
+
+            // 3. Apply Visuals (Color)
+            if (categoryId && categoryMap.has(categoryId.toString())) {
+              const cat = categoryMap.get(categoryId.toString());
+              if (cat) {
+                obj.set('fill', cat.color);
+                obj.set('stroke', cat.color); // Optional: sync stroke? Usually fill is enough.
+              }
+            } else {
+              // No category or Invalid category -> Transparent/Default
+              obj.set('fill', 'transparent');
+            }
+          }
+        });
+
+        canvas.renderAll();
+
         if (readOnly) {
           // Check for background image object and send to back
           const bgObj = canvas.getObjects().find((obj: any) => obj.customType === 'layout-background');
@@ -488,9 +603,6 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
           canvas.renderAll();
         } else {
           // Edit Mode - Logic from Toolbar.tsx handleOpenFile
-          if (readOnlyMouseDownHandler) {
-            canvas.off('mouse:down', readOnlyMouseDownHandler);
-          }
 
           // Enable selection
           canvas.selection = true;
@@ -522,13 +634,12 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
       }
     );
 
-    // Cleanup: always remove the handler when effect cleans up
     return () => {
       if (readOnlyMouseDownHandler) {
         canvas.off('mouse:down', readOnlyMouseDownHandler);
       }
     };
-  }, [canvas, layout, readOnly, mergedStyle, onSeatClick]);
+  }, [canvas, layout, readOnly, mergedStyle, onSeatClick, categories]);
 
   useEffect(() => {
     if (!canvas || readOnly) return;
@@ -589,13 +700,21 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     }
 
     if (canvas) {
+      // Ensure all objects have IDs before export
+      canvas.getObjects().forEach((obj: any) => {
+        if (!obj.id) {
+          obj.id = Math.random().toString(36).substr(2, 9);
+        }
+      });
+
       // Fallback for shortcuts or external calls
       const rows = useEventGuiStore.getState().rows;
+      const fabricJson = canvas.toJSON(SERIALIZABLE_PROPERTIES);
       const canvasJson = {
         type: 'canvas',
         rows,
         categories,
-        ...canvas.toJSON(SERIALIZABLE_PROPERTIES),
+        canvas: fabricJson,
       } as unknown as CanvasObject;
       onSave(canvasJson);
     }
@@ -672,7 +791,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
             const circle = group.getObjects().find((o: any) => o.type === 'circle');
             if (circle) {
               circle.set({ fill: 'transparent' });
-              group.set({ category: null });
+              (group as any).set({ category: null });
               group.addWithUpdate();
               needsRender = true;
             }
@@ -723,6 +842,9 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
           }
         }}
       />
+
+      {/* Overlay for Full Screen (e.g. Notifications) */}
+      {renderOverlay && renderOverlay({ isFullScreen })}
 
       {/* Left Sidebar (Hardcoded) - Now at top level */}
       {!readOnly && (
@@ -819,6 +941,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
         categories={categories || []}
         onSave={(newCategories) => onSaveCategories?.(newCategories)}
         stats={categoryStats}
+        createCategoryUrl={createCategoryUrl}
       />
     </div>
   );

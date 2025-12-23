@@ -12,9 +12,10 @@ interface TicketCategoryModalProps {
     categories: TicketCategory[];
     onSave: (categories: TicketCategory[]) => void;
     stats?: Record<number, CategoryStats>;
+    createCategoryUrl?: string;
 }
 
-export function TicketCategoryModal({ open, onClose, categories: initialCategories, onSave, stats }: TicketCategoryModalProps) {
+export function TicketCategoryModal({ open, onClose, categories: initialCategories, onSave, stats, createCategoryUrl }: TicketCategoryModalProps) {
     const [categories, setCategories] = React.useState<TicketCategory[]>(initialCategories);
 
     React.useEffect(() => {
@@ -55,44 +56,60 @@ export function TicketCategoryModal({ open, onClose, categories: initialCategori
             open={open}
             onClose={onClose}
             title="Hạng mục vé"
-            footer={footer}
+            footer={categories.length > 0 ? footer : undefined}
         >
             <div className="border-t border-gray-200 pt-0">
-                <ul className="divide-y divide-gray-100">
-                    {categories.map((category) => {
-                        const catStats = stats?.[category.id];
-                        return (
-                            <li key={category.id} className="relative py-3 flex items-center justify-between gap-4">
-                                <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-gray-700 min-w-[120px]">{category.name}</span>
-                                    {catStats && (
-                                        <div className="text-xs text-gray-500 mt-1 flex gap-2">
-                                            <span>Tổng: {catStats.total}</span>
-                                            <span>• Đã đặt: {catStats.booked}</span>
-                                            <span>• Đang chờ: {catStats.pending}</span>
-                                            <span>• Bị khóa: {catStats.locked}</span>
-                                        </div>
-                                    )}
-                                </div>
+                {categories.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center px-4">
+                        <p className="text-sm text-gray-500 mb-4">
+                            Suất diễn này chưa có hạng vé nào, vui lòng tạo hạng vé trước, sau đó khởi tạo sơ đồ.
+                        </p>
+                        {createCategoryUrl && (
+                            <a
+                                href={createCategoryUrl}
+                                className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                            >
+                                Khởi tạo ngay
+                            </a>
+                        )}
+                    </div>
+                ) : (
+                    <ul className="divide-y divide-gray-100">
+                        {categories.map((category) => {
+                            const catStats = stats?.[category.id];
+                            return (
+                                <li key={category.id} className="relative py-3 flex items-center justify-between gap-4">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium text-gray-700 min-w-[120px]">{category.name}</span>
+                                        {catStats && (
+                                            <div className="text-xs text-gray-500 mt-1 flex gap-2">
+                                                <span>Tổng: {catStats.total}</span>
+                                                <span>• Đã đặt: {catStats.booked}</span>
+                                                <span>• Đang chờ: {catStats.pending}</span>
+                                                <span>• Bị khóa: {catStats.locked}</span>
+                                            </div>
+                                        )}
+                                    </div>
 
-                                <div className="flex items-center flex-1 justify-end">
-                                    <input
-                                        type="color"
-                                        value={category.color}
-                                        onChange={(e) => handleColorChange(category.id, e.target.value)}
-                                        className="h-8 w-8 rounded-md bg-transparent cursor-pointer"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={category.color.toUpperCase()}
-                                        onChange={(e) => handleColorChange(category.id, e.target.value)}
-                                        className="ml-2 w-24 text-sm rounded-md border border-solid border-gray-200 px-2 py-1 shadow-sm uppercase"
-                                    />
-                                </div>
-                            </li>
-                        );
-                    })}
-                </ul>
+                                    <div className="flex items-center flex-1 justify-end">
+                                        <input
+                                            type="color"
+                                            value={category.color}
+                                            onChange={(e) => handleColorChange(category.id, e.target.value)}
+                                            className="h-8 w-8 rounded-md bg-transparent cursor-pointer"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={category.color.toUpperCase()}
+                                            onChange={(e) => handleColorChange(category.id, e.target.value)}
+                                            className="ml-2 w-24 text-sm rounded-md border border-solid border-gray-200 px-2 py-1 shadow-sm uppercase"
+                                        />
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                )}
             </div>
         </Modal>
     );

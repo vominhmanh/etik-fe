@@ -151,6 +151,10 @@ export interface SeatCanvasProps {
   };
   categories?: TicketCategory[];
   onSaveCategories?: (categories: TicketCategory[]) => void;
+  existingSeats?: ShowSeat[];
+  createCategoryUrl?: string;
+  onUploadBackground?: (file: File) => Promise<string | null>;
+  renderOverlay?: (props: { isFullScreen: boolean }) => React.ReactNode;
 }
 
 export interface SeatData {
@@ -167,4 +171,13 @@ export interface ZoneData {
   name?: string;
   description?: string;
   [key: string]: any; // Allow custom properties
+}
+
+export interface ShowSeat {
+  id: number;
+  canvasSeatId: string;
+  rowLabel: string | null;
+  seatNumber: string | null;
+  ticketCategoryId: number | null;
+  status: 'available' | 'held' | 'sold' | 'blocked';
 }

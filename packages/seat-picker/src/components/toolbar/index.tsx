@@ -177,20 +177,89 @@ const Toolbar: React.FC<ToolbarProps> = ({
       }
 
       // Handle extended JSON with categories
-      if (json.categories && Array.isArray(json.categories) && onSaveCategories) {
-        onSaveCategories(json.categories);
+      // Merge Strategy: API IDs are source of truth, but JSON Colors take priority.
+      let mergedCategories = [...(categories || [])];
+
+      if (json.categories && Array.isArray(json.categories)) {
+        const jsonColorMap = new Map(json.categories.map((c: any) => [c.id.toString(), c.color]));
+
+        mergedCategories = mergedCategories.map(cat => {
+          if (jsonColorMap.has(cat.id.toString())) {
+            return { ...cat, color: jsonColorMap.get(cat.id.toString()) };
+          }
+          return cat;
+        });
+
+        if (onSaveCategories) {
+          onSaveCategories(mergedCategories);
+        }
       }
 
       canvas.loadFromJSON(canvasData, () => {
-        canvas.getObjects().forEach((obj) => {
+        const validCategoryIds = new Set(mergedCategories.map((c: any) => c.id.toString()));
+        const categoryMap = new Map(mergedCategories.map((c: any) => [c.id.toString(), c]));
+
+        const validateObject = (obj: any) => {
+          console.log(`DEBUG: Visiting object ${obj.type} ${obj.id}`);
+          // Normalize ID
+          if (!obj.id) obj.id = Math.random().toString(36).substr(2, 9);
+
+          // Recursive handling for groups
+          if (obj.type === 'group' && obj.getObjects) {
+            console.log('DEBUG: Recursing into Group', obj.id);
+            obj.getObjects().forEach((child: any) => validateObject(child));
+            obj.dirty = true; // Mark group as dirty
+            return;
+          }
+
+          // Check for seat types
+          const isSeat = obj.type === 'circle' || obj.customType === 'seat';
+          if (isSeat) {
+            const categoryId = obj.category?.toString();
+
+            if (categoryId && validCategoryIds.has(categoryId)) {
+              // Valid category -> Ensure color sync
+              const cat = categoryMap.get(categoryId);
+              if (cat && cat.color) {
+                obj.set('fill', cat.color);
+                obj.set('stroke', cat.color);
+                obj.dirty = true;
+              }
+            } else {
+              // Invalid OR Missing Category -> Clear & Transparent
+              // This strips "zombie colors" from seats that have no valid category.
+              obj.category = null;
+              obj.status = 'available';
+              if (obj.attributes) {
+                obj.attributes.category = null;
+                obj.attributes.status = 'available';
+              }
+              obj.set('fill', 'transparent');
+
+              // Keep stroke consistent (e.g. black or dark gray for available seats) if needed, 
+              // or just leave it if it's already correct. 
+              // Using 'transparent' fill usually requires a visible stroke.
+              // Assuming existing stroke is fine, or forcing a default:
+              // obj.set('stroke', '#333'); 
+
+              obj.dirty = true;
+            }
+          }
+
           if (
             obj.type === 'circle' ||
             obj.type === 'rect' ||
-            obj.type === 'i-text'
+            obj.type === 'i-text' ||
+            obj.customType === 'seat'
           ) {
             applyCustomStyles(obj);
           }
+        };
+
+        canvas.getObjects().forEach((obj: any) => {
+          validateObject(obj);
         });
+
         canvas.renderAll();
         setShowOpenModal(false);
         setOpenFile(null);
@@ -209,7 +278,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   };
 
   const handleZoomIn = () => {
-    setZoomLevel(Math.min(zoomLevel + 10, 200)); // Max zoom 200%
+    setZoomLevel(Math.min(zoomLevel + 10, 250)); // Max zoom 250%
   };
 
   const handleZoomOut = () => {
@@ -220,16 +289,17 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const buttonGroups = [
     [
       {
-        icon: LuFolderOpen,
-        tooltip: 'Open File',
-        onClick: () => setShowOpenModal(true),
-        state: false,
-      },
-      {
         icon: LuSave,
         tooltip: 'Save',
         onClick: () => {
           if (canvas && onSave) {
+            // Ensure all objects have IDs before export
+            canvas.getObjects().forEach((obj: any) => {
+              if (!obj.id) {
+                obj.id = Math.random().toString(36).substr(2, 9);
+              }
+            });
+
             const canvasJson = canvas.toJSON([
               'customType',
               'seatData',
@@ -263,6 +333,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
             onSave(json);
           }
         },
+        state: false,
+      },
+    ],
+    [
+      {
+        icon: LuFolderOpen,
+        tooltip: 'Open File',
+        onClick: () => setShowOpenModal(true),
         state: false,
       },
       {
