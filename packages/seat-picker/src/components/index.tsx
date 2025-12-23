@@ -158,11 +158,11 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     ...style,
     seatNumberStyle: {
       ...defaultStyle.seatNumberStyle,
-      ...style.seatNumberStyle,
+      ...(style as any).seatNumberStyle,
     },
     seatStyle: {
       ...defaultStyle.seatStyle,
-      ...style.seatStyle,
+      ...(style as any).seatStyle,
     },
   }), [style]);
 
@@ -467,8 +467,8 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
           : null;
 
         // Create set of valid category IDs from the source of truth (API)
-        const validCategoryIds = new Set(categories.map(c => c.id.toString()));
-        const categoryMap = new Map(categories.map(c => [c.id.toString(), c]));
+        const validCategoryIds = new Set((categories || []).map(c => c.id.toString()));
+        const categoryMap = new Map((categories || []).map(c => [c.id.toString(), c]));
 
         canvas.getObjects().forEach((obj: any) => {
           // Ensure ID exists for ALL objects
