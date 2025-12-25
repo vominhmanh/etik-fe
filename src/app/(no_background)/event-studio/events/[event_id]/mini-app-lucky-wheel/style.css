@@ -1,0 +1,407 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+      Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .wheel-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(
+      90deg,
+      #cfa120 0%,
+      #fbed7d 49.99%,
+      #cf9f20 99.98%
+    );
+    position: relative;
+  
+    & .spin-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      z-index: +9;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      transform: translate(-50%, -50%);
+      background: white;
+      color: #333;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+    }
+  }
+  
+  .custom-pointer {
+    position: absolute;
+    top: calc(50% - 12px);
+    left: 50%;
+    z-index: +10;
+    transform: translate(calc(-50% - 2.5px), -100%);
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-bottom: 30px solid white; /* Custom color for pointer */
+  }
+
+  /* User bar */
+  .lw-user-bar {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    z-index: 20;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    border-radius: 14px;
+    padding: 10px 12px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .lw-user-bar-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+  }
+
+  .lw-user-name {
+    font-weight: 800;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70vw;
+  }
+
+  .lw-user-spins {
+    font-weight: 700;
+    color: #165FA9;
+  }
+
+  .lw-user-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .lw-history-button {
+    border: none;
+    background: #165FA9;
+    color: #fff;
+    font-weight: 800;
+    padding: 10px 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(22, 95, 169, 0.25);
+  }
+
+  .lw-history-button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .lw-logout-button {
+    border: none;
+    background: #DC0836;
+    color: #fff;
+    font-weight: 800;
+    padding: 10px 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(220, 8, 54, 0.3);
+  }
+
+  .lw-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .lw-history-table th,
+  .lw-history-table td {
+    border-bottom: 1px solid #eee;
+    padding: 10px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .lw-history-table th {
+    font-weight: 800;
+    color: #333;
+    background: rgba(22, 95, 169, 0.06);
+  }
+
+  .lw-logout-button:hover {
+    filter: brightness(0.95);
+  }
+
+  /* Register Modal Styles */
+  .register-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.25s ease-in-out;
+  }
+
+  .register-modal-content {
+    background: #fff;
+    border-radius: 20px;
+    padding: 22px 22px 18px;
+    width: min(520px, 92vw);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  }
+
+  .register-modal-header h2 {
+    margin: 0 0 14px 0;
+    font-size: 22px;
+    color: #333;
+  }
+
+  .register-modal-body {
+    display: grid;
+    gap: 8px;
+  }
+
+  .register-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #444;
+    margin-top: 6px;
+  }
+
+  .register-input {
+    border: 1px solid #e3e3e3;
+    border-radius: 12px;
+    padding: 12px 12px;
+    outline: none;
+    font-size: 14px;
+  }
+
+  .register-input:focus {
+    border-color: #165FA9;
+    box-shadow: 0 0 0 3px rgba(22, 95, 169, 0.15);
+  }
+
+  .register-error {
+    margin-top: 10px;
+    background: rgba(220, 8, 54, 0.08);
+    color: #DC0836;
+    border: 1px solid rgba(220, 8, 54, 0.25);
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-weight: 700;
+  }
+
+  .register-modal-footer {
+    margin-top: 14px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .register-spin-button {
+    border: none;
+    background: #165FA9;
+    color: #fff;
+    font-weight: 800;
+    padding: 12px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 10px 22px rgba(22, 95, 169, 0.28);
+  }
+
+  .register-spin-button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* Congratulation Modal Styles */
+  .congrats-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .congrats-modal-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 24px;
+    padding: 40px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.4s ease-out;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .congrats-modal-content::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    animation: rotate 3s linear infinite;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(50px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .congrats-modal-header {
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .congrats-title {
+    font-size: 42px;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    animation: bounce 1s ease-in-out infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+
+  .congrats-modal-body {
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .congrats-prize-image {
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .congrats-prize-image img {
+    width: 200px;
+    height: 200px;
+    object-fit: contain;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .congrats-prize-name {
+    font-size: 32px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    line-height: 1.3;
+    word-wrap: break-word;
+  }
+
+  .congrats-modal-footer {
+    margin-top: 32px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .congrats-close-button {
+    background: #ffffff;
+    color: #667eea;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 32px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .congrats-close-button:hover {
+    background: #f0f0f0;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .congrats-close-button:active {
+    transform: translateY(0);
+  }
+  

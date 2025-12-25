@@ -363,6 +363,14 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               icon={SpinnerBall}
               onClose={onClose}
             />
+            <NavItemCollapseChildItem
+              pathname={normalizedPathname}
+              key="email-template-4"
+              title="Lucky Wheel"
+              href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-wheel`}
+              icon={SpinnerBall}
+              onClose={onClose}
+            />
 
           </NavItemCollapse>
         </Stack>

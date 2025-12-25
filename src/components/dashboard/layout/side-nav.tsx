@@ -374,6 +374,13 @@ export function SideNav(): React.JSX.Element {
                 href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-draw`}
                 icon={SpinnerBall}
               />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="email-template-4"
+                title="Lucky wheel"
+                href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-wheel`}
+                icon={SpinnerBall}
+              />
 
             </NavItemCollapse>
           </Stack>
