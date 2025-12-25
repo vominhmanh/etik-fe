@@ -108,9 +108,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
       'category',
       'status',
       'price',
-      'currencySymbol',
-      'currencyCode',
-      'currencyCountry',
       'hasTooltip',
       'seatData',
       'zoneData',
@@ -318,9 +315,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
               'category',
               'status',
               'price',
-              'currencySymbol',
-              'currencyCode',
-              'currencyCountry',
               'hasTooltip',
             ]);
 

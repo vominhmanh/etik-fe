@@ -7,17 +7,13 @@ declare module 'fabric/fabric-impl' {
       price?: string | number;
       category?: string;
       status?: string;
-      currencySymbol?: string;
-      currencyCode?: string;
-      currencyCountry?: string;
+
     };
     seatNumber?: string | number;
     price?: string | number;
     category?: string;
     status?: string;
-    currencySymbol?: string;
-    currencyCode?: string;
-    currencyCountry?: string;
+
   }
 }
 
@@ -31,11 +27,6 @@ fabric.Circle.prototype.toObject = (function (toObject) {
         price: this.attributes?.price ?? this.price ?? '',
         category: this.attributes?.category ?? this.category ?? '',
         status: this.attributes?.status ?? this.status ?? '',
-        currencySymbol:
-          this.attributes?.currencySymbol ?? this.currencySymbol ?? '',
-        currencyCode: this.attributes?.currencyCode ?? this.currencyCode ?? '',
-        currencyCountry:
-          this.attributes?.currencyCountry ?? this.currencyCountry ?? '',
       },
     };
   };
@@ -54,9 +45,6 @@ fabric.Circle.prototype.initialize = function (
     this.price = options.attributes.price;
     this.category = options.attributes.category;
     this.status = options.attributes.status;
-    this.currencySymbol = options.attributes.currencySymbol;
-    this.currencyCode = options.attributes.currencyCode;
-    this.currencyCountry = options.attributes.currencyCountry;
   }
   return this;
 };

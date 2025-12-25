@@ -2,6 +2,9 @@
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Avatar,
   Box,
   Checkbox,
@@ -9,6 +12,9 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Step,
+  StepButton,
+  Stepper,
   FormControlLabel,
   FormGroup,
   IconButton,
@@ -31,7 +37,9 @@ import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
+import { alpha } from '@mui/material/styles';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
+import { ShoppingCart as ShoppingCartIcon } from '@phosphor-icons/react/dist/ssr/ShoppingCart';
 import { AxiosResponse } from 'axios';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -45,12 +53,16 @@ import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
-import { DotsThreeOutlineVertical, Pencil } from '@phosphor-icons/react/dist/ssr';
+import { CaretDown, DotsThreeOutlineVertical, Pencil } from '@phosphor-icons/react/dist/ssr';
 import { Plus } from '@phosphor-icons/react/dist/ssr';
 import { X } from '@phosphor-icons/react/dist/ssr';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone } from '@/config/phone-countries';
 import dayjs from 'dayjs';
 import { calculateVoucherDiscount } from '@/utils/voucher-discount';
+import { Step1SelectTickets } from './step-1-select-tickets';
+import { Step2Info } from './step-2-info';
+import { Step3Payment } from './step-3-payment';
+import { Step4Review } from './step-4-review';
 
 export type TicketCategory = {
   id: number;
@@ -74,6 +86,8 @@ export type Show = {
   status: string;
   type: string;
   disabled: boolean;
+  seatmapMode?: 'no_seatmap' | 'seatings_selection' | 'ticket_categories_selection' | string;
+  layoutJson?: any;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
   ticketCategories: TicketCategory[];
@@ -94,15 +108,15 @@ export type EventResponse = {
   shows: Show[];
   checkoutFormFields: CheckoutRuntimeField[];
 };
-type TicketHolderInfo = { title: string; name: string; email: string; phone: string; phoneCountryIso2?: string; avatar?: string };
+export type TicketHolderInfo = { title: string; name: string; email: string; phone: string; phoneCountryIso2?: string; avatar?: string };
 
-type CheckoutRuntimeFieldOption = {
+export type CheckoutRuntimeFieldOption = {
   value: string;
   label: string;
   sortOrder: number;
 };
 
-type CheckoutRuntimeField = {
+export type CheckoutRuntimeField = {
   internalName: string;
   label: string;
   fieldType: string;
@@ -130,8 +144,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   React.useEffect(() => {
     document.title = tt("Tạo đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện", "Create Order | ETIK - E-tickets & Event Management");
   }, [tt]);
-  const [qrOption, setQrOption] = React.useState<string>("shared");
-  const [requireTicketHolderInfo, setRequireTicketHolderInfo] = React.useState<boolean>(false);
+  const [activeStep, setActiveStep] = React.useState<number>(0);
+  const stepLabels = React.useMemo(
+    () => [
+      tt('Chọn vé', 'Select tickets'),
+      tt('Thông tin', 'Information'),
+      tt('Thanh toán', 'Payment'),
+      tt('Xem lại đơn', 'Review'),
+    ],
+    [tt]
+  );
+  // Always-on options (was previously toggleable via "Additional options" card)
+  const qrOption: 'shared' | 'separate' = 'separate';
+  const requireTicketHolderInfo: boolean = true;
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
   const [extraFee, setExtraFee] = React.useState<number>(0);
@@ -154,13 +179,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [selectedSchedules, setSelectedSchedules] = React.useState<Show[]>([]);
+  const [activeScheduleId, setActiveScheduleId] = React.useState<number | null>(null);
   const [ticketHolderEditted, setTicketHolderEditted] = React.useState<boolean>(false);
-  const [confirmOpen, setConfirmOpen] = React.useState<boolean>(false);
   const [requestedCategoryModalId, setRequestedCategoryModalId] = React.useState<number | null>(null);
   const [ticketHoldersByCategory, setTicketHoldersByCategory] = React.useState<Record<string, TicketHolderInfo[]>>({});
-  const [requireGuestAvatar, setRequireGuestAvatar] = React.useState<boolean>(false);
+  const requireGuestAvatar: boolean = true;
   const [pendingCustomerAvatarFile, setPendingCustomerAvatarFile] = React.useState<File | null>(null);
   const [pendingHolderAvatarFiles, setPendingHolderAvatarFiles] = React.useState<Record<string, File>>({});
+  const [cartOpen, setCartOpen] = React.useState<boolean>(false);
 
   const [checkoutFormFields, setCheckoutFormFields] = React.useState<CheckoutRuntimeField[]>([]);
   const [checkoutCustomAnswers, setCheckoutCustomAnswers] = React.useState<Record<string, any>>({});
@@ -321,6 +347,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleSelectionChange = (selected: Show[]) => {
     setSelectedSchedules(selected);
+
+    // If the active schedule gets unselected, clear active (no fallback to other schedules)
+    if (activeScheduleId !== null && !selected.some((s) => s.id === activeScheduleId)) {
+      setActiveScheduleId(null);
+    }
+
     const tmpObj: Record<number, Record<number, number>> = {}
     selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || {} })
     setSelectedCategories(tmpObj);
@@ -337,6 +369,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       return next;
     });
   };
+
+  const activeSchedule = React.useMemo(() => {
+    if (!activeScheduleId) return null;
+    return selectedSchedules.find((s) => s.id === activeScheduleId) || null;
+  }, [selectedSchedules, activeScheduleId]);
 
   const handleExtraFeeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value.replace(/\D/g, ''); // Remove non-digit characters
@@ -578,6 +615,30 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   }, [validateVoucher, notificationCtx, tt]);
 
+  const validateVoucherByApi = React.useCallback(async (code: string) => {
+    try {
+      const response = await baseHttpServiceInstance.get(
+        `/event-studio/events/${params.event_id}/voucher-campaigns/validate-voucher`,
+        { params: { code: code.trim() } }
+      );
+      return response.data || null;
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.detail || error?.message || tt('Mã khuyến mãi không hợp lệ', 'Invalid discount code');
+      notificationCtx.error(errorMessage);
+      return null;
+    }
+  }, [params.event_id, notificationCtx, tt]);
+
+  const openVoucherDetail = React.useCallback((voucher: any) => {
+    setSelectedVoucherForDetail(voucher);
+    setVoucherDetailModalOpen(true);
+  }, []);
+
+  const removeAppliedVoucher = React.useCallback(() => {
+    setAppliedVoucher(null);
+    notificationCtx.info(tt('Đã xóa mã khuyến mãi', 'Removed discount code'));
+  }, [notificationCtx, tt]);
+
   const handleCreateClick = () => {
     if (ticketQuantity <= 0) {
       notificationCtx.warning(tt('Vui lòng điền đầy đủ các thông tin bắt buộc', 'Please fill in all required information'));
@@ -669,7 +730,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           }
           if (invalid) {
             notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự cho từng vé.', 'Please fill in information for each ticket holder.'));
-            setRequestedCategoryModalId(categoryId);
+            setActiveStep(2);
             return;
           }
         }
@@ -687,24 +748,24 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           const holders = ticketHoldersByCategory[key] || [];
           if (holders.length < quantity) {
             notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự cho từng vé.', 'Please fill in information for each ticket holder.'));
-            setRequestedCategoryModalId(categoryId);
+            setActiveStep(2);
             return;
           }
           for (let i = 0; i < quantity; i++) {
             const h = holders[i];
             if (!h || !h.title || !h.name) {
               notificationCtx.warning(tt('Vui lòng điền đủ tên cho từng vé.', 'Please fill in name for each ticket holder.'));
-              setRequestedCategoryModalId(categoryId);
+              setActiveStep(2);
               return;
             }
             if (!h.email) {
               notificationCtx.warning(tt('Vui lòng điền đủ email cho từng vé khi sử dụng mã QR riêng.', 'Please fill in email for each ticket holder when using separate QR codes.'));
-              setRequestedCategoryModalId(categoryId);
+              setActiveStep(2);
               return;
             }
             if (!h.phone) {
               notificationCtx.warning(tt('Vui lòng điền đủ số điện thoại cho từng vé khi sử dụng mã QR riêng.', 'Please fill in phone number for each ticket holder when using separate QR codes.'));
-              setRequestedCategoryModalId(categoryId);
+              setActiveStep(2);
               return;
             }
           }
@@ -712,7 +773,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       }
     }
 
-    setConfirmOpen(true);
+    setActiveStep(3);
   };
 
   const handleSubmit = async () => {
@@ -733,9 +794,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               }
             }
             if (invalid) {
-              setConfirmOpen(false);
               notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự cho từng vé.', 'Please fill in information for each ticket holder.'));
-              setRequestedCategoryModalId(categoryId);
+              setActiveStep(2);
               return;
             }
           }
@@ -752,29 +812,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             const key = `${showId}-${categoryId}`;
             const holders = ticketHoldersByCategory[key] || [];
             if (holders.length < quantity) {
-              setConfirmOpen(false);
               notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự cho từng vé.', 'Please fill in information for each ticket holder.'));
-              setRequestedCategoryModalId(categoryId);
+              setActiveStep(2);
               return;
             }
             for (let i = 0; i < quantity; i++) {
               const h = holders[i];
               if (!h || !h.title || !h.name) {
-                setConfirmOpen(false);
                 notificationCtx.warning(tt('Vui lòng điền đủ tên cho từng vé.', 'Please fill in name for each ticket holder.'));
-                setRequestedCategoryModalId(categoryId);
+                setActiveStep(2);
                 return;
               }
               if (!h.email) {
-                setConfirmOpen(false);
                 notificationCtx.warning(tt('Vui lòng điền đủ email cho từng vé khi sử dụng mã QR riêng.', 'Please fill in email for each ticket holder when using separate QR codes.'));
-                setRequestedCategoryModalId(categoryId);
+                setActiveStep(2);
                 return;
               }
               if (!h.phone) {
-                setConfirmOpen(false);
                 notificationCtx.warning(tt('Vui lòng điền đủ số điện thoại cho từng vé khi sử dụng mã QR riêng.', 'Please fill in phone number for each ticket holder when using separate QR codes.'));
-                setRequestedCategoryModalId(categoryId);
+                setActiveStep(21);
                 return;
               }
             }
@@ -782,7 +838,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         }
       }
 
-      setConfirmOpen(false);
       setIsLoading(true);
 
       // Upload customer avatar to S3 if pending and requireGuestAvatar is true
@@ -817,12 +872,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             const fileKey = `${showId}-${categoryIdStr}-${index}`;
             const holderData: any = { ...h };
 
-            // Only include avatar if requireGuestAvatar is true
-            if (requireGuestAvatar && holderAvatarUrls[fileKey]) {
+            // requireGuestAvatar is always true (see always-on options above)
+            if (holderAvatarUrls[fileKey]) {
               holderData.avatar = holderAvatarUrls[fileKey];
-            } else if (!requireGuestAvatar) {
-              // Remove avatar field if not required
-              delete holderData.avatar;
             }
 
             // Convert phoneCountryIso2 to phoneCountry and phoneNationalNumber
@@ -839,20 +891,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             return holderData;
           });
 
-          // Send holders based on requireTicketHolderInfo or qrOption
-          let holdersToSend = undefined;
-          if (qrOption === 'separate') {
-            // For separate QR, always send holders with email and phone
-            holdersToSend = holdersWithS3Urls;
-          } else if (requireTicketHolderInfo) {
-            // For requireTicketHolderInfo, send holders but without email/phone (will use customer's)
-            holdersToSend = holdersWithS3Urls.map(h => ({
-              title: h.title,
-              name: h.name,
-              avatar: h.avatar,
-              // Don't include email and phone - will use customer's
-            }));
-          }
+          // qrOption is always 'separate' (see always-on options above)
+          const holdersToSend = holdersWithS3Urls;
 
           return {
             showId: parseInt(showId),
@@ -941,1335 +981,435 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }, 0);
   }, [selectedCategories]);
 
-  return (
-    <Stack spacing={3}>
-      <Backdrop
-        open={isLoading}
-        sx={{
-          color: '#fff',
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          marginLeft: '0px !important',
-        }}
-      >
-        <CircularProgress color="inherit" />
-      </Backdrop>
-      <Stack direction="row" spacing={3}>
-        <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">{tt("Tạo đơn hàng mới", "Create New Order")}</Typography>
-        </Stack>
-      </Stack>
-      <Grid container spacing={3}>
-        <Grid lg={4} md={6} xs={12}>
-          <Stack spacing={3}>
-            <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
-            {selectedSchedules && selectedSchedules.map(show => (
-              <TicketCategories
-                key={show.id}
-                show={show}
-                qrOption={qrOption}
-                requireTicketHolderInfo={requireTicketHolderInfo}
-                requestedCategoryModalId={requestedCategoryModalId || undefined}
-                onModalRequestHandled={() => setRequestedCategoryModalId(null)}
-                onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
-                onAddToCart={(categoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; }[]) => handleAddToCartQuantity(show.id, categoryId, quantity, holders)}
-              />
-            ))}
+  const paymentMethodLabel = React.useMemo(() => getPaymentMethodLabel(paymentMethod, tt), [paymentMethod, tt]);
+
+  // Wizard UI (4 steps). Keep the legacy JSX below for now, but don't render it anymore.
+  const useWizardStepper = true as const;
+  if (useWizardStepper) {
+    return (
+      <>
+        <Backdrop
+          open={isLoading}
+          sx={{
+            color: '#fff',
+            zIndex: (theme) => theme.zIndex.drawer + 1,
+            marginLeft: '0px !important',
+          }}
+        >
+          <CircularProgress color="inherit" />
+        </Backdrop>
+
+        <Stack spacing={3}>
+          <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
+            <Typography variant="h4">{tt("Tạo đơn hàng mới", "Create New Order")}</Typography>
           </Stack>
-        </Grid>
-        <Grid lg={8} md={6} xs={12}>
-          <Stack spacing={3}>
-            {/* Customer Information Card */}
-            <Card>
-              <CardHeader
-                subheader={tt("Vui lòng điền các trường thông tin phía dưới.", "Please fill in the information fields below.")}
-                title={tt("Thông tin người mua", "Buyer Information")}
-                action={
-                  <>
-                    <IconButton onClick={handleOpenFormMenu}>
-                      <DotsThreeOutlineVertical />
-                    </IconButton>
-                    <Menu
-                      anchorEl={formMenuAnchorEl}
-                      open={Boolean(formMenuAnchorEl)}
-                      onClose={handleCloseFormMenu}
-                      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                      transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                    >
-                      <MenuItem onClick={handleCloseFormMenu}>
-                        <LocalizedLink
-                          style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
-                          href={`/event-studio/events/${params.event_id}/etik-forms/checkout-form?back_to=/event-studio/events/${params.event_id}/transactions/create`}
-                        >
-                          {tt("Thêm câu hỏi vào biểu mẫu này", "Add questions to this form")}
-                        </LocalizedLink>
-                      </MenuItem>
-                    </Menu>
-                  </>
-                }
-              />
-              <Divider />
-              <CardContent>
-                <Grid container spacing={3}>
-                  <Grid lg={4} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel htmlFor="customer-name">{tt("Danh xưng* &emsp; Họ và tên", "Title* &emsp; Full Name")}</InputLabel>
-                      <OutlinedInput
-                        id="customer-name"
-                        label={tt("Danh xưng* &emsp; Họ và tên", "Title* &emsp; Full Name")}
-                        name="customer_name"
-                        value={customer.name}
-                        onChange={(e) => {
-                          !ticketHolderEditted && ticketHolders.length > 0 &&
-                            setTicketHolders((prev) => {
-                              const updatedHolders = [...prev];
-                              const current = updatedHolders[0] || { title: 'Bạn', name: '', email: '', phone: '', avatar: '' };
-                              updatedHolders[0] = { ...current, name: e.target.value };
-                              return updatedHolders;
-                            });
-                          setCustomer({ ...customer, name: e.target.value });
-                        }}
-                        startAdornment={
-                          <InputAdornment position="start">
-                            <Select
-                              variant="standard"
-                              disableUnderline
-                              value={customer.title || defaultTitle}
-                              onChange={(e) =>
-                                setCustomer({ ...customer, title: e.target.value })
-                              }
-                              sx={{ minWidth: 65 }} // chiều rộng tối thiểu để gọn
-                            >
-                              <MenuItem value="Anh">Anh</MenuItem>
-                              <MenuItem value="Chị">Chị</MenuItem>
-                              <MenuItem value="Bạn">Bạn</MenuItem>
-                              <MenuItem value="Em">Em</MenuItem>
-                              <MenuItem value="Ông">Ông</MenuItem>
-                              <MenuItem value="Bà">Bà</MenuItem>
-                              <MenuItem value="Cô">Cô</MenuItem>
-                              <MenuItem value="Thầy">Thầy</MenuItem>
-                              <MenuItem value="Mr.">Mr.</MenuItem>
-                              <MenuItem value="Ms.">Ms.</MenuItem>
-                              <MenuItem value="Mx.">Mx.</MenuItem>
-                              <MenuItem value="Miss">Miss</MenuItem>
-                            </Select>
-                          </InputAdornment>
-                        }
-                      />
-                    </FormControl>
-                  </Grid>
 
-                  <Grid md={4} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel>{tt("Địa chỉ Email", "Email Address")}</InputLabel>
-                      <OutlinedInput
-                        label={tt("Địa chỉ Email", "Email Address")}
-                        name="customer_email"
-                        type="email"
-                        value={customer.email}
-                        onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
-                      />
-                    </FormControl>
-                  </Grid>
-                  <Grid md={4} xs={12}>
-                    <FormControl fullWidth required>
-                      <InputLabel>{tt("Số điện thoại", "Phone Number")}</InputLabel>
-                      <OutlinedInput
-                        label={tt("Số điện thoại", "Phone Number")}
-                        name="customer_phone_number"
-                        type="tel"
-                        value={customer.phoneNumber}
-                        onChange={(e) => setCustomer({ ...customer, phoneNumber: e.target.value })}
-                        startAdornment={
-                          <InputAdornment position="start">
-                            <Select
-                              variant="standard"
-                              disableUnderline
-                              value={customer.phoneCountryIso2}
-                              onChange={(e) =>
-                                setCustomer({ ...customer, phoneCountryIso2: e.target.value as string })
-                              }
-                              sx={{ minWidth: 80 }}
-                              renderValue={(value) => {
-                                const country =
-                                  PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
-                                return country.dialCode;
-                              }}
-                            >
-                              {PHONE_COUNTRIES.map((country) => (
-                                <MenuItem key={country.iso2} value={country.iso2}>
-                                  {tt(country.nameVi, country.nameEn)} ({country.dialCode})
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </InputAdornment>
-                        }
-                      />
-                    </FormControl>
-                  </Grid>
-                  {/* Builtin optional fields controlled by checkout form config */}
-                  {(() => {
-                    const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
-                    const visible = !!dobCfg && dobCfg.visible;
-                    const required = !!dobCfg?.required;
-                    return (
-                      visible && (
-                        <Grid lg={6} xs={12}>
-                          <TextField
-                            fullWidth
-                            label={tt("Ngày tháng năm sinh", "Date of Birth")}
-                            name="customer_dob"
-                            type="date"
-                            required={required}
-                            value={customer.dob || ""}
-                            onChange={(e) =>
-                              setCustomer({ ...customer, dob: e.target.value })
-                            }
-                            InputLabelProps={{
-                              shrink: true,
-                            }}
-                            inputProps={{
-                              max: new Date().toISOString().slice(0, 10),
-                            }}
-                          />
-                        </Grid>
-                      )
-                    );
-                  })()}
-                  {(() => {
-                    const idCfg = checkoutFormFields.find((f) => f.internalName === 'idcard_number');
-                    const visible = !!idCfg && idCfg.visible;
-                    const required = !!idCfg?.required;
-                    return (
-                      visible && (
-                        <Grid lg={6} xs={12}>
-                          <FormControl fullWidth required={required}>
-                            <InputLabel>{tt("Số Căn cước công dân", "ID Card Number")}</InputLabel>
-                            <OutlinedInput
-                              label={tt("Số Căn cước công dân", "ID Card Number")}
-                              name="customer_idcard_number"
-                              value={customer.idcard_number}
-                              onChange={(e) => setCustomer({ ...customer, idcard_number: e.target.value })}
-                            />
-                          </FormControl>
-                        </Grid>
-                      )
-                    );
-                  })()}
+          <Stepper nonLinear activeStep={activeStep} sx={{ mb: 1 }}>
+            {stepLabels.map((label, index) => (
+              <Step key={label}>
+                <StepButton onClick={() => setActiveStep(index)}>{label}</StepButton>
+              </Step>
+            ))}
+          </Stepper>
 
-                  {(() => {
-                    const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
-                    const visible = !!addrCfg && addrCfg.visible;
-                    const required = !!addrCfg?.required;
-                    return (
-                      visible && (
-                        <Grid lg={12} xs={12}>
-                          <FormControl fullWidth required={required}>
-                            <InputLabel>{tt("Địa chỉ", "Address")}</InputLabel>
-                            <OutlinedInput
-                              label={tt("Địa chỉ", "Address")}
-                              name="customer_address"
-                              value={customer.address}
-                              onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                            />
-                          </FormControl>
-                        </Grid>
-                      )
-                    );
-                  })()}
+          {/* Keep all steps mounted; show/hide via CSS so users can still open modals from previous steps */}
+          <Box sx={{ display: activeStep === 0 ? 'block' : 'none' }}>
+            <Step1SelectTickets
+              shows={event?.shows}
+              selectedSchedules={selectedSchedules}
+              activeScheduleId={activeScheduleId}
+              onSelectionChange={handleSelectionChange}
+              onOpenSchedule={(show) => setActiveScheduleId(show ? show.id : null)}
+              totalSelectedTickets={totalSelectedTickets}
+              onOpenCart={() => setCartOpen(true)}
+              activeSchedule={activeSchedule}
+              qrOption={qrOption}
+              requireTicketHolderInfo={requireTicketHolderInfo}
+              requestedCategoryModalId={requestedCategoryModalId}
+              onModalRequestHandled={() => setRequestedCategoryModalId(null)}
+              onCategorySelect={handleCategorySelection}
+              onAddToCart={handleAddToCartQuantity}
+              cartQuantitiesForActiveSchedule={(activeSchedule && selectedCategories[activeSchedule.id]) || {}}
+              tt={tt}
+              onNext={() => setActiveStep(1)}
+            />
+          </Box>
 
+          <Box sx={{ display: activeStep === 1 ? 'block' : 'none' }}>
+            <Step2Info
+              tt={tt}
+              locale={locale}
+              defaultTitle={defaultTitle}
+              paramsEventId={params.event_id}
+              formMenuAnchorEl={formMenuAnchorEl}
+              onOpenFormMenu={handleOpenFormMenu}
+              onCloseFormMenu={handleCloseFormMenu}
+              customer={customer}
+              setCustomer={setCustomer}
+              ticketHolderEditted={ticketHolderEditted}
+              ticketHolders={ticketHolders}
+              setTicketHolders={setTicketHolders}
+              checkoutFormFields={checkoutFormFields}
+              customCheckoutFields={customCheckoutFields}
+              builtinInternalNames={builtinInternalNames}
+              checkoutCustomAnswers={checkoutCustomAnswers}
+              setCheckoutCustomAnswers={setCheckoutCustomAnswers}
+              requireGuestAvatar={requireGuestAvatar}
+              requireTicketHolderInfo={requireTicketHolderInfo}
+              selectedCategories={selectedCategories}
+              shows={event?.shows || []}
+              ticketHoldersByCategory={ticketHoldersByCategory}
+              setTicketHoldersByCategory={setTicketHoldersByCategory}
+              handleCustomerAvatarFile={handleCustomerAvatarFile}
+              handleTicketHolderAvatarFile={handleTicketHolderAvatarFile}
+              formatPrice={formatPrice}
+              setActiveScheduleId={(showId) => setActiveScheduleId(showId)}
+              setRequestedCategoryModalId={(categoryId) => setRequestedCategoryModalId(categoryId)}
+              onBack={() => setActiveStep(0)}
+              onNext={() => setActiveStep(2)}
+            />
+          </Box>
 
+          <Box sx={{ display: activeStep === 2 ? 'block' : 'none' }}>
+            <Step3Payment
+              tt={tt}
+              paramsEventId={params.event_id}
+              extraFee={extraFee}
+              handleExtraFeeChange={handleExtraFeeChange}
+              manualDiscountCode={manualDiscountCode}
+              setManualDiscountCode={setManualDiscountCode}
+              availableVouchers={availableVouchers}
+              appliedVoucher={appliedVoucher}
+              voucherValidation={voucherValidation}
+              handleValidateAndDisplayVoucher={handleValidateAndDisplayVoucher}
+              validateVoucherByApi={validateVoucherByApi}
+              onOpenVoucherDetail={openVoucherDetail}
+              onRemoveAppliedVoucher={removeAppliedVoucher}
+              handleApplyVoucher={handleApplyVoucher}
+              subtotal={subtotal}
+              discountAmount={discountAmount}
+              finalTotal={finalTotal}
+              formatPrice={formatPrice}
+              paymentMethod={paymentMethod}
+              setPaymentMethod={setPaymentMethod}
+              onBack={() => setActiveStep(1)}
+              onNext={handleCreateClick}
+            />
+          </Box>
 
-                  {/* Custom checkout fields (ETIK Forms) */}
-                  {customCheckoutFields.map((field) => (
-                    <Grid key={field.internalName} xs={12}>
-                      <Stack spacing={0.5}>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {field.label}
-                          {field.required && ' *'}
-                        </Typography>
-                        {field.note && (
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {field.note}
+          <Box sx={{ display: activeStep === 3 ? 'block' : 'none' }}>
+            <Step4Review
+              tt={tt}
+              checkoutFormFields={checkoutFormFields}
+              builtinInternalNames={builtinInternalNames}
+              checkoutCustomAnswers={checkoutCustomAnswers}
+              customer={customer}
+              formattedCustomerPhone={formattedCustomerPhone}
+              selectedCategories={selectedCategories}
+              shows={event?.shows || []}
+              ticketHoldersByCategory={ticketHoldersByCategory}
+              requireGuestAvatar={requireGuestAvatar}
+              requireTicketHolderInfo={requireTicketHolderInfo}
+              qrOption={qrOption}
+              paymentMethodLabel={paymentMethodLabel}
+              extraFee={extraFee}
+              subtotal={subtotal}
+              discountAmount={discountAmount}
+              appliedVoucherCode={appliedVoucher && voucherValidation.valid ? appliedVoucher.code : null}
+              finalTotal={finalTotal}
+              formatPrice={formatPrice}
+              onBack={() => setActiveStep(2)}
+              onConfirm={handleSubmit}
+              confirmDisabled={isLoading}
+            />
+          </Box>
+
+          {/* Cart Modal */}
+          <Dialog open={cartOpen} onClose={() => setCartOpen(false)} fullWidth maxWidth="md">
+            <DialogTitle sx={{ color: "primary.main", display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, py: 1.5 }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <ShoppingCartIcon size={16} />
+                <Typography variant="subtitle1" sx={{ m: 0, fontWeight: 700 }}>
+                  {tt('Giỏ hàng', 'Cart')}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  ({totalSelectedTickets} {tt('vé', 'tickets')})
+                </Typography>
+              </Stack>
+              <IconButton onClick={() => setCartOpen(false)} aria-label={tt('Đóng', 'Close')}>
+                <X />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto', px: 2, py: 1.5 }}>
+              {totalSelectedTickets <= 0 ? (
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {tt('Giỏ hàng trống', 'Cart is empty')}
+                </Typography>
+              ) : (
+                <Stack spacing={1.25}>
+                  {Object.entries(selectedCategories).flatMap(([showIdStr, categories]) => {
+                    const showId = parseInt(showIdStr);
+                    const show = event?.shows?.find((s) => s.id === showId);
+                    return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
+                      const categoryId = parseInt(categoryIdStr);
+                      const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
+                      const quantity = qty || 0;
+                      if (quantity <= 0) return null;
+
+                      const unitPrice = ticketCategory?.price || 0;
+                      const lineTotal = unitPrice * quantity;
+
+                      return (
+                        <Card key={`${showId}-${categoryId}`} variant="outlined" sx={{ borderRadius: 1, boxShadow: 'none' }}>
+                          <CardContent sx={{ px: 1.5, py: 1, '&:last-child': { pb: 1 } }}>
+                            <Stack spacing={0.75}>
+                              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ justifyContent: 'space-between' }}>
+                                <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+                                  <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                                  <Box sx={{ minWidth: 0 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 13 }} noWrap>
+                                      {show?.name || tt('Chưa xác định', 'Not specified')}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }} noWrap>
+                                      {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
+                                    </Typography>
+                                  </Box>
+                                </Stack>
+
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }}>
+                                    {formatPrice(unitPrice)}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }}>
+                                    x {quantity}
+                                  </Typography>
+                                  <IconButton
+                                    size="small"
+                                    sx={{ p: 0.5 }}
+                                    onClick={() => {
+                                      setActiveScheduleId(showId);
+                                      setRequestedCategoryModalId(categoryId);
+                                    }}
+                                    aria-label={tt('Chỉnh sửa', 'Edit')}
+                                  >
+                                    <Pencil />
+                                  </IconButton>
+                                  <Typography variant="caption" sx={{ minWidth: 96, textAlign: 'right', fontSize: 12 }}>
+                                    = {formatPrice(lineTotal)}
+                                  </Typography>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    sx={{ p: 0.5 }}
+                                    onClick={() => handleAddToCartQuantity(showId, categoryId, 0)}
+                                    aria-label={tt('Xóa', 'Remove')}
+                                  >
+                                    <X />
+                                  </IconButton>
+                                </Stack>
+                              </Stack>
+                            </Stack>
+                          </CardContent>
+                        </Card>
+                      );
+                    });
+                  })}
+
+                  <Divider />
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Typography variant="subtitle2">{tt('Tổng tiền vé', 'Tickets total')}</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                      {formatPrice(subtotal)}
+                    </Typography>
+                  </Stack>
+                </Stack>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setCartOpen(false)}>{tt('Đóng', 'Close')}</Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Voucher Detail Modal */}
+          <Dialog
+            open={voucherDetailModalOpen}
+            onClose={() => {
+              setVoucherDetailModalOpen(false);
+              setSelectedVoucherForDetail(null);
+            }}
+            fullWidth
+            maxWidth="md"
+          >
+            <DialogTitle sx={{ color: "primary.main" }}>
+              {tt("Chi tiết khuyến mãi", "Voucher Details")}
+            </DialogTitle>
+            <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              {selectedVoucherForDetail && (
+                <Stack spacing={3} sx={{ mt: 1 }}>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      {tt("Mã khuyến mãi", "Voucher Code")}
+                    </Typography>
+                    <Typography variant="h6" color="primary" sx={{ fontWeight: 600 }}>
+                      {selectedVoucherForDetail.code}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {tt("Giảm giá:", "Discount:")}
+                      </Typography>
+                      <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>
+                        {selectedVoucherForDetail.discountType === 'percentage'
+                          ? `${selectedVoucherForDetail.discountValue}%`
+                          : `${selectedVoucherForDetail.discountValue.toLocaleString('vi-VN')} đ`}
+                        {selectedVoucherForDetail.applicationType === 'per_ticket' && (
+                          <Typography component="span" variant="body2" sx={{ ml: 0.5, fontWeight: 400 }}>
+                            {tt('mỗi vé', 'per ticket')}
                           </Typography>
                         )}
+                      </Typography>
+                    </Box>
+                  </Box>
 
-                        {['text', 'number'].includes(field.fieldType) && (
-                          <TextField
-                            fullWidth
-                            size="small"
-                            type={field.fieldType === 'number' ? 'number' : 'text'}
-                            value={checkoutCustomAnswers[field.internalName] ?? ''}
-                            onChange={(e) =>
-                              setCheckoutCustomAnswers((prev) => ({
-                                ...prev,
-                                [field.internalName]: e.target.value,
-                              }))
-                            }
-                          />
+                  <Divider />
+
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      {tt("Tên chiến dịch", "Campaign Name")}
+                    </Typography>
+                    <Typography variant="body1">{selectedVoucherForDetail.name}</Typography>
+                    {selectedVoucherForDetail.content && (
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                        {selectedVoucherForDetail.content}
+                      </Typography>
+                    )}
+                  </Box>
+
+                  <Divider />
+
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      {tt("Thời gian hiệu lực", "Validity Period")}
+                    </Typography>
+                    <Typography variant="body2">
+                      {tt("Từ:", "From:")} {dayjs(selectedVoucherForDetail.validFrom).format('DD/MM/YYYY HH:mm')}
+                    </Typography>
+                    <Typography variant="body2">
+                      {tt("Đến:", "To:")} {dayjs(selectedVoucherForDetail.validUntil).format('DD/MM/YYYY HH:mm')}
+                    </Typography>
+                  </Box>
+
+                  <Divider />
+
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      {tt("Loại áp dụng", "Application Type")}
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedVoucherForDetail.applicationType === 'total_order'
+                        ? tt('Giảm chung trên tổng đơn hàng', 'Discount on Total Order')
+                        : tt('Giảm theo vé', 'Discount per Ticket')}
+                    </Typography>
+                    {selectedVoucherForDetail.applicationType === 'per_ticket' && selectedVoucherForDetail.maxTicketsToDiscount && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        {tt(
+                          `Tối đa ${selectedVoucherForDetail.maxTicketsToDiscount} vé được giảm giá`,
+                          `Maximum ${selectedVoucherForDetail.maxTicketsToDiscount} tickets can receive discount`
                         )}
+                      </Typography>
+                    )}
+                  </Box>
 
-                        {['date', 'time', 'datetime'].includes(field.fieldType) && (
-                          <TextField
-                            fullWidth
-                            size="small"
-                            type={
-                              field.fieldType === 'date'
-                                ? 'date'
-                                : field.fieldType === 'time'
-                                  ? 'time'
-                                  : 'datetime-local'
-                            }
-                            InputLabelProps={{ shrink: true }}
-                            value={checkoutCustomAnswers[field.internalName] ?? ''}
-                            onChange={(e) =>
-                              setCheckoutCustomAnswers((prev) => ({
-                                ...prev,
-                                [field.internalName]: e.target.value,
-                              }))
-                            }
-                          />
-                        )}
+                  <Divider />
 
-                        {field.fieldType === 'radio' && field.options && (
-                          <FormControl component="fieldset" variant="standard">
-                            <RadioGroup
-                              value={checkoutCustomAnswers[field.internalName] ?? ''}
-                              onChange={(e) =>
-                                setCheckoutCustomAnswers((prev) => ({
-                                  ...prev,
-                                  [field.internalName]: e.target.value,
-                                }))
-                              }
-                            >
-                              {field.options.map((opt) => (
-                                <FormControlLabel
-                                  key={opt.value}
-                                  value={opt.value}
-                                  control={<Radio size="small" />}
-                                  label={opt.label}
-                                />
-                              ))}
-                            </RadioGroup>
-                          </FormControl>
-                        )}
-
-                        {field.fieldType === 'checkbox' && field.options && (
-                          <FormGroup>
-                            {field.options.map((opt) => {
-                              const current: string[] =
-                                checkoutCustomAnswers[field.internalName] ?? [];
-                              const checked = current.includes(opt.value);
-                              return (
-                                <FormControlLabel
-                                  key={opt.value}
-                                  control={
-                                    <Checkbox
-                                      size="small"
-                                      checked={checked}
-                                      onChange={(e) => {
-                                        setCheckoutCustomAnswers((prev) => {
-                                          const prevArr: string[] = prev[field.internalName] ?? [];
-                                          let nextArr: string[];
-                                          if (e.target.checked) {
-                                            nextArr = Array.from(new Set([...prevArr, opt.value]));
-                                          } else {
-                                            nextArr = prevArr.filter((v) => v !== opt.value);
-                                          }
-                                          return {
-                                            ...prev,
-                                            [field.internalName]: nextArr,
-                                          };
-                                        });
-                                      }}
-                                    />
-                                  }
-                                  label={opt.label}
-                                />
-                              );
-                            })}
-                          </FormGroup>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      {tt("Phạm vi áp dụng", "Application Scope")}
+                    </Typography>
+                    {selectedVoucherForDetail.applyToAll ? (
+                      <Typography variant="body1">
+                        {tt("Toàn bộ suất diễn và toàn bộ hạng vé", "All Shows and All Ticket Categories")}
+                      </Typography>
+                    ) : (
+                      <Stack spacing={1}>
+                        <Typography variant="body2" color="text.secondary">
+                          {tt("Chỉ áp dụng cho các hạng vé sau:", "Only applies to the following ticket categories:")}
+                        </Typography>
+                        {selectedVoucherForDetail.ticketCategories && selectedVoucherForDetail.ticketCategories.length > 0 ? (
+                          <Stack spacing={0.5}>
+                            {selectedVoucherForDetail.ticketCategories.map((tc: any, index: number) => (
+                              <Typography key={`tc-${index}`} variant="body2">
+                                • {tc.show ? `${tc.show.name} - ` : ''}{tc.name}
+                              </Typography>
+                            ))}
+                          </Stack>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            {tt("Chưa có hạng vé nào được chọn", "No ticket categories selected")}
+                          </Typography>
                         )}
                       </Stack>
-                    </Grid>
-                  ))}
-                </Grid>
-              </CardContent>
-            </Card>
-
-            {/* Ticket Quantity and Ticket Holders */}
-            {totalSelectedTickets > 0 && (
-              <Card>
-                <CardHeader
-                  title={tt(`Danh sách vé: ${totalSelectedTickets} vé`, `Ticket List: ${totalSelectedTickets} tickets`)}
-                  action={
-                    qrOption === 'shared' && requireGuestAvatar && (
-                      <Box sx={{ position: 'relative', width: 36, height: 36, '&:hover .avatarUploadBtn': { opacity: 1, visibility: 'visible' } }}>
-                        <Avatar src={customer.avatar || ''} sx={{ width: 36, height: 36 }} />
-                        <IconButton
-                          className="avatarUploadBtn"
-                          sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '50%', opacity: 0, visibility: 'hidden', backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.35)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
-                          onClick={() => {
-                            const input = document.getElementById('upload-customer-avatar') as HTMLInputElement | null;
-                            input?.click();
-                          }}
-                        >
-                          <Plus size={14} />
-                        </IconButton>
-                        <input
-                          id="upload-customer-avatar"
-                          type="file"
-                          accept="image/*"
-                          hidden
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            handleCustomerAvatarFile(f);
-                            e.currentTarget.value = '';
-                          }}
-                        />
-                      </Box>
-                    )
-                  }
-                />
-                <Divider />
-                <CardContent>
-                  <Stack spacing={3}>
-                    {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
-                      const show = event?.shows.find((show) => show.id === parseInt(showId));
-                      return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
-                        const categoryId = parseInt(categoryIdStr);
-                        const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
-                        const quantity = qty || 0;
-                        return (
-                          <Stack spacing={2} key={`${showId}-${categoryId}`}>
-                            <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{show?.name || tt('Chưa xác định', 'Not specified')} - {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}</Typography>
-                                <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => setRequestedCategoryModalId(categoryId)}><Pencil /></IconButton>
-                              </Stack>
-                              <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                                <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
-                                <Typography variant="caption">x {quantity}</Typography>
-                                <Typography variant="caption">
-                                  = {formatPrice((ticketCategory?.price || 0) * quantity)}
-                                </Typography>
-                              </Stack>
-                            </Stack>
-
-                            {requireTicketHolderInfo && quantity > 0 && (
-                              <Stack spacing={2}>
-                                {Array.from({ length: quantity }, (_, index) => {
-                                  const holderInfo = ticketHoldersByCategory[`${showId}-${categoryId}`]?.[index];
-                                  return (
-                                    <Stack spacing={0} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                      {requireGuestAvatar && (
-                                        <Box sx={{ position: 'relative', width: 36, height: 36, '&:hover .avatarUploadBtn': { opacity: 1, visibility: 'visible' } }}>
-                                          <Avatar src={holderInfo?.avatar || ''} sx={{ width: 36, height: 36 }} />
-                                          <IconButton
-                                            className="avatarUploadBtn"
-                                            sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '50%', opacity: 0, visibility: 'hidden', backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.35)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
-                                            onClick={() => {
-                                              const input = document.getElementById(`upload-holder-${showId}-${categoryId}-${index}`) as HTMLInputElement | null;
-                                              input?.click();
-                                            }}
-                                          >
-                                            <Plus size={14} />
-                                          </IconButton>
-                                          <input
-                                            id={`upload-holder-${showId}-${categoryId}-${index}`}
-                                            type="file"
-                                            accept="image/*"
-                                            hidden
-                                            onChange={(e) => {
-                                              const f = e.target.files?.[0];
-                                              handleTicketHolderAvatarFile(parseInt(showId), categoryId, index, f);
-                                              e.currentTarget.value = '';
-                                            }}
-                                          />
-                                        </Box>
-                                      )}
-                                      <Box key={index} sx={{ ml: 2, pl: 2, borderLeft: '2px solid', borderColor: 'divider' }}>
-                                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
-                                          {index + 1}. {holderInfo?.name ? `${holderInfo?.title} ${holderInfo?.name}` : tt('Chưa có thông tin', 'No information')}
-                                        </Typography>
-                                        <br />
-                                        {qrOption === 'separate' && (
-                                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                            {(() => {
-                                              const email = holderInfo?.email || tt('Chưa có email', 'No email');
-                                              if (!holderInfo?.phone) {
-                                                return `${email} - ${tt('Chưa có SĐT', 'No phone')}`;
-                                              }
-                                              // Use phoneCountryIso2 from user input, or parse E.164 if not available
-                                              const countryIso2 = holderInfo?.phoneCountryIso2;
-
-                                              if (countryIso2) {
-                                                // Use country from user input
-                                                const country = PHONE_COUNTRIES.find(c => c.iso2 === countryIso2) || DEFAULT_PHONE_COUNTRY;
-                                                // Format phone number (remove leading 0 if present)
-                                                const digits = holderInfo.phone.replace(/\D/g, '');
-                                                const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
-                                                return `${email} - ${country.dialCode} ${phoneNSN}`;
-                                              } else {
-                                                // Try to parse E.164 format (fallback)
-                                                const parsedPhone = parseE164Phone(holderInfo.phone);
-                                                if (parsedPhone) {
-                                                  const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
-                                                  return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
-                                                }
-                                                return `${email} - ${holderInfo.phone}`;
-                                              }
-                                            })()}
-                                          </Typography>
-                                        )}
-                                      </Box>
-                                    </Stack>
-                                  );
-                                })}
-                              </Stack>
-                            )}
-                          </Stack >
-                        );
-                      });
-                    })}
-                  </Stack>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Additional options */}
-
-            <Card>
-              <CardHeader title={tt("Tùy chọn bổ sung", "Additional Options")} />
-              <Divider />
-              <CardContent>
-                <Stack spacing={2}>
-                  <Grid container spacing={1} alignItems="center">
-                    <Grid xs>
-                      <Typography variant="body2">{tt("Ảnh đại diện cho khách mời", "Guest Avatar")}</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {tt("Bạn cần tải lên ảnh đại diện cho khách mời.", "You need to upload an avatar for guests.")}
-                      </Typography>
-                    </Grid>
-                    <Grid>
-                      <Checkbox
-                        checked={requireGuestAvatar}
-                        onChange={(_e, checked) => {
-                          setRequireGuestAvatar(checked);
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                  {totalSelectedTickets > 1 && (
-                    <>
-                      <Grid container spacing={1} alignItems="center">
-                        <Grid xs>
-                          <Typography variant="body2">{tt("Nhập thông tin người sở hữu cho từng vé", "Enter ticket holder information for each ticket")}</Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {tt("Chọn nếu bạn biết thông tin của từng khách mời.", "Select if you know the information of each guest.")}
-                          </Typography>
-                        </Grid>
-                        <Grid>
-                          <Checkbox
-                            checked={requireTicketHolderInfo}
-                            onChange={(_e, checked) => {
-                              setRequireTicketHolderInfo(checked);
-                              if (checked) {
-                                notificationCtx.info(tt('Vui lòng điền thông tin người sở hữu cho từng vé', 'Please fill in information for each ticket holder'));
-                              }
-                            }}
-                          />
-                        </Grid>
-                      </Grid>
-                      {requireTicketHolderInfo && (
-                        <Grid container spacing={1} alignItems="center">
-                          <Grid xs>
-                            <Typography variant="body2">{tt("Sử dụng mã QR riêng cho từng vé", "Use separate QR code for each ticket")}</Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {tt("Chọn nếu bạn muốn tạo và gửi mã QR riêng qua email từng khách mời.", "Select if you want to send separate QR codes for each guest.")}
-                            </Typography>
-                          </Grid>
-                          <Grid>
-                            <Checkbox
-                              checked={qrOption === 'separate'}
-                              onChange={(_e, checked) => {
-                                setQrOption(checked ? 'separate' : 'shared');
-                              }}
-                            />
-                          </Grid>
-                        </Grid>
-                      )}
-                    </>
-                  )}
-                </Stack>
-              </CardContent>
-            </Card>
-
-            {/* Extra Fee */}
-            <Card>
-              <CardHeader
-                title={tt("Phụ phí", "Extra Fee")}
-                subheader={tt("(nếu có)", "(if any)")}
-                action={
-                  <OutlinedInput
-                    size="small"
-                    name="extraFee"
-                    value={extraFee.toLocaleString()} // Format as currency
-                    onChange={handleExtraFeeChange}
-                    sx={{ maxWidth: 180 }}
-                    endAdornment={<InputAdornment position="end">đ</InputAdornment>}
-                  />
-                }
-              />
-            </Card>
-            <Card>
-              <CardHeader
-                title={tt("Khuyến mãi", "Discount")}
-                action={
-                  !appliedVoucher && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <OutlinedInput
-                        size="small"
-                        name="discountCode"
-                        placeholder={tt("Nhập mã khuyến mãi", "Enter discount code")}
-                        value={manualDiscountCode}
-                        onChange={(e) => setManualDiscountCode(e.target.value)}
-                        sx={{ maxWidth: 180 }}
-                      />
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={async () => {
-                          if (!manualDiscountCode.trim()) {
-                            notificationCtx.warning(tt('Vui lòng nhập mã khuyến mãi', 'Please enter discount code'));
-                            return;
-                          }
-
-                          try {
-                            // First try to find in available vouchers (public vouchers)
-                            const voucher = availableVouchers.find((v) => v.code.toLowerCase() === manualDiscountCode.toLowerCase());
-                            if (voucher) {
-                              handleValidateAndDisplayVoucher(voucher);
-                              setManualDiscountCode('');
-                              return;
-                            }
-
-                            // If not found in public list, call API to validate
-                            const response = await baseHttpServiceInstance.get(
-                              `/event-studio/events/${params.event_id}/voucher-campaigns/validate-voucher`,
-                              { params: { code: manualDiscountCode.trim() } }
-                            );
-
-                            if (response.data) {
-                              handleValidateAndDisplayVoucher(response.data);
-                              setManualDiscountCode('');
-                            }
-                          } catch (error: any) {
-                            const errorMessage = error?.response?.data?.detail || error?.message || tt('Mã khuyến mãi không hợp lệ', 'Invalid discount code');
-                            notificationCtx.error(errorMessage);
-                          }
-                        }}
-                      >
-                        {tt("Áp dụng", "Apply")}
-                      </Button>
-                    </Box>
-                  )
-                }
-              />
-              {(appliedVoucher || availableVouchers.length > 0) && (
-                <>
-                  <Divider />
-                  <CardContent sx={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    {appliedVoucher ? (
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          p: 2,
-                          border: '1px solid',
-                          borderColor: voucherValidation.valid ? 'success.main' : 'error.main',
-                          borderRadius: 1,
-                          bgcolor: voucherValidation.valid ? 'success.50' : 'error.50',
-                          gap: 2,
-                        }}
-                      >
-                        <Box sx={{ flex: 1 }}>
-                          <Stack spacing={0.5}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="body1" sx={{ fontWeight: 600, color: voucherValidation.valid ? 'success.main' : 'error.main' }}>
-                                {tt('Đã áp dụng:', 'Applied:')} {appliedVoucher.code}
-                              </Typography>
-                              {voucherValidation.valid && (
-                                <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
-                                  - {appliedVoucher.discountType === 'percentage'
-                                    ? `${appliedVoucher.discountValue}%`
-                                    : `${appliedVoucher.discountValue.toLocaleString('vi-VN')} đ`}
-                                  {appliedVoucher.applicationType === 'per_ticket' && (
-                                    <Typography component="span" variant="body2" sx={{ ml: 0.5, fontWeight: 400 }}>
-                                      {tt('mỗi vé', 'per ticket')}
-                                    </Typography>
-                                  )}
-                                </Typography>
-                              )}
-                            </Box>
-                            {!voucherValidation.valid ? (
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                                <Typography variant="caption" color="error.main" sx={{ fontWeight: 600 }}>
-                                  {tt('Mã khuyến mãi không hợp lệ', 'Invalid discount code')}
-                                  {voucherValidation.message && `: ${voucherValidation.message}`}
-                                </Typography>
-                                <Button
-                                  variant="text"
-                                  size="small"
-                                  sx={{
-                                    p: 0,
-                                    minWidth: 'auto',
-                                    fontSize: '0.75rem',
-                                    textTransform: 'none',
-                                    color: 'primary.main',
-                                    '&:hover': { textDecoration: 'underline' }
-                                  }}
-                                  onClick={() => {
-                                    setSelectedVoucherForDetail(appliedVoucher);
-                                    setVoucherDetailModalOpen(true);
-                                  }}
-                                >
-                                  {tt('Xem thêm', 'View Details')}
-                                </Button>
-                              </Box>
-                            ) : (
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                                <Typography variant="caption" color="text.secondary">
-                                  {appliedVoucher.name}
-                                </Typography>
-                                <Button
-                                  variant="text"
-                                  size="small"
-                                  sx={{
-                                    p: 0,
-                                    minWidth: 'auto',
-                                    fontSize: '0.75rem',
-                                    textTransform: 'none',
-                                    color: 'primary.main',
-                                    '&:hover': { textDecoration: 'underline' }
-                                  }}
-                                  onClick={() => {
-                                    setSelectedVoucherForDetail(appliedVoucher);
-                                    setVoucherDetailModalOpen(true);
-                                  }}
-                                >
-                                  {tt('Xem thêm', 'View Details')}
-                                </Button>
-                              </Box>
-                            )}
-                          </Stack>
-                        </Box>
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            setAppliedVoucher(null);
-                            notificationCtx.info(tt('Đã xóa mã khuyến mãi', 'Removed discount code'));
-                          }}
-                          sx={{ color: 'error.main' }}
-                        >
-                          <X size={20} />
-                        </IconButton>
-                      </Box>
-                    ) : (
-                      availableVouchers.length > 0 && (
-                        <Stack spacing={2}>
-                          {availableVouchers.map((voucher) => {
-                            const formatDiscount = (type: string, value: number) => {
-                              if (type === 'percentage') {
-                                return `${value}%`;
-                              }
-                              return `${value.toLocaleString('vi-VN')} đ`;
-                            };
-
-                            const formatDate = (dateStr: string) => {
-                              return dayjs(dateStr).format('DD/MM/YYYY HH:mm');
-                            };
-
-                            const conditions: string[] = [];
-                            if (voucher.minTicketsRequired) {
-                              conditions.push(tt(`Tối thiểu ${voucher.minTicketsRequired} vé`, `Min ${voucher.minTicketsRequired} tickets`));
-                            }
-                            if (voucher.maxTicketsAllowed) {
-                              conditions.push(tt(`Tối đa ${voucher.maxTicketsAllowed} vé`, `Max ${voucher.maxTicketsAllowed} tickets`));
-                            }
-                            if (voucher.maxUsesPerUser) {
-                              conditions.push(tt(`Tối đa ${voucher.maxUsesPerUser} lần/người`, `Max ${voucher.maxUsesPerUser} uses/person`));
-                            }
-                            if (voucher.requireLogin) {
-                              conditions.push(tt('Yêu cầu đăng nhập', 'Requires login'));
-                            }
-
-                            return (
-                              <Box
-                                key={voucher.id}
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  p: 2,
-                                  border: '1px solid',
-                                  borderColor: 'divider',
-                                  borderRadius: 1,
-                                  gap: 2,
-                                }}
-                              >
-                                <Box sx={{ flex: 1 }}>
-                                  <Stack spacing={0.5}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                        {voucher.code}
-                                      </Typography>
-                                      <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
-                                        - {formatDiscount(voucher.discountType, voucher.discountValue)}
-                                        {voucher.applicationType === 'per_ticket' && (
-                                          <Typography component="span" variant="body2" sx={{ ml: 0.5, fontWeight: 400 }}>
-                                            {tt('mỗi vé', 'per ticket')}
-                                          </Typography>
-                                        )}
-                                      </Typography>
-                                    </Box>
-                                    <Typography variant="caption" color="text.secondary">
-                                      {tt('Thời gian:', 'Valid:')} {formatDate(voucher.validFrom)} - {formatDate(voucher.validUntil)}
-                                    </Typography>
-                                    {conditions.length > 0 && (
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                                        <Typography variant="caption" color="text.secondary">
-                                          {tt('Điều kiện:', 'Conditions:')} {conditions.join(', ')}
-                                        </Typography>
-                                        <Button
-                                          variant="text"
-                                          size="small"
-                                          sx={{
-                                            p: 0,
-                                            minWidth: 'auto',
-                                            fontSize: '0.75rem',
-                                            textTransform: 'none',
-                                            color: 'primary.main',
-                                            '&:hover': { textDecoration: 'underline' }
-                                          }}
-                                          onClick={() => {
-                                            setSelectedVoucherForDetail(voucher);
-                                            setVoucherDetailModalOpen(true);
-                                          }}
-                                        >
-                                          {tt('Xem thêm', 'View Details')}
-                                        </Button>
-                                      </Box>
-                                    )}
-                                    {conditions.length === 0 && (
-                                      <Button
-                                        variant="text"
-                                        size="small"
-                                        sx={{
-                                          alignSelf: 'flex-start',
-                                          p: 0,
-                                          minWidth: 'auto',
-                                          fontSize: '0.75rem',
-                                          textTransform: 'none',
-                                          color: 'primary.main',
-                                          '&:hover': { textDecoration: 'underline' }
-                                        }}
-                                        onClick={() => {
-                                          setSelectedVoucherForDetail(voucher);
-                                          setVoucherDetailModalOpen(true);
-                                        }}
-                                      >
-                                        {tt('Xem thêm', 'View Details')}
-                                      </Button>
-                                    )}
-                                  </Stack>
-                                </Box>
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  onClick={() => {
-                                    handleApplyVoucher(voucher);
-                                  }}
-                                >
-                                  {tt('Áp dụng', 'Apply')}
-                                </Button>
-                              </Box>
-                            );
-                          })}
-                        </Stack>
-                      )
                     )}
-                  </CardContent>
-                </>
-              )}
-            </Card>
-            {Object.values(selectedCategories).some((catMap) => Object.keys(catMap || {}).length > 0) && (
-              <Card>
-                <CardContent>
-                  <Stack spacing={1}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {tt("Tổng tiền vé:", "Ticket Total:")}
-                      </Typography>
-                      <Typography variant="body2">
-                        {formatPrice(subtotal)}
-                      </Typography>
-                    </Box>
-                    {extraFee > 0 && (
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {tt("Phụ phí:", "Extra Fee:")}
-                        </Typography>
+                  </Box>
+
+                  <Divider />
+
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      {tt("Điều kiện áp dụng", "Application Conditions")}
+                    </Typography>
+                    <Stack spacing={1}>
+                      {selectedVoucherForDetail.minTicketsRequired ? (
                         <Typography variant="body2">
-                          {formatPrice(extraFee)}
-                        </Typography>
-                      </Box>
-                    )}
-                    {appliedVoucher && discountAmount > 0 && (
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {tt("Giảm giá:", "Discount:")}
-                        </Typography>
-                        <Typography variant="body2" color="success.main" sx={{ fontWeight: 600 }}>
-                          - {formatPrice(discountAmount)}
-                        </Typography>
-                      </Box>
-                    )}
-                    <Divider />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                        {tt("Tổng cộng:", "Total:")}
-                      </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                        {formatPrice(finalTotal)}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </CardContent>
-              </Card>
-            )}
-            {/* Payment Method */}
-            <Card>
-              <CardHeader
-                title={tt("Phương thức thanh toán", "Payment Method")}
-                action={
-                  <FormControl size="small" sx={{ maxWidth: 180, minWidth: 180 }}>
-                    <Select
-                      name="payment_method"
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    >
-                      <MenuItem value=""></MenuItem>
-                      <MenuItem value="cash">{tt("Tiền mặt", "Cash")}</MenuItem>
-                      <MenuItem value="transfer">{tt("Chuyển khoản", "Transfer")}</MenuItem>
-                      <MenuItem value="napas247">Napas 247</MenuItem>
-                    </Select>
-                  </FormControl>
-                }
-              />
-            </Card>
-
-
-            {/* Submit Button */}
-            <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: '3' }}>
-              <Button variant="contained" onClick={handleCreateClick}>
-                {tt("Tạo", "Create")}
-              </Button>
-            </Grid>
-            <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} fullWidth maxWidth="md">
-              <DialogTitle sx={{ color: "primary.main" }}>{tt("Xác nhận tạo đơn hàng", "Confirm Order Creation")}</DialogTitle>
-              <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
-                <Stack spacing={2} sx={{ mt: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt("Thông tin người mua", "Buyer Information")}</Typography>
-                  {checkoutFormFields.filter(f => f.visible).map((field) => {
-                    if (builtinInternalNames.has(field.internalName)) {
-                      // Built-in fields
-                      if (field.internalName === 'name') {
-                        return (
-                          <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">{tt("Họ và tên", "Full Name")}</Typography>
-                            <Typography variant="body2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
-                          </Box>
-                        );
-                      }
-                      if (field.internalName === 'email') {
-                        return (
-                          <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">{tt("Địa chỉ Email", "Email Address")}</Typography>
-                            <Typography variant="body2">{customer.email}</Typography>
-                          </Box>
-                        );
-                      }
-                      if (field.internalName === 'phone_number') {
-                        return (
-                          <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">{tt("Số điện thoại", "Phone Number")}</Typography>
-                            <Typography variant="body2">
-                              {formattedCustomerPhone || customer.phoneNumber}
-                            </Typography>
-                          </Box>
-                        );
-                      }
-                      if (field.internalName === 'address') {
-                        return (
-                          <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">{tt("Địa chỉ", "Address")}</Typography>
-                            <Typography variant="body2">{customer.address || '-'}</Typography>
-                          </Box>
-                        );
-                      }
-                      if (field.internalName === 'dob') {
-                        return (
-                          <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">{tt("Ngày tháng năm sinh", "Date of Birth")}</Typography>
-                            <Typography variant="body2">{customer.dob || '-'}</Typography>
-                          </Box>
-                        );
-                      }
-                      if (field.internalName === 'idcard_number') {
-                        return (
-                          <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">{tt("Số Căn cước công dân", "ID Card Number")}</Typography>
-                            <Typography variant="body2">{customer.idcard_number || '-'}</Typography>
-                          </Box>
-                        );
-                      }
-                      return null;
-                    } else {
-                      // Custom fields
-                      const answer = checkoutCustomAnswers[field.internalName];
-                      let displayValue = '-';
-                      if (answer !== undefined && answer !== null && answer !== '') {
-                        if (field.fieldType === 'checkbox' && Array.isArray(answer)) {
-                          displayValue = answer.join(', ');
-                        } else if (field.fieldType === 'radio' && field.options) {
-                          const option = field.options.find(opt => opt.value === answer);
-                          displayValue = option ? option.label : answer;
-                        } else {
-                          displayValue = String(answer);
-                        }
-                      }
-                      return (
-                        <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="body2">{field.label}</Typography>
-                          <Typography variant="body2">{displayValue}</Typography>
-                        </Box>
-                      );
-                    }
-                  })}
-                  <Divider />
-
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt("Danh sách vé", "Ticket List")}</Typography>
-                    {qrOption === 'shared' && requireGuestAvatar && (
-                      <Avatar src={customer.avatar || ''} sx={{ width: 36, height: 36 }} />
-                    )}
-                  </Box>
-                  <Stack spacing={1}>
-                    {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
-                      const show = event?.shows.find((show) => show.id === parseInt(showId));
-                      return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
-                        const categoryId = parseInt(categoryIdStr);
-                        const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
-                        const quantity = qty || 0;
-                        return (
-                          <Stack spacing={0} key={`confirm-${showId}-${categoryId}`}>
-                            <Stack direction={{ xs: 'column', md: 'row' }} key={`${showId}-${categoryId}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{show?.name || tt('Chưa xác định', 'Not specified')} - {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}</Typography>
-                              </Stack>
-                              <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                                <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
-                                <Typography variant="caption">x {quantity}</Typography>
-                                <Typography variant="caption">
-                                  = {formatPrice((ticketCategory?.price || 0) * quantity)}
-                                </Typography>
-                              </Stack>
-                            </Stack>
-
-                            {requireTicketHolderInfo && quantity > 0 && (
-                              <Box sx={{ ml: 2 }}>
-                                <Stack spacing={1}>
-                                  {Array.from({ length: quantity }, (_, index) => {
-                                    const holderInfo = ticketHoldersByCategory[`${showId}-${categoryId}`]?.[index];
-                                    return (
-                                      <Stack spacing={0} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                        {requireGuestAvatar && (
-                                          <Avatar src={holderInfo?.avatar || ''} sx={{ width: 36, height: 36 }} />
-                                        )}
-                                        <Box key={index} sx={{ ml: 2, pl: 2, borderLeft: '2px solid', borderColor: 'divider' }}>
-                                          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
-                                            {index + 1}. {holderInfo?.name ? `${holderInfo?.title} ${holderInfo?.name}` : tt('Chưa có thông tin', 'No information')}
-                                          </Typography>
-                                          <br />
-                                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                            {holderInfo?.email || tt('Chưa có email', 'No email')} - {holderInfo?.phone || tt('Chưa có SĐT', 'No phone')}
-                                          </Typography>
-                                        </Box>
-                                      </Stack>
-                                    );
-                                  })}
-                                </Stack>
-                              </Box>
-                            )}
-                          </Stack>
-                        );
-                      });
-                    })}
-                  </Stack>
-                  <Divider />
-
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">{tt("Phương thức thanh toán", "Payment Method")}</Typography>
-                    <Typography variant="body2">{getPaymentMethodLabel(paymentMethod, tt)}</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">{tt("Phụ phí", "Extra Fee")}</Typography>
-                    <Typography variant="body2">{formatPrice(extraFee)}</Typography>
-                  </Box>
-                  <Stack spacing={1}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {tt("Tổng tiền vé:", "Ticket Total:")}
-                      </Typography>
-                      <Typography variant="body2">
-                        {formatPrice(subtotal)}
-                      </Typography>
-                    </Box>
-                    {extraFee > 0 && (
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {tt("Phụ phí:", "Extra Fee:")}
-                        </Typography>
-                        <Typography variant="body2">
-                          {formatPrice(extraFee)}
-                        </Typography>
-                      </Box>
-                    )}
-                    {appliedVoucher && discountAmount > 0 && (
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {tt("Giảm giá:", "Discount:")} ({appliedVoucher.code})
-                        </Typography>
-                        <Typography variant="body2" color="success.main" sx={{ fontWeight: 600 }}>
-                          - {formatPrice(discountAmount)}
-                        </Typography>
-                      </Box>
-                    )}
-                    <Divider />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                        {tt("Tổng cộng", "Total")}
-                      </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                        {formatPrice(finalTotal)}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Stack>
-              </DialogContent>
-              <DialogActions>
-                <Button onClick={() => setConfirmOpen(false)}>{tt("Quay lại", "Back")}</Button>
-                <Button variant="contained" onClick={handleSubmit} disabled={isLoading}>{tt("Xác nhận", "Confirm")}</Button>
-              </DialogActions>
-            </Dialog>
-
-            {/* Voucher Detail Modal */}
-            <Dialog
-              open={voucherDetailModalOpen}
-              onClose={() => {
-                setVoucherDetailModalOpen(false);
-                setSelectedVoucherForDetail(null);
-              }}
-              fullWidth
-              maxWidth="md"
-            >
-              <DialogTitle sx={{ color: "primary.main" }}>
-                {tt("Chi tiết khuyến mãi", "Voucher Details")}
-              </DialogTitle>
-              <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
-                {selectedVoucherForDetail && (
-                  <Stack spacing={3} sx={{ mt: 1 }}>
-                    {/* Voucher Code and Discount */}
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        {tt("Mã khuyến mãi", "Voucher Code")}
-                      </Typography>
-                      <Typography variant="h6" color="primary" sx={{ fontWeight: 600 }}>
-                        {selectedVoucherForDetail.code}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                          {tt("Giảm giá:", "Discount:")}
-                        </Typography>
-                        <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>
-                          {selectedVoucherForDetail.discountType === 'percentage'
-                            ? `${selectedVoucherForDetail.discountValue}%`
-                            : `${selectedVoucherForDetail.discountValue.toLocaleString('vi-VN')} đ`}
-                          {selectedVoucherForDetail.applicationType === 'per_ticket' && (
-                            <Typography component="span" variant="body2" sx={{ ml: 0.5, fontWeight: 400 }}>
-                              {tt('mỗi vé', 'per ticket')}
-                            </Typography>
-                          )}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Divider />
-
-                    {/* Campaign Name */}
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        {tt("Tên chiến dịch", "Campaign Name")}
-                      </Typography>
-                      <Typography variant="body1">
-                        {selectedVoucherForDetail.name}
-                      </Typography>
-
-
-                      {selectedVoucherForDetail.content && (
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                          {selectedVoucherForDetail.content}
-                        </Typography>
-                      )}
-                    </Box>
-                    <Divider />
-
-                    {/* Validity Period */}
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        {tt("Thời gian hiệu lực", "Validity Period")}
-                      </Typography>
-                      <Typography variant="body2">
-                        {tt("Từ:", "From:")} {dayjs(selectedVoucherForDetail.validFrom).format('DD/MM/YYYY HH:mm')}
-                      </Typography>
-                      <Typography variant="body2">
-                        {tt("Đến:", "To:")} {dayjs(selectedVoucherForDetail.validUntil).format('DD/MM/YYYY HH:mm')}
-                      </Typography>
-                    </Box>
-
-                    <Divider />
-
-                    {/* Application Type */}
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        {tt("Loại áp dụng", "Application Type")}
-                      </Typography>
-                      <Typography variant="body1">
-                        {selectedVoucherForDetail.applicationType === 'total_order'
-                          ? tt('Giảm chung trên tổng đơn hàng', 'Discount on Total Order')
-                          : tt('Giảm theo vé', 'Discount per Ticket')}
-                      </Typography>
-                      {selectedVoucherForDetail.applicationType === 'per_ticket' && selectedVoucherForDetail.maxTicketsToDiscount && (
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                          {tt(`Tối đa ${selectedVoucherForDetail.maxTicketsToDiscount} vé được giảm giá`, `Maximum ${selectedVoucherForDetail.maxTicketsToDiscount} tickets can receive discount`)}
-                        </Typography>
-                      )}
-                    </Box>
-
-                    <Divider />
-
-                    {/* Application Scope */}
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        {tt("Phạm vi áp dụng", "Application Scope")}
-                      </Typography>
-                      {selectedVoucherForDetail.applyToAll ? (
-                        <Typography variant="body1">
-                          {tt("Toàn bộ suất diễn và toàn bộ hạng vé", "All Shows and All Ticket Categories")}
+                          {tt("Số lượng vé tối thiểu:", "Minimum tickets required:")} <strong>{selectedVoucherForDetail.minTicketsRequired}</strong>
                         </Typography>
                       ) : (
-                        <Stack spacing={1}>
-                          <Typography variant="body2" color="text.secondary">
-                            {tt("Chỉ áp dụng cho các hạng vé sau:", "Only applies to the following ticket categories:")}
-                          </Typography>
-                          {selectedVoucherForDetail.ticketCategories && selectedVoucherForDetail.ticketCategories.length > 0 ? (
-                            <Stack spacing={0.5}>
-                              {selectedVoucherForDetail.ticketCategories.map((tc: any, index: number) => (
-                                <Typography key={`tc-${index}`} variant="body2">
-                                  • {tc.show ? `${tc.show.name} - ` : ''}{tc.name}
-                                </Typography>
-                              ))}
-                            </Stack>
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">
-                              {tt("Chưa có hạng vé nào được chọn", "No ticket categories selected")}
-                            </Typography>
-                          )}
-                        </Stack>
-                      )}
-                    </Box>
-
-                    <Divider />
-
-                    {/* Conditions */}
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        {tt("Điều kiện áp dụng", "Application Conditions")}
-                      </Typography>
-                      <Stack spacing={1}>
-                        {selectedVoucherForDetail.minTicketsRequired ? (
-                          <Typography variant="body2">
-                            {tt("Số lượng vé tối thiểu:", "Minimum tickets required:")} <strong>{selectedVoucherForDetail.minTicketsRequired}</strong>
-                          </Typography>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            {tt("Số lượng vé tối thiểu: Không giới hạn", "Minimum tickets required: Unlimited")}
-                          </Typography>
-                        )}
-                        {selectedVoucherForDetail.maxTicketsAllowed ? (
-                          <Typography variant="body2">
-                            {tt("Số lượng vé tối đa:", "Maximum tickets allowed:")} <strong>{selectedVoucherForDetail.maxTicketsAllowed}</strong>
-                          </Typography>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            {tt("Số lượng vé tối đa: Không giới hạn", "Maximum tickets allowed: Unlimited")}
-                          </Typography>
-                        )}
-                        {selectedVoucherForDetail.maxUsesPerUser ? (
-                          <Typography variant="body2">
-                            {tt("Số lần sử dụng tối đa mỗi người:", "Maximum uses per user:")} <strong>{selectedVoucherForDetail.maxUsesPerUser}</strong>
-                          </Typography>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            {tt("Số lần sử dụng tối đa mỗi người: Không giới hạn", "Maximum uses per user: Unlimited")}
-                          </Typography>
-                        )}
-                        <Typography variant="body2">
-                          {tt("Yêu cầu đăng nhập:", "Requires login:")} <strong>{selectedVoucherForDetail.requireLogin ? tt('Có', 'Yes') : tt('Không', 'No')}</strong>
+                        <Typography variant="body2" color="text.secondary">
+                          {tt("Số lượng vé tối thiểu: Không giới hạn", "Minimum tickets required: Unlimited")}
                         </Typography>
-                      </Stack>
-                    </Box>
-                  </Stack>
-                )}
-              </DialogContent>
-              <DialogActions>
-                <Button onClick={() => {
+                      )}
+                      {selectedVoucherForDetail.maxTicketsAllowed ? (
+                        <Typography variant="body2">
+                          {tt("Số lượng vé tối đa:", "Maximum tickets allowed:")} <strong>{selectedVoucherForDetail.maxTicketsAllowed}</strong>
+                        </Typography>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          {tt("Số lượng vé tối đa: Không giới hạn", "Maximum tickets allowed: Unlimited")}
+                        </Typography>
+                      )}
+                      {selectedVoucherForDetail.maxUsesPerUser ? (
+                        <Typography variant="body2">
+                          {tt("Số lần sử dụng tối đa mỗi người:", "Maximum uses per user:")} <strong>{selectedVoucherForDetail.maxUsesPerUser}</strong>
+                        </Typography>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          {tt("Số lần sử dụng tối đa mỗi người: Không giới hạn", "Maximum uses per user: Unlimited")}
+                        </Typography>
+                      )}
+                      <Typography variant="body2">
+                        {tt("Yêu cầu đăng nhập:", "Requires login:")} <strong>{selectedVoucherForDetail.requireLogin ? tt('Có', 'Yes') : tt('Không', 'No')}</strong>
+                      </Typography>
+                    </Stack>
+                  </Box>
+                </Stack>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button
+                onClick={() => {
                   setVoucherDetailModalOpen(false);
                   setSelectedVoucherForDetail(null);
-                }}>
-                  {tt("Đóng", "Close")}
-                </Button>
-                {selectedVoucherForDetail && (
-                  <Button
-                    variant="contained"
-                    onClick={() => {
-                      if (handleApplyVoucher(selectedVoucherForDetail)) {
-                        setVoucherDetailModalOpen(false);
-                        setSelectedVoucherForDetail(null);
-                      }
-                    }}
-                  >
-                    {tt("Áp dụng mã này", "Apply This Code")}
-                  </Button>
-                )}
-              </DialogActions>
-            </Dialog>
-          </Stack>
-        </Grid>
-      </Grid>
-    </Stack>
-  );
+                }}
+              >
+                {tt("Đóng", "Close")}
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </Stack>
+      </>
+    );
+  }
+
+  // Fallback (should never happen)
+  return <></>;
+ 
 }

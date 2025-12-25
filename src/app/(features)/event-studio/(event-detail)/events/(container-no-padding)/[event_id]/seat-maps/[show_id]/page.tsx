@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Backdrop, CircularProgress, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Typography, Box } from "@mui/material";
 import Link from "next/link";
 
-const SeatPickerClient = dynamic(() => import("./SeatPickerClient"), {
+const SeatPickerClient = dynamic(() => import("../../../../../../../../../components/seat-map/SeatPickerClient"), {
   ssr: false,
 });
 

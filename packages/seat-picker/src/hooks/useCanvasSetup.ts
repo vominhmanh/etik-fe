@@ -28,7 +28,14 @@ const useCanvasSetup = (
         const parent = canvasParent.current;
         if (parent) {
           const { width, height } = parent.getBoundingClientRect();
-          c.setDimensions({ width, height }, { cssOnly: false });
+          const anyCanvas = c as any;
+          if (!anyCanvas.lowerCanvasEl || !anyCanvas.upperCanvasEl) return;
+          try {
+            c.setDimensions({ width, height }, { cssOnly: false });
+          } catch (err) {
+            // eslint-disable-next-line no-console
+            console.warn("[seat-picker] resizeCanvas setDimensions failed", err);
+          }
         }
       }
     };

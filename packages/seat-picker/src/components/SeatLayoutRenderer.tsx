@@ -4,13 +4,12 @@ import Modal from '@/components/ui/Modal';
 import { formatPrice } from '../utils';
 
 interface SeatDetails {
+  id: string;
   number: string | number;
   price: string | number;
   category: string;
   status: string;
-  currencySymbol: string;
-  currencyCode: string;
-  currencyCountry: string;
+
 }
 
 interface SeatLayoutRendererProps {
@@ -85,16 +84,11 @@ const SeatLayoutRenderer: React.FC<SeatLayoutRendererProps> = ({
         if (!options.target || options.target.type !== 'circle') return;
         const seat = options.target as any;
         setSelectedSeat({
+          id: String(seat.id ?? ''),
           number: seat.attributes?.number ?? seat.seatNumber ?? '',
           price: seat.attributes?.price ?? seat.price ?? '',
           category: seat.attributes?.category ?? seat.category ?? '',
           status: seat.attributes?.status ?? seat.status ?? '',
-          currencySymbol:
-            seat.attributes?.currencySymbol ?? seat.currencySymbol ?? '',
-          currencyCode:
-            seat.attributes?.currencyCode ?? seat.currencyCode ?? '',
-          currencyCountry:
-            seat.attributes?.currencyCountry ?? seat.currencyCountry ?? '',
         });
       });
 

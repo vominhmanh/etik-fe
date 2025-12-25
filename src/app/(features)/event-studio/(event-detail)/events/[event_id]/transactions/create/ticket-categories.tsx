@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, Button, CardActions, CardContent, Container, FormControl, Grid, InputAdornment, InputLabel, MenuItem, Modal, OutlinedInput, Select, Stack, Typography } from "@mui/material";
+import { Avatar, Button, CardActions, CardContent, Container, Grid, Modal, OutlinedInput, Stack, Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardHeader from "@mui/material/CardHeader";
@@ -19,13 +19,13 @@ import { Show } from "./page";
 import { Plus, Ticket, X } from "@phosphor-icons/react/dist/ssr";
 import NotificationContext from "@/contexts/notification-context";
 import { useTranslation } from "@/contexts/locale-context";
-import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY } from "@/config/phone-countries";
 
 
 interface TicketCategoriesProps {
   show: Show;
   qrOption?: string;
   requireTicketHolderInfo?: boolean;
+  cartQuantities?: Record<number, number>;
   requestedCategoryModalId?: number;
   onModalRequestHandled?: () => void;
   onCategorySelect: (ticketCategoryId: number) => void;
@@ -47,19 +47,15 @@ const colorMap: ColorMap = {
   7: deepPurple[300],
 };
 
-export function TicketCategories({ show, qrOption, requireTicketHolderInfo, requestedCategoryModalId, onModalRequestHandled, onCategorySelect, onAddToCart }: TicketCategoriesProps): React.JSX.Element {
+export function TicketCategories({ show, cartQuantities = {}, requestedCategoryModalId, onModalRequestHandled, onCategorySelect, onAddToCart }: TicketCategoriesProps): React.JSX.Element {
   const { tt } = useTranslation();
   const ticketCategories = show.ticketCategories;
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [ticketCategoryDescriptionModalOpen, setTicketCategoryDescriptionModalOpen] = useState(false);
   const [selectedTicketCategory, setSelectedTicketCategory] = useState<any>(null); // Store selected ticket category
   const [ticketQuantities, setTicketQuantities] = useState<Record<number, number>>({});
-  const [cartQuantities, setCartQuantities] = useState<Record<number, number>>({});
   const [showMore, setShowMore] = useState(false);
   const notificationCtx = React.useContext(NotificationContext);
-  type TicketHolderInfo = { title: string; name: string; email: string; phone: string; phoneCountryIso2?: string };
-  const [ticketHolderInfos, setTicketHolderInfos] = useState<TicketHolderInfo[]>([]);
-  const [ticketHolderInfosByCategory, setTicketHolderInfosByCategory] = useState<Record<number, TicketHolderInfo[]>>({});
   // no separate holder modal; details are inside the description modal
 
   React.useEffect(() => {
@@ -69,11 +65,8 @@ export function TicketCategories({ show, qrOption, requireTicketHolderInfo, requ
     setSelectedTicketCategory(target);
     setTicketCategoryDescriptionModalOpen(true);
     const maxAllowed = getMaxAllowedForCategory(target);
-    const initialQty = Math.max(1, Math.min(maxAllowed, ticketQuantities[target.id] || 1));
+    const initialQty = Math.max(1, Math.min(maxAllowed, cartQuantities[target.id] ?? ticketQuantities[target.id] ?? 1));
     setTicketQuantities((prev) => ({ ...prev, [target.id]: initialQty }));
-    const saved = ticketHolderInfosByCategory[target.id] || [];
-    const next = Array.from({ length: initialQty }, (_, i) => saved[i] || { title: 'Bạn', name: '', email: '', phone: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2 });
-    setTicketHolderInfos(next);
     onModalRequestHandled && onModalRequestHandled();
   }, [requestedCategoryModalId]);
 
@@ -116,13 +109,9 @@ export function TicketCategories({ show, qrOption, requireTicketHolderInfo, requ
       const current = prev[ticketCategory.id];
       if (current && current > 0) return prev;
       const maxAllowed = getMaxAllowedForCategory(ticketCategory);
-      return { ...prev, [ticketCategory.id]: Math.min(1, maxAllowed) };
+      const fromCart = cartQuantities[ticketCategory.id];
+      return { ...prev, [ticketCategory.id]: Math.min(Math.max(1, fromCart ?? 1), maxAllowed) };
     });
-    // Initialize holder infos to match current quantity (default 1)
-    const initialQty = Math.max(1, Math.min(getMaxAllowedForCategory(ticketCategory), ticketQuantities[ticketCategory.id] || 1));
-    const saved = ticketHolderInfosByCategory[ticketCategory.id] || [];
-    const next = Array.from({ length: initialQty }, (_, i) => saved[i] || { title: 'Bạn', name: '', email: '', phone: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2 });
-    setTicketHolderInfos(next);
   };
 
   const handleTicketQuantityChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -132,46 +121,19 @@ export function TicketCategories({ show, qrOption, requireTicketHolderInfo, requ
     const maxAllowed = getMaxAllowedForCategory(selectedTicketCategory);
     const clamped = Math.max(0, Math.min(value, maxAllowed));
     setTicketQuantities((prev) => ({ ...prev, [selectedTicketCategory.id]: clamped }));
-    // Adjust holder infos length to match clamped quantity
-    setTicketHolderInfos((prev) => {
-      if (clamped <= 0) return [];
-      if (clamped === prev.length) return prev;
-      if (clamped < prev.length) return prev.slice(0, clamped);
-      const additions = Array.from({ length: clamped - prev.length }, () => ({ title: 'Bạn', name: '', email: '', phone: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2 }));
-      return [...prev, ...additions];
-    });
   };
 
   const handleAddToCart = () => {
     if (!selectedTicketCategory) return;
     const id = selectedTicketCategory.id as number;
     const qty = ticketQuantities[id] ?? 0;
-    if (qty > 0 && qrOption === 'separate') {
-      const hasInvalid = ticketHolderInfos.slice(0, qty).some((h) => !h.title || !h.name);
-      if (hasInvalid) {
-        notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự cho mỗi vé.', 'Please fill in information for each ticket holder.'));
-        return;
-      }
-    }
     if (qty <= 0) {
-      setCartQuantities((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-      setTicketHolderInfosByCategory((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
       notificationCtx.info(tt('Xóa khỏi đơn hàng thành công', 'Removed from order successfully'));
     } else {
-      setCartQuantities((prev) => ({ ...prev, [id]: qty }));
-      setTicketHolderInfosByCategory((prev) => ({ ...prev, [id]: ticketHolderInfos.slice(0, qty) }));
-      notificationCtx.info(tt('Lưu thành công', 'Saved successfully'));
+      notificationCtx.info(tt('Đã lưu vào giỏ hàng', 'Saved successfully'));
     }
     if (typeof onAddToCart === 'function') {
-      onAddToCart(id, qty, qty > 0 ? ticketHolderInfos.slice(0, qty) : []);
+      onAddToCart(id, qty);
     }
     setTicketCategoryDescriptionModalOpen(false);
 
@@ -271,6 +233,7 @@ export function TicketCategories({ show, qrOption, requireTicketHolderInfo, requ
         onClose={() => setTicketCategoryDescriptionModalOpen(false)}
         aria-labelledby="ticket-category-description-modal-title"
         aria-describedby="ticket-category-description-modal-description"
+        sx={{ zIndex: (theme) => theme.zIndex.modal + 2 }}
       >
         <Container maxWidth="xl">
           <Card
@@ -387,129 +350,6 @@ export function TicketCategories({ show, qrOption, requireTicketHolderInfo, requ
                     </Typography>
                   </Grid>
                 </Stack>
-                {requireTicketHolderInfo && (
-                  <Stack spacing={1}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt("Thông tin người tham dự", "Attendee Information")}</Typography>
-                    <Grid container spacing={2}>
-                      {ticketHolderInfos.map((holder, index) => (
-                        <React.Fragment key={`holder-${index}`}>
-                          <Grid item md={5} xs={12}>
-                            <FormControl fullWidth size="small" required>
-                              <InputLabel>{tt(`Danh xưng*    Họ và tên vé ${index + 1}`, `Title* &emsp; Full Name ticket ${index + 1}`)}</InputLabel>
-                              <OutlinedInput
-                                label={tt(`Danh xưng*    Họ và tên vé ${index + 1}`, `Title* &emsp; Full Name ticket ${index + 1}`)}
-                                value={holder.name}
-                                onChange={(e) => {
-                                  setTicketHolderInfos((prev) => {
-                                    const next = [...prev];
-                                    next[index] = { ...next[index], name: e.target.value };
-                                    return next;
-                                  });
-                                }}
-                                startAdornment={
-                                  <InputAdornment position="start">
-                                    <Select
-                                      variant="standard"
-                                      disableUnderline
-                                      value={holder.title || 'Bạn'}
-                                      onChange={(e) => {
-                                        setTicketHolderInfos((prev) => {
-                                          const next = [...prev];
-                                          next[index] = { ...next[index], title: e.target.value as string };
-                                          return next;
-                                        });
-                                      }}
-                                      sx={{ minWidth: 65 }}
-                                    >
-                                      <MenuItem value="Anh">Anh</MenuItem>
-                                      <MenuItem value="Chị">Chị</MenuItem>
-                                      <MenuItem value="Bạn">Bạn</MenuItem>
-                                      <MenuItem value="Em">Em</MenuItem>
-                                      <MenuItem value="Ông">Ông</MenuItem>
-                                      <MenuItem value="Bà">Bà</MenuItem>
-                                      <MenuItem value="Cô">Cô</MenuItem>
-                                      <MenuItem value="Mr.">Mr.</MenuItem>
-                                      <MenuItem value="Ms.">Ms.</MenuItem>
-                                      <MenuItem value="Miss">Miss</MenuItem>
-                                      <MenuItem value="Thầy">Thầy</MenuItem>
-                                    </Select>
-                                  </InputAdornment>
-                                }
-                              />
-                            </FormControl>
-                          </Grid>
-                          {qrOption === 'separate' && (
-                            <>
-                          <Grid item md={4} xs={12}>
-                            <FormControl fullWidth size="small">
-                              <InputLabel>{tt(`Email vé ${index + 1}`, `Email ticket ${index + 1}`)}</InputLabel>
-                              <OutlinedInput
-                                label={tt(`Email vé ${index + 1}`, `Email ticket ${index + 1}`)}
-                                type="email"
-                                value={holder.email}
-                                onChange={(e) => {
-                                  setTicketHolderInfos((prev) => {
-                                    const next = [...prev];
-                                    next[index] = { ...next[index], email: e.target.value };
-                                    return next;
-                                  });
-                                }}
-                              />
-                            </FormControl>
-                          </Grid>
-                          <Grid item md={3} xs={12}>
-                            <FormControl fullWidth size="small">
-                              <InputLabel>{tt(`SĐT vé ${index + 1}`, `Phone ticket ${index + 1}`)}</InputLabel>
-                              <OutlinedInput
-                                label={tt(`SĐT vé ${index + 1}`, `Phone ticket ${index + 1}`)}
-                                type="tel"
-                                value={holder.phone}
-                                onChange={(e) => {
-                                  setTicketHolderInfos((prev) => {
-                                    const next = [...prev];
-                                    next[index] = { ...next[index], phone: e.target.value };
-                                    return next;
-                                  });
-                                }}
-                                startAdornment={
-                                  <InputAdornment position="start">
-                                    <Select
-                                      variant="standard"
-                                      disableUnderline
-                                      value={holder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
-                                      onChange={(event) => {
-                                        setTicketHolderInfos((prev) => {
-                                          const next = [...prev];
-                                          next[index] = { ...next[index], phoneCountryIso2: event.target.value };
-                                          return next;
-                                        });
-                                      }}
-                                      sx={{ minWidth: 50 }}
-                                      renderValue={(value) => {
-                                        const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
-                                        return country.dialCode;
-                                      }}
-                                    >
-                                      {PHONE_COUNTRIES.map((country) => (
-                                        <MenuItem key={country.iso2} value={country.iso2}>
-                                          {country.nameVi} ({country.dialCode})
-                                        </MenuItem>
-                                      ))}
-                                    </Select>
-                                  </InputAdornment>
-                                }
-                              />
-                            </FormControl>
-                          </Grid>
-                          </>
-                        )}
-                        </React.Fragment>
-                      ))}
-                    </Grid>
-                  </Stack>
-                )}
-
-                
               </Stack>
             </CardContent>
             <Divider />

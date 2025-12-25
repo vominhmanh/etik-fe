@@ -158,13 +158,12 @@ export interface SeatCanvasProps {
 }
 
 export interface SeatData {
+  // UUID of seat in layout_json (fabric object id / canvasSeatId)
+  id?: string;
   number: string | number;
   price: string | number;
   category: string;
   status: string;
-  currencySymbol: string;
-  currencyCode: string;
-  currencyCountry: string;
 }
 
 export interface ZoneData {

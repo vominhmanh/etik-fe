@@ -70,9 +70,6 @@ const SERIALIZABLE_PROPERTIES = [
   'category',
   'status',
   'price',
-  'currencySymbol',
-  'currencyCode',
-  'currencyCountry',
   'fontSize',
   'fontWeight',
   'fontFamily',
@@ -401,16 +398,27 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   // Handle zoom changes
   useEffect(() => {
     if (!canvas) return;
+
+    // Fabric can throw if its internal canvas DOM elements are not ready (or after dispose)
+    const anyCanvas = canvas as any;
+    if (!anyCanvas.lowerCanvasEl || !anyCanvas.upperCanvasEl) return;
+
     const scale = zoomLevel / 100;
-    canvas.setDimensions(
-      {
-        width: mergedStyle.width * scale,
-        height: mergedStyle.height * scale,
-      },
-      { cssOnly: false }
-    );
-    canvas.setZoom(scale);
-    canvas.requestRenderAll();
+    try {
+      canvas.setDimensions(
+        {
+          width: mergedStyle.width * scale,
+          height: mergedStyle.height * scale,
+        },
+        { cssOnly: false }
+      );
+      canvas.setZoom(scale);
+      canvas.requestRenderAll();
+    } catch (err) {
+      // Avoid crashing the app; next effect tick / re-init will apply correct dimensions.
+      // eslint-disable-next-line no-console
+      console.warn("[seat-picker] setDimensions failed (canvas not ready?)", err);
+    }
   }, [canvas, zoomLevel, mergedStyle.width, mergedStyle.height]);
 
   useCanvasSetup(
@@ -581,16 +589,11 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
 
             const seat = options.target as any;
             const seatData: SeatData = {
+              id: String(seat.id ?? ''),
               number: seat.attributes?.number ?? seat.seatNumber ?? '',
               price: seat.attributes?.price ?? seat.price ?? '',
               category: seat.attributes?.category ?? seat.category ?? '',
               status: seat.attributes?.status ?? seat.status ?? '',
-              currencySymbol:
-                seat.attributes?.currencySymbol ?? seat.currencySymbol ?? '',
-              currencyCode:
-                seat.attributes?.currencyCode ?? seat.currencyCode ?? '',
-              currencyCountry:
-                seat.attributes?.currencyCountry ?? seat.currencyCountry ?? '',
             };
 
             if (onSeatClick) {

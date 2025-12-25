@@ -67,13 +67,6 @@ export const DefaultSeatModal = ({
               <label className="text-sm font-medium text-gray-600">
                 {mergedLabels.price}
               </label>
-              <p className="text-lg font-semibold">
-                {selectedSeat.currencySymbol}
-                {selectedSeat.price}{' '}
-                <span className="text-sm text-gray-500">
-                  ({selectedSeat.currencyCode})
-                </span>
-              </p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">
