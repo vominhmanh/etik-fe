@@ -1,16 +1,15 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { fabric } from 'fabric';
-import Toolbar from './toolbar';
-import Sidebar from './sidebar';
+
 import { useEventGuiStore } from '@/zustand';
 import useCanvasSetup from '@/hooks/useCanvasSetup';
-import useSelectionHandler from '@/hooks/useSelectionHandler';
-import useMultipleSeatCreator from '@/hooks/useMultipleSeatCreator';
-import useObjectDeletion from '@/hooks/useObjectDeletion';
-import useObjectCreator from '@/hooks/useObjectCreator';
-import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
-import useUndoRedo from '@/hooks/useUndoRedo';
-import { useSmartSnap } from '@/hooks/useSmartSnap';
+// import useSelectionHandler from '@/hooks/useSelectionHandler';
+// import useMultipleSeatCreator from '@/hooks/useMultipleSeatCreator';
+// import useObjectDeletion from '@/hooks/useObjectDeletion';
+// import useObjectCreator from '@/hooks/useObjectCreator';
+// import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
+// import useUndoRedo from '@/hooks/useUndoRedo';
+import { useCustomerCanvasLoader } from '@/hooks/useCustomerCanvasLoader';
 import useRowLabelRenderer from '@/hooks/useRowLabelRenderer';
 import '@/index.css';
 import '../fabricCustomRegistration';
@@ -52,7 +51,7 @@ const defaultLabels = {
   status: 'Status',
 };
 
-const SeatPicker: React.FC<SeatCanvasProps> = ({
+const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
   className = '',
   onChange,
   onSave,
@@ -75,7 +74,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasParent = useRef<HTMLDivElement>(null);
 
-  const { canvas, setCanvas, toolMode, setToolMode, toolAction, snapEnabled, zoomLevel } =
+  const { canvas, setCanvas, zoomLevel } =
     useEventGuiStore();
   const [selectedSeat, setSelectedSeat] = useState<SeatData | null>(null);
   const [openTicketModal, setOpenTicketModal] = useState(false);
@@ -218,22 +217,17 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     mergedStyle.width,
     mergedStyle.height,
     mergedStyle.backgroundColor,
-    !readOnly,
+    true, // Enables selection (for visual feedback) even in read-only mode
     false
   );
-  useSelectionHandler(canvas);
-  useMultipleSeatCreator(canvas, toolMode, setToolMode);
+  // Removed editing/selection hooks to enforce "select-seat" only and disable row selection.
+  // useSelectionHandler(canvas);
+  // useMultipleSeatCreator(canvas, toolMode, setToolMode);
   useRowLabelRenderer(canvas);
-  useObjectDeletion(canvas, toolAction);
-  useObjectCreator(canvas, toolMode, setToolMode);
-  if (!readOnly) {
-    useUndoRedo();
-    useKeyboardShortcuts(onSave);
-    useSmartSnap(canvas, snapEnabled);
-  }
-
-  // Canvas Loader Hook (handling loading JSON, syncing seats, readOnly modes)
-  useCanvasLoader({
+  // useObjectDeletion(canvas, toolAction);
+  // useObjectCreator(canvas, toolMode, setToolMode);
+  // Canvas Loader Hook (Customer specific: strict read-only, hover pointers)
+  useCustomerCanvasLoader({
     canvas,
     layout,
     readOnly,
@@ -351,68 +345,14 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
       {renderOverlay && renderOverlay({ isFullScreen })}
 
       {/* Left Sidebar (Hardcoded) - Now at top level */}
-      {!readOnly && (
-        <div className="flex-none h-full z-[60] border-r border-gray-300 bg-white shadow-[1px_0_3px_rgba(0,0,0,0.1)]">
-          <Stack
-            spacing={2}
-            sx={{
-              width: 50,
-              height: "100%",
-              bgcolor: 'background.paper',
-              alignItems: 'center',
-              py: 2
-            }}
-          >
-            <Tooltip title="Hạng mục vé" placement="right">
-              <IconButton onClick={() => setOpenTicketModal(true)} size="small">
-                <LuTicket size={20} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Sơ đồ ghế" placement="right">
-              <IconButton color="primary" size="small">
-                <LuArmchair size={20} />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        </div>
-      )}
+
 
       {/* Main Content Area (Toolbar + Canvas) */}
-      <div className="flex flex-col flex-1 h-full min-w-0 overflow-hidden">
-        {!readOnly &&
-          (renderToolbar ? (
-            renderToolbar({
-              onSave: handleSave,
-              onBgLayout: () => {
-                if (hasBgImage) {
-                  handleRemoveBgImage();
-                } else {
-                  bgInputRef.current?.click();
-                }
-              },
-              categories,
-              onSaveCategories,
-            })
-          ) : (
-            <Toolbar
-              onSave={handleSave}
-              onBgLayout={() => {
-                if (hasBgImage) {
-                  handleRemoveBgImage();
-                } else {
-                  bgInputRef.current?.click();
-                }
-              }}
-              onToggleFullScreen={handleToggleFullScreen}
-              isFullScreen={isFullScreen}
-              categories={categories}
-              onSaveCategories={onSaveCategories}
-            />
-          ))}
+      <div className="flex flex-col flex-1 h-full min-w-0 overflow-hidden" >
 
-        <div className="flex h-0 min-h-0 w-full flex-1 overflow-hidden relative">
+        <div className="flex h-0 min-h-0 w-full flex-1 overflow-hidden relative" >
           {/* Canvas Area */}
-          <div
+          < div
             className="flex flex-1 overflow-auto bg-gray-100 p-[2%] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:w-1"
             ref={canvasParent}
             style={{ scrollbarWidth: 'thin' }}
@@ -427,28 +367,22 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
               <canvas ref={canvasRef} />
             </div>
           </div>
-          {!readOnly && (renderSidebar ? renderSidebar() : <Sidebar categories={categories} />)}
         </div>
       </div>
       {/* Only show the default modal if renderSeatDetails is not provided */}
-      {renderSeatDetails
-        ? renderSeatDetails({
-          seat: selectedSeat!,
-          onClose: () => setSelectedSeat(null),
-          onAction: handleSeatAction,
-        })
-        : defaultSeatDetails}
+      {
+        renderSeatDetails
+          ? renderSeatDetails({
+            seat: selectedSeat!,
+            onClose: () => setSelectedSeat(null),
+            onAction: handleSeatAction,
+          })
+          : defaultSeatDetails
+      }
 
-      <TicketCategoryModal
-        open={openTicketModal}
-        onClose={() => setOpenTicketModal(false)}
-        categories={categories || []}
-        onSave={(newCategories) => onSaveCategories?.(newCategories)}
-        stats={categoryStats}
-        createCategoryUrl={createCategoryUrl}
-      />
+
     </div>
   );
 };
 
-export default SeatPicker;
+export default CustomerSeatPicker;

@@ -9,7 +9,12 @@ import { ShoppingCart as ShoppingCartIcon } from '@phosphor-icons/react/dist/ssr
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 import type { Show } from './page';
-import SeatPickerEditor from '@/components/seat-map/SeatPickerEditor';
+import dynamic from "next/dynamic";
+
+const CustomerSeatPicker = dynamic(
+  () => import('@/components/seat-map/SeatPickerEditor').then((mod) => mod.CustomerSeatPicker),
+  { ssr: false }
+);
 
 export type Step1SelectTicketsProps = {
   shows?: Show[];
@@ -130,8 +135,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
           {/* SeatPicker is always mounted; just toggle visibility */}
           {seatmapEverMounted ? (
             <Box sx={{ display: seatmapVisible ? 'block' : 'none' }}>
-              <SeatPickerEditor
-                readOnly={true}
+              <CustomerSeatPicker
                 layout={(seatmapVisible ? activeSchedule?.layoutJson : stickySeatmapLayout) || {}}
                 onSeatAction={(action: string, seat: any) => {
                   console.log(action, seat);

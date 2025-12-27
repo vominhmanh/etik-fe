@@ -1,0 +1,30 @@
+
+export const SERIALIZABLE_PROPERTIES = [
+    'id',
+    'width',
+    'height',
+    'fill',
+    'stroke',
+    'strokeWidth',
+    'angle',
+    'opacity',
+    'selectable',
+    'evented',
+    'hasControls',
+    'lockMovementX',
+    'lockMovementY',
+    'lockRotation',
+    'customType',
+    'rowId',
+    'seatNumber',
+    'category',
+    'status',
+    'price',
+    'fontSize',
+    'fontWeight',
+    'fontFamily',
+    'seatData',
+    'zoneData',
+];
+
+export const EMPTY_OBJECT = {};
