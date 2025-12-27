@@ -13,7 +13,7 @@ interface UseCanvasLoaderProps {
     categories?: TicketCategory[];
     mergedStyle: any;
     onSeatClick?: (seat: SeatData) => void;
-    setSelectedSeat: (seat: SeatData | null) => void;
+    setSelectedSeat?: (seat: SeatData | null) => void;
     setHasBgImage: (has: boolean) => void;
     onChange?: (json: CanvasObject) => void;
     onSave?: (json: CanvasObject) => void;
@@ -167,17 +167,17 @@ export const useCustomerCanvasLoader = ({
                     });
                 }
 
-                // 3. STRICT READ-ONLY INTERACTION SETUP
-                // Make all objects not selectable/editable
-                // ONLY seats (circles) are clickable
+                // 3. STRICT CUSTOMER INTERACTION SETUP
                 canvas.getObjects().forEach((obj: any) => {
-                    // Broader check for seats based on user feedback about structure changes
-                    const isSeat = obj.type === 'circle' || obj.customType === 'seat';
+                    // Strict check for seats
+                    const isSeat = obj.customType === 'seat';
 
                     obj.set({
-                        selectable: isSeat, // Allow selection for seats to show "active" state
-                        hasControls: false, // No resize/rotate controls
-                        hasBorders: isSeat, // Show borders when selected
+                        // User Request: "click is seat is selected... click one more time to deselect... select multiple"
+                        // To achieve "Click to Toggle" without modifier keys, we disable defaults and handle manually.
+                        selectable: false, // Disable default Fabric click-to-select (which replaces selection)
+                        hasControls: false,
+                        hasBorders: true, // Borders will be shown when we manually set active
                         lockMovementX: true,
                         lockMovementY: true,
                         lockRotation: true,
@@ -185,43 +185,67 @@ export const useCustomerCanvasLoader = ({
                         lockScalingY: true,
                         lockSkewingX: true,
                         lockSkewingY: true,
-                        permanentlyLocked: true, // Fixed typo
+                        permanentlyLocked: true,
                         evented: isSeat, // Only seats catch events
-                        hoverCursor: isSeat ? 'pointer' : 'default', // Hand cursor for seats
+                        hoverCursor: isSeat ? 'pointer' : 'default',
                     });
                 });
 
-                canvas.selection = true; // Explicitly enable global selection
+                canvas.selection = false; // Disable global drag selection
                 canvas.hoverCursor = 'default';
 
-                // Add click handler for seats (using native selection events instead of manual mouse:down if possible, 
-                // but keeping this for data extraction/onSeatClick compatibility)
+                // Custom Click Handler for Toggle Selection
                 if (readOnlyMouseDownHandler) {
                     canvas.off('mouse:down', readOnlyMouseDownHandler);
                 }
 
                 readOnlyMouseDownHandler = (options) => {
                     if (!options.target) return;
+                    const target = options.target as any;
 
-                    const seat = options.target as any;
-                    const isSeat = seat.type === 'circle' || seat.customType === 'seat';
+                    if (target.customType !== 'seat') return;
 
-                    if (!isSeat) return;
+                    // Toggle Selection Logic
+                    const activeObjects = canvas.getActiveObjects();
+                    const isAlreadySelected = activeObjects.includes(target);
 
+                    let newSelection = [...activeObjects];
+
+                    if (isAlreadySelected) {
+                        // Deselect
+                        newSelection = newSelection.filter(o => o !== target);
+                    } else {
+                        // Select
+                        newSelection.push(target);
+                    }
+
+                    if (newSelection.length === 0) {
+                        canvas.discardActiveObject();
+                    } else if (newSelection.length === 1) {
+                        canvas.setActiveObject(newSelection[0]);
+                    } else {
+                        const multiSelection = new fabric.ActiveSelection(newSelection, {
+                            canvas: canvas,
+                            lockMovementX: true,
+                            lockMovementY: true,
+                            hasControls: false, // Ensure the group itself has no controls
+                        });
+                        canvas.setActiveObject(multiSelection);
+                    }
+
+                    canvas.requestRenderAll();
+
+                    // Optional callback if needed, but we removed setSelectedSeat call for modal
                     const seatData: SeatData = {
-                        id: String(seat.id ?? ''),
-                        number: seat.attributes?.number ?? seat.seatNumber ?? '',
-                        price: seat.attributes?.price ?? seat.price ?? '',
-                        category: seat.attributes?.category ?? seat.category ?? '',
-                        status: seat.attributes?.status ?? seat.status ?? '',
+                        id: String(target.id ?? ''),
+                        number: target.attributes?.number ?? target.seatNumber ?? '',
+                        price: target.attributes?.price ?? target.price ?? '',
+                        category: target.attributes?.category ?? target.category ?? '',
+                        status: target.attributes?.status ?? target.status ?? '',
                     };
 
-                    // We let Fabric handle the visual selection (border).
-                    // We just handle the data callback.
                     if (onSeatClick) {
                         onSeatClick(seatData);
-                    } else {
-                        setSelectedSeat(seatData);
                     }
                 };
                 canvas.on('mouse:down', readOnlyMouseDownHandler);

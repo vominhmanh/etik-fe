@@ -155,6 +155,9 @@ export interface SeatCanvasProps {
   createCategoryUrl?: string;
   onUploadBackground?: (file: File) => Promise<string | null>;
   renderOverlay?: (props: { isFullScreen: boolean }) => React.ReactNode;
+  selectedSeatIds?: string[];
+  onSelectionChange?: (selectedIds: string[], selectedSeats: SeatData[]) => void;
+  ticketCategories?: TicketCategory[];
 }
 
 export interface SeatData {

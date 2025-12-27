@@ -104,21 +104,10 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
       });
 
       canvas.getObjects().forEach((obj: any) => {
-        if (obj.category) {
+        // Strict check for seats
+        if (obj.customType === 'seat' && obj.category) {
           const catId = Number(obj.category);
           if (stats[catId]) {
-            stats[catId].total++;
-            const status = obj.status || 'available';
-            if (status === 'sold') stats[catId].booked++;
-            else if (status === 'reserved') stats[catId].pending++;
-            else if (status === 'hold') stats[catId].locked++;
-          }
-        } else if (obj.type === 'group' && (obj.rowId || obj.seatNumber)) {
-          // Check inside groups if any
-          // For now assuming group properties mirror seat properties at top level or we need to access inner seat
-          // If group has category, it counts.
-          const catId = Number(obj.category);
-          if (catId && stats[catId]) {
             stats[catId].total++;
             const status = obj.status || 'available';
             if (status === 'sold') stats[catId].booked++;

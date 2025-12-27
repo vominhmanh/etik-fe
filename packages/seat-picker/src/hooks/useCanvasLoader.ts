@@ -80,7 +80,7 @@ export const useCanvasLoader = ({
                         obj.id = Math.random().toString(36).substr(2, 9);
                     }
 
-                    const isSeat = obj.type === 'circle' || obj.customType === 'seat';
+                    const isSeat = obj.customType === 'seat';
                     if (isSeat) {
                         let categoryId = obj.category;
 
@@ -177,7 +177,7 @@ export const useCanvasLoader = ({
                     // Make all objects not selectable/editable, only seats (circles) are clickable
                     canvas.getObjects().forEach((obj: any) => {
                         obj.selectable = false;
-                        obj.evented = obj.type === 'circle';
+                        obj.evented = obj.customType === 'seat';
                     });
                     canvas.selection = false;
 
@@ -210,7 +210,7 @@ export const useCanvasLoader = ({
 
                     canvas.getObjects().forEach((obj: any) => {
                         if (
-                            obj.type === 'circle' ||
+                            obj.customType === 'seat' ||
                             obj.type === 'rect' ||
                             obj.type === 'i-text'
                         ) {

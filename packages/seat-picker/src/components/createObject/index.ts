@@ -23,7 +23,7 @@ const createRect = (left: number, top: number) => {
     strokeUniform: true,
     rx: 0,
     ry: 0,
-  });
+  } as any);
 
   rect.setControlsVisibility({
     mt: false,
@@ -75,6 +75,7 @@ const createSeat = (
     id: uuidv4(),
     rowId: rowId,
     seatNumber: seatNumber,
+    customType: 'seat', // Explicitly define as seat
   } as any);
 
   group.setControlsVisibility({
@@ -105,7 +106,7 @@ const createText = (left: number, top: number, text: string = 'Type here') => {
     fontFamily: 'sans-serif',
     id: uuidv4(),
     strokeUniform: true,
-  });
+  } as any);
 
   textObject.setControlsVisibility({
     mt: false,

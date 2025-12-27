@@ -45,7 +45,8 @@ const SeatLayoutRenderer: React.FC<SeatLayoutRendererProps> = ({
     canvas.clear();
     canvas.loadFromJSON(layout, () => {
       // Label each seat by number
-      canvas.getObjects('circle').forEach((seat: any) => {
+      canvas.getObjects().forEach((seat: any) => {
+        if (seat.customType !== 'seat') return;
         // Remove any previous label
         if (seat.labelObj) {
           canvas.remove(seat.labelObj);
@@ -72,16 +73,16 @@ const SeatLayoutRenderer: React.FC<SeatLayoutRendererProps> = ({
         canvas.bringToFront(label);
       });
 
-      // Make all objects not selectable/editable, only seats (circles) are clickable
+      // Make all objects not selectable/editable, only seats are clickable
       canvas.getObjects().forEach((obj: any) => {
         obj.selectable = false;
-        obj.evented = obj.type === 'circle';
+        obj.evented = obj.customType === 'seat';
       });
       canvas.selection = false;
 
       // Add click handler for seats
       canvas.on('mouse:down', (options) => {
-        if (!options.target || options.target.type !== 'circle') return;
+        if (!options.target || (options.target as any).customType !== 'seat') return;
         const seat = options.target as any;
         setSelectedSeat({
           id: String(seat.id ?? ''),

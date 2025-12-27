@@ -79,6 +79,9 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
     setStickySeatmapLayout(activeSchedule.layoutJson || {});
   }, [seatmapVisible, activeSchedule?.id, activeSchedule?.layoutJson, seatmapEverMounted]);
 
+  // Track selected seat IDs
+  const [selectedSeats, setSelectedSeats] = React.useState<Set<string>>(new Set());
+
   return (
     <Stack spacing={3}>
       <Grid container spacing={3}>
@@ -137,8 +140,11 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
             <Box sx={{ display: seatmapVisible ? 'block' : 'none' }}>
               <CustomerSeatPicker
                 layout={(seatmapVisible ? activeSchedule?.layoutJson : stickySeatmapLayout) || {}}
-                onSeatAction={(action: string, seat: any) => {
-                  console.log(action, seat);
+                ticketCategories={activeSchedule?.ticketCategories || []}
+                selectedSeatIds={Array.from(selectedSeats)}
+                onSelectionChange={(newIds: string[], newSelectedSeats: any[]) => {
+                  console.log('Selection Changed:', newIds, newSelectedSeats);
+                  setSelectedSeats(new Set(newIds));
                 }}
               />
             </Box>

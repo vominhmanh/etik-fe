@@ -9,15 +9,13 @@ import useCanvasSetup from '@/hooks/useCanvasSetup';
 // import useObjectCreator from '@/hooks/useObjectCreator';
 // import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 // import useUndoRedo from '@/hooks/useUndoRedo';
-import { useCustomerCanvasLoader } from '@/hooks/useCustomerCanvasLoader';
+import { useCustomerCanvasLoaderV2 } from '@/hooks/useCustomerCanvasLoaderV2';
 import useRowLabelRenderer from '@/hooks/useRowLabelRenderer';
+import { LuX } from 'react-icons/lu';
+import { useSeatMetadata } from '../hooks/useSeatMetadata';
 import '@/index.css';
 import '../fabricCustomRegistration';
 import { CanvasObject, SeatCanvasProps, SeatData, CategoryStats } from '@/types/data.types';
-import Modal, { DefaultSeatModal } from './ui/Modal';
-import { TicketCategoryModal } from './ui/TicketCategoryModal';
-import { IconButton, Stack, Tooltip } from '@mui/material';
-import { LuArmchair, LuTicket } from 'react-icons/lu';
 import { EMPTY_OBJECT, SERIALIZABLE_PROPERTIES } from '@/utils/constants';
 import { useCanvasBackground } from '@/hooks/useCanvasBackground';
 import { useSeatAppearance } from '@/hooks/useSeatAppearance';
@@ -70,13 +68,17 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
   createCategoryUrl,
   onUploadBackground,
   renderOverlay,
+  ticketCategories,
+  selectedSeatIds,
+  onSelectionChange,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasParent = useRef<HTMLDivElement>(null);
 
   const { canvas, setCanvas, zoomLevel } =
     useEventGuiStore();
-  const [selectedSeat, setSelectedSeat] = useState<SeatData | null>(null);
+  useEventGuiStore();
+  // Removed selectedSeat state for modal - Logic moved to multi-select via canvas
   const [openTicketModal, setOpenTicketModal] = useState(false);
   const [categoryStats, setCategoryStats] = useState<Record<number, CategoryStats>>({});
 
@@ -93,9 +95,15 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
     onUploadBackground,
   });
 
+  // Pre-process lookups for efficient rendering
+  const { getCategory, getRowLabel, displayCategories } = useSeatMetadata(layout || {}, ticketCategories);
+
   useEffect(() => {
     if (openTicketModal && canvas) {
       const stats: Record<number, CategoryStats> = {};
+
+
+
 
       // Initialize stats for all categories
       categories?.forEach(cat => {
@@ -227,29 +235,28 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
   // useObjectDeletion(canvas, toolAction);
   // useObjectCreator(canvas, toolMode, setToolMode);
   // Canvas Loader Hook (Customer specific: strict read-only, hover pointers)
-  useCustomerCanvasLoader({
+  useCustomerCanvasLoaderV2({
     canvas,
     layout,
     readOnly,
     existingSeats,
-    categories,
+    categories: ticketCategories || categories,
     mergedStyle,
     onSeatClick,
-    setSelectedSeat,
     setHasBgImage, // Pass the setter from useCanvasBackground
     onChange,
     onSave,
+    selectedSeatIds,
+    onSelectionChange,
   });
 
   // Seat Appearance Hook (Sync colors)
   useSeatAppearance(canvas, categories);
 
   const handleSeatAction = (action: string) => {
-    if (selectedSeat) {
-      if (onSeatAction) {
-        onSeatAction(action, selectedSeat);
-      }
-      setSelectedSeat(null);
+    // Legacy action handler
+    if (onSeatAction) {
+      // We don't have single selectedSeat state anymore
     }
   };
 
@@ -283,15 +290,27 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
     }
   };
 
-  // Default seat details modal
-  const defaultSeatDetails = (
-    <DefaultSeatModal
-      selectedSeat={selectedSeat}
-      setSelectedSeat={setSelectedSeat}
-      mergedLabels={mergedLabels}
-      handleSeatAction={handleSeatAction}
-    />
-  );
+  const handleRemoveSeat = (seatIdToRemove: string) => {
+    if (!selectedSeatIds || !onSelectionChange || !canvas) return;
+
+    const newIds = selectedSeatIds.filter(id => id !== seatIdToRemove);
+
+    // Construct new SeatData list for callback consistency
+    const newSelectedSeats = newIds.map(id => {
+      const obj = canvas.getObjects().find((o: any) => o.id === id && o.customType === 'seat') as any;
+      if (!obj) return null;
+      return {
+        id: String(obj.id ?? ''),
+        number: obj.attributes?.number ?? obj.seatNumber ?? '',
+        price: obj.attributes?.price ?? obj.price ?? '',
+        category: obj.attributes?.category ?? obj.category ?? '',
+        status: obj.attributes?.status ?? obj.status ?? '',
+      };
+    }).filter((s) => s !== null) as SeatData[];
+
+    onSelectionChange(newIds, newSelectedSeats);
+  };
+
 
   // Full screen handler
   const containerRef = useRef<HTMLDivElement>(null);
@@ -367,20 +386,110 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
               <canvas ref={canvasRef} />
             </div>
           </div>
+
+          {/* Right Panel: Legend & Selected List */}
+          <div className="w-72 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden shadow-sm z-10 transition-all duration-300">
+
+            {/* Legend Section */}
+            <div className="p-4 border-b border-gray-100 flex-shrink-0">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Ticket Categories</h3>
+              <div className="space-y-2">
+                {displayCategories.length > 0 ? (
+                  displayCategories.map(cat => (
+                    <div key={cat.id} className="flex items-center text-sm py-1">
+                      <div
+                        className="w-4 h-4 rounded-full mr-3 shadow-sm border border-black/10 flex-shrink-0"
+                        style={{ backgroundColor: cat.color }}
+                      />
+                      <span className="text-gray-700 font-medium truncate flex-1">{cat.name}</span>
+                      <span className="text-gray-500 text-xs ml-2">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(cat.price))}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-400 italic">No categories available</p>
+                )}
+              </div>
+            </div>
+
+            {/* Selected Seats Section */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center justify-between">
+                Ordered Tickets
+                <span className="bg-blue-100 text-blue-700 py-0.5 px-2 rounded-full text-xs">{selectedSeatIds?.length || 0}</span>
+              </h3>
+
+              <div className="space-y-2">
+                {selectedSeatIds?.map(seatId => {
+                  // Resolve seat details from canvas
+                  const canvasSeat = canvas?.getObjects().find((o: any) => o.id === seatId && o.customType === 'seat') as any;
+                  if (!canvasSeat) return null;
+
+                  // Use toJSON to safely extract properties that might be on the prototype or mixed in
+                  const raw = canvasSeat.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']);
+                  const attributes = canvasSeat.attributes || {};
+
+                  const catId = String(raw.category || attributes.category || '').trim();
+
+                  // Optimized Lookup using Hook
+                  const categoryInfo = getCategory(catId);
+
+                  // Row Lookup using Hook
+                  let rowLabel = raw.rowLabel || attributes.rowLabel;
+                  if (!rowLabel || rowLabel === '-') {
+                    const rowId = String(raw.rowId || attributes.rowId || '');
+                    rowLabel = getRowLabel(rowId);
+                  }
+                  rowLabel = rowLabel || '-';
+
+                  const seatNum = raw.seatNumber || attributes.number || raw.number || '?';
+                  const price = raw.price !== undefined && raw.price !== "" ? Number(raw.price) : categoryInfo.price;
+
+                  return (
+                    <div key={seatId} className="flex items-center p-2 bg-gray-50 rounded border border-gray-100 items-stretch group relative">
+                      <div className="flex items-center justify-center mr-3">
+                        <span
+                          className="w-4 h-4 rounded-full shadow-sm border border-black/10"
+                          style={{ backgroundColor: categoryInfo.color }}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <div className="text-sm font-medium text-gray-800">
+                          <span className="font-bold text-gray-900">Row {rowLabel}</span>, Seat {seatNum}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {categoryInfo.name}
+                        </div>
+                      </div>
+                      <div className="flex items-center text-sm font-semibold text-gray-700 ml-2">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(price))}
+                      </div>
+
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => handleRemoveSeat(seatId)}
+                        className="ml-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                        title="Remove ticket"
+                      >
+                        <LuX size={16} />
+                      </button>
+                    </div>
+                  );
+                })}
+                {(!selectedSeatIds || selectedSeatIds.length === 0) && (
+                  <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                    <span className="block mb-1 opacity-50 text-2xl">🎫</span>
+                    <span className="text-xs">No tickets selected</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+
         </div>
       </div>
-      {/* Only show the default modal if renderSeatDetails is not provided */}
-      {
-        renderSeatDetails
-          ? renderSeatDetails({
-            seat: selectedSeat!,
-            onClose: () => setSelectedSeat(null),
-            onAction: handleSeatAction,
-          })
-          : defaultSeatDetails
-      }
-
-
     </div>
   );
 };
