@@ -950,4 +950,5 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   );
 };
 
+
 export default SeatPicker;

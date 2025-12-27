@@ -3,11 +3,11 @@
 import { SeatPicker } from "seat-picker";
 import NotificationBar from "@/app/notification";
 
-export default function SeatPickerClient(props: any) {
+export default function SeatPickerEditor(props: any) {
     return (
         <SeatPicker
             {...props}
-            renderOverlay={({ isFullScreen }) => isFullScreen ? <NotificationBar /> : null}
+            renderOverlay={({ isFullScreen }: { isFullScreen: boolean }) => isFullScreen ? <NotificationBar /> : null}
         />
     );
 }

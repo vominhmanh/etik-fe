@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Backdrop, CircularProgress, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Typography, Box } from "@mui/material";
 import Link from "next/link";
 
-const SeatPickerClient = dynamic(() => import("../../../../../../../../../components/seat-map/SeatPickerClient"), {
+const SeatPickerEditor = dynamic(() => import("@/components/seat-map/SeatPickerEditor"), {
   ssr: false,
 });
 
@@ -89,7 +89,6 @@ export default function Page() {
   }, [event_id, show_id]);
 
   const handleSaveCategories = (newCategories: TicketCategory[]) => {
-    console.log('Saving categories:', newCategories);
     setCategories(newCategories);
   };
 
@@ -189,7 +188,7 @@ export default function Page() {
   return (
     <>
       <div style={{ width: "100%", height: "87vh" }}>
-        <SeatPickerClient
+        <SeatPickerEditor
           categories={categories}
           onSaveCategories={handleSaveCategories}
           layout={layoutJson}
