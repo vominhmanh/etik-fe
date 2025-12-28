@@ -139,6 +139,49 @@ const getPaymentMethodLabel = (paymentMethod: string, tt: (vi: string, en: strin
   }
 };
 
+export interface CustomerInfo {
+  title: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+  phoneCountryIso2?: string;
+  dob?: string | null;
+  idcard_number?: string;
+  avatar?: string;
+}
+
+export interface HolderInfo {
+  title: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  avatar?: string;
+  address?: string;
+  gender?: string;
+  nationality?: string;
+  idcard_number?: string;
+  phoneCountryIso2?: string;
+}
+
+export interface TicketInfo {
+  showId: number;
+  ticketCategoryId: number; // Optional if seatId present? User said optional but practically needed for pricing. Sticking to user req but usually category is known.
+  seatId?: string;
+  holder?: HolderInfo;
+  price?: number; // Helper for frontend calculation
+}
+
+export interface Order {
+  customer: CustomerInfo;
+  tickets: TicketInfo[];
+  qrOption: 'shared' | 'separate';
+  paymentMethod: string;
+  extraFee: number;
+  formAnswers?: Record<string, any>;
+  voucherCode?: string;
+}
+
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const { tt, locale } = useTranslation();
   React.useEffect(() => {
@@ -158,34 +201,36 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const qrOption: 'shared' | 'separate' = 'separate';
   const requireTicketHolderInfo: boolean = true;
   const [event, setEvent] = React.useState<EventResponse | null>(null);
-  const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
-  const [extraFee, setExtraFee] = React.useState<number>(0);
   const router = useRouter(); // Use useRouter from next/navigation
-  const [selectedCategories, setSelectedCategories] = React.useState<Record<number, Record<number, number>>>({});
+
   const defaultTitle = locale === 'en' ? 'Mx.' : 'Bạn';
-  const [customer, setCustomer] = React.useState({
-    title: defaultTitle,
-    name: '',
-    email: '',
-    phoneNumber: '',
-    phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
-    dob: null as string | null,
-    address: '',
-    idcard_number: '',
-    avatar: ''
+
+  // Refactored Order State
+  const [order, setOrder] = React.useState<Order>({
+    customer: {
+      title: defaultTitle,
+      name: '',
+      email: '',
+      phoneNumber: '',
+      address: '',
+      phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
+      dob: null,
+      idcard_number: '',
+      avatar: ''
+    },
+    tickets: [],
+    qrOption: 'separate',
+    paymentMethod: 'napas247',
+    extraFee: 0
   });
-  const [paymentMethod, setPaymentMethod] = React.useState<string>('napas247');
-  const [ticketHolders, setTicketHolders] = React.useState<TicketHolderInfo[]>([{ title: 'Bạn', name: '', email: '', phone: '', avatar: '' }]);
+
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [selectedSchedules, setSelectedSchedules] = React.useState<Show[]>([]);
   const [activeScheduleId, setActiveScheduleId] = React.useState<number | null>(null);
-  const [ticketHolderEditted, setTicketHolderEditted] = React.useState<boolean>(false);
   const [requestedCategoryModalId, setRequestedCategoryModalId] = React.useState<number | null>(null);
-  const [ticketHoldersByCategory, setTicketHoldersByCategory] = React.useState<Record<string, TicketHolderInfo[]>>({});
+
   const requireGuestAvatar: boolean = true;
-  const [pendingCustomerAvatarFile, setPendingCustomerAvatarFile] = React.useState<File | null>(null);
-  const [pendingHolderAvatarFiles, setPendingHolderAvatarFiles] = React.useState<Record<string, File>>({});
   const [cartOpen, setCartOpen] = React.useState<boolean>(false);
 
   const [checkoutFormFields, setCheckoutFormFields] = React.useState<CheckoutRuntimeField[]>([]);
@@ -205,14 +250,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   const selectedPhoneCountry = React.useMemo(() => {
-    return PHONE_COUNTRIES.find((c) => c.iso2 === customer.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
-  }, [customer.phoneCountryIso2]);
+    return PHONE_COUNTRIES.find((c) => c.iso2 === order.customer.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
+  }, [order.customer.phoneCountryIso2]);
 
   const customerNSN = React.useMemo(() => {
-    if (!customer.phoneNumber) return '';
-    const digits = customer.phoneNumber.replace(/\D/g, '');
+    if (!order.customer.phoneNumber) return '';
+    const digits = order.customer.phoneNumber.replace(/\D/g, '');
     return digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
-  }, [customer.phoneNumber]);
+  }, [order.customer.phoneNumber]);
 
   const formattedCustomerPhone = React.useMemo(() => {
     if (!customerNSN) return '';
@@ -251,18 +296,29 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         );
         setAvailableVouchers(response.data || []);
       } catch (error) {
-        // Silently fail - vouchers are optional
-        console.error('Error fetching vouchers:', error);
+        console.error(error);
       }
     };
-    if (params.event_id) {
-      fetchAvailableVouchers();
-    }
+    fetchAvailableVouchers();
   }, [params.event_id]);
+
+  // Calculate cart quantities for active schedule for Step 1
+  const cartQuantitiesForActiveSchedule = React.useMemo(() => {
+    if (!activeScheduleId) return {};
+    const quantities: Record<number, number> = {};
+    order.tickets.forEach(t => {
+      if (t.showId === activeScheduleId) {
+        quantities[t.ticketCategoryId] = (quantities[t.ticketCategoryId] || 0) + 1;
+      }
+    });
+    return quantities;
+  }, [activeScheduleId, order.tickets]);
+
+
 
 
   const builtinInternalNames = React.useMemo(
-    () => new Set(['title', 'name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
+    () => new Set(['title', 'name', 'email', 'phone', 'phone_number', 'address', 'dob', 'gender', 'nationality', 'idcard_number']),
     []
   );
 
@@ -271,79 +327,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     [checkoutFormFields, builtinInternalNames]
   );
 
-  // Cleanup blob URLs on unmount to prevent memory leaks
-  React.useEffect(() => {
-    return () => {
-      if (customer.avatar && customer.avatar.startsWith('blob:')) {
-        URL.revokeObjectURL(customer.avatar);
-      }
-      Object.values(ticketHoldersByCategory).forEach(holders => {
-        holders.forEach(holder => {
-          if (holder.avatar && holder.avatar.startsWith('blob:')) {
-            URL.revokeObjectURL(holder.avatar);
-          }
-        });
-      });
-    };
-  }, []);
 
-  const handleCategorySelection = (showId: number, categoryId: number) => {
-    setSelectedCategories(prevCategories => {
-      const existingForShow = prevCategories[showId] || {};
-      const exists = Object.prototype.hasOwnProperty.call(existingForShow, categoryId);
-      const nextForShow = { ...existingForShow } as Record<number, number>;
-      if (exists) {
-        delete nextForShow[categoryId];
-      } else {
-        nextForShow[categoryId] = 1; // default quantity when toggled via list
-      }
-      return {
-        ...prevCategories,
-        [showId]: nextForShow,
-      };
-    });
-  };
-
-  const handleAddToCartQuantity = (showId: number, categoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; phoneCountryIso2?: string; }[]) => {
-    setSelectedCategories(prev => {
-      const forShow = prev[showId] || {};
-      const updatedForShow = { ...forShow } as Record<number, number>;
-      if (quantity <= 0) {
-        delete updatedForShow[categoryId];
-      } else {
-        updatedForShow[categoryId] = quantity;
-      }
-      return {
-        ...prev,
-        [showId]: updatedForShow,
-      };
-    });
-
-    const key = `${showId}-${categoryId}`;
-    setTicketHoldersByCategory(prev => {
-      if (quantity <= 0) {
-        const next = { ...prev } as Record<string, TicketHolderInfo[]>;
-        delete next[key];
-        return next;
-      }
-      const existing = prev[key] || [];
-      if (holders && holders.length > 0) {
-        const merged = Array.from({ length: quantity }, (_, i) => {
-          const prevHolder: TicketHolderInfo = existing[i] || { title: 'Bạn', name: '', email: '', phone: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2, avatar: (requireGuestAvatar && customer.avatar) ? customer.avatar : '' };
-          const incoming = holders[i];
-          let combined: TicketHolderInfo = incoming ? { ...prevHolder, ...incoming } as TicketHolderInfo : prevHolder;
-          if (!combined.avatar) {
-            combined = { ...combined, avatar: (requireGuestAvatar && customer.avatar) ? customer.avatar : '' };
-          }
-          return combined;
-        });
-        return { ...prev, [key]: merged };
-      }
-      // ensure existing array is sized to quantity
-      const sized = Array.from({ length: quantity }, (_, i) => existing[i] || { title: 'Bạn', name: '', email: '', phone: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2, avatar: (requireGuestAvatar && customer.avatar) ? customer.avatar : '' });
-      return { ...prev, [key]: sized };
-    });
-  };
+  // Calculate total tickets
+  const totalSelectedTickets = order.tickets.length;
 
   const handleSelectionChange = (selected: Show[]) => {
     setSelectedSchedules(selected);
@@ -353,21 +339,67 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       setActiveScheduleId(null);
     }
 
-    const tmpObj: Record<number, Record<number, number>> = {}
-    selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || {} })
-    setSelectedCategories(tmpObj);
-
-    // filter holders to only keep keys for selected shows
-    const allowedShowIds = new Set(selected.map(s => s.id));
-    setTicketHoldersByCategory(prev => {
-      const next: Record<string, TicketHolderInfo[]> = {};
-      Object.entries(prev).forEach(([k, v]) => {
-        const showIdStr = k.split('-')[0];
-        const sid = parseInt(showIdStr);
-        if (allowedShowIds.has(sid)) next[k] = v;
-      });
-      return next;
+    // Remove tickets for deselected shows
+    setOrder(prev => {
+      const allowedShowIds = new Set(selected.map(s => s.id));
+      return {
+        ...prev,
+        tickets: prev.tickets.filter(t => allowedShowIds.has(t.showId))
+      };
     });
+  };
+
+  const handleAddToCartQuantity = (showId: number, ticketCategoryId: number, quantity: number) => {
+    setOrder(prev => {
+      // 1. Keep tickets not related to this show/category
+      const otherTickets = prev.tickets.filter(t => t.showId !== showId || t.ticketCategoryId !== ticketCategoryId);
+
+      // 2. Get existing tickets of this type to preserve holder info if reducing quantity
+      const existingTickets = prev.tickets.filter(t => t.showId === showId && t.ticketCategoryId === ticketCategoryId);
+
+      // 3. Prepare new tickets
+      let newTicketsForCategory: TicketInfo[] = [];
+      if (quantity > 0) {
+        if (quantity <= existingTickets.length) {
+          // Reducing or keeping same: take first N existing
+          newTicketsForCategory = existingTickets.slice(0, quantity);
+        } else {
+          // Increasing: take all existing + add new ones
+          newTicketsForCategory = [...existingTickets];
+          const countToAdd = quantity - existingTickets.length;
+          for (let i = 0; i < countToAdd; i++) {
+            newTicketsForCategory.push({
+              showId,
+              ticketCategoryId,
+              // seatId? If seated, we might need seat selection logic, but this is quantity update.
+              // For now, assume this is for non-seatmap or general admission helper.
+              // If seated, quantity usually managed by picking seats.
+              // But if we use this for "X" button on cart, quantity=0 works fine for seated too.
+              holder: undefined
+            });
+          }
+        }
+      }
+
+      return {
+        ...prev,
+        tickets: [...otherTickets, ...newTicketsForCategory]
+      };
+    });
+  };
+
+
+  const handleNext = () => {
+    if (activeStep < stepLabels.length - 1) {
+      // Validate current step before moving?
+      setActiveStep(activeStep + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (activeStep > 0) {
+      setActiveStep(activeStep - 1);
+    }
   };
 
   const activeSchedule = React.useMemo(() => {
@@ -375,10 +407,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return selectedSchedules.find((s) => s.id === activeScheduleId) || null;
   }, [selectedSchedules, activeScheduleId]);
 
-  const handleExtraFeeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value.replace(/\D/g, ''); // Remove non-digit characters
-    setExtraFee(Number(value));
-  };
+
 
   const uploadImageToS3 = async (file: File): Promise<string | null> => {
     try {
@@ -417,55 +446,48 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       // Create local preview URL instead of uploading to S3
       const previewUrl = createLocalPreviewUrl(file);
 
-      // Store the file for later upload
-      setPendingCustomerAvatarFile(file);
+
 
       // update customer avatar with preview URL
-      setCustomer(prev => ({ ...prev, avatar: previewUrl }));
-      // also sync into the customer-holder (index 0)
-      setTicketHolders(prev => {
-        const next = [...prev];
-        const current = next[0] || { title: 'Bạn', name: '', email: '', phone: '', avatar: '' };
-        next[0] = { ...current, avatar: previewUrl };
-        return next;
-      });
-      // merge avatar into all ticket holders that don't have one yet
-      setTicketHoldersByCategory(prev => {
-        const next: Record<string, TicketHolderInfo[]> = {};
-        Object.entries(prev).forEach(([k, arr]) => {
-          next[k] = (arr || []).map(h => {
-            if (!h) return h as TicketHolderInfo;
-            return h.avatar ? h : { ...h, avatar: previewUrl };
-          });
-        });
-        return next;
-      });
+      setOrder(prev => ({
+        ...prev,
+        customer: { ...prev.customer, avatar: previewUrl }
+      }));
+      // TODO: Propagate to holders if needed?
     } catch (error) {
       notificationCtx.error(error);
     }
   };
 
-  const handleTicketHolderAvatarFile = async (showId: number, categoryId: number, index: number, file?: File) => {
+  const handleTicketHolderAvatarFile = async (index: number, file?: File) => {
     if (!file) return;
     try {
-      // Create local preview URL instead of uploading to S3
       const previewUrl = createLocalPreviewUrl(file);
-
-      // Store the file for later upload
-      const fileKey = `${showId}-${categoryId}-${index}`;
-      setPendingHolderAvatarFiles(prev => ({ ...prev, [fileKey]: file }));
-
-      const key = `${showId}-${categoryId}`;
-      setTicketHoldersByCategory(prev => {
-        const existing = prev[key] || [];
-        const next = existing.slice();
-        const current = next[index] || { title: 'Bạn', name: '', email: '', phone: '', avatar: (requireGuestAvatar && customer.avatar) ? customer.avatar : '' };
-        next[index] = { ...current, avatar: previewUrl };
-        return { ...prev, [key]: next };
+      setOrder(prev => {
+        const newTickets = [...prev.tickets];
+        if (newTickets[index]) {
+          newTickets[index] = {
+            ...newTickets[index],
+            holder: {
+              ...newTickets[index].holder || { title: 'Bạn', name: '' },
+              avatar: previewUrl
+            } as HolderInfo
+          };
+        }
+        return { ...prev, tickets: newTickets };
       });
+      // Pending: manage file upload mapping if needed
     } catch (error) {
       notificationCtx.error(error);
     }
+  };
+
+  const extraFee = order.extraFee;
+
+  const handleExtraFeeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value.replace(/\D/g, '');
+    const num = parseInt(value || '0', 10);
+    setOrder(prev => ({ ...prev, extraFee: num }));
   };
 
   const formatPrice = (price: number) => {
@@ -473,45 +495,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
   // Calculate total ticket quantity
-  const totalTicketQuantity = React.useMemo(() => {
-    return Object.entries(selectedCategories).reduce((total, [, categories]) => {
-      return total + Object.values(categories || {}).reduce((sum, qty) => sum + (qty || 0), 0);
-    }, 0);
-  }, [selectedCategories]);
+  const totalTicketQuantity = order.tickets.length;
 
   // Calculate subtotal (before discount)
   const subtotal = React.useMemo(() => {
-    return Object.entries(selectedCategories).reduce((total, [showId, categories]) => {
-      const show = event?.shows.find((show) => show.id === parseInt(showId));
-      const categoriesTotal = Object.entries(categories || {}).reduce((sub, [categoryIdStr, qty]) => {
-        const categoryId = parseInt(categoryIdStr);
-        const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
-        return sub + (ticketCategory?.price || 0) * (qty || 0);
-      }, 0);
-      return total + categoriesTotal;
-    }, 0);
-  }, [selectedCategories, event]);
+    return order.tickets.reduce((sum, t) => sum + (t.price || 0), 0);
+  }, [order.tickets]);
 
-  // Get all tickets in order with details
+  // Get all tickets in order with details (Projected for voucher logic compatibility)
   const orderTickets = React.useMemo(() => {
-    const tickets: Array<{ showId: number; ticketCategoryId: number; price: number; quantity: number }> = [];
-    Object.entries(selectedCategories).forEach(([showId, categories]) => {
-      const show = event?.shows.find((show) => show.id === parseInt(showId));
-      Object.entries(categories || {}).forEach(([categoryIdStr, qty]) => {
-        const categoryId = parseInt(categoryIdStr);
-        const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
-        if (ticketCategory && qty > 0) {
-          tickets.push({
-            showId: parseInt(showId),
-            ticketCategoryId: categoryId,
-            price: ticketCategory.price,
-            quantity: qty || 0,
-          });
-        }
-      });
-    });
-    return tickets;
-  }, [selectedCategories, event]);
+    return order.tickets.map(t => ({
+      showId: t.showId,
+      ticketCategoryId: t.ticketCategoryId,
+      price: t.price || 0,
+      quantity: 1
+    }));
+  }, [order.tickets]);
 
   // Check if ticket is in voucher scope
   const isTicketInScope = React.useCallback((showId: number, ticketCategoryId: number, voucher: any): boolean => {
@@ -640,8 +639,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   }, [notificationCtx, tt]);
 
   const handleCreateClick = () => {
-    if (ticketQuantity <= 0) {
-      notificationCtx.warning(tt('Vui lòng điền đầy đủ các thông tin bắt buộc', 'Please fill in all required information'));
+    if (order.tickets.length === 0) {
+      notificationCtx.warning(tt('Vui lòng chọn ít nhất 1 loại vé', 'Please select at least 1 ticket category'));
       return;
     }
 
@@ -649,312 +648,161 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     for (const field of checkoutFormFields) {
       if (!field.visible || !field.required) continue;
 
-      // Built-in fields: map vào customer
-      if (field.internalName === 'name' && !customer.name) {
+      // Built-in fields: map to order.customer
+      if (field.internalName === 'title' && !order.customer.title) {
+        notificationCtx.warning(tt('Vui lòng chọn danh xưng', 'Please select title'));
+        return;
+      }
+      if (field.internalName === 'name' && !order.customer.name) {
         notificationCtx.warning(tt('Vui lòng nhập họ tên người mua', 'Please enter buyer name'));
         return;
       }
-      if (field.internalName === 'email' && !customer.email) {
+      if (field.internalName === 'email' && !order.customer.email) {
         notificationCtx.warning(tt('Vui lòng nhập email người mua', 'Please enter buyer email'));
         return;
       }
-      if (field.internalName === 'phone_number' && !customer.phoneNumber) {
+      if (field.internalName === 'phone_number' && !order.customer.phoneNumber) {
         notificationCtx.warning(tt('Vui lòng nhập số điện thoại người mua', 'Please enter buyer phone number'));
         return;
       }
-      if (field.internalName === 'address' && !customer.address) {
+      if (field.internalName === 'address' && !order.customer.address) {
         notificationCtx.warning(tt('Vui lòng nhập địa chỉ người mua', 'Please enter buyer address'));
         return;
       }
-      if (field.internalName === 'dob' && !customer.dob) {
+      if (field.internalName === 'dob' && !order.customer.dob) {
         notificationCtx.warning(tt('Vui lòng nhập ngày sinh người mua', 'Please enter buyer date of birth'));
         return;
       }
-      if (field.internalName === 'idcard_number' && !customer.idcard_number) {
-        notificationCtx.warning(
-          tt(
-            'Vui lòng nhập số Căn cước công dân của người mua',
-            'Please enter buyer ID card number'
-          )
-        );
+      if (field.internalName === 'idcard_number' && !order.customer.idcard_number) {
+        notificationCtx.warning(tt('Vui lòng nhập số Căn cước công dân của người mua', 'Please enter buyer ID card number'));
         return;
       }
 
       // Custom fields
       if (!builtinInternalNames.has(field.internalName)) {
-        const value = checkoutCustomAnswers[field.internalName];
+        // Assuming formAnswers are stored in order.formAnswers
+        const value = order.formAnswers?.[field.internalName];
         if (field.fieldType === 'checkbox') {
           if (!Array.isArray(value) || value.length === 0) {
-            notificationCtx.warning(
-              tt(
-                `Vui lòng chọn ít nhất một lựa chọn cho "${field.label}"`,
-                `Please choose at least one option for "${field.label}"`
-              )
-            );
+            notificationCtx.warning(tt(`Vui lòng chọn ít nhất một lựa chọn cho "${field.label}"`, `Please choose at least one option for "${field.label}"`));
             return;
           }
         } else if (!value) {
-          notificationCtx.warning(
-            tt(
-              `Vui lòng nhập thông tin cho "${field.label}"`,
-              `Please fill in "${field.label}"`
-            )
-          );
+          notificationCtx.warning(tt(`Vui lòng nhập thông tin cho "${field.label}"`, `Please fill in "${field.label}"`));
           return;
         }
       }
     }
 
-    const totalSelectedCategories = Object.values(selectedCategories).reduce((sum, catMap) => sum + Object.keys(catMap || {}).length, 0);
-    if (totalSelectedCategories === 0) {
-      notificationCtx.warning(tt('Vui lòng chọn ít nhất 1 loại vé', 'Please select at least 1 ticket category'));
-      return;
-    }
-
-
-    // Validate per-ticket holder info when required
-    if (requireTicketHolderInfo) {
-      for (const [showId, categories] of Object.entries(selectedCategories)) {
-        for (const [categoryIdStr, qty] of Object.entries(categories || {})) {
-          const categoryId = parseInt(categoryIdStr);
-          const quantity = qty || 0;
-          if (quantity <= 0) continue;
-          const key = `${showId}-${categoryId}`;
-          const holders = ticketHoldersByCategory[key] || [];
-          let invalid = holders.length < quantity;
-          if (!invalid) {
-            for (let i = 0; i < quantity; i++) {
-              const h = holders[i];
-              if (!h || !h.title || !h.name) { invalid = true; break; }
-            }
+    // Validate ticket holders
+    if (requireTicketHolderInfo || order.qrOption === 'separate') {
+      for (let i = 0; i < order.tickets.length; i++) {
+        const t = order.tickets[i];
+        const holder = t.holder;
+        if (!holder || !holder.name) {
+          notificationCtx.warning(tt(`Vui lòng nhập tên cho vé thứ ${i + 1}`, `Please enter name for ticket #${i + 1}`));
+          setActiveStep(1); // Go to Info step
+          return;
+        }
+        if (order.qrOption === 'separate') {
+          if (!holder.email) {
+            notificationCtx.warning(tt(`Vui lòng nhập email cho vé thứ ${i + 1}`, `Please enter email for ticket #${i + 1}`));
+            setActiveStep(1);
+            return;
           }
-          if (invalid) {
-            notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự cho từng vé.', 'Please fill in information for each ticket holder.'));
-            setActiveStep(2);
+          if (!holder.phone) {
+            notificationCtx.warning(tt(`Vui lòng nhập số điện thoại cho vé thứ ${i + 1}`, `Please enter phone number for ticket #${i + 1}`));
+            setActiveStep(1);
             return;
           }
         }
       }
     }
 
-    // Validate for separate QR option - must have email and phone for each holder
-    if (qrOption === 'separate') {
-      for (const [showId, categories] of Object.entries(selectedCategories)) {
-        for (const [categoryIdStr, qty] of Object.entries(categories || {})) {
-          const categoryId = parseInt(categoryIdStr);
-          const quantity = qty || 0;
-          if (quantity <= 0) continue;
-          const key = `${showId}-${categoryId}`;
-          const holders = ticketHoldersByCategory[key] || [];
-          if (holders.length < quantity) {
-            notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự cho từng vé.', 'Please fill in information for each ticket holder.'));
-            setActiveStep(2);
-            return;
-          }
-          for (let i = 0; i < quantity; i++) {
-            const h = holders[i];
-            if (!h || !h.title || !h.name) {
-              notificationCtx.warning(tt('Vui lòng điền đủ tên cho từng vé.', 'Please fill in name for each ticket holder.'));
-              setActiveStep(2);
-              return;
-            }
-            if (!h.email) {
-              notificationCtx.warning(tt('Vui lòng điền đủ email cho từng vé khi sử dụng mã QR riêng.', 'Please fill in email for each ticket holder when using separate QR codes.'));
-              setActiveStep(2);
-              return;
-            }
-            if (!h.phone) {
-              notificationCtx.warning(tt('Vui lòng điền đủ số điện thoại cho từng vé khi sử dụng mã QR riêng.', 'Please fill in phone number for each ticket holder when using separate QR codes.'));
-              setActiveStep(2);
-              return;
-            }
-          }
-        }
-      }
-    }
-
-    setActiveStep(3);
+    setActiveStep(3); // Go to Review step
   };
 
   const handleSubmit = async () => {
     try {
-      if (requireTicketHolderInfo) {
-        for (const [showId, categories] of Object.entries(selectedCategories)) {
-          for (const [categoryIdStr, qty] of Object.entries(categories || {})) {
-            const categoryId = parseInt(categoryIdStr);
-            const quantity = qty || 0;
-            if (quantity <= 0) continue;
-            const key = `${showId}-${categoryId}`;
-            const holders = ticketHoldersByCategory[key] || [];
-            let invalid = holders.length < quantity;
-            if (!invalid) {
-              for (let i = 0; i < quantity; i++) {
-                const h = holders[i];
-                if (!h || !h.title || !h.name) { invalid = true; break; }
-              }
-            }
-            if (invalid) {
-              notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự cho từng vé.', 'Please fill in information for each ticket holder.'));
-              setActiveStep(2);
-              return;
-            }
-          }
-        }
-      }
-
-      // Validate for separate QR option - must have email and phone for each holder
-      if (qrOption === 'separate') {
-        for (const [showId, categories] of Object.entries(selectedCategories)) {
-          for (const [categoryIdStr, qty] of Object.entries(categories || {})) {
-            const categoryId = parseInt(categoryIdStr);
-            const quantity = qty || 0;
-            if (quantity <= 0) continue;
-            const key = `${showId}-${categoryId}`;
-            const holders = ticketHoldersByCategory[key] || [];
-            if (holders.length < quantity) {
-              notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự cho từng vé.', 'Please fill in information for each ticket holder.'));
-              setActiveStep(2);
-              return;
-            }
-            for (let i = 0; i < quantity; i++) {
-              const h = holders[i];
-              if (!h || !h.title || !h.name) {
-                notificationCtx.warning(tt('Vui lòng điền đủ tên cho từng vé.', 'Please fill in name for each ticket holder.'));
-                setActiveStep(2);
-                return;
-              }
-              if (!h.email) {
-                notificationCtx.warning(tt('Vui lòng điền đủ email cho từng vé khi sử dụng mã QR riêng.', 'Please fill in email for each ticket holder when using separate QR codes.'));
-                setActiveStep(2);
-                return;
-              }
-              if (!h.phone) {
-                notificationCtx.warning(tt('Vui lòng điền đủ số điện thoại cho từng vé khi sử dụng mã QR riêng.', 'Please fill in phone number for each ticket holder when using separate QR codes.'));
-                setActiveStep(21);
-                return;
-              }
-            }
-          }
-        }
-      }
-
       setIsLoading(true);
 
-      // Upload customer avatar to S3 if pending and requireGuestAvatar is true
-      let customerAvatarUrl = undefined;
-      if (requireGuestAvatar && pendingCustomerAvatarFile) {
-        const uploadedUrl = await uploadImageToS3(pendingCustomerAvatarFile);
-        if (uploadedUrl) {
-          customerAvatarUrl = uploadedUrl;
+      // Helper to upload blob URL
+      const uploadBlob = async (blobUrl?: string): Promise<string | undefined> => {
+        if (!blobUrl || !blobUrl.startsWith('blob:')) return blobUrl; // Return as is if not blob or empty
+        try {
+          const response = await fetch(blobUrl);
+          const blob = await response.blob();
+          const file = new File([blob], "avatar.jpg", { type: blob.type });
+          return await uploadImageToS3(file) || undefined;
+        } catch (e) {
+          console.error("Upload failed", e);
+          return undefined;
         }
-      }
-
-      // Upload all pending holder avatars to S3 if requireGuestAvatar is true
-      const holderAvatarUrls: Record<string, string> = {};
-      if (requireGuestAvatar) {
-        for (const [fileKey, file] of Object.entries(pendingHolderAvatarFiles)) {
-          const uploadedUrl = await uploadImageToS3(file);
-          if (uploadedUrl) {
-            holderAvatarUrls[fileKey] = uploadedUrl;
-          }
-        }
-      }
-
-      // Prepare tickets with uploaded avatar URLs
-      const tickets = Object.entries(selectedCategories).flatMap(([showId, catMap]) => (
-        Object.entries(catMap || {}).map(([categoryIdStr, qty]) => {
-          const key = `${showId}-${categoryIdStr}`;
-          const holders = ticketHoldersByCategory[key] || [];
-
-          // Replace preview URLs with S3 URLs if requireGuestAvatar is true
-          // Also convert phoneCountryIso2 to phoneCountry and phoneNationalNumber
-          const holdersWithS3Urls = holders.map((h, index) => {
-            const fileKey = `${showId}-${categoryIdStr}-${index}`;
-            const holderData: any = { ...h };
-
-            // requireGuestAvatar is always true (see always-on options above)
-            if (holderAvatarUrls[fileKey]) {
-              holderData.avatar = holderAvatarUrls[fileKey];
-            }
-
-            // Convert phoneCountryIso2 to phoneCountry and phoneNationalNumber
-            if (holderData.phone) {
-              // Derive NSN from phone number (strip leading '0' if present)
-              const digits = holderData.phone.replace(/\D/g, '');
-              const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
-              holderData.phoneCountry = holderData.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2;
-              holderData.phoneNationalNumber = phoneNSN;
-              // Keep phoneCountryIso2 for internal use, but also send phoneCountry
-              delete holderData.phoneCountryIso2; // Remove from final payload
-            }
-
-            return holderData;
-          });
-
-          // qrOption is always 'separate' (see always-on options above)
-          const holdersToSend = holdersWithS3Urls;
-
-          return {
-            showId: parseInt(showId),
-            ticketCategoryId: parseInt(categoryIdStr),
-            quantity: qty || 0,
-            holders: holdersToSend,
-          };
-        })
-      ));
-
-      // Prepare customer data, only include fields that are visible in checkout form
-      const customerData: any = {
-        title: customer.title || (locale === 'en' ? 'Mx.' : 'Bạn'),
-        name: customer.name,
-        email: customer.email,
-        phoneNumber: customer.phoneNumber,
-        phoneCountry: customer.phoneCountryIso2,
-        phoneNationalNumber: customerNSN,
       };
 
-      const isFieldVisible = (name: string) =>
-        !!checkoutFormFields.find((f) => f.internalName === name && f.visible);
-
-      // Title is always included as it's a built-in core field (shown in startAdornment of name field)
-      // Other optional built-in fields
-      if (isFieldVisible('dob')) {
-        customerData.dob = customer.dob;
-      }
-      if (isFieldVisible('address')) {
-        customerData.address = customer.address;
-      }
-      if (isFieldVisible('idcard_number')) {
-        customerData.idcard_number = customer.idcard_number;
+      // Upload customer avatar
+      let customerAvatarUrl = order.customer.avatar;
+      if (requireGuestAvatar && order.customer.avatar?.startsWith('blob:')) {
+        customerAvatarUrl = await uploadBlob(order.customer.avatar);
       }
 
-      if (requireGuestAvatar && customerAvatarUrl) {
-        customerData.avatarUrl = customerAvatarUrl;
-      }
+      // Upload holder avatars & prepare tickets
+      const tickets = await Promise.all(order.tickets.map(async (t) => {
+        let holderAvatar = t.holder?.avatar;
+        if (requireGuestAvatar && holderAvatar?.startsWith('blob:')) {
+          holderAvatar = await uploadBlob(holderAvatar);
+        }
 
-      // Only send answers for visible custom fields
-      const formAnswers: Record<string, any> = {};
-      checkoutFormFields.forEach((field) => {
-        if (!field.visible) return;
-        if (builtinInternalNames.has(field.internalName)) return;
-        formAnswers[field.internalName] = checkoutCustomAnswers[field.internalName];
-      });
+        // Prepare holder data
+        const holderData = t.holder ? { ...t.holder, avatar: holderAvatar } : undefined;
 
-      const transactionData: any = {
-        customer: customerData,
-        tickets,
-        qrOption,
-        requireTicketHolderInfo,
-        requireGuestAvatar,
-        paymentMethod,
-        extraFee,
+        // Remove internal helper fields from holder if any
+        // Make sure phone is formatted or passed as is (Backend will format)
+
+        return {
+          showId: t.showId,
+          ticketCategoryId: t.ticketCategoryId,
+          seatId: t.seatId,
+          holder: holderData
+        };
+      }));
+
+      // Prepare customer data
+      const customerData = {
+        ...order.customer,
+        avatarUrl: customerAvatarUrl
       };
 
-      if (Object.keys(formAnswers).length > 0) {
-        transactionData.formAnswers = formAnswers;
-      }
+      // Format phone number (E.164 preparation if needed, but backend handles it too?)
+      // Legacy code did some logic with phoneNationalNumber/customerNSN. 
+      // We'll pass what we have (phoneNumber) and let backend handle parsing if phoneCountryIso2 is provided.
+      // But strict backend expects check: `phone_country`, `phone_national_number` or just `phone_number`?
+      // Checking backend: it uses `format_phone_to_e164` with `phone_country` and `phone_national_number`.
+      // So we should parse phoneNumber into these if possible or pass them if we stored them separated.
+      // Our CustomerInfo has `phoneCountryIso2` and `phoneNumber`.
+      // Ideally we pass `phoneCountry` and `phoneNationalNumber`.
+      // Let's optimize:
+      const digits = customerData.phoneNumber.replace(/\D/g, '');
+      const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+      const apiCustomer = {
+        ...customerData,
+        phoneCountry: customerData.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2,
+        phoneNationalNumber: phoneNSN
+      };
 
-      // Add voucher code if applied and valid
+      const transactionData = {
+        customer: apiCustomer,
+        tickets: tickets,
+        qrOption: order.qrOption,
+        requireTicketHolderInfo: requireTicketHolderInfo, // Legacy constant
+        requireGuestAvatar: requireGuestAvatar, // Legacy constant
+        paymentMethod: order.paymentMethod,
+        extraFee: order.extraFee,
+        formAnswers: checkoutCustomAnswers,
+        voucherCode: order.voucherCode // If we store it in order
+      };
+
+      // Add voucher code from state if not in order
       if (appliedVoucher && voucherValidation.valid) {
         transactionData.voucherCode = appliedVoucher.code;
       }
@@ -965,23 +813,18 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       );
       const newTransaction = response.data;
       const path = `/event-studio/events/${params.event_id}/transactions/${newTransaction.id}`;
-      router.push(locale === 'en' ? `/en${path}` : path); // Navigate to a different page on success
+      router.push(locale === 'en' ? `/en${path}` : path);
       notificationCtx.success(tt("Tạo đơn hàng thành công!", "Order created successfully!"));
-    } catch (error) {
+    } catch (error: any) {
       notificationCtx.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const totalSelectedTickets = React.useMemo(() => {
-    return Object.values(selectedCategories).reduce((sum, catMap) => {
-      const subtotal = Object.values(catMap || {}).reduce((s, q) => s + (q || 0), 0);
-      return sum + subtotal;
-    }, 0);
-  }, [selectedCategories]);
 
-  const paymentMethodLabel = React.useMemo(() => getPaymentMethodLabel(paymentMethod, tt), [paymentMethod, tt]);
+
+  const paymentMethodLabel = React.useMemo(() => getPaymentMethodLabel(order.paymentMethod, tt), [order.paymentMethod, tt]);
 
   // Wizard UI (4 steps). Keep the legacy JSX below for now, but don't render it anymore.
   const useWizardStepper = true as const;
@@ -1023,13 +866,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               totalSelectedTickets={totalSelectedTickets}
               onOpenCart={() => setCartOpen(true)}
               activeSchedule={activeSchedule}
-              qrOption={qrOption}
+              qrOption={order.qrOption}
               requireTicketHolderInfo={requireTicketHolderInfo}
               requestedCategoryModalId={requestedCategoryModalId}
               onModalRequestHandled={() => setRequestedCategoryModalId(null)}
-              onCategorySelect={handleCategorySelection}
-              onAddToCart={handleAddToCartQuantity}
-              cartQuantitiesForActiveSchedule={(activeSchedule && selectedCategories[activeSchedule.id]) || {}}
+              order={order}
+              setOrder={setOrder}
+              cartQuantitiesForActiveSchedule={cartQuantitiesForActiveSchedule}
               tt={tt}
               onNext={() => setActiveStep(1)}
             />
@@ -1044,11 +887,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               formMenuAnchorEl={formMenuAnchorEl}
               onOpenFormMenu={handleOpenFormMenu}
               onCloseFormMenu={handleCloseFormMenu}
-              customer={customer}
-              setCustomer={setCustomer}
-              ticketHolderEditted={ticketHolderEditted}
-              ticketHolders={ticketHolders}
-              setTicketHolders={setTicketHolders}
+              order={order}
+              setOrder={setOrder}
               checkoutFormFields={checkoutFormFields}
               customCheckoutFields={customCheckoutFields}
               builtinInternalNames={builtinInternalNames}
@@ -1056,10 +896,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               setCheckoutCustomAnswers={setCheckoutCustomAnswers}
               requireGuestAvatar={requireGuestAvatar}
               requireTicketHolderInfo={requireTicketHolderInfo}
-              selectedCategories={selectedCategories}
               shows={event?.shows || []}
-              ticketHoldersByCategory={ticketHoldersByCategory}
-              setTicketHoldersByCategory={setTicketHoldersByCategory}
               handleCustomerAvatarFile={handleCustomerAvatarFile}
               handleTicketHolderAvatarFile={handleTicketHolderAvatarFile}
               formatPrice={formatPrice}
@@ -1090,8 +927,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               discountAmount={discountAmount}
               finalTotal={finalTotal}
               formatPrice={formatPrice}
-              paymentMethod={paymentMethod}
-              setPaymentMethod={setPaymentMethod}
+              paymentMethod={order.paymentMethod}
+              onPaymentMethodChange={(v) => setOrder(prev => ({ ...prev, paymentMethod: v }))}
               onBack={() => setActiveStep(1)}
               onNext={handleCreateClick}
             />
@@ -1100,17 +937,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           <Box sx={{ display: activeStep === 3 ? 'block' : 'none' }}>
             <Step4Review
               tt={tt}
+              order={order}
+              shows={event?.shows || []}
               checkoutFormFields={checkoutFormFields}
               builtinInternalNames={builtinInternalNames}
               checkoutCustomAnswers={checkoutCustomAnswers}
-              customer={customer}
-              formattedCustomerPhone={formattedCustomerPhone}
-              selectedCategories={selectedCategories}
-              shows={event?.shows || []}
-              ticketHoldersByCategory={ticketHoldersByCategory}
               requireGuestAvatar={requireGuestAvatar}
               requireTicketHolderInfo={requireTicketHolderInfo}
-              qrOption={qrOption}
               paymentMethodLabel={paymentMethodLabel}
               extraFee={extraFee}
               subtotal={subtotal}
@@ -1147,73 +980,140 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 </Typography>
               ) : (
                 <Stack spacing={1.25}>
-                  {Object.entries(selectedCategories).flatMap(([showIdStr, categories]) => {
-                    const showId = parseInt(showIdStr);
-                    const show = event?.shows?.find((s) => s.id === showId);
-                    return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
-                      const categoryId = parseInt(categoryIdStr);
-                      const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
-                      const quantity = qty || 0;
-                      if (quantity <= 0) return null;
+                  {order.tickets.length === 0 ? (
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      {tt('Giỏ hàng trống', 'Cart is empty')}
+                    </Typography>
+                  ) : (
+                    <Stack spacing={1.25}>
+                      {(() => {
+                        // Group for display
+                        const groups: any[] = [];
+                        order.tickets.forEach(t => {
+                          const key = `${t.showId}-${t.ticketCategoryId}`;
+                          let g = groups.find(x => x.key === key);
+                          if (!g) {
+                            g = { key, showId: t.showId, ticketCategoryId: t.ticketCategoryId, quantity: 0, price: t.price || 0 };
+                            groups.push(g);
+                          }
+                          g.quantity++;
+                        });
 
-                      const unitPrice = ticketCategory?.price || 0;
-                      const lineTotal = unitPrice * quantity;
+                        return groups.map((g) => {
+                          const show = event?.shows?.find(s => s.id === g.showId);
+                          const ticketCategory = show?.ticketCategories?.find(c => c.id === g.ticketCategoryId);
 
-                      return (
-                        <Card key={`${showId}-${categoryId}`} variant="outlined" sx={{ borderRadius: 1, boxShadow: 'none' }}>
-                          <CardContent sx={{ px: 1.5, py: 1, '&:last-child': { pb: 1 } }}>
-                            <Stack spacing={0.75}>
-                              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ justifyContent: 'space-between' }}>
-                                <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
-                                  <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                                  <Box sx={{ minWidth: 0 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 13 }} noWrap>
-                                      {show?.name || tt('Chưa xác định', 'Not specified')}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }} noWrap>
-                                      {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
-                                    </Typography>
-                                  </Box>
+                          return (
+                            <Card key={g.key} variant="outlined" sx={{ borderRadius: 1, boxShadow: 'none' }}>
+                              {/* Card Content ... reuse existing UI markup structure if possible, but simplified */}
+                              <CardContent sx={{ px: 1.5, py: 1, '&:last-child': { pb: 1 } }}>
+                                <Stack spacing={0.75}>
+                                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ justifyContent: 'space-between' }}>
+                                    <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+                                      <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                                      <Box sx={{ minWidth: 0 }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 13 }} noWrap>
+                                          {show?.name || tt('Chưa xác định', 'Not specified')}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }} noWrap>
+                                          {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
+                                        </Typography>
+                                      </Box>
+                                    </Stack>
+
+                                    <Stack direction="row" spacing={1} alignItems="center">
+                                      <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }}>
+                                        {formatPrice(g.price)}
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }}>
+                                        x {g.quantity}
+                                      </Typography>
+                                      <IconButton
+                                        size="small"
+                                        sx={{ p: 0.5 }}
+                                        onClick={() => {
+                                          setActiveScheduleId(g.showId);
+                                          setRequestedCategoryModalId(g.ticketCategoryId);
+                                        }}
+                                        aria-label={tt('Chỉnh sửa', 'Edit')}
+                                      >
+                                        <Pencil />
+                                      </IconButton>
+                                      <Typography variant="caption" sx={{ minWidth: 96, textAlign: 'right', fontSize: 12 }}>
+                                        = {formatPrice(g.price * g.quantity)}
+                                      </Typography>
+                                      <IconButton
+                                        size="small"
+                                        color="error"
+                                        sx={{ p: 0.5 }}
+                                        onClick={() => handleAddToCartQuantity(g.showId, g.ticketCategoryId, 0)}
+                                        aria-label={tt('Xóa', 'Remove')}
+                                      >
+                                        <X />
+                                      </IconButton>
+                                    </Stack>
+                                  </Stack>
                                 </Stack>
+                              </CardContent>
+                            </Card>
+                          );
+                        });
+                      })()}
+                    </Stack>
+                  )}
 
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }}>
-                                    {formatPrice(unitPrice)}
-                                  </Typography>
-                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }}>
-                                    x {quantity}
-                                  </Typography>
-                                  <IconButton
-                                    size="small"
-                                    sx={{ p: 0.5 }}
-                                    onClick={() => {
-                                      setActiveScheduleId(showId);
-                                      setRequestedCategoryModalId(categoryId);
-                                    }}
-                                    aria-label={tt('Chỉnh sửa', 'Edit')}
-                                  >
-                                    <Pencil />
-                                  </IconButton>
-                                  <Typography variant="caption" sx={{ minWidth: 96, textAlign: 'right', fontSize: 12 }}>
-                                    = {formatPrice(lineTotal)}
-                                  </Typography>
-                                  <IconButton
-                                    size="small"
-                                    color="error"
-                                    sx={{ p: 0.5 }}
-                                    onClick={() => handleAddToCartQuantity(showId, categoryId, 0)}
-                                    aria-label={tt('Xóa', 'Remove')}
-                                  >
-                                    <X />
-                                  </IconButton>
-                                </Stack>
-                              </Stack>
-                            </Stack>
-                          </CardContent>
-                        </Card>
-                      );
-                    });
-                  })}
+                  <Box sx={{ display: activeStep === 2 ? 'block' : 'none' }}>
+                    <Step3Payment
+                      tt={tt}
+                      paramsEventId={params.event_id}
+                      extraFee={extraFee}
+                      handleExtraFeeChange={handleExtraFeeChange}
+                      manualDiscountCode={manualDiscountCode}
+                      setManualDiscountCode={setManualDiscountCode}
+                      availableVouchers={availableVouchers}
+                      appliedVoucher={appliedVoucher}
+                      voucherValidation={voucherValidation}
+                      handleValidateAndDisplayVoucher={handleValidateAndDisplayVoucher}
+                      validateVoucherByApi={validateVoucherByApi}
+                      onOpenVoucherDetail={openVoucherDetail}
+                      onRemoveAppliedVoucher={removeAppliedVoucher}
+                      handleApplyVoucher={handleApplyVoucher}
+                      subtotal={subtotal}
+                      discountAmount={discountAmount}
+                      finalTotal={finalTotal}
+                      formatPrice={formatPrice}
+                      paymentMethod={order.paymentMethod}
+                      onPaymentMethodChange={(v) => setOrder(prev => ({ ...prev, paymentMethod: v }))}
+                      onBack={handleBack}
+                      onNext={handleCreateClick}
+                    />
+                  </Box>
+
+                  <Box sx={{ display: activeStep === 3 ? 'block' : 'none' }}>
+                    <Step4Review
+                      tt={tt}
+                      order={order}
+                      shows={event?.shows || []}
+                      checkoutFormFields={checkoutFormFields}
+                      builtinInternalNames={builtinInternalNames}
+                      checkoutCustomAnswers={checkoutCustomAnswers}
+                      requireGuestAvatar={requireGuestAvatar}
+                      requireTicketHolderInfo={requireTicketHolderInfo}
+                      paymentMethodLabel={paymentMethodLabel}
+                      extraFee={extraFee}
+                      subtotal={subtotal}
+                      discountAmount={discountAmount}
+                      appliedVoucherCode={appliedVoucher && voucherValidation.valid ? appliedVoucher.code : null}
+                      finalTotal={finalTotal}
+                      formatPrice={formatPrice}
+                      onBack={() => {
+                        handleBack();
+                        setCartOpen(false); // Close cart on back from modal step? Or just back
+                      }}
+                      onConfirm={handleSubmit}
+                      confirmDisabled={isLoading}
+                    />
+                  </Box>
 
                   <Divider />
                   <Stack direction="row" alignItems="center" justifyContent="space-between">
@@ -1411,5 +1311,5 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   // Fallback (should never happen)
   return <></>;
- 
+
 }

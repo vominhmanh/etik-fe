@@ -36,7 +36,7 @@ export type Step3PaymentProps = {
   formatPrice: (price: number) => string;
 
   paymentMethod: string;
-  setPaymentMethod: (v: string) => void;
+  onPaymentMethodChange: (v: string) => void;
 
   onBack: () => void;
   onNext: () => void;
@@ -62,7 +62,7 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
     finalTotal,
     formatPrice,
     paymentMethod,
-    setPaymentMethod,
+    onPaymentMethodChange,
     onBack,
     onNext,
   } = props;
@@ -302,7 +302,7 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
               <Select
                 name="payment_method"
                 value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
+                onChange={(e) => onPaymentMethodChange(e.target.value)}
               >
                 <MenuItem value=""></MenuItem>
                 <MenuItem value="cash">{tt("Tiền mặt", "Cash")}</MenuItem>

@@ -9,9 +9,9 @@ import useCanvasSetup from '@/hooks/useCanvasSetup';
 // import useObjectCreator from '@/hooks/useObjectCreator';
 // import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 // import useUndoRedo from '@/hooks/useUndoRedo';
-import { useCustomerCanvasLoaderV2 } from '@/hooks/useCustomerCanvasLoaderV2';
+import { useCustomerCanvasLoaderSynced } from '../hooks/useCustomerCanvasLoaderSynced';
 import useRowLabelRenderer from '@/hooks/useRowLabelRenderer';
-import { LuX } from 'react-icons/lu';
+import { LuX, LuList, LuMenu } from 'react-icons/lu';
 import { useSeatMetadata } from '../hooks/useSeatMetadata';
 import '@/index.css';
 import '../fabricCustomRegistration';
@@ -235,7 +235,7 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
   // useObjectDeletion(canvas, toolAction);
   // useObjectCreator(canvas, toolMode, setToolMode);
   // Canvas Loader Hook (Customer specific: strict read-only, hover pointers)
-  useCustomerCanvasLoaderV2({
+  useCustomerCanvasLoaderSynced({
     canvas,
     layout,
     readOnly,
@@ -290,6 +290,28 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
     }
   };
 
+  // Center canvas scroll on mount/layout change
+  useEffect(() => {
+    if (canvasParent.current && canvas) {
+      const parent = canvasParent.current;
+      // Delay to ensure content is rendered/sized
+      const timer = setTimeout(() => {
+        const contentWidth = parent.scrollWidth;
+        const contentHeight = parent.scrollHeight;
+        const clientWidth = parent.clientWidth;
+        const clientHeight = parent.clientHeight;
+
+        if (contentWidth > clientWidth) {
+          parent.scrollTo({ left: (contentWidth - clientWidth) / 2, behavior: 'smooth' });
+        }
+        if (contentHeight > clientHeight) {
+          parent.scrollTo({ top: (contentHeight - clientHeight) / 2, behavior: 'smooth' });
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [layout, canvas]);
+
   const handleRemoveSeat = (seatIdToRemove: string) => {
     if (!selectedSeatIds || !onSelectionChange || !canvas) return;
 
@@ -315,6 +337,7 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
   // Full screen handler
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
 
   useEffect(() => {
     const handleFullScreenChange = () => {
@@ -346,7 +369,7 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full w-full flex-row bg-gray-200 ${className}`}
+      className={`relative flex h-[600px] w-full flex-row bg-gray-200 ${className}`}
     >
       <input
         type="file"
@@ -387,40 +410,67 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
             </div>
           </div>
 
+          {/* Mobile Panel Toggle & Overlay */}
+          <button
+            onClick={() => setIsMobilePanelOpen(true)}
+            className="md:hidden absolute top-4 right-4 z-20 bg-white p-2 rounded-md shadow-md border border-gray-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+          >
+            <LuList size={20} />
+          </button>
+
+          {isMobilePanelOpen && (
+            <div
+              className="absolute inset-0 bg-black/30 z-30 md:hidden backdrop-blur-[1px]"
+              onClick={() => setIsMobilePanelOpen(false)}
+            />
+          )}
+
           {/* Right Panel: Legend & Selected List */}
-          <div className="w-72 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden shadow-sm z-10 transition-all duration-300">
+          <div
+            className={`
+              w-48 md:w-56 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden shadow-sm z-40 transition-transform duration-300 ease-in-out
+              absolute right-0 top-0 bottom-0 md:relative md:translate-x-0
+              ${isMobilePanelOpen ? 'translate-x-0' : 'translate-x-full'}
+            `}
+          >
 
             {/* Legend Section */}
-            <div className="p-4 border-b border-gray-100 flex-shrink-0">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Ticket Categories</h3>
-              <div className="space-y-2">
+            <div className="p-3 border-b border-gray-100 flex-shrink-0 flex justify-between items-center">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ticket Categories</h3>
+              <button onClick={() => setIsMobilePanelOpen(false)} className="md:hidden text-gray-400 hover:text-gray-600">
+                <LuX size={16} />
+              </button>
+            </div>
+
+            <div className="px-3 pb-3 border-b border-gray-100 flex-shrink-0">
+              <div className="space-y-1">
                 {displayCategories.length > 0 ? (
                   displayCategories.map(cat => (
-                    <div key={cat.id} className="flex items-center text-sm py-1">
+                    <div key={cat.id} className="flex items-center text-xs py-0.5">
                       <div
-                        className="w-4 h-4 rounded-full mr-3 shadow-sm border border-black/10 flex-shrink-0"
+                        className="w-3 h-3 rounded-full mr-2 shadow-sm border border-black/10 flex-shrink-0"
                         style={{ backgroundColor: cat.color }}
                       />
                       <span className="text-gray-700 font-medium truncate flex-1">{cat.name}</span>
-                      <span className="text-gray-500 text-xs ml-2">
+                      <span className="text-gray-500 text-[10px] ml-2">
                         {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(cat.price))}
                       </span>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-gray-400 italic">No categories available</p>
+                  <p className="text-[10px] text-gray-400 italic">No categories available</p>
                 )}
               </div>
             </div>
 
             {/* Selected Seats Section */}
-            <div className="flex-1 overflow-y-auto p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center justify-between">
+            <div className="flex-1 overflow-y-auto p-3">
+              <h3 className="text-xs font-bold text-gray-500 mb-2 flex items-center justify-between uppercase tracking-wider">
                 Ordered Tickets
-                <span className="bg-blue-100 text-blue-700 py-0.5 px-2 rounded-full text-xs">{selectedSeatIds?.length || 0}</span>
+                <span className="bg-blue-100 text-blue-700 py-0.5 px-1.5 rounded-full text-[10px]">{selectedSeatIds?.length || 0}</span>
               </h3>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {selectedSeatIds?.map(seatId => {
                   // Resolve seat details from canvas
                   const canvasSeat = canvas?.getObjects().find((o: any) => o.id === seatId && o.customType === 'seat') as any;
@@ -448,46 +498,46 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
 
                   return (
                     <div key={seatId} className="flex items-center p-2 bg-gray-50 rounded border border-gray-100 items-stretch group relative">
-                      <div className="flex items-center justify-center mr-3">
+                      <div className="flex items-center justify-center mr-2">
                         <span
-                          className="w-4 h-4 rounded-full shadow-sm border border-black/10"
+                          className="w-3 h-3 rounded-full shadow-sm border border-black/10"
                           style={{ backgroundColor: categoryInfo.color }}
                         />
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <div className="text-sm font-medium text-gray-800">
+                        <div className="text-xs font-medium text-gray-800">
                           <span className="font-bold text-gray-900">Row {rowLabel}</span>, Seat {seatNum}
                         </div>
-                        <div className="text-xs text-gray-500 truncate">
+                        <div className="text-[10px] text-gray-500 truncate">
                           {categoryInfo.name}
                         </div>
                       </div>
-                      <div className="flex items-center text-sm font-semibold text-gray-700 ml-2">
+                      <div className="flex items-center text-xs font-semibold text-gray-700 ml-2">
                         {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(price))}
                       </div>
 
                       {/* Delete Button */}
                       <button
                         onClick={() => handleRemoveSeat(seatId)}
-                        className="ml-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                        className="ml-1 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         title="Remove ticket"
                       >
-                        <LuX size={16} />
+                        <LuX size={14} />
                       </button>
                     </div>
                   );
                 })}
                 {(!selectedSeatIds || selectedSeatIds.length === 0) && (
-                  <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                    <span className="block mb-1 opacity-50 text-2xl">🎫</span>
-                    <span className="text-xs">No tickets selected</span>
+                  <div className="text-center py-6 text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                    <span className="block mb-1 opacity-50 text-xl">🎫</span>
+                    <span className="text-[10px]">No tickets selected</span>
                   </div>
                 )}
               </div>
             </div>
 
-          </div>
 
+          </div>
         </div>
       </div>
     </div>

@@ -11,23 +11,20 @@ import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 
 import type { CheckoutRuntimeField, Show, TicketHolderInfo } from './page';
 
+import { Order, TicketInfo, HolderInfo } from './page';
+
 export type Step4ReviewProps = {
   tt: (vi: string, en: string) => string;
+
+  order: Order;
+  shows: Show[];
 
   checkoutFormFields: CheckoutRuntimeField[];
   builtinInternalNames: Set<string>;
   checkoutCustomAnswers: Record<string, any>;
 
-  customer: { title: string; name: string; email: string; phoneNumber: string; address: string; dob: string | null; idcard_number: string; avatar: string };
-  formattedCustomerPhone: string;
-
-  selectedCategories: Record<number, Record<number, number>>;
-  shows: Show[];
-  ticketHoldersByCategory: Record<string, TicketHolderInfo[]>;
-
   requireGuestAvatar: boolean;
   requireTicketHolderInfo: boolean;
-  qrOption: 'shared' | 'separate';
 
   paymentMethodLabel: string;
   extraFee: number;
@@ -45,17 +42,13 @@ export type Step4ReviewProps = {
 export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
   const {
     tt,
+    order,
+    shows,
     checkoutFormFields,
     builtinInternalNames,
     checkoutCustomAnswers,
-    customer,
-    formattedCustomerPhone,
-    selectedCategories,
-    shows,
-    ticketHoldersByCategory,
     requireGuestAvatar,
     requireTicketHolderInfo,
-    qrOption,
     paymentMethodLabel,
     extraFee,
     subtotal,
@@ -67,6 +60,28 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
     onConfirm,
     confirmDisabled,
   } = props;
+
+  const customer = order.customer;
+  // Format phone number
+  const formattedCustomerPhone = customer.phoneNumber; // Or re-format if needed, but display raw is fine or we can pass formatter
+
+  // Group tickets for display
+  const ticketGroups = React.useMemo(() => {
+    const groups: any[] = [];
+    order.tickets.forEach((t, index) => {
+      const key = `${t.showId}-${t.ticketCategoryId}`;
+      let g = groups.find(x => x.key === key);
+      if (!g) {
+        const show = shows.find(s => s.id === t.showId);
+        const cat = show?.ticketCategories.find(c => c.id === t.ticketCategoryId);
+        g = { key, show, category: cat, quantity: 0, items: [] };
+        groups.push(g);
+      }
+      g.quantity++;
+      g.items.push({ index, holder: t.holder });
+    });
+    return groups;
+  }, [order.tickets, shows]);
 
   return (
     <Stack spacing={3}>
@@ -156,63 +171,55 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                 {tt("Danh sách vé", "Ticket List")}
               </Typography>
-              {requireGuestAvatar && qrOption === 'shared' && (
+              {requireGuestAvatar && order.qrOption === 'shared' && (
                 <Avatar src={customer.avatar || ''} sx={{ width: 36, height: 36 }} />
               )}
             </Box>
 
             <Stack spacing={1}>
-              {Object.entries(selectedCategories).flatMap(([showId, categories]) => {
-                const show = shows.find((s) => s.id === parseInt(showId));
-                return Object.entries(categories || {}).map(([categoryIdStr, qty]) => {
-                  const categoryId = parseInt(categoryIdStr);
-                  const ticketCategory = show?.ticketCategories.find((cat) => cat.id === categoryId);
-                  const quantity = qty || 0;
-                  return (
-                    <Stack spacing={0} key={`review-${showId}-${categoryId}`}>
-                      <Stack direction={{ xs: 'column', md: 'row' }} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                            {show?.name || tt('Chưa xác định', 'Not specified')} - {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
-                          </Typography>
-                        </Stack>
-                        <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                          <Typography variant="caption">{formatPrice(ticketCategory?.price || 0)}</Typography>
-                          <Typography variant="caption">x {quantity}</Typography>
-                          <Typography variant="caption">= {formatPrice((ticketCategory?.price || 0) * quantity)}</Typography>
-                        </Stack>
-                      </Stack>
-
-                      {requireTicketHolderInfo && quantity > 0 && (
-                        <Box sx={{ ml: 2 }}>
-                          <Stack spacing={1}>
-                            {Array.from({ length: quantity }, (_, index) => {
-                              const holderInfo = ticketHoldersByCategory[`${showId}-${categoryId}`]?.[index];
-                              return (
-                                <Stack key={`${showId}-${categoryId}-${index}`} spacing={0} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                                  {requireGuestAvatar && (
-                                    <Avatar src={holderInfo?.avatar || ''} sx={{ width: 36, height: 36 }} />
-                                  )}
-                                  <Box sx={{ ml: 2, pl: 2, borderLeft: '2px solid', borderColor: 'divider' }}>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
-                                      {index + 1}. {holderInfo?.name ? `${holderInfo?.title} ${holderInfo?.name}` : tt('Chưa có thông tin', 'No information')}
-                                    </Typography>
-                                    <br />
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                      {holderInfo?.email || tt('Chưa có email', 'No email')} - {holderInfo?.phone || tt('Chưa có SĐT', 'No phone')}
-                                    </Typography>
-                                  </Box>
-                                </Stack>
-                              );
-                            })}
-                          </Stack>
-                        </Box>
-                      )}
+              {ticketGroups.map((group) => (
+                <Stack spacing={0} key={`review-${group.key}`}>
+                  <Stack direction={{ xs: 'column', md: 'row' }} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                        {group.show?.name || tt('Chưa xác định', 'Not specified')} - {group.category?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
+                      </Typography>
                     </Stack>
-                  );
-                });
-              })}
+                    <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                      <Typography variant="caption">{formatPrice(group.category?.price || 0)}</Typography>
+                      <Typography variant="caption">x {group.quantity}</Typography>
+                      <Typography variant="caption">= {formatPrice((group.category?.price || 0) * group.quantity)}</Typography>
+                    </Stack>
+                  </Stack>
+
+                  {requireTicketHolderInfo && group.quantity > 0 && (
+                    <Box sx={{ ml: 2 }}>
+                      <Stack spacing={1}>
+                        {group.items.map((item: any, i: number) => {
+                          const holderInfo = item.holder;
+                          return (
+                            <Stack key={`${group.key}-${i}`} spacing={0} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                              {requireGuestAvatar && (
+                                <Avatar src={holderInfo?.avatar || ''} sx={{ width: 36, height: 36 }} />
+                              )}
+                              <Box sx={{ ml: 2, pl: 2, borderLeft: '2px solid', borderColor: 'divider' }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
+                                  {item.index + 1}. {holderInfo?.name ? `${holderInfo?.title || ''} ${holderInfo?.name}` : tt('Chưa có thông tin', 'No information')}
+                                </Typography>
+                                <br />
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  {holderInfo?.email || tt('Chưa có email', 'No email')} - {holderInfo?.phone || tt('Chưa có SĐT', 'No phone')}
+                                </Typography>
+                              </Box>
+                            </Stack>
+                          );
+                        })}
+                      </Stack>
+                    </Box>
+                  )}
+                </Stack>
+              ))}
             </Stack>
 
             <Divider />

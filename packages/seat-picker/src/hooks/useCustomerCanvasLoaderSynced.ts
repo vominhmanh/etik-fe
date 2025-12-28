@@ -17,7 +17,7 @@ interface UseCanvasLoaderProps {
     onSave?: (json: CanvasObject) => void;
 }
 
-export const useCustomerCanvasLoaderV2 = ({
+export const useCustomerCanvasLoaderSynced = ({
     canvas,
     layout,
     readOnly,
@@ -141,7 +141,8 @@ export const useCustomerCanvasLoaderV2 = ({
         let needsRender = false;
 
         canvas.getObjects().forEach((obj: any) => {
-            if (obj.customType === 'seat' && obj.id) {
+            // Only process enabled seats for selection
+            if (obj.customType === 'seat' && obj.id && obj.evented) {
                 if (idsSet.has(obj.id)) {
                     if (!obj._customSelected) {
                         selectSeat(obj, canvas);
@@ -187,6 +188,7 @@ export const useCustomerCanvasLoaderV2 = ({
             canvasData,
             () => {
                 // Create map if existing seats are provided
+                // Key: canvasSeatId (which MUST match obj.id in Fabric)
                 const seatMap =
                     existingSeats && Array.isArray(existingSeats) && existingSeats.length > 0
                         ? new Map(existingSeats.map((s) => [s.canvasSeatId, s]))
@@ -208,41 +210,75 @@ export const useCustomerCanvasLoaderV2 = ({
 
                     const isSeat = obj.customType === 'seat';
                     if (isSeat) {
+                        let isInteractable = true;
                         let categoryId = obj.category;
 
                         // 1. Sync with DB Existing Seats (Priority 1: DB State)
                         if (seatMap && seatMap.has(obj.id)) {
                             const dbSeat = seatMap.get(obj.id);
+
+                            // Hydrate from API
                             categoryId = dbSeat?.ticketCategoryId;
                             obj.status = dbSeat?.status || 'available';
-                        }
 
-                        // 2. Validate Category against API List (Source of Truth)
-                        if (categoryId && !validCategoryIds.has(categoryId.toString())) {
-                            categoryId = null;
-                            obj.status = 'available'; // Reset status if category is invalid
-                        }
-
-                        // Apply validated properties
-                        obj.category = categoryId;
-                        if (obj.attributes) {
-                            obj.attributes.category = categoryId;
+                            // Update attributes for consistency
+                            if (!obj.attributes) obj.attributes = {};
+                            obj.attributes.number = dbSeat.seatNumber;
                             obj.attributes.status = obj.status;
+                            obj.attributes.category = categoryId;
+
+                        } else if (existingSeats && existingSeats.length > 0) {
+                            // If existingSeats are provided (meaning we are in booking mode), 
+                            // but this seat is NOT in the map -> It is invalid/orphaned or not configured.
+                            // Disable it.
+                            isInteractable = false;
+                            obj.status = 'disabled';
+                            categoryId = null; // Remove category visual so it doesn't look bookable
                         }
 
-                        // 3. Apply Visuals (Color)
+                        // 2. Further Validation: If status is not available, disable interaction
+                        if (obj.status !== 'available') {
+                            isInteractable = false;
+                        }
+
+                        // 3. Validate Category against API List (Source of Truth)
+                        if (categoryId && !validCategoryIds.has(categoryId.toString())) {
+                            // Invalid category -> treat as unavailable/disabled
+                            categoryId = null;
+                            if (isInteractable) {
+                                obj.status = 'unavailable';
+                                isInteractable = false;
+                            }
+                        }
+
+                        // Apply final interactable state properties
+                        obj.evented = isInteractable;
+                        obj.selectable = false; // Always false for fabric selection, we use custom click
+                        obj.hoverCursor = isInteractable ? 'pointer' : 'default';
+
+
+                        // 4. Apply Visuals (Color)
                         if (categoryId && categoryMap.has(categoryId.toString())) {
                             const cat = categoryMap.get(categoryId.toString());
                             if (cat) {
                                 obj.set('fill', cat.color);
                                 obj.set('stroke', cat.color);
-                                // Save original stroke for restoration after selection
                                 obj._originalStroke = cat.color;
                             }
                         } else {
-                            obj.set('fill', 'transparent');
-                            // Save default transparent/black stroke
-                            obj._originalStroke = obj.stroke || '#000000';
+                            // No category or Disabled -> Grey/Transparent
+                            if (obj.status === 'booked' || obj.status === 'sold') {
+                                obj.set('fill', '#bdbdbd'); // Sold/Booked visual
+                                obj.set('stroke', '#9e9e9e');
+                            } else if (obj.status === 'held') {
+                                obj.set('fill', '#ffeb3b'); // Yellow for held? Or custom. Using grey for specific unmapped.
+                                obj.set('stroke', '#fbc02d');
+                            } else {
+                                // Default disabled/unmapped
+                                obj.set('fill', '#e0e0e0');
+                                obj.set('stroke', '#bdbdbd');
+                            }
+                            obj._originalStroke = obj.stroke;
                         }
                     }
                 });
@@ -319,11 +355,10 @@ export const useCustomerCanvasLoaderV2 = ({
                         }
                     }
 
+                    // Properties are generally set in the hydration loop above, but ensure locks here
                     obj.set({
-                        // Disable Fabric's selection behavior completely
-                        selectable: false,
                         hasControls: false,
-                        hasBorders: false, // We will manage borders/visuals manually
+                        hasBorders: false,
                         lockMovementX: true,
                         lockMovementY: true,
                         lockRotation: true,
@@ -332,8 +367,6 @@ export const useCustomerCanvasLoaderV2 = ({
                         lockSkewingX: true,
                         lockSkewingY: true,
                         permanentlyLocked: true,
-                        evented: isSeat, // Only seats catch events
-                        hoverCursor: isSeat ? 'pointer' : 'default',
                     });
                 });
 
@@ -341,7 +374,7 @@ export const useCustomerCanvasLoaderV2 = ({
                 if (selectedSeatIds && selectedSeatIds.length > 0) {
                     const idsSet = new Set(selectedSeatIds);
                     canvas.getObjects().forEach((obj: any) => {
-                        if (obj.customType === 'seat' && obj.id && idsSet.has(obj.id)) {
+                        if (obj.customType === 'seat' && obj.id && idsSet.has(obj.id) && obj.evented) {
                             selectSeat(obj, canvas);
                         }
                     });
@@ -359,12 +392,10 @@ export const useCustomerCanvasLoaderV2 = ({
                     if (!options.target) return;
                     const target = options.target as any;
 
-                    if (target.customType !== 'seat') return;
+                    // STRICT CHECK: Only allow click if seat is evented (interactable)
+                    if (target.customType !== 'seat' || !target.evented) return;
 
                     // OUTWARD SYNC: Notify parent
-                    // If controlled (selectedSeatIds provided), rely on parent update via useEffect.
-                    // If uncontrolled (no selectedSeatIds), update locally.
-
                     const currentSelectedIdsProp = selectedSeatIdsRef.current;
                     const onSelectionChangeProp = onSelectionChangeRef.current;
 
@@ -383,11 +414,8 @@ export const useCustomerCanvasLoaderV2 = ({
 
                     // Always notify parent of the INTENT
                     if (onSelectionChangeProp) {
-                        // Calculate new list based on current canvas state + the new action
-
                         let currentIds = currentSelectedIdsProp || [];
                         if (!isControlled) {
-                            // If uncontrolled, collect from canvas state
                             currentIds = canvas.getObjects()
                                 .filter((o: any) => o.customType === 'seat' && o._customSelected)
                                 .map((o: any) => o.id);
@@ -395,14 +423,12 @@ export const useCustomerCanvasLoaderV2 = ({
 
                         let newIds: string[] = [];
                         if (willBeSelected) {
-                            // Add
                             newIds = [...new Set([...currentIds, target.id])];
                         } else {
-                            // Remove
                             newIds = currentIds.filter(id => id !== target.id);
                         }
 
-                        // Also gather full seat data for convenience
+                        // Also gather full seat data
                         const selectedSeatsData = canvas.getObjects()
                             .filter((o: any) => newIds.includes(o.id) && o.customType === 'seat')
                             .map((o: any) => ({
@@ -415,18 +441,8 @@ export const useCustomerCanvasLoaderV2 = ({
 
                         onSelectionChangeProp(newIds, selectedSeatsData);
                     }
-
-                    // Simple logging (legacy requirement)
-                    const seatData: SeatData = {
-                        id: String(target.id ?? ''),
-                        number: target.attributes?.number ?? target.seatNumber ?? '',
-                        price: target.attributes?.price ?? target.price ?? '',
-                        category: target.attributes?.category ?? target.category ?? '',
-                        status: target.attributes?.status ?? target.status ?? '',
-                    };
-                    console.log(willBeSelected ? 'Seat Selected:' : 'Seat Deselected:', seatData);
-
-                }; canvas.on('mouse:down', readOnlyMouseDownHandler);
+                };
+                canvas.on('mouse:down', readOnlyMouseDownHandler);
                 canvas.renderAll();
             }
         );
