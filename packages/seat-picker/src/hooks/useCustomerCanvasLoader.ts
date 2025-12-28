@@ -102,14 +102,102 @@ export const useCustomerCanvasLoader = ({
                         }
 
                         // 3. Apply Visuals (Color)
-                        if (categoryId && categoryMap.has(categoryId.toString())) {
+
+                        // Priority 1: Status Overrides (Sold/Held/Booked)
+                        if (obj.status === 'booked' || obj.status === 'sold' || obj.status === 'held') {
+                            // Define styles
+                            let fillColor = '#e0e0e0';
+                            let strokeColor = '#bdbdbd';
+                            let iconPath = '';
+
+                            if (obj.status === 'booked' || obj.status === 'sold') {
+
+                                iconPath = 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'; // User
+                            } else if (obj.status === 'held') {
+                                iconPath = 'M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6V22h12v-5.99h-.01L18 16l-4-4 4-3.99-.01-.01H18V2H6z'; // Hourglass
+                            }
+
+                            // Apply styles
+                            if (obj.type === 'group') {
+                                const group = obj as fabric.Group;
+
+                                // 1. Apply Color to Inner Circle
+                                const circle = group.getObjects().find((o: any) => o.type === 'circle') as any;
+                                if (circle) {
+                                    circle.set('fill', fillColor);
+                                    circle.set('stroke', strokeColor);
+                                }
+                                // Ensure group itself doesn't have a fill that blocks visual
+                                group.set('fill', 'transparent');
+
+                                // 2. Handle Icon
+                                // Remove existing status icons first
+                                const existingIcons = group.getObjects().filter((o: any) => o.name === 'status_icon');
+                                existingIcons.forEach((icon: any) => group.remove(icon));
+
+                                if (iconPath) {
+                                    const path = new fabric.Path(iconPath, {
+                                        fill: '#9d9b9bff',
+                                        scaleX: 0.5,
+                                        scaleY: 0.5,
+                                        originX: 'center',
+                                        originY: 'center',
+                                        name: 'status_icon',
+                                        opacity: 0.5,
+                                        shadow: new fabric.Shadow({ color: 'rgba(255,255,255,0.2)', blur: 1 })
+                                    });
+
+                                    if (circle) {
+                                        const radius = circle.radius || 10;
+                                        const iconSize = Math.max(path.width || 0, path.height || 0);
+                                        if (iconSize > 0) {
+                                            const targetSize = radius * 1.2;
+                                            const scale = targetSize / iconSize;
+                                            path.set({ scaleX: scale, scaleY: scale });
+                                        }
+                                        path.set({ left: circle.left, top: circle.top });
+                                    }
+                                    group.add(path);
+                                    group.addWithUpdate();
+                                }
+                            } else {
+                                // Simple Object (Circle)
+                                obj.set('fill', fillColor);
+                                obj.set('stroke', strokeColor);
+                            }
+                            obj._originalStroke = strokeColor;
+                        }
+                        // Priority 2: Category Color (Available Seats)
+                        else if (categoryId && categoryMap.has(categoryId.toString())) {
                             const cat = categoryMap.get(categoryId.toString());
                             if (cat) {
                                 obj.set('fill', cat.color);
                                 obj.set('stroke', cat.color);
+
+                                // Clean up any status icons that might be there from a previous state/toggle
+                                if (obj.type === 'group') {
+                                    const group = obj as fabric.Group;
+                                    const existingIcons = group.getObjects().filter((o: any) => o.name === 'status_icon');
+                                    existingIcons.forEach((icon: any) => group.remove(icon));
+                                }
+                                obj._originalStroke = cat.color;
                             }
-                        } else {
-                            obj.set('fill', 'transparent');
+                        }
+                        // Priority 3: Default/Disabled (No Category, No Status)
+                        else {
+                            // Default disabled/unmapped
+                            if (obj.type === 'group') {
+                                const group = obj as fabric.Group;
+                                const circle = group.getObjects().find((o: any) => o.type === 'circle') as any;
+                                if (circle) {
+                                    circle.set('fill', '#e0e0e0');
+                                    circle.set('stroke', '#bdbdbd');
+                                }
+                            } else {
+                                obj.set('fill', '#e0e0e0');
+                                obj.set('stroke', '#bdbdbd');
+                            }
+                            obj._originalStroke = obj.stroke;
                         }
                     }
                 });
