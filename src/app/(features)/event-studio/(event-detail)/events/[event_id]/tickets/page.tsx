@@ -19,7 +19,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import { ArrowCounterClockwise, Empty, MicrosoftExcelLogo, X } from '@phosphor-icons/react/dist/ssr';
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { debounce } from 'lodash';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 import { useTranslation } from '@/contexts/locale-context';
 
 import { TicketsTable } from './tickets-table';

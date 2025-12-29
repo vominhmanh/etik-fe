@@ -41,7 +41,7 @@ import ReactQuill from 'react-quill';
 
 import { useTranslation } from '@/contexts/locale-context';
 import NotificationContext from '@/contexts/notification-context';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import 'react-quill/dist/quill.snow.css';
 

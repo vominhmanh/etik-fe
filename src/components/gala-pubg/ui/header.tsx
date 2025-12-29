@@ -5,7 +5,7 @@ import Logo from "./logo";
 import { Avatar, Box, Typography, Select, MenuItem, SelectChangeEvent } from "@mui/material";
 import { useTranslation, useLocale } from '@/contexts/locale-context';
 import { useRouter, usePathname } from 'next/navigation';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 // Small down-arrow icon for language select
 const LanguageSelectIcon = (props: any) => (

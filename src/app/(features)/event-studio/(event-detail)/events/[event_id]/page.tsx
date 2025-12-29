@@ -25,7 +25,7 @@ import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import type { AxiosResponse } from 'axios';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 import { useTranslation } from '@/contexts/locale-context';
 
 import { useMemo, useState } from 'react';

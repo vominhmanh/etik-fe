@@ -18,7 +18,7 @@ import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { PencilSimple as PencilIcon } from '@phosphor-icons/react/dist/ssr/PencilSimple';
 import { Trash as TrashIcon } from '@phosphor-icons/react/dist/ssr/Trash';
 import { useRouter } from 'next/navigation';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
 

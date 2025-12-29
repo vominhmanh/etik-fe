@@ -32,7 +32,7 @@ import { alpha } from '@mui/material/styles';
 import { CaretDown, DotsThreeOutlineVertical, Pencil, Plus } from '@phosphor-icons/react/dist/ssr';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from '@/config/phone-countries';
 
 import { Order, TicketInfo, HolderInfo, CheckoutRuntimeField, Show } from './page';

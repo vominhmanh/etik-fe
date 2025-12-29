@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Logo from "@/components/ui/logo";
+import Logo from "@/components/homepage/ui/logo";
 import AuthBg from "@/images/auth-bg.svg";
 
 export default function AuthLayout({

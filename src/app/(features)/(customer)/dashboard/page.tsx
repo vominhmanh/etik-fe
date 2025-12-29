@@ -15,7 +15,7 @@ import Grid from '@mui/material/Unstable_Grid2';
 import { ArrowRight, SealCheck } from '@phosphor-icons/react/dist/ssr';
 import { CodesandboxLogo } from '@phosphor-icons/react/dist/ssr';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 import { AxiosResponse } from 'axios';
 import * as React from 'react';
 import { useContext, useEffect, useState } from 'react';

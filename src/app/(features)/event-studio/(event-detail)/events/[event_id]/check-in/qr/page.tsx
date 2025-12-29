@@ -10,7 +10,7 @@ import { ArrowClockwise, ArrowSquareIn, Bank, CaretDown, Lightning, Money } from
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import * as React from 'react';
 import { useZxing } from "react-zxing";

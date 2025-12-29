@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Image from 'next/image';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import { usePathname } from 'next/navigation';
 import logoImage from '@/images/etik-logo-transparent-dark.png';

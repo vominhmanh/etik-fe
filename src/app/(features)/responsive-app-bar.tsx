@@ -11,7 +11,7 @@ import Typography from '@mui/material/Typography';
 import * as React from 'react';
 import { useLocale, useTranslation } from '@/contexts/locale-context';
 import { useRouter, usePathname } from 'next/navigation';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 import { paths } from '@/paths';
 
 const pages = ['Sự kiện mới', 'Event Studio'];

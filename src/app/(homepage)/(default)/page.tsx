@@ -1,11 +1,11 @@
-import Hero from "@/components/hero-home";
-import BusinessCategories from "@/components/business-categories";
-import FeaturesPlanet from "@/components/features-planet";
-import LargeTestimonial from "@/components/large-testimonial";
-import Cta from "@/components/cta";
-import CreateYourEvent from "@/components/create-your-event";
-import CustomerAlbum from "@/components/customer-album";
-import FeaturesAlbum from "@/components/features-album";
+import Hero from "@/components/homepage/hero-home";
+import BusinessCategories from "@/components/homepage/business-categories";
+import FeaturesPlanet from "@/components/homepage/features-planet";
+import LargeTestimonial from "@/components/homepage/large-testimonial";
+import Cta from "@/components/homepage/cta";
+import CreateYourEvent from "@/components/homepage/create-your-event";
+import CustomerAlbum from "@/components/homepage/customer-album";
+import FeaturesAlbum from "@/components/homepage/features-album";
 
 export const metadata = {
   title: "ETIK - Vé điện tử & Quản lý sự kiện",

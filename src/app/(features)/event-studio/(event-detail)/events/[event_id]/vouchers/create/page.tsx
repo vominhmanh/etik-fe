@@ -34,7 +34,7 @@ import { useState } from 'react';
 
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 interface Show {

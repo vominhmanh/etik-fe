@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';

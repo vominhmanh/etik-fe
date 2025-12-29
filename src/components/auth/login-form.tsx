@@ -1,6 +1,6 @@
 'use client'
 import * as React from 'react';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';

@@ -22,7 +22,7 @@ import {
 import InfoIcon from '@mui/icons-material/Info';
 import { AxiosResponse } from 'axios';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
 import dayjs from 'dayjs';

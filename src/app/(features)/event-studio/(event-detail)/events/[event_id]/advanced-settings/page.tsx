@@ -25,7 +25,7 @@ import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { ScanSmiley as ScanSmileyIcon } from '@phosphor-icons/react/dist/ssr/ScanSmiley';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';

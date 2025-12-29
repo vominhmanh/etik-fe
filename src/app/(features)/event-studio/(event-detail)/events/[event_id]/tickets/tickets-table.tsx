@@ -25,7 +25,7 @@ import { Bank as BankIcon } from '@phosphor-icons/react/dist/ssr/Bank';
 import { Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr/Lightning';
 import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
 import dayjs from 'dayjs';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 import { useTranslation } from '@/contexts/locale-context';
 
 import { Ticket } from './page';

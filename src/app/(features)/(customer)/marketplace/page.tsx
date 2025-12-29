@@ -18,7 +18,7 @@ import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import React, { useEffect, useState } from 'react';
 

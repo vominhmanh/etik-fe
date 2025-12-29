@@ -27,7 +27,7 @@ import {
 } from '@phosphor-icons/react/dist/ssr';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 import * as React from 'react';
 
 export interface ListTransactionEventResponse {

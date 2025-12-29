@@ -13,7 +13,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Ticket as TicketIcon, Bank as BankIcon, FacebookLogo, ImageSquare, Info, Lightning as LightningIcon, Money as MoneyIcon, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import * as React from 'react';
 import { useEffect, useState } from 'react';

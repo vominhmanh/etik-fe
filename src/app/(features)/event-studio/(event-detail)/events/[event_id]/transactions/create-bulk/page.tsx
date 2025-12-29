@@ -17,7 +17,7 @@ import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import axios, { AxiosResponse } from 'axios';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 import FormHelperText from '@mui/material/FormHelperText';
 
 import { useRouter } from 'next/navigation';

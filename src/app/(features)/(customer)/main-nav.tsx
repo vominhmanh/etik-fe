@@ -9,7 +9,7 @@ import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import { Bell as BellIcon } from '@phosphor-icons/react/dist/ssr/Bell';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';

@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import PageIllustration from "@/components/page-illustration";
+import PageIllustration from "@/components/homepage/page-illustration";
 import Avatar01 from "@/images/avatar-01.jpg";
 import Avatar02 from "@/images/avatar-02.jpg";
 import Avatar03 from "@/images/avatar-03.jpg";

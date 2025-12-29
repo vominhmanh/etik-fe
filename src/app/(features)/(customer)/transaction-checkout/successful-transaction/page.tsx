@@ -18,7 +18,7 @@ import { SealPercent as SealPercentIcon } from '@phosphor-icons/react/dist/ssr/S
 import { StackPlus as StackPlusIcon } from '@phosphor-icons/react/dist/ssr/StackPlus';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';

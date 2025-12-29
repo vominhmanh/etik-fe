@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import { useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';

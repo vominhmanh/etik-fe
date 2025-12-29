@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';

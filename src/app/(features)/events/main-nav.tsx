@@ -17,7 +17,7 @@ import { useTranslation } from '@/contexts/locale-context';
 import { usePopover } from '@/hooks/use-popover';
 import { useUser } from '@/hooks/use-user';
 import { UserPopover } from '@/components/dashboard/layout/user-popover';
-import { LocalizedLink } from '@/components/localized-link';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 export function MainNav(): React.JSX.Element {
   const { tt } = useTranslation();

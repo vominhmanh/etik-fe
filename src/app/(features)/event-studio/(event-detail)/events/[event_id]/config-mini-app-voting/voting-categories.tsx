@@ -27,22 +27,12 @@ import {
   Checkbox,
   FormControlLabel,
   CircularProgress,
+  Alert,
 } from "@mui/material";
-import { Pencil, Plus, List } from "@phosphor-icons/react/dist/ssr";
+import { Pencil, Plus, List, Trash } from "@phosphor-icons/react/dist/ssr";
+import { VotingNominees } from "./voting-nominees";
 
-interface VotingCategory {
-  id: number;
-  eventId: number;
-  name: string;
-  description: string | null;
-  maxVotesPerUserTotal: number | null;
-  maxVotesPerUserDaily: number | null;
-  allowMultipleNominees: boolean;
-  startAt: string | null;
-  endAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+import { VotingCategory } from "./voting-nominees";
 
 interface VotingCategoryFormData {
   name: string;
@@ -54,6 +44,7 @@ interface VotingCategoryFormData {
   endAt: string;
 }
 
+
 export function VotingCategories({ event_id }: { event_id: number }) {
   const notificationCtx = useContext(NotificationContext);
 
@@ -61,8 +52,15 @@ export function VotingCategories({ event_id }: { event_id: number }) {
   const [categories, setCategories] = useState<VotingCategory[]>([]);
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openEditModal, setOpenEditModal] = useState(false);
+  const [openDeleteModal, setOpenDeleteModal] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState<VotingCategory | null>(null);
   const [editingCategory, setEditingCategory] = useState<VotingCategory | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // Nominees state
+  const [openNomineesModal, setOpenNomineesModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<VotingCategory | null>(null);
   
   const [formData, setFormData] = useState<VotingCategoryFormData>({
     name: "",
@@ -175,9 +173,47 @@ export function VotingCategories({ event_id }: { event_id: number }) {
     }
   };
 
+  const handleOpenDeleteModal = (category: VotingCategory) => {
+    setDeletingCategory(category);
+    setOpenDeleteModal(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setOpenDeleteModal(false);
+    setDeletingCategory(null);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingCategory) return;
+
+    try {
+      setDeleting(true);
+      await baseHttpServiceInstance.delete(
+        `/event-studio/events/${event_id}/mini-app-voting/categories/${deletingCategory.id}`
+      );
+      notificationCtx.success("Xóa hạng mục bình chọn thành công");
+      handleCloseDeleteModal();
+      fetchCategories();
+    } catch (error: any) {
+      notificationCtx.error(error?.response?.data?.detail || "Có lỗi xảy ra khi xóa");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const formatDateTime = (dateTime: string | null) => {
     if (!dateTime) return "-";
     return new Date(dateTime).toLocaleString("vi-VN");
+  };
+
+  const handleOpenNomineesModal = (category: VotingCategory) => {
+    setSelectedCategory(category);
+    setOpenNomineesModal(true);
+  };
+
+  const handleCloseNomineesModal = () => {
+    setOpenNomineesModal(false);
+    setSelectedCategory(null);
   };
 
   return (
@@ -249,9 +285,7 @@ export function VotingCategories({ event_id }: { event_id: number }) {
                           <Stack direction="row" spacing={1} justifyContent="flex-end">
                             <IconButton
                               size="small"
-                              onClick={() => {
-                                // TODO: Navigate to nominees list
-                              }}
+                              onClick={() => handleOpenNomineesModal(category)}
                               title="Xem danh sách đề cử"
                             >
                               <List />
@@ -262,6 +296,14 @@ export function VotingCategories({ event_id }: { event_id: number }) {
                               title="Chỉnh sửa"
                             >
                               <Pencil />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleOpenDeleteModal(category)}
+                              title="Xóa"
+                              color="error"
+                            >
+                              <Trash />
                             </IconButton>
                           </Stack>
                         </TableCell>
@@ -452,6 +494,52 @@ export function VotingCategories({ event_id }: { event_id: number }) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={openDeleteModal} onClose={handleCloseDeleteModal} maxWidth="sm" fullWidth>
+        <DialogTitle>Xác nhận xóa hạng mục bình chọn</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Alert severity="warning">
+              <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
+                Bạn sắp xóa hạng mục bình chọn: <strong>{deletingCategory?.name}</strong>
+              </Typography>
+              <Typography variant="body2">
+                Hành động này sẽ xóa vĩnh viễn:
+              </Typography>
+              <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: 20 }}>
+                <li>Hạng mục bình chọn này</li>
+                <li>Tất cả đề cử trong hạng mục này</li>
+                <li>Toàn bộ lịch sử bình chọn của hạng mục này</li>
+              </ul>
+              <Typography variant="body2" sx={{ mt: 1, fontWeight: "bold" }}>
+                Hành động này không thể hoàn tác!
+              </Typography>
+            </Alert>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteModal} disabled={deleting}>
+            Hủy
+          </Button>
+          <Button
+            onClick={handleDelete}
+            variant="contained"
+            color="error"
+            disabled={deleting}
+          >
+            {deleting ? <CircularProgress size={20} /> : "Xóa"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Nominees Component */}
+      <VotingNominees
+        event_id={event_id}
+        category={selectedCategory}
+        open={openNomineesModal}
+        onClose={handleCloseNomineesModal}
+      />
     </>
   );
 }
