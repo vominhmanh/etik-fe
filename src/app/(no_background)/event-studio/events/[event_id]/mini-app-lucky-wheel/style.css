@@ -9,43 +9,102 @@ body {
   
   .wheel-container {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     width: 100%;
     height: 100vh;
     overflow: hidden;
-    background: linear-gradient(
-      90deg,
-      #cfa120 0%,
-      #fbed7d 49.99%,
-      #cf9f20 99.98%
-    );
     position: relative;
-  
-    & .spin-button {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      z-index: +9;
-      border-radius: 50%;
-      width: 48px;
-      height: 48px;
-      transform: translate(-50%, -50%);
-      background: white;
-      color: #333;
-      font-size: 14px;
-      font-weight: 600;
-      border: none;
-      box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
-      cursor: pointer;
-    }
+  }
+
+  /* Background Image với Blur */
+  .lw-background-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: 0;
+    filter: blur(8px);
+    overflow: hidden;
+  }
+
+  .lw-background-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Gradient Overlay */
+  .wheel-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      135deg,
+      #E0F7FA 0%,
+      #80DEEA 40%,
+      #26C6DA 70%,
+      #0097A7 100%
+    );
+    opacity: 0.2;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Đảm bảo content nằm trên background */
+  .lw-content-wrapper,
+  .lw-user-bar {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Container chứa Logo và Vòng quay - Relative với nhau */
+  .lw-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+    position: relative;
   }
   
+  .wheel-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+  }
+
+  .spin-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 9;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    transform: translate(-50%, -50%);
+    background: white;
+    color: #333;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+  }
+
   .custom-pointer {
     position: absolute;
     top: calc(50% - 12px);
     left: 50%;
-    z-index: +10;
+    z-index: 10;
     transform: translate(calc(-50% - 2.5px), -100%);
     width: 0;
     height: 0;
@@ -403,5 +462,67 @@ body {
 
   .congrats-close-button:active {
     transform: translateY(0);
+  }
+
+  /* Logo AQUA Styles */
+  .lw-logo-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    padding: 0 20px;
+    pointer-events: none;
+  }
+
+  .lw-logo {
+    width: auto;
+    height: auto;
+    max-width: 400px;
+    max-height: 120px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  }
+
+  /* Responsive Logo và Content Wrapper */
+  @media (max-width: 768px) {
+    .lw-content-wrapper {
+      gap: 30px;
+    }
+
+    .lw-logo-container {
+      padding: 0 16px;
+    }
+
+    .lw-logo {
+      max-width: 280px;
+      max-height: 90px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .lw-content-wrapper {
+      gap: 24px;
+    }
+
+    .lw-logo-container {
+      padding: 0 12px;
+    }
+
+    .lw-logo {
+      max-width: 200px;
+      max-height: 70px;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .lw-content-wrapper {
+      gap: 50px;
+    }
+
+    .lw-logo {
+      max-width: 500px;
+      max-height: 150px;
+    }
   }
   

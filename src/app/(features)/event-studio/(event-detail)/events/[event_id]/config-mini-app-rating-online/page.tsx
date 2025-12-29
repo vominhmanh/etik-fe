@@ -59,7 +59,7 @@ interface CheckConfigResponse {
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
-    document.title = 'Rating Online | ETIK - Vé điện tử & Quản lý sự kiện';
+    document.title = 'Chấm điểm và Khảo sát | ETIK - Vé điện tử & Quản lý sự kiện';
   }, []);
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [formValues, setFormValues] = useState<EventResponse | null>(null);
@@ -121,7 +121,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       component: <Typography>Bảng xếp hạng</Typography>,
     },
   ];
-  
+
   async function checkConfig() {
     if (!event_id) return;
 

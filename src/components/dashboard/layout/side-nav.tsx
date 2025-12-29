@@ -337,13 +337,13 @@ export function SideNav(): React.JSX.Element {
                 href={`/event-studio/events/${dynamicId}/templates/email-marketing`}
                 icon={ListDashesIcon}
               />
-              <NavItemCollapseChildItem
+              {/* <NavItemCollapseChildItem
                 pathname={pathname}
                 key="email-template-2"
                 title={tt("Template vé bị huỷ", "Cancelled Ticket Template")}
                 href={`/event-studio/events/${dynamicId}/templates`}
                 icon={PlusIcon}
-              />
+              /> */}
             </NavItemCollapse>
             <NavItemCollapse pathname={pathname} key="mini-app" title="Mini App" icon={SquaresFour}>
               <NavItemCollapseChildItem
@@ -356,29 +356,36 @@ export function SideNav(): React.JSX.Element {
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="email-template-1"
-                title="Rating Online"
+                title={tt("Chấm điểm và khảo sát", "Rating Online")}
                 href={`/event-studio/events/${dynamicId}/config-mini-app-rating-online`}
                 icon={StarHalf}
               />
-              <NavItemCollapseChildItem
+              {/* <NavItemCollapseChildItem
                 pathname={pathname}
                 key="email-template-2"
-                title="Dice roll"
+                title={tt("Xúc xắc", "Dice roll")}
                 href={`/event-studio/events/${dynamicId}/templates`}
                 icon={DiceSix}
-              />
+              /> */}
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="email-template-3"
-                title="Lucky number"
+                title={tt("Con số may mắn", "Lucky Number")}
                 href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-draw`}
                 icon={SpinnerBall}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="email-template-4"
-                title="Lucky wheel"
+                title={tt("Vòng quay may mắn", "Lucky Wheel")}
                 href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-wheel`}
+                icon={SpinnerBall}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="config-mini-app-voting"
+                title={tt("Bình chọn", "Voting")}
+                href={`/event-studio/events/${dynamicId}/config-mini-app-voting`}
                 icon={SpinnerBall}
               />
 

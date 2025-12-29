@@ -3,8 +3,11 @@
 import "./style.css";
 import React, { useState, useEffect } from "react";
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { AxiosResponse } from 'axios';
+import logoAqua from '@/images/logo_aqua.png';
+import backgroundAqua from '@/images/background_aqua.jpg';
 
 const Wheel = dynamic(
   () => import('react-custom-roulette').then((m: any) => m.Wheel),
@@ -76,14 +79,13 @@ interface MySpinHistoryRow {
   createdAt: string;
 }
 
-// Default colors for the wheel
 const DEFAULT_COLORS = [
-  "#165FA9",
-  "#239b63",
-  "#F7A415",
-  "#3F297E",
-  "#BE1080",
-  "#DC0836",
+  "#1E88E5", // Bright Ocean Blue
+  "#26A69A", // Fresh Tuna Teal
+  "#4FC3F7", // Light Sea Blue
+  "#81D4FA", // Sky Ocean
+  "#A5D6D3", // Soft Seafoam
+  "#CFD8DC", // Ice Silver
 ];
 
 // Generate colors array based on number of prizes
@@ -384,6 +386,17 @@ export default function Page({ params }: { params: { event_id: number } }) {
 
   return (
     <div className="wheel-container">
+      {/* Background Image */}
+      <div className="lw-background-image">
+        <Image
+          src={backgroundAqua}
+          alt="Background"
+          fill
+          priority
+          style={{ objectFit: 'cover' }}
+        />
+      </div>
+
       {auth && (
         <div className="lw-user-bar">
           <div className="lw-user-bar-left">
@@ -426,33 +439,47 @@ export default function Page({ params }: { params: { event_id: number } }) {
         </div>
       )}
 
-      <Wheel
-        mustStartSpinning={mustSpin}
-        prizeNumber={prizeNumber}
-        data={wheelData}
-        outerBorderColor={"#fff"}
-        outerBorderWidth={10}
-        innerBorderColor={"transparent"}
-        radiusLineColor={"#fff"}
-        radiusLineWidth={1}
-        textColors={["#fff"]}
-        textDistance={60}
-        // @ts-ignore - react-custom-roulette expects arrays for fontSize and fontWeight
-        fontSize={[18]}
-        // @ts-ignore - react-custom-roulette expects arrays for fontSize and fontWeight
-        fontWeight={[500]}
-        
-        startingOptionIndex={0}
-        backgroundColors={backgroundColors}
-        onStopSpinning={() => {
-          setMustSpin(false);
-          // Show congratulation modal with winning prize
-          if (winningPrize) setShowCongratsModal(true);
-        }}
-      />
-      <button className="spin-button" onClick={handleSpinClick}>
-        {spinLoading ? "..." : "QUAY"}
-      </button>
+      {/* Logo và Vòng quay - Relative với nhau */}
+      <div className="lw-content-wrapper" style={{ paddingTop: '100px' }}>
+        {/* Logo AQUA */}
+        <div className="lw-logo-container">
+          <Image
+            src={logoAqua}
+            alt="AQUA Logo"
+            className="lw-logo"
+            priority
+          />
+        </div>
+
+        <div className="wheel-wrapper">
+          <Wheel
+            mustStartSpinning={mustSpin}
+            prizeNumber={prizeNumber}
+            data={wheelData}
+            outerBorderColor={"#fff"}
+            outerBorderWidth={5}
+            innerBorderColor={"transparent"}
+            radiusLineColor={"#fff"}
+            radiusLineWidth={1}
+            textColors={["#fff"]}
+            textDistance={60}
+            // @ts-ignore - react-custom-roulette expects arrays for fontSize and fontWeight
+            fontSize={[18]}
+            // @ts-ignore - react-custom-roulette expects arrays for fontSize and fontWeight
+            fontWeight={[500]}
+            startingOptionIndex={0}
+            backgroundColors={backgroundColors}
+            onStopSpinning={() => {
+              setMustSpin(false);
+              // Show congratulation modal with winning prize
+              if (winningPrize) setShowCongratsModal(true);
+            }}
+          />
+          <button className="spin-button" onClick={handleSpinClick}>
+            {spinLoading ? "..." : "QUAY"}
+          </button>
+        </div>
+      </div>
 
       {/* Register Modal */}
       {showRegisterModal && (
