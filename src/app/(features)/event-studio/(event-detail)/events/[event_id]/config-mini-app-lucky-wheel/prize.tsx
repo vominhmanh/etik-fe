@@ -235,7 +235,7 @@ function PrizeModal({ eventId, prize: initialPrize, open, onClose, onPrizeUpdate
             label="Số lượng tổng"
             name="quantityTotal"
             type="number"
-            value={prize.quantityTotal || ''}
+            value={prize.quantityTotal ?? ''}
             onChange={handleChange}
             fullWidth
             inputProps={{ min: 0 }}
@@ -246,7 +246,7 @@ function PrizeModal({ eventId, prize: initialPrize, open, onClose, onPrizeUpdate
             label="Số lượng còn lại"
             name="quantityLeft"
             type="number"
-            value={prize.quantityLeft || ''}
+            value={prize.quantityLeft ?? ''}
             onChange={handleChange}
             fullWidth
             inputProps={{ min: 0 }}
