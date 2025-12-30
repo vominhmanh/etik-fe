@@ -106,15 +106,9 @@ const convertPrizesToWheelData = (prizes: LuckyWheelPrize[]) => {
       item.image = {
         uri: prize.imageUrl,
         landscape: true,
-        sizeMultiplier: 0.75,
+        sizeMultiplier: 0.7,
         offsetX: 0,
       };
-      // item.style = {
-      //   maxWidth: 48,
-      //   maxHeight: 48,
-      //   width: 48,
-      //   height: 48,
-      // };
     } else {
       item.option = prize.name;
     }
