@@ -5,8 +5,8 @@ import { useEffect } from "react";
 import AOS from "aos";
 import "aos/dist/aos.css";
 
-import Header from "@/components/gala-pubg/ui/header";
-import Footer from "@/components/gala-pubg/ui/footer";
+import Header from "@/components/pubggala/ui/header";
+import Footer from "@/components/pubggala/ui/footer";
 
 export default function DefaultLayout({
   children,

@@ -1,11 +1,11 @@
-import Hero from "@/components/gala-pubg/hero-home";
-import BusinessCategories from "@/components/gala-pubg/business-categories";
-import FeaturesPlanet from "@/components/gala-pubg/features-planet";
-import LargeTestimonial from "@/components/gala-pubg/large-testimonial";
-import Cta from "@/components/gala-pubg/cta";
-import CreateYourEvent from "@/components/gala-pubg/create-your-event";
-import CustomerAlbum from "@/components/gala-pubg/customer-album";
-import FeaturesAlbum from "@/components/gala-pubg/features-album";
+import Hero from "@/components/pubggala/hero-home";
+import BusinessCategories from "@/components/pubggala/business-categories";
+import FeaturesPlanet from "@/components/pubggala/features-planet";
+import LargeTestimonial from "@/components/pubggala/large-testimonial";
+import Cta from "@/components/pubggala/cta";
+import CreateYourEvent from "@/components/pubggala/create-your-event";
+import CustomerAlbum from "@/components/pubggala/customer-album";
+import FeaturesAlbum from "@/components/pubggala/features-album";
 
 export const metadata = {
   title: "ETIK - Vé điện tử & Quản lý sự kiện",
