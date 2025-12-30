@@ -112,14 +112,14 @@ export default function HeroHome() {
               data-aos="zoom-y-out"
               data-aos-delay={150}
             >
-              {tt("Gala of Glory", "Gala of Glory")}
+              {tt("PUBG GALA 2025", "PUBG GALA 2025")}
             </h1>
             <h1
               className="mb-6 border-y text-5xl font-bold [border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1] md:text-6xl"
               data-aos="zoom-y-out"
               data-aos-delay={850}
             >
-              {tt("PUBG 2025", "PUBG 2025")}
+              {tt("Gala of Glory", "Gala of Glory")}
             </h1>
             <div className="mx-auto max-w-3xl">
               <p
@@ -127,37 +127,9 @@ export default function HeroHome() {
                 data-aos="zoom-y-out"
                 data-aos-delay={1000}
               >
-                {tt("ETIK giúp bạn tạo sự kiện và bán vé nhanh chóng, tiện lợi và tiết kiệm. Không những thế, loạt tính năng hỗ trợ sự kiện đi kèm giúp sự kiện của bạn trở nên hiện đại và chuyên nghiệp hơn bao giờ hết. Khám phá ngay !", "ETIK helps you create events and sell tickets quickly, conveniently, and economically. Moreover, a series of accompanying event support features make your event more modern and professional than ever. Explore now!")}
+                {tt("Bình chọn cho những ứng cử viên mà bạn yêu thích nhất trong PUBG GALA 2025", "Vote for the best candidates in PUBG GALA 2025")}
               </p>
               
-              <div className="relative before:absolute before:inset-0 before:border-y before:[border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1]">
-                <div
-                  className="mx-auto max-w-xs sm:flex sm:max-w-none sm:justify-center"
-                  data-aos="zoom-y-out"
-                  data-aos-delay={1000}
-                >
-                  <a
-                    className="btn group mb-4 w-full bg-gradient-to-t from-blue-600 to-blue-500 bg-[length:100%_100%] bg-[bottom] text-white shadow hover:bg-[length:100%_150%] sm:mb-0 sm:w-auto"
-                    href="#create-your-event"
-                  >
-                    <span className="relative inline-flex items-center">
-                      <span style={{marginRight: '10px'}}>{tt("Bạn là Nhà tổ chức sự kiện?", "Are you an Event Organizer?")}</span>{" "}<b>{tt("Tạo sự kiện ngay", "Create Event Now")}</b>
-                      {/* <span className="ml-1 tracking-normal text-blue-300 transition-transform group-hover:translate-x-0.5">
-                        -&gt;
-                      </span> */}
-                    </span>
-                  </a>
-                  <Link
-                    className="btn group w-full bg-white text-gray-800 shadow hover:bg-gray-50 sm:ml-4 sm:w-auto"
-                    href="/marketplace"
-                  >
-                    <span className="relative inline-flex items-center">
-                    <span style={{marginRight: '10px'}}>{tt("Bạn là khách hàng?", "Are you a customer?")}</span><b>{tt("Đặt vé ngay", "Book Tickets Now")}</b>
-                    </span>
-                    
-                  </Link>
-                </div>
-              </div>
             </div>
           </div>          
         </div>
