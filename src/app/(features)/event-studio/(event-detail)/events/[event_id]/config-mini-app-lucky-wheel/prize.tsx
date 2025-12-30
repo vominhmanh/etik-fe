@@ -142,8 +142,8 @@ function PrizeModal({ eventId, prize: initialPrize, open, onClose, onPrizeUpdate
     }
 
     const probability = prize.probability ?? 0;
-    if (probability <= 0 || probability > 1) {
-      notificationCtx.error('Lỗi', 'Tỉ lệ trúng phải lớn hơn 0 và nhỏ hơn hoặc bằng 1 (100%)');
+    if (probability < 0 || probability > 1) {
+      notificationCtx.error('Lỗi', 'Tỉ lệ trúng phải từ 0 đến 1 (100%)');
       return;
     }
 
