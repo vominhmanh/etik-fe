@@ -3,7 +3,7 @@
 import { baseHttpServiceInstance } from "@/services/BaseHttp.service";
 import NotificationContext from "@/contexts/notification-context";
 
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -30,6 +30,8 @@ import {
   Alert,
 } from "@mui/material";
 import { Pencil, Plus, List, Trash } from "@phosphor-icons/react/dist/ssr";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import { VotingNominees } from "./voting-nominees";
 
 import { VotingCategory } from "./voting-nominees";
@@ -40,6 +42,7 @@ interface VotingCategoryFormData {
   maxVotesPerUserTotal: number | null;
   maxVotesPerUserDaily: number | null;
   allowMultipleNominees: boolean;
+  allowVoting: boolean;
   startAt: string;
   endAt: string;
 }
@@ -62,12 +65,15 @@ export function VotingCategories({ event_id }: { event_id: number }) {
   const [openNomineesModal, setOpenNomineesModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<VotingCategory | null>(null);
   
+  const reactQuillRef = useRef<ReactQuill>(null);
+  
   const [formData, setFormData] = useState<VotingCategoryFormData>({
     name: "",
     description: "",
     maxVotesPerUserTotal: null,
     maxVotesPerUserDaily: null,
     allowMultipleNominees: true,
+    allowVoting: true,
     startAt: "",
     endAt: "",
   });
@@ -80,7 +86,8 @@ export function VotingCategories({ event_id }: { event_id: number }) {
       );
       setCategories(response.data || []);
     } catch (error: any) {
-      notificationCtx.error(error?.response?.data?.detail || "Không thể tải danh sách hạng mục");
+      const errorMessage = error?.response?.data?.detail || error?.message || "Không thể tải danh sách hạng mục";
+      notificationCtx.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -100,6 +107,7 @@ export function VotingCategories({ event_id }: { event_id: number }) {
       maxVotesPerUserTotal: null,
       maxVotesPerUserDaily: null,
       allowMultipleNominees: true,
+      allowVoting: true,
       startAt: "",
       endAt: "",
     });
@@ -118,6 +126,7 @@ export function VotingCategories({ event_id }: { event_id: number }) {
       maxVotesPerUserTotal: category.maxVotesPerUserTotal,
       maxVotesPerUserDaily: category.maxVotesPerUserDaily,
       allowMultipleNominees: category.allowMultipleNominees,
+      allowVoting: category.allowVoting ?? true,
       startAt: category.startAt ? category.startAt.substring(0, 16) : "",
       endAt: category.endAt ? category.endAt.substring(0, 16) : "",
     });
@@ -127,6 +136,10 @@ export function VotingCategories({ event_id }: { event_id: number }) {
   const handleCloseEditModal = () => {
     setOpenEditModal(false);
     setEditingCategory(null);
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    setFormData({ ...formData, description: value });
   };
 
   const handleSubmit = async () => {
@@ -143,6 +156,7 @@ export function VotingCategories({ event_id }: { event_id: number }) {
         maxVotesPerUserTotal: formData.maxVotesPerUserTotal || null,
         maxVotesPerUserDaily: formData.maxVotesPerUserDaily || null,
         allowMultipleNominees: formData.allowMultipleNominees,
+        allowVoting: formData.allowVoting,
         startAt: formData.startAt ? new Date(formData.startAt).toISOString() : null,
         endAt: formData.endAt ? new Date(formData.endAt).toISOString() : null,
       };
@@ -167,7 +181,8 @@ export function VotingCategories({ event_id }: { event_id: number }) {
 
       fetchCategories();
     } catch (error: any) {
-      notificationCtx.error(error?.response?.data?.detail || "Có lỗi xảy ra");
+      const errorMessage = error?.response?.data?.detail || error?.message || "Có lỗi xảy ra";
+      notificationCtx.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -195,7 +210,8 @@ export function VotingCategories({ event_id }: { event_id: number }) {
       handleCloseDeleteModal();
       fetchCategories();
     } catch (error: any) {
-      notificationCtx.error(error?.response?.data?.detail || "Có lỗi xảy ra khi xóa");
+      const errorMessage = error?.response?.data?.detail || error?.message || "Có lỗi xảy ra khi xóa";
+      notificationCtx.error(errorMessage);
     } finally {
       setDeleting(false);
     }
@@ -248,6 +264,7 @@ export function VotingCategories({ event_id }: { event_id: number }) {
                     <TableCell>Tối đa tổng</TableCell>
                     <TableCell>Tối đa mỗi ngày</TableCell>
                     <TableCell>Nhiều đề cử</TableCell>
+                    <TableCell>Cho phép bình chọn</TableCell>
                     <TableCell>Bắt đầu</TableCell>
                     <TableCell>Kết thúc</TableCell>
                     <TableCell align="right">Thao tác</TableCell>
@@ -256,7 +273,7 @@ export function VotingCategories({ event_id }: { event_id: number }) {
                 <TableBody>
                   {categories.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9}>
+                      <TableCell colSpan={10}>
                         <Typography variant="body2" align="center">
                           Chưa có hạng mục nào
                         </Typography>
@@ -278,6 +295,17 @@ export function VotingCategories({ event_id }: { event_id: number }) {
                         </TableCell>
                         <TableCell>
                           {category.allowMultipleNominees ? "Có" : "Không"}
+                        </TableCell>
+                        <TableCell>
+                          {category.allowVoting !== false ? (
+                            <Typography variant="body2" color="success.main">
+                              Có
+                            </Typography>
+                          ) : (
+                            <Typography variant="body2" color="error.main">
+                              Không
+                            </Typography>
+                          )}
                         </TableCell>
                         <TableCell>{formatDateTime(category.startAt)}</TableCell>
                         <TableCell>{formatDateTime(category.endAt)}</TableCell>
@@ -329,14 +357,33 @@ export function VotingCategories({ event_id }: { event_id: number }) {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
-            <TextField
-              label="Mô tả"
-              fullWidth
-              multiline
-              rows={3}
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Mô tả
+              </Typography>
+              <ReactQuill
+                ref={reactQuillRef}
+                value={formData.description}
+                onChange={handleDescriptionChange}
+                modules={{
+                  toolbar: {
+                    container: [
+                      [{ header: '1' }, { header: '2' }, { font: [] }],
+                      [{ size: [] }],
+                      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                      [{ list: 'ordered' }, { list: 'bullet' }],
+                      ['link', 'image'],
+                      ['clean'],
+                    ],
+                  },
+                  clipboard: {
+                    matchVisual: false,
+                  },
+                }}
+                placeholder="Nhập mô tả về hạng mục bình chọn"
+                style={{ minHeight: '200px' }}
+              />
+            </Box>
             <Stack direction="row" spacing={2}>
               <TextField
                 label="Tối đa tổng (phiếu/user)"
@@ -375,6 +422,17 @@ export function VotingCategories({ event_id }: { event_id: number }) {
                 />
               }
               label="Cho phép bình chọn nhiều đề cử trong cùng hạng mục"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.allowVoting}
+                  onChange={(e) =>
+                    setFormData({ ...formData, allowVoting: e.target.checked })
+                  }
+                />
+              }
+              label="Cho phép bình chọn cho hạng mục này"
             />
             <Stack direction="row" spacing={2}>
               <TextField
@@ -418,14 +476,33 @@ export function VotingCategories({ event_id }: { event_id: number }) {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
-            <TextField
-              label="Mô tả"
-              fullWidth
-              multiline
-              rows={3}
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Mô tả
+              </Typography>
+              <ReactQuill
+                ref={reactQuillRef}
+                value={formData.description}
+                onChange={handleDescriptionChange}
+                modules={{
+                  toolbar: {
+                    container: [
+                      [{ header: '1' }, { header: '2' }, { font: [] }],
+                      [{ size: [] }],
+                      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                      [{ list: 'ordered' }, { list: 'bullet' }],
+                      ['link', 'image'],
+                      ['clean'],
+                    ],
+                  },
+                  clipboard: {
+                    matchVisual: false,
+                  },
+                }}
+                placeholder="Nhập mô tả về hạng mục bình chọn"
+                style={{ minHeight: '200px' }}
+              />
+            </Box>
             <Stack direction="row" spacing={2}>
               <TextField
                 label="Tối đa tổng (phiếu/user)"
@@ -464,6 +541,17 @@ export function VotingCategories({ event_id }: { event_id: number }) {
                 />
               }
               label="Cho phép bình chọn nhiều đề cử trong cùng hạng mục"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.allowVoting}
+                  onChange={(e) =>
+                    setFormData({ ...formData, allowVoting: e.target.checked })
+                  }
+                />
+              }
+              label="Cho phép bình chọn cho hạng mục này"
             />
             <Stack direction="row" spacing={2}>
               <TextField
