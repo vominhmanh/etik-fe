@@ -3,7 +3,7 @@
 import { baseHttpServiceInstance } from "@/services/BaseHttp.service";
 import NotificationContext from "@/contexts/notification-context";
 
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -30,6 +30,8 @@ import {
   Alert,
 } from "@mui/material";
 import { Pencil, Plus, List, Trash } from "@phosphor-icons/react/dist/ssr";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import { VotingNominees } from "./voting-nominees";
 
 import { VotingCategory } from "./voting-nominees";
@@ -62,6 +64,8 @@ export function VotingCategories({ event_id }: { event_id: number }) {
   // Nominees state
   const [openNomineesModal, setOpenNomineesModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<VotingCategory | null>(null);
+  
+  const reactQuillRef = useRef<ReactQuill>(null);
   
   const [formData, setFormData] = useState<VotingCategoryFormData>({
     name: "",
@@ -132,6 +136,10 @@ export function VotingCategories({ event_id }: { event_id: number }) {
   const handleCloseEditModal = () => {
     setOpenEditModal(false);
     setEditingCategory(null);
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    setFormData({ ...formData, description: value });
   };
 
   const handleSubmit = async () => {
@@ -349,14 +357,33 @@ export function VotingCategories({ event_id }: { event_id: number }) {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
-            <TextField
-              label="Mô tả"
-              fullWidth
-              multiline
-              rows={3}
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Mô tả
+              </Typography>
+              <ReactQuill
+                ref={reactQuillRef}
+                value={formData.description}
+                onChange={handleDescriptionChange}
+                modules={{
+                  toolbar: {
+                    container: [
+                      [{ header: '1' }, { header: '2' }, { font: [] }],
+                      [{ size: [] }],
+                      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                      [{ list: 'ordered' }, { list: 'bullet' }],
+                      ['link', 'image'],
+                      ['clean'],
+                    ],
+                  },
+                  clipboard: {
+                    matchVisual: false,
+                  },
+                }}
+                placeholder="Nhập mô tả về hạng mục bình chọn"
+                style={{ minHeight: '200px' }}
+              />
+            </Box>
             <Stack direction="row" spacing={2}>
               <TextField
                 label="Tối đa tổng (phiếu/user)"
@@ -449,14 +476,33 @@ export function VotingCategories({ event_id }: { event_id: number }) {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
-            <TextField
-              label="Mô tả"
-              fullWidth
-              multiline
-              rows={3}
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Mô tả
+              </Typography>
+              <ReactQuill
+                ref={reactQuillRef}
+                value={formData.description}
+                onChange={handleDescriptionChange}
+                modules={{
+                  toolbar: {
+                    container: [
+                      [{ header: '1' }, { header: '2' }, { font: [] }],
+                      [{ size: [] }],
+                      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                      [{ list: 'ordered' }, { list: 'bullet' }],
+                      ['link', 'image'],
+                      ['clean'],
+                    ],
+                  },
+                  clipboard: {
+                    matchVisual: false,
+                  },
+                }}
+                placeholder="Nhập mô tả về hạng mục bình chọn"
+                style={{ minHeight: '200px' }}
+              />
+            </Box>
             <Stack direction="row" spacing={2}>
               <TextField
                 label="Tối đa tổng (phiếu/user)"
