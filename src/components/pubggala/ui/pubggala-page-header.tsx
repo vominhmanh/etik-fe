@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import fchoiceLogo from '@/images/pubg/fcoice-2025.png';
+import logo from '@/images/pubg/logo.png';
 import headerBackground from '@/images/pubg/header-background.png';
 import userLoginIcon from '@/images/user-login.svg';
 import { Avatar, Button, IconButton, MenuItem, Select, SelectChangeEvent, Typography, Menu } from '@mui/material';
@@ -174,9 +174,9 @@ export default function PubgGalaPageHeader() {
       <div className="mx-auto relative h-full">
         <div className="relative flex h-full items-center justify-between gap-2 md:gap-3 px-1 md:px-3">
           {/* Site branding and Navigation */}
-          <div className="flex flex-1 items-center gap-2 md:gap-6 min-w-0">
+          <div className="flex flex-1 items-center min-w-0">
             <Image 
-              src={fchoiceLogo} 
+              src={logo} 
               alt="FChoice Logo" 
               width={120} 
               height={40} 

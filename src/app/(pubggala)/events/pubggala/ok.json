@@ -1,0 +1,284 @@
+{
+  "categories": [
+    {
+      "id": 2,
+      "eventId": 51,
+      "name": "Tuyển thủ ấn tượng 2025",
+      "description": null,
+      "maxVotesPerUserTotal": 1,
+      "maxVotesPerUserDaily": 1,
+      "allowMultipleNominees": true,
+      "startAt": "2025-12-28T18:37:00",
+      "endAt": "2026-01-15T18:37:00",
+      "createdAt": "2025-12-29T22:37:51",
+      "updatedAt": "2026-01-03T00:09:43",
+      "nominees": [
+        {
+          "id": 1,
+          "eventId": 51,
+          "categoryId": 2,
+          "title": "Himass",
+          "description": "<p>- MVP PUBG Nations Cup 2025</p><p>- MVP APAC 2025 Phase 1</p><p>- MVP PUBG Vietnam Series 2025 Fall</p><p>- Most Kill PUBG Vietnam Series 2025 Fall</p><p>- #1 PUBG Nations Cup 2025</p><p>- #1 PUBG Vietnam Series 2025 Fall</p><p>- #2 PUBG Vietnam Series 2025 Spring</p><p>- #7 APAC 2025 Phase 1</p><p>- #9 APAC 2025 Phase 2</p>",
+          "imageUrl": "https://media.etik.vn/events/51/voting-nominees/2026-01-02_183846_DSDC_HIMASS.png",
+          "socialUrl": null,
+          "voteCount": 1,
+          "createdAt": "2025-12-29T22:48:47",
+          "updatedAt": "2026-01-02T18:38:51"
+        },
+        {
+          "id": 2,
+          "eventId": 51,
+          "categoryId": 2,
+          "title": "TanVuu",
+          "description": "<p>- MVP PUBG Vietnam Series 2025 Spring</p><p>- #1 PUBG Nations Cup 2025</p><p>- #2 PUBG Vietnam Series 2025 Fall</p><p>- #3 PUBG Vietnam Series 2025 Spring</p><p>- #4 Esports World Cup 2025</p><p>- #2 APAC 2025 Phase 2</p><p>- #6 APAC 2025 Phase 1</p><p>- #9 PUBG Global Series 7</p><p>- #19 PUBG Global Series 8</p><p>- #15 PUBG Global Series 9</p><p>- #14 PUBG Global Series 10</p>",
+          "imageUrl": "https://media.etik.vn/events/51/voting-nominees/2026-01-02_183944_DSDC_HIMASS.png",
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T22:49:05",
+          "updatedAt": "2026-01-02T18:39:48"
+        },
+        {
+          "id": 3,
+          "eventId": 51,
+          "categoryId": 2,
+          "title": "Sololzy",
+          "description": "<p>- #1 PUBG Nations Cup 2025</p><p>- #3 PUBG Vietnam Series 2025 Fall</p><p>- #4 PUBG Vietnam Series 2025 Spring</p><p>- #7 APAC 2025 Phase 2</p><p>- #10 APAC 2025 Phase 1</p>",
+          "imageUrl": "https://media.etik.vn/events/51/voting-nominees/2026-01-02_184011_DSDC_HIMASS.png",
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T22:49:19",
+          "updatedAt": "2026-01-02T18:40:14"
+        },
+        {
+          "id": 4,
+          "eventId": 51,
+          "categoryId": 2,
+          "title": "Delwyn",
+          "description": "<p>- #1 PUBG Nations Cup 2025</p><p>- #2 PUBG Vietnam Series 2025 Fall</p><p>- #3 PUBG Vietnam Series 2025 Spring</p><p>- #4 Esports World Cup 2025</p><p>- #2 APAC 2025 Phase 2</p><p>- #6 APAC 2025 Phase 1</p><p>- #9 PUBG Global Series 7</p><p>- #19 PUBG Global Series 8</p><p>- #15 PUBG Global Series 9</p><p>- #14 PUBG Global Series 10</p>",
+          "imageUrl": "https://media.etik.vn/events/51/voting-nominees/2026-01-02_184029_DSDC_HIMASS.png",
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T22:49:34",
+          "updatedAt": "2026-01-02T18:40:32"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "eventId": 51,
+      "name": "Đội Tuyển ấn tượng 2025",
+      "description": null,
+      "maxVotesPerUserTotal": 1,
+      "maxVotesPerUserDaily": 1,
+      "allowMultipleNominees": true,
+      "startAt": "2025-12-29T02:21:00",
+      "endAt": "2026-01-16T02:21:00",
+      "createdAt": "2025-12-29T23:21:20",
+      "updatedAt": "2026-01-03T00:09:59",
+      "nominees": [
+        {
+          "id": 5,
+          "eventId": 51,
+          "categoryId": 3,
+          "title": "The Expendables",
+          "description": "<p>- #4 Esports World Cup 2025</p><p>- #15 PUBG Global Championship 2025</p><p>- #2 APAC 2025 Phase 2</p><p>- #6 APAC 2025 Phase 1</p><p>- #2 PUBG Vietnam Series 2025 Fall</p><p>- #3 PUBG Vietnam Series 2025 Spring</p><p>- #9 PUBG Global Series 7</p><p>- #19 PUBG Global Series 8</p><p>- #15 PUBG Global Series 9</p><p>- #14 PUBG Global Series 10</p>",
+          "imageUrl": "https://media.etik.vn/events/51/voting-nominees/2026-01-02_184137_DSDC_HIMASS.png",
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T23:22:38",
+          "updatedAt": "2026-01-02T18:41:41"
+        },
+        {
+          "id": 6,
+          "eventId": 51,
+          "categoryId": 3,
+          "title": "Anyone's Legend",
+          "description": "<p>- #1 PUBG Vietnam Series 2025 Fall</p><p>- #2 PUBG Vietnam Series 2025 Spring</p><p>- #7 APAC 2025 Phase 1</p><p>- #9 APAC 2025 Phase 2</p><p>- #14 Esports World Cup 2025</p><p>- #28 PUBG Global Championship 2025</p>",
+          "imageUrl": "https://media.etik.vn/events/51/voting-nominees/2026-01-02_184208_DSDC_HIMASS.png",
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T23:22:47",
+          "updatedAt": "2026-01-02T18:42:11"
+        },
+        {
+          "id": 7,
+          "eventId": 51,
+          "categoryId": 3,
+          "title": "Finhay CERBERUS",
+          "description": "<p>- #3 PUBG Vietnam Series 2025 Fall</p><p>- #4 PUBG Vietnam Series 2025 Spring</p><p>- #7 APAC 2025 Phase 2</p><p>- #10 APAC 2025 Phase 1</p>",
+          "imageUrl": "https://media.etik.vn/events/51/voting-nominees/2026-01-02_184241_DSDC_HIMASS.png",
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T23:22:53",
+          "updatedAt": "2026-01-02T18:42:45"
+        },
+        {
+          "id": 16,
+          "eventId": 51,
+          "categoryId": 3,
+          "title": "TDT Esports",
+          "description": "<p>- #4 PUBG Vietnam Series 2025 Fall</p><p>- #6 PUBG Vietnam Series 2025 Spring</p><p>- #8 APAC 2025 Phase 1</p><p>- #11 APAC 2025 Phase 2</p><p>- #18 Esports World Cup 2025</p>",
+          "imageUrl": "https://media.etik.vn/events/51/voting-nominees/2026-01-02_184306_DSDC_HIMASS.png",
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2026-01-02T18:42:59",
+          "updatedAt": "2026-01-02T18:43:09"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "eventId": 51,
+      "name": "Streamer được yêu thích 2025",
+      "description": null,
+      "maxVotesPerUserTotal": 1,
+      "maxVotesPerUserDaily": 1,
+      "allowMultipleNominees": true,
+      "startAt": "2025-12-29T02:21:00",
+      "endAt": "2026-01-17T02:21:00",
+      "createdAt": "2025-12-29T23:21:45",
+      "updatedAt": "2026-01-03T00:10:12",
+      "nominees": [
+        {
+          "id": 8,
+          "eventId": 51,
+          "categoryId": 4,
+          "title": "MixiGaming",
+          "description": null,
+          "imageUrl": null,
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T23:23:39",
+          "updatedAt": "2025-12-29T23:23:39"
+        },
+        {
+          "id": 9,
+          "eventId": 51,
+          "categoryId": 4,
+          "title": "Rambo",
+          "description": null,
+          "imageUrl": null,
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T23:23:42",
+          "updatedAt": "2025-12-29T23:23:42"
+        },
+        {
+          "id": 10,
+          "eventId": 51,
+          "categoryId": 4,
+          "title": "DjChip",
+          "description": null,
+          "imageUrl": null,
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T23:23:47",
+          "updatedAt": "2025-12-29T23:23:47"
+        },
+        {
+          "id": 11,
+          "eventId": 51,
+          "categoryId": 4,
+          "title": "Himass",
+          "description": null,
+          "imageUrl": null,
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T23:23:51",
+          "updatedAt": "2025-12-29T23:23:51"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "eventId": 51,
+      "name": "Đội ngũ truyền thông 2025\t",
+      "description": null,
+      "maxVotesPerUserTotal": 1,
+      "maxVotesPerUserDaily": 1,
+      "allowMultipleNominees": true,
+      "startAt": "2025-12-29T02:22:00",
+      "endAt": "2026-01-17T02:22:00",
+      "createdAt": "2025-12-29T23:22:13",
+      "updatedAt": "2026-01-03T00:10:30",
+      "nominees": [
+        {
+          "id": 12,
+          "eventId": 51,
+          "categoryId": 5,
+          "title": "Rambo",
+          "description": null,
+          "imageUrl": null,
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T23:24:11",
+          "updatedAt": "2025-12-29T23:24:11"
+        },
+        {
+          "id": 13,
+          "eventId": 51,
+          "categoryId": 5,
+          "title": "DjChip",
+          "description": null,
+          "imageUrl": null,
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T23:24:15",
+          "updatedAt": "2025-12-29T23:24:15"
+        },
+        {
+          "id": 14,
+          "eventId": 51,
+          "categoryId": 5,
+          "title": "Finhay CERBERUS",
+          "description": null,
+          "imageUrl": null,
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T23:24:20",
+          "updatedAt": "2025-12-29T23:24:20"
+        },
+        {
+          "id": 15,
+          "eventId": 51,
+          "categoryId": 5,
+          "title": "DiTi",
+          "description": null,
+          "imageUrl": null,
+          "socialUrl": null,
+          "voteCount": 0,
+          "createdAt": "2025-12-29T23:24:29",
+          "updatedAt": "2025-12-29T23:24:29"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "eventId": 51,
+      "name": "Đội ngũ truyền thông 2025",
+      "description": null,
+      "maxVotesPerUserTotal": 1,
+      "maxVotesPerUserDaily": 1,
+      "allowMultipleNominees": true,
+      "startAt": "2026-01-06T16:23:00",
+      "endAt": "2026-01-17T16:23:00",
+      "createdAt": "2026-01-02T23:23:15",
+      "updatedAt": "2026-01-02T23:23:15",
+      "nominees": []
+    },
+    {
+      "id": 7,
+      "eventId": 51,
+      "name": "Tuyển thủ xuất sắc 2025",
+      "description": null,
+      "maxVotesPerUserTotal": 1,
+      "maxVotesPerUserDaily": 1,
+      "allowMultipleNominees": true,
+      "startAt": null,
+      "endAt": null,
+      "createdAt": "2026-01-02T23:24:27",
+      "updatedAt": "2026-01-02T23:26:54",
+      "nominees": []
+    }
+  ]
+}
