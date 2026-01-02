@@ -1,25 +1,19 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
+import { useEffect } from 'react';
+import AOS from 'aos';
 
-import AOS from "aos";
-import "aos/dist/aos.css";
+import 'aos/dist/aos.css';
 
-import Header from "@/components/pubggala/ui/header";
-import Footer from "@/components/pubggala/ui/footer";
-import { SSOProvider } from "@/contexts/sso-context";
+import { SSOProvider } from '@/contexts/sso-context';
 
-export default function DefaultLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DefaultLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     AOS.init({
       once: true,
-      disable: "phone",
+      disable: 'phone',
       duration: 700,
-      easing: "ease-out-cubic",
+      easing: 'ease-out-cubic',
     });
   });
 
@@ -38,11 +32,7 @@ export default function DefaultLayout({
 
   return (
     <SSOProvider config={ssoConfig}>
-      <Header />
-
-      <main className="grow">{children}</main>
-
-      <Footer border={true} />
+      <>{children}</>
     </SSOProvider>
   );
 }
