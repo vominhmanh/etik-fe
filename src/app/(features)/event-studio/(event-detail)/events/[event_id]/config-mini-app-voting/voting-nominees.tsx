@@ -3,7 +3,7 @@
 import { baseHttpServiceInstance } from "@/services/BaseHttp.service";
 import NotificationContext from "@/contexts/notification-context";
 
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef, useCallback } from "react";
 import {
   Stack,
   Table,
@@ -22,8 +22,11 @@ import {
   Box,
   CircularProgress,
   Alert,
+  Grid,
 } from "@mui/material";
 import { Pencil, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 export interface VotingCategory {
   id: number;
@@ -46,6 +49,7 @@ interface VotingNominee {
   title: string;
   description: string | null;
   imageUrl: string | null;
+  socialUrl: string | null;
   voteCount: number;
   createdAt: string;
   updatedAt: string;
@@ -55,6 +59,7 @@ interface VotingNomineeFormData {
   title: string;
   description: string;
   imageUrl: string;
+  socialUrl: string;
 }
 
 interface VotingNomineesProps {
@@ -86,7 +91,11 @@ export function VotingNominees({
     title: "",
     description: "",
     imageUrl: "",
+    socialUrl: "",
   });
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string>("");
+  const reactQuillRef = useRef<ReactQuill>(null);
 
   const fetchNominees = async (categoryId: number) => {
     try {
@@ -116,7 +125,10 @@ export function VotingNominees({
       title: "",
       description: "",
       imageUrl: "",
+      socialUrl: "",
     });
+    setSelectedImageFile(null);
+    setPreviewImageUrl("");
     setOpenCreateNomineeModal(true);
   };
 
@@ -130,7 +142,10 @@ export function VotingNominees({
       title: nominee.title,
       description: nominee.description || "",
       imageUrl: nominee.imageUrl || "",
+      socialUrl: nominee.socialUrl || "",
     });
+    setSelectedImageFile(null);
+    setPreviewImageUrl(nominee.imageUrl || "");
     setOpenEditNomineeModal(true);
   };
 
@@ -149,6 +164,49 @@ export function VotingNominees({
     setDeletingNominee(null);
   };
 
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      // Step 1: Request presigned URL from backend
+      const presignedResponse = await baseHttpServiceInstance.post('/common/s3/generate_presigned_url', {
+        filename: file.name,
+        content_type: file.type,
+      });
+
+      const { presignedUrl, fileUrl } = presignedResponse.data;
+
+      // Step 2: Upload file directly to S3 using presigned URL
+      await fetch(presignedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      // Step 3: Return the public file URL
+      return fileUrl;
+    } catch (error) {
+      notificationCtx.error('Lỗi tải ảnh');
+      return null;
+    }
+  };
+
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        notificationCtx.error("Kích thước ảnh không được vượt quá 5MB");
+        return;
+      }
+      setSelectedImageFile(file);
+      setPreviewImageUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    setNomineeFormData({ ...nomineeFormData, description: value });
+  };
+
   const handleSubmitNominee = async () => {
     if (!nomineeFormData.title.trim()) {
       notificationCtx.error("Vui lòng nhập tên đề cử");
@@ -159,10 +217,24 @@ export function VotingNominees({
 
     try {
       setSavingNominee(true);
+      
+      // Upload image if a new file is selected
+      let imageUrl = nomineeFormData.imageUrl;
+      if (selectedImageFile) {
+        const uploadedUrl = await uploadImage(selectedImageFile);
+        if (uploadedUrl) {
+          imageUrl = uploadedUrl;
+        } else {
+          setSavingNominee(false);
+          return;
+        }
+      }
+
       const payload = {
         title: nomineeFormData.title,
         description: nomineeFormData.description || null,
-        imageUrl: nomineeFormData.imageUrl || null,
+        imageUrl: imageUrl || null,
+        socialUrl: nomineeFormData.socialUrl || null,
       };
 
       if (editingNominee) {
@@ -243,6 +315,7 @@ export function VotingNominees({
                     <TableCell>Ảnh</TableCell>
                     <TableCell>Tên đề cử</TableCell>
                     <TableCell>Mô tả</TableCell>
+                    <TableCell>Mạng xã hội</TableCell>
                     <TableCell>Số phiếu</TableCell>
                     <TableCell align="right">Thao tác</TableCell>
                   </TableRow>
@@ -250,7 +323,7 @@ export function VotingNominees({
                 <TableBody>
                   {nominees.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6}>
+                      <TableCell colSpan={7}>
                         <Typography variant="body2" align="center">
                           Chưa có đề cử nào
                         </Typography>
@@ -274,6 +347,21 @@ export function VotingNominees({
                         </TableCell>
                         <TableCell>{nominee.title}</TableCell>
                         <TableCell>{nominee.description || "-"}</TableCell>
+                        <TableCell>
+                          {nominee.socialUrl ? (
+                            <Button
+                              href={nominee.socialUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              size="small"
+                              variant="outlined"
+                            >
+                              Xem
+                            </Button>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
                         <TableCell>{nominee.voteCount}</TableCell>
                         <TableCell align="right">
                           <Stack direction="row" spacing={1} justifyContent="flex-end">
@@ -326,24 +414,74 @@ export function VotingNominees({
                 setNomineeFormData({ ...nomineeFormData, title: e.target.value })
               }
             />
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Mô tả
+              </Typography>
+              <ReactQuill
+                ref={reactQuillRef}
+                value={nomineeFormData.description}
+                onChange={handleDescriptionChange}
+                modules={{
+                  toolbar: {
+                    container: [
+                      [{ header: '1' }, { header: '2' }, { font: [] }],
+                      [{ size: [] }],
+                      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                      [{ list: 'ordered' }, { list: 'bullet' }],
+                      ['link', 'image'],
+                      ['clean'],
+                    ],
+                  },
+                  clipboard: {
+                    matchVisual: false,
+                  },
+                }}
+                placeholder="Nhập mô tả về đề cử"
+                style={{ minHeight: '200px' }}
+              />
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Ảnh đại diện
+              </Typography>
+              <input
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="upload-image-create"
+                type="file"
+                onChange={handleImageChange}
+              />
+              <label htmlFor="upload-image-create">
+                <Button variant="outlined" component="span" fullWidth>
+                  Chọn ảnh
+                </Button>
+              </label>
+              {previewImageUrl && (
+                <Box sx={{ mt: 2 }}>
+                  <Box
+                    component="img"
+                    src={previewImageUrl}
+                    alt="Preview"
+                    sx={{
+                      maxWidth: '100%',
+                      maxHeight: '300px',
+                      objectFit: 'contain',
+                      borderRadius: 1,
+                    }}
+                  />
+                </Box>
+              )}
+            </Box>
             <TextField
-              label="Mô tả"
+              label="URL mạng xã hội"
               fullWidth
-              multiline
-              rows={3}
-              value={nomineeFormData.description}
+              value={nomineeFormData.socialUrl}
               onChange={(e) =>
-                setNomineeFormData({ ...nomineeFormData, description: e.target.value })
+                setNomineeFormData({ ...nomineeFormData, socialUrl: e.target.value })
               }
-            />
-            <TextField
-              label="URL ảnh đại diện"
-              fullWidth
-              value={nomineeFormData.imageUrl}
-              onChange={(e) =>
-                setNomineeFormData({ ...nomineeFormData, imageUrl: e.target.value })
-              }
-              helperText="Nhập URL ảnh (nếu có)"
+              helperText="Nhập URL Facebook, Instagram, TikTok, etc. (nếu có)"
+              placeholder="https://..."
             />
           </Stack>
         </DialogContent>
@@ -376,24 +514,74 @@ export function VotingNominees({
                 setNomineeFormData({ ...nomineeFormData, title: e.target.value })
               }
             />
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Mô tả
+              </Typography>
+              <ReactQuill
+                ref={reactQuillRef}
+                value={nomineeFormData.description}
+                onChange={handleDescriptionChange}
+                modules={{
+                  toolbar: {
+                    container: [
+                      [{ header: '1' }, { header: '2' }, { font: [] }],
+                      [{ size: [] }],
+                      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                      [{ list: 'ordered' }, { list: 'bullet' }],
+                      ['link', 'image'],
+                      ['clean'],
+                    ],
+                  },
+                  clipboard: {
+                    matchVisual: false,
+                  },
+                }}
+                placeholder="Nhập mô tả về đề cử"
+                style={{ minHeight: '200px' }}
+              />
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Ảnh đại diện
+              </Typography>
+              <input
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="upload-image-edit"
+                type="file"
+                onChange={handleImageChange}
+              />
+              <label htmlFor="upload-image-edit">
+                <Button variant="outlined" component="span" fullWidth>
+                  Chọn ảnh
+                </Button>
+              </label>
+              {previewImageUrl && (
+                <Box sx={{ mt: 2 }}>
+                  <Box
+                    component="img"
+                    src={previewImageUrl}
+                    alt="Preview"
+                    sx={{
+                      maxWidth: '100%',
+                      maxHeight: '300px',
+                      objectFit: 'contain',
+                      borderRadius: 1,
+                    }}
+                  />
+                </Box>
+              )}
+            </Box>
             <TextField
-              label="Mô tả"
+              label="URL mạng xã hội"
               fullWidth
-              multiline
-              rows={3}
-              value={nomineeFormData.description}
+              value={nomineeFormData.socialUrl}
               onChange={(e) =>
-                setNomineeFormData({ ...nomineeFormData, description: e.target.value })
+                setNomineeFormData({ ...nomineeFormData, socialUrl: e.target.value })
               }
-            />
-            <TextField
-              label="URL ảnh đại diện"
-              fullWidth
-              value={nomineeFormData.imageUrl}
-              onChange={(e) =>
-                setNomineeFormData({ ...nomineeFormData, imageUrl: e.target.value })
-              }
-              helperText="Nhập URL ảnh (nếu có)"
+              helperText="Nhập URL Facebook, Instagram, TikTok, etc. (nếu có)"
+              placeholder="https://..."
             />
           </Stack>
         </DialogContent>
