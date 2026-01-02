@@ -7,6 +7,7 @@ import "aos/dist/aos.css";
 
 import Header from "@/components/pubggala/ui/header";
 import Footer from "@/components/pubggala/ui/footer";
+import { SSOProvider } from "@/contexts/sso-context";
 
 export default function DefaultLayout({
   children,
@@ -22,13 +23,26 @@ export default function DefaultLayout({
     });
   });
 
+  // SSO Configuration - chỉ config nội bộ trong layout này
+  const ssoConfig = {
+    enabled: true, // Enable SSO login for this layout
+    onLoginSuccess: () => {
+      // Optional: Handle login success
+      console.log('SSO login successful');
+    },
+    onLoginError: (error: string) => {
+      // Optional: Handle login error
+      console.error('SSO login error:', error);
+    },
+  };
+
   return (
-    <>
+    <SSOProvider config={ssoConfig}>
       <Header />
 
       <main className="grow">{children}</main>
 
       <Footer border={true} />
-    </>
+    </SSOProvider>
   );
 }
