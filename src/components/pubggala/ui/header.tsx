@@ -2,10 +2,31 @@
 
 import { useEffect, useState } from "react";
 import Logo from "./logo";
-import { Avatar, Box, Typography, Select, MenuItem, SelectChangeEvent } from "@mui/material";
+import { Avatar, Box, Typography, Select, MenuItem, SelectChangeEvent, Button, IconButton } from "@mui/material";
+import { SignOut as SignOutIcon } from '@phosphor-icons/react/dist/ssr/SignOut';
 import { useTranslation, useLocale } from '@/contexts/locale-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { LocalizedLink } from '@/components/homepage/localized-link';
+import { useSSO } from '@/hooks/use-sso';
+import { useSSOContext } from '@/contexts/sso-context';
+
+// SSO User Response Interface
+interface SSOUserResponse {
+  id: number;
+  email: string;
+  fullName: string;
+  phoneNumber: string;
+  authCode: string;
+  expiresIn: number;
+}
+
+// User Info Interface for component state
+interface UserInfo {
+  id: number;
+  email: string;
+  fullName: string;
+  phoneNumber: string;
+}
 
 // Small down-arrow icon for language select
 const LanguageSelectIcon = (props: any) => (
@@ -17,8 +38,12 @@ export default function Header() {
   const { locale } = useLocale();
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Get SSO config from context (set in layout)
+  const ssoConfig = useSSOContext();
+  const { handleSSOLogin, isSSOEnabled } = useSSO(ssoConfig);
 
   const switchLocale = (newLocale: 'vi' | 'en') => {
     if (newLocale === locale) return;
@@ -40,15 +65,80 @@ export default function Header() {
     router.push(newPath, { scroll: false });
   };
 
+  // Handle SSO logout
+  const handleLogout = () => {
+    // Clear tokens and user info from localStorage
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    
+    // Clear user state
+    setUser(null);
+    
+    // Reload page to reset state
+    window.location.href = pathname || '/';
+  };
+
+  // Fetch user info from SSO API
+  const fetchUserFromSSO = async (accessToken: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://api.etik.vn';
+      const response = await fetch(`${apiUrl}/sso/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const userData: SSOUserResponse = await response.json();
+        // Map SSO user data to UserInfo format
+        const userInfo: UserInfo = {
+          id: userData.id,
+          email: userData.email,
+          fullName: userData.fullName,
+          phoneNumber: userData.phoneNumber,
+        };
+        // Store user info in localStorage
+        localStorage.setItem('user', JSON.stringify(userInfo));
+        setUser(userInfo);
+        return userInfo;
+      }
+    } catch (error) {
+      console.error('Failed to fetch user from SSO:', error);
+    }
+    return null;
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Ensure code runs only on the client
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-      setIsLoading(false);
+      const loadUser = async () => {
+        // Check if we have accessToken from SSO login
+        const accessToken = localStorage.getItem('accessToken');
+        
+        if (accessToken) {
+          // Try to get user from localStorage first
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            try {
+              const parsedUser: UserInfo = JSON.parse(storedUser);
+              setUser(parsedUser);
+              setIsLoading(false);
+              return;
+            } catch (e) {
+              // If parsing fails, fetch from API
+            }
+          }
+          
+          // If no user in localStorage, fetch from SSO API
+          await fetchUserFromSSO(accessToken);
+        }
+        
+        setIsLoading(false);
+      };
+
+      loadUser();
     }
   }, []);
 
@@ -76,51 +166,105 @@ export default function Header() {
                 </LocalizedLink>
               </li>
             ) : user ? (
-              <li>
-                <LocalizedLink
-                  href="/dashboard"
-                  className="btn-sm bg-white text-gray-800 shadow hover:bg-gray-50"
-                  style={{ display: 'flex', alignItems: 'center' }}
-                >
-                  <Typography variant="body2" sx={{ marginRight: '8px' }}>
-                    {tt("Xin chào,", "Hi,")}
-                  </Typography>
-                  <Avatar sx={{ width: '25px', height: '25px', marginRight: '8px' }}>
-                    {user.fullName?.charAt(0).toUpperCase() || "U"}
-                  </Avatar>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 'bold',
-                      maxWidth: '170px',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap',
-                      textOverflow: 'ellipsis',
-                      display: 'block',
-                    }}
-                  >
-                    {user.fullName || tt("Người dùng", "User")}
-                  </Typography>
-                </LocalizedLink>
-              </li>
-            ) : (
               <>
                 <li>
                   <LocalizedLink
-                    href="/auth/login"
+                    href="/dashboard"
                     className="btn-sm bg-white text-gray-800 shadow hover:bg-gray-50"
+                    style={{ display: 'flex', alignItems: 'center' }}
                   >
-                    {tt("Đăng nhập", "Login")}
+                    <Typography variant="body2" sx={{ marginRight: '8px' }}>
+                      {tt("Xin chào,", "Hi,")}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 'bold',
+                        maxWidth: '170px',
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                        display: 'block',
+                      }}
+                    >
+                      {user.fullName || tt("Người dùng", "User")}
+                    </Typography>
                   </LocalizedLink>
                 </li>
                 <li>
-                  <LocalizedLink
-                    href="/auth/sign-up"
-                    className="btn-sm bg-gray-800 text-gray-200 shadow hover:bg-gray-900"
+                  <IconButton
+                    onClick={handleLogout}
+                    sx={{
+                      width: '32px',
+                      height: '32px',
+                      backgroundColor: 'white',
+                      border: '1px solid rgba(156, 163, 175, 0.3)',
+                      color: 'rgb(31, 41, 55)',
+                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                      '&:hover': {
+                        borderColor: 'rgba(156, 163, 175, 0.5)',
+                        backgroundColor: 'rgba(249, 250, 251, 1)',
+                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                      },
+                    }}
+                    title={tt("Đăng xuất", "Sign Out")}
                   >
-                    {tt("Đăng ký", "Sign Up")}
-                  </LocalizedLink>
+                    <SignOutIcon size={18} />
+                  </IconButton>
                 </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <Button
+                    variant="outlined"
+                    onClick={handleSSOLogin}
+                    disabled={!isSSOEnabled}
+                    sx={{
+                      textTransform: 'none',
+                      fontWeight: 500,
+                      height: '32px',
+                      minWidth: 'auto',
+                      px: 1.5,
+                      backgroundColor: 'white',
+                      borderColor: 'rgba(156, 163, 175, 0.3)',
+                      color: 'rgb(31, 41, 55)',
+                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                      '&:hover': {
+                        borderColor: 'rgba(156, 163, 175, 0.5)',
+                        backgroundColor: 'rgba(249, 250, 251, 1)',
+                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                      },
+                    }}
+                    startIcon={
+                      <svg width="18" height="18" viewBox="0 0 20 20" style={{ display: 'block' }}>
+                        <g>
+                          <path
+                            d="M19.6 10.23c0-.68-.06-1.36-.18-2H10v3.79h5.48a4.68 4.68 0 0 1-2.03 3.07v2.55h3.28c1.92-1.77 3.03-4.38 3.03-7.41z"
+                            fill="#4285F4"
+                          />
+                          <path
+                            d="M10 20c2.7 0 4.97-.9 6.63-2.44l-3.28-2.55c-.91.61-2.07.97-3.35.97-2.57 0-4.75-1.74-5.53-4.07H1.06v2.6A9.99 9.99 0 0 0 10 20z"
+                            fill="#34A853"
+                          />
+                          <path
+                            d="M4.47 11.91A5.99 5.99 0 0 1 4.01 10c0-.66.11-1.31.26-1.91V5.49H1.06A9.99 9.99 0 0 0 0 10c0 1.64.39 3.19 1.06 4.51l3.41-2.6z"
+                            fill="#FBBC05"
+                          />
+                          <path
+                            d="M10 4.01c1.47 0 2.78.51 3.81 1.5l2.85-2.85C14.97 1.13 12.7.01 10 .01A9.99 9.99 0 0 0 1.06 5.49l3.41 2.6C5.25 5.75 7.43 4.01 10 4.01z"
+                            fill="#EA4335"
+                          />
+                        </g>
+                      </svg>
+                    }
+                  >
+                    <Typography variant="body2" sx={{ fontSize: '13px', fontWeight: 500 }}>
+                      {tt("Đăng nhập", "Login")}
+                    </Typography>
+                  </Button>
+                </li>
+                
               </>
             )}
 

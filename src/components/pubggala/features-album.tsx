@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import TestimonialImg from "@/images/a.jpg";
 // import Swiper core and required modules
@@ -15,6 +15,7 @@ import CustomerRefundMeeting from "@/images/customer-refund-meeting.png";
 import CustomerGeforce from "@/images/customer-geforce-fans-party.jpg";
 import { useTranslation } from '@/contexts/locale-context';
 import { Heart, Trophy, Star, Users, HandHeart } from '@phosphor-icons/react/dist/ssr';
+import axios from 'axios';
 
 import { Swiper, SwiperSlide } from 'swiper/react';
 
@@ -44,7 +45,7 @@ const PLAYERS: Player[] = [
     name: "Himass",
     description: "Chuyên gia điều phối đội hình, kỹ năng chiến thuật xuất sắc và khả năng đọc game siêu việt",
     nomineeId: 1,
-    categoryId: 1,
+    categoryId: 2,
     stats: { wins: 45, rating: 9.8, fans: 12500, votes: 3420 },
   },
   {
@@ -52,7 +53,7 @@ const PLAYERS: Player[] = [
     name: "TanVuu",
     description: "Sniper huyền thoại với độ chính xác cực cao, từng dẫn dắt đội giành nhiều giải thưởng lớn",
     nomineeId: 2,
-    categoryId: 1,
+    categoryId: 2,
     stats: { wins: 52, rating: 9.9, fans: 18200, votes: 4890 },
   },
   {
@@ -60,7 +61,7 @@ const PLAYERS: Player[] = [
     name: "Sololzy",
     description: "Tactical mastermind với phong cách chơi thông minh, luôn biết cách tận dụng mọi tình huống",
     nomineeId: 3,
-    categoryId: 1,
+    categoryId: 2,
     stats: { wins: 38, rating: 9.6, fans: 9800, votes: 2150 },
   },
   {
@@ -68,7 +69,7 @@ const PLAYERS: Player[] = [
     name: "Delwyn",
     description: "All-rounder đa năng, xuất sắc ở mọi vị trí và luôn giữ được phong độ ổn định trong các giải đấu",
     nomineeId: 4,
-    categoryId: 1,
+    categoryId: 2,
     stats: { wins: 41, rating: 9.7, fans: 11200, votes: 2870 },
   },
 ];
@@ -87,9 +88,108 @@ const getAvatarColor = (index: number) => {
   return colors[index % colors.length];
 };
 
+interface VoteItem {
+  id: number;
+  eventId: number;
+  categoryId: number;
+  nomineeId: number;
+  createdAt: string;
+}
+
+interface VoteListResponse {
+  votes: VoteItem[];
+}
+
+interface NomineeVoteCount {
+  nomineeId: number;
+  voteCount: number;
+}
+
+interface NomineeVoteCountResponse {
+  voteCounts: NomineeVoteCount[];
+}
+
 export default function FeaturesAlbum() {
   const { tt } = useTranslation();
   const [votingStates, setVotingStates] = useState<Record<number, { loading: boolean; voted: boolean }>>({});
+  const [isLoadingVotes, setIsLoadingVotes] = useState(true);
+  const [voteCounts, setVoteCounts] = useState<Record<number, number>>({});
+
+  // Fetch vote counts on mount
+  useEffect(() => {
+    const fetchVoteCounts = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://api.etik.vn';
+        // Get category_id from first player (assuming all players are in the same category)
+        const categoryId = PLAYERS[0]?.categoryId;
+        if (!categoryId) return;
+
+        const response = await axios.get<NomineeVoteCountResponse>(
+          `${apiUrl}/mini-app-voting/51/nominees-vote-counts?category_id=${categoryId}`
+        );
+
+        if (response.data && response.data.voteCounts) {
+          const countsMap: Record<number, number> = {};
+          response.data.voteCounts.forEach((item) => {
+            countsMap[item.nomineeId] = item.voteCount;
+          });
+          setVoteCounts(countsMap);
+        }
+      } catch (error: any) {
+        console.error("Error fetching vote counts:", error);
+        // If error, continue with empty counts
+      }
+    };
+
+    fetchVoteCounts();
+  }, []);
+
+  // Fetch user's votes on mount
+  useEffect(() => {
+    const fetchVotes = async () => {
+      try {
+        const accessToken = localStorage.getItem('accessToken');
+        
+        if (!accessToken) {
+          setIsLoadingVotes(false);
+          return;
+        }
+
+        const apiUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://api.etik.vn';
+        const response = await axios.get<VoteListResponse>(
+          `${apiUrl}/mini-app-voting/51/my-votes`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        if (response.data && response.data.votes) {
+          // Initialize voting states based on fetched votes
+          const initialStates: Record<number, { loading: boolean; voted: boolean }> = {};
+          
+          PLAYERS.forEach((player) => {
+            const hasVoted = response.data.votes.some(
+              (vote) => 
+                vote.categoryId === player.categoryId && 
+                vote.nomineeId === player.nomineeId
+            );
+            initialStates[player.id] = { loading: false, voted: hasVoted };
+          });
+
+          setVotingStates(initialStates);
+        }
+      } catch (error: any) {
+        console.error("Error fetching votes:", error);
+        // If error, just continue with empty states
+      } finally {
+        setIsLoadingVotes(false);
+      }
+    };
+
+    fetchVotes();
+  }, []);
 
   const handleVote = async (player: Player) => {
     if (votingStates[player.id]?.voted || votingStates[player.id]?.loading) return;
@@ -100,38 +200,76 @@ export default function FeaturesAlbum() {
     }));
 
     try {
-      const response = await fetch(`/mini-app-voting/1/vote`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          category_id: player.categoryId,
-          nominee_id: player.nomineeId,
-        }),
-      });
-
-      if (response.ok) {
-        setVotingStates((prev) => ({
-          ...prev,
-          [player.id]: { loading: false, voted: true },
-        }));
-      } else {
-        const errorData = await response.json().catch(() => ({ detail: "Có lỗi xảy ra" }));
-        console.error("Error voting:", errorData);
+      // Get access token from localStorage (SSO login)
+      const accessToken = localStorage.getItem('accessToken');
+      
+      if (!accessToken) {
+        alert("Vui lòng đăng nhập để bình chọn");
         setVotingStates((prev) => ({
           ...prev,
           [player.id]: { loading: false, voted: false },
         }));
-        alert(errorData.detail || "Có lỗi xảy ra khi bình chọn");
+        return;
       }
-    } catch (error) {
+
+      const apiUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://api.etik.vn';
+      const response = await axios.post(
+        `${apiUrl}/mini-app-voting/51/vote`,
+        {
+          category_id: player.categoryId,
+          nominee_id: player.nomineeId,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (response.data && response.data.success) {
+        setVotingStates((prev => ({
+          ...prev,
+          [player.id]: { loading: false, voted: true },
+        })));
+        
+        // Refresh vote counts after successful vote
+        const apiUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://api.etik.vn';
+        try {
+          const voteCountsResponse = await axios.get<NomineeVoteCountResponse>(
+            `${apiUrl}/mini-app-voting/51/nominees-vote-counts?category_id=${player.categoryId}`
+          );
+          if (voteCountsResponse.data && voteCountsResponse.data.voteCounts) {
+            const countsMap: Record<number, number> = {};
+            voteCountsResponse.data.voteCounts.forEach((item) => {
+              countsMap[item.nomineeId] = item.voteCount;
+            });
+            setVoteCounts(countsMap);
+          }
+        } catch (error) {
+          console.error("Error refreshing vote counts:", error);
+          // Fallback: update local count
+          setVoteCounts((prev) => ({
+            ...prev,
+            [player.nomineeId]: (prev[player.nomineeId] || 0) + 1,
+          }));
+        }
+      } else {
+        throw new Error(response.data?.message || "Có lỗi xảy ra khi bình chọn");
+      }
+    } catch (error: any) {
       console.error("Error voting:", error);
+      const errorMessage = 
+        error?.response?.data?.detail || 
+        error?.response?.data?.message || 
+        error?.message || 
+        "Có lỗi xảy ra khi bình chọn";
+      
       setVotingStates((prev) => ({
         ...prev,
         [player.id]: { loading: false, voted: false },
       }));
-      alert("Có lỗi xảy ra khi bình chọn");
+      alert(errorMessage);
     }
   };
 
@@ -201,7 +339,14 @@ export default function FeaturesAlbum() {
                             <div className="flex flex-col items-center rounded-lg bg-white/60 p-2 backdrop-blur-sm">
                               <HandHeart className="mb-1 h-4 w-4 text-red-500" weight="fill" />
                               <span className="text-xs font-semibold text-gray-700">
-                                {(player.stats.votes / 1000).toFixed(1)}K
+                                {(() => {
+                                  const voteCount = voteCounts[player.nomineeId] !== undefined 
+                                    ? voteCounts[player.nomineeId] 
+                                    : player.stats.votes;
+                                  return voteCount >= 1000 
+                                    ? (voteCount / 1000).toFixed(1) + 'K'
+                                    : voteCount.toString();
+                                })()}
                               </span>
                               <span className="text-[10px] text-gray-500">Votes</span>
                             </div>

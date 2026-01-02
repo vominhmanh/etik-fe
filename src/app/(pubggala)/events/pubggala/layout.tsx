@@ -5,6 +5,8 @@ import AOS from 'aos';
 
 import 'aos/dist/aos.css';
 
+import { SSOProvider } from '@/contexts/sso-context';
+
 export default function DefaultLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     AOS.init({
@@ -15,5 +17,22 @@ export default function DefaultLayout({ children }: { children: React.ReactNode 
     });
   });
 
-  return <>{children}</>;
+  // SSO Configuration - chỉ config nội bộ trong layout này
+  const ssoConfig = {
+    enabled: true, // Enable SSO login for this layout
+    onLoginSuccess: () => {
+      // Optional: Handle login success
+      console.log('SSO login successful');
+    },
+    onLoginError: (error: string) => {
+      // Optional: Handle login error
+      console.error('SSO login error:', error);
+    },
+  };
+
+  return (
+    <SSOProvider config={ssoConfig}>
+      <>{children}</>
+    </SSOProvider>
+  );
 }
