@@ -40,6 +40,7 @@ interface VotingCategoryFormData {
   maxVotesPerUserTotal: number | null;
   maxVotesPerUserDaily: number | null;
   allowMultipleNominees: boolean;
+  allowVoting: boolean;
   startAt: string;
   endAt: string;
 }
@@ -68,6 +69,7 @@ export function VotingCategories({ event_id }: { event_id: number }) {
     maxVotesPerUserTotal: null,
     maxVotesPerUserDaily: null,
     allowMultipleNominees: true,
+    allowVoting: true,
     startAt: "",
     endAt: "",
   });
@@ -100,6 +102,7 @@ export function VotingCategories({ event_id }: { event_id: number }) {
       maxVotesPerUserTotal: null,
       maxVotesPerUserDaily: null,
       allowMultipleNominees: true,
+      allowVoting: true,
       startAt: "",
       endAt: "",
     });
@@ -118,6 +121,7 @@ export function VotingCategories({ event_id }: { event_id: number }) {
       maxVotesPerUserTotal: category.maxVotesPerUserTotal,
       maxVotesPerUserDaily: category.maxVotesPerUserDaily,
       allowMultipleNominees: category.allowMultipleNominees,
+      allowVoting: category.allowVoting ?? true,
       startAt: category.startAt ? category.startAt.substring(0, 16) : "",
       endAt: category.endAt ? category.endAt.substring(0, 16) : "",
     });
@@ -143,6 +147,7 @@ export function VotingCategories({ event_id }: { event_id: number }) {
         maxVotesPerUserTotal: formData.maxVotesPerUserTotal || null,
         maxVotesPerUserDaily: formData.maxVotesPerUserDaily || null,
         allowMultipleNominees: formData.allowMultipleNominees,
+        allowVoting: formData.allowVoting,
         startAt: formData.startAt ? new Date(formData.startAt).toISOString() : null,
         endAt: formData.endAt ? new Date(formData.endAt).toISOString() : null,
       };
@@ -248,6 +253,7 @@ export function VotingCategories({ event_id }: { event_id: number }) {
                     <TableCell>Tối đa tổng</TableCell>
                     <TableCell>Tối đa mỗi ngày</TableCell>
                     <TableCell>Nhiều đề cử</TableCell>
+                    <TableCell>Cho phép bình chọn</TableCell>
                     <TableCell>Bắt đầu</TableCell>
                     <TableCell>Kết thúc</TableCell>
                     <TableCell align="right">Thao tác</TableCell>
@@ -256,7 +262,7 @@ export function VotingCategories({ event_id }: { event_id: number }) {
                 <TableBody>
                   {categories.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9}>
+                      <TableCell colSpan={10}>
                         <Typography variant="body2" align="center">
                           Chưa có hạng mục nào
                         </Typography>
@@ -278,6 +284,17 @@ export function VotingCategories({ event_id }: { event_id: number }) {
                         </TableCell>
                         <TableCell>
                           {category.allowMultipleNominees ? "Có" : "Không"}
+                        </TableCell>
+                        <TableCell>
+                          {category.allowVoting !== false ? (
+                            <Typography variant="body2" color="success.main">
+                              Có
+                            </Typography>
+                          ) : (
+                            <Typography variant="body2" color="error.main">
+                              Không
+                            </Typography>
+                          )}
                         </TableCell>
                         <TableCell>{formatDateTime(category.startAt)}</TableCell>
                         <TableCell>{formatDateTime(category.endAt)}</TableCell>
@@ -376,6 +393,17 @@ export function VotingCategories({ event_id }: { event_id: number }) {
               }
               label="Cho phép bình chọn nhiều đề cử trong cùng hạng mục"
             />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.allowVoting}
+                  onChange={(e) =>
+                    setFormData({ ...formData, allowVoting: e.target.checked })
+                  }
+                />
+              }
+              label="Cho phép bình chọn cho hạng mục này"
+            />
             <Stack direction="row" spacing={2}>
               <TextField
                 label="Thời gian bắt đầu"
@@ -464,6 +492,17 @@ export function VotingCategories({ event_id }: { event_id: number }) {
                 />
               }
               label="Cho phép bình chọn nhiều đề cử trong cùng hạng mục"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.allowVoting}
+                  onChange={(e) =>
+                    setFormData({ ...formData, allowVoting: e.target.checked })
+                  }
+                />
+              }
+              label="Cho phép bình chọn cho hạng mục này"
             />
             <Stack direction="row" spacing={2}>
               <TextField

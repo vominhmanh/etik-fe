@@ -36,6 +36,7 @@ export interface VotingCategory {
   maxVotesPerUserTotal: number | null;
   maxVotesPerUserDaily: number | null;
   allowMultipleNominees: boolean;
+  allowVoting: boolean;
   startAt: string | null;
   endAt: string | null;
   createdAt: string;
