@@ -54,6 +54,7 @@ export default function Home() {
             <div className="flex flex-col gap-6">
               {/* Title */}
               <h1
+                className="text-3xl sm:text-5xl md:text-6xl lg:text-[72px] leading-tight md:leading-[76px]"
                 style={{
                   width: '910px',
                   maxWidth: '100%',
@@ -61,8 +62,6 @@ export default function Home() {
                   fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                   fontStyle: 'normal',
                   fontWeight: 900,
-                  fontSize: '72px',
-                  lineHeight: '76px',
                   display: 'flex',
                   alignItems: 'center',
                   textTransform: 'uppercase',
@@ -78,6 +77,7 @@ export default function Home() {
 
               {/* Description */}
               <p
+                className="text-sm sm:text-base md:text-lg"
                 style={{
                   width: '476px',
                   maxWidth: '100%',
@@ -85,8 +85,7 @@ export default function Home() {
                   fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                   fontStyle: 'normal',
                   fontWeight: 900,
-                  fontSize: '18px',
-                  lineHeight: '23px',
+                  lineHeight: '1.3',
                   display: 'flex',
                   alignItems: 'center',
                   color: '#FFFFFF',
@@ -135,7 +134,7 @@ export default function Home() {
                     e.currentTarget.style.opacity = '1';
                   }}
                 >
-                  <div style={{ position: 'relative', width: '200px', height: '60px' }}>
+                  <div className="w-40 sm:w-48 md:w-[200px] h-12 sm:h-14 md:h-[60px]" style={{ position: 'relative' }}>
                     <Image
                       src={buttonBackgroundImage}
                       alt={tt('Bình chọn', 'Vote')}
@@ -145,6 +144,7 @@ export default function Home() {
                     />
                     {/* Text overlay */}
                     <span
+                      className="text-sm sm:text-base md:text-xl"
                       style={{
                         position: 'absolute',
                         top: '50%',
@@ -153,8 +153,7 @@ export default function Home() {
                         fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                         fontStyle: 'normal',
                         fontWeight: 900,
-                        fontSize: '20px',
-                        lineHeight: '24px',
+                        lineHeight: '1.2',
                         textAlign: 'center',
                         textTransform: 'uppercase',
                         color: '#121026',
@@ -173,17 +172,16 @@ export default function Home() {
       </div>
 
       {/* Body2: Message Section */}
-      <div className="relative w-full bg-black py-16">
+      <div className="relative w-full bg-black py-8 md:py-16">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex flex-col gap-12">
             {/* Title */}
             <h2
+              className="text-2xl sm:text-3xl md:text-4xl leading-tight md:leading-[48px]"
               style={{
                 fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                 fontWeight: 900,
                 fontStyle: 'normal',
-                fontSize: '36px',
-                lineHeight: '48px',
                 letterSpacing: '0%',
                 verticalAlign: 'middle',
                 textTransform: 'uppercase',
@@ -211,16 +209,15 @@ export default function Home() {
               </div>
 
               {/* Text Content */}
-              <div className="flex-1 w-full md:w-1/2 flex flex-col gap-6">
+              <div className="flex-1 w-full md:w-1/2 flex flex-col gap-4 md:gap-6">
                 <p
+                  className="text-sm sm:text-base md:text-lg leading-relaxed"
                   style={{
                     width: '100%',
                     height: 'auto',
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                     fontStyle: 'normal',
                     fontWeight: 900,
-                    fontSize: '18px',
-                    lineHeight: '23px',
                     display: 'flex',
                     alignItems: 'center',
                     color: '#FFFFFF',
@@ -235,14 +232,13 @@ export default function Home() {
                   )}
                 </p>
                 <p
+                  className="text-sm sm:text-base md:text-lg leading-relaxed"
                   style={{
                     width: '100%',
                     height: 'auto',
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                     fontStyle: 'normal',
                     fontWeight: 900,
-                    fontSize: '18px',
-                    lineHeight: '23px',
                     display: 'flex',
                     alignItems: 'center',
                     color: '#FFFFFF',
@@ -257,14 +253,13 @@ export default function Home() {
                   )}
                 </p>
                 <p
+                  className="text-sm sm:text-base md:text-lg leading-relaxed"
                   style={{
                     width: '100%',
                     height: 'auto',
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                     fontStyle: 'normal',
                     fontWeight: 900,
-                    fontSize: '18px',
-                    lineHeight: '23px',
                     display: 'flex',
                     alignItems: 'center',
                     color: '#FFFFFF',
@@ -292,14 +287,14 @@ export default function Home() {
           width={1920}
           height={1080}
           className="w-full h-auto"
-          style={{ width: '100%', height: 'auto', display: 'block', backgroundColor: '#000000' }}
+          style={{ width: '100%', height: 'auto', display: 'block', backgroundColor: '#1E1E1E' }}
           sizes="100vw"
         />
       </div>
 
       {/* Body3: Categories Section */}
       <div
-        className="relative w-full bg-black py-16"
+        className="relative w-full bg-black py-8 md:py-16"
         style={{
           backgroundImage: `url(${chickenWinnerImage.src})`,
           backgroundSize: 'cover',
@@ -330,12 +325,11 @@ export default function Home() {
               </h3>
               {/* Title 2 */}
               <h2
+                className="text-2xl sm:text-3xl md:text-4xl leading-tight md:leading-[48px]"
                 style={{
                   fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                   fontWeight: 900,
                   fontStyle: 'normal',
-                  fontSize: '36px',
-                  lineHeight: '48px',
                   letterSpacing: '0%',
                   textAlign: 'center',
                   verticalAlign: 'middle',
@@ -350,16 +344,27 @@ export default function Home() {
               </h2>
             </div>
 
-            {/* Grid Layout - 4 items per row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Grid Layout - 4 items per row on desktop, horizontal scroll on mobile */}
+            <div
+              className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 -mx-4 md:mx-0 px-4 md:px-0"
+              style={{
+                scrollSnapType: 'x mandatory',
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+              }}
+            >
               {[1, 2, 3, 4].map((item) => (
                 <div
                   key={item}
-                  className="flex flex-col bg-black"
+                  className="flex flex-col bg-black flex-shrink-0 md:flex-shrink md:w-full"
                   style={{
                     position: 'relative',
                     overflow: 'hidden',
                     minHeight: '400px',
+                    width: 'calc(100vw - 64px)',
+                    maxWidth: '400px',
+                    scrollSnapAlign: 'start',
                   }}
                 >
                   {/* Border bottom with gradient */}
@@ -436,12 +441,25 @@ export default function Home() {
                 </div>
               ))}
             </div>
+
+            {/* Hide scrollbar for mobile and set desktop width */}
+            <style jsx>{`
+              div[style*='scrollSnapType']::-webkit-scrollbar {
+                display: none;
+              }
+              @media (min-width: 768px) {
+                div[style*='scrollSnapType'] > div {
+                  width: 100% !important;
+                  max-width: none !important;
+                }
+              }
+            `}</style>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <footer className="relative w-full bg-black py-12">
+      <footer className="relative w-full bg-black py-8 md:py-12">
         {/* Border top with gradient */}
         <div
           style={{
@@ -455,9 +473,9 @@ export default function Home() {
           }}
         />
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex flex-row gap-8 justify-between items-stretch">
+          <div className="flex flex-col md:flex-row gap-8 justify-between items-stretch">
             {/* Part 1: Logo and Description */}
-            <div className="flex flex-col gap-4 justify-between h-full" style={{ flex: '1 1 0%' }}>
+            <div className="flex flex-col gap-4 justify-between h-full md:h-auto" style={{ flex: '1 1 0%' }}>
               <Image
                 src={fcoiceLogo}
                 alt="FCHOICE 2025"
@@ -484,8 +502,8 @@ export default function Home() {
             </div>
 
             {/* Part 2: Contact, Address, and Organizing Unit */}
-            <div className="flex flex-col gap-6 justify-between">
-              <div className="flex flex-row gap-6">
+            <div className="flex flex-col gap-6 justify-between md:h-auto">
+              <div className="flex flex-col sm:flex-row gap-6">
                 {/* Contact Information */}
                 <div className="flex flex-col gap-2">
                   <h4
@@ -594,9 +612,9 @@ export default function Home() {
             </div>
 
             {/* Part 3: Social Media, Copyright and Privacy Policy */}
-            <div className="flex flex-col gap-6 items-end justify-between" style={{ flex: '1 1 0%' }}>
+            <div className="flex flex-col gap-6 items-start md:items-end justify-between md:h-auto" style={{ flex: '1 1 0%' }}>
               {/* Social Media */}
-              <div className="flex gap-2 justify-center items-center">
+              <div className="flex flex-col sm:flex-row gap-2 sm:justify-center items-start sm:items-center">
                 <h4
                   style={{
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
@@ -625,7 +643,7 @@ export default function Home() {
               </div>
 
               {/* Copyright and Privacy Policy */}
-              <div className="flex flex-col gap-2 items-end">
+              <div className="flex flex-col gap-2 items-start md:items-end">
                 <p
                   style={{
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',

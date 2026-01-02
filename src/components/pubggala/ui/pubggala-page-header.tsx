@@ -7,10 +7,32 @@ import { usePathname, useRouter } from 'next/navigation';
 import fchoiceLogo from '@/images/pubg/fcoice-2025.png';
 import headerBackground from '@/images/pubg/header-background.png';
 import userLoginIcon from '@/images/user-login.svg';
-import { Avatar, MenuItem, Select, SelectChangeEvent, Typography } from '@mui/material';
+import { Avatar, Button, IconButton, MenuItem, Select, SelectChangeEvent, Typography, Menu } from '@mui/material';
+import { SignOut as SignOutIcon } from '@phosphor-icons/react/dist/ssr/SignOut';
+import { List as MenuIcon } from '@phosphor-icons/react/dist/ssr/List';
 
 import { useLocale, useTranslation } from '@/contexts/locale-context';
 import { LocalizedLink } from '@/components/pubggala/localized-link';
+import { useSSO } from '@/hooks/use-sso';
+import { useSSOContext } from '@/contexts/sso-context';
+
+// SSO User Response Interface
+interface SSOUserResponse {
+  id: number;
+  email: string;
+  fullName: string;
+  phoneNumber: string;
+  authCode: string;
+  expiresIn: number;
+}
+
+// User Info Interface for component state
+interface UserInfo {
+  id: number;
+  email: string;
+  fullName: string;
+  phoneNumber: string;
+}
 
 // Small down-arrow icon for language select
 const LanguageSelectIcon = (props: any) => <span {...props}>▾</span>;
@@ -20,8 +42,14 @@ export default function PubgGalaPageHeader() {
   const { locale } = useLocale();
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  // Get SSO config from context (set in layout)
+  const ssoConfig = useSSOContext();
+  const { handleSSOLogin, isSSOEnabled } = useSSO(ssoConfig);
 
   const switchLocale = (newLocale: 'vi' | 'en') => {
     if (newLocale === locale) return;
@@ -43,26 +71,97 @@ export default function PubgGalaPageHeader() {
     router.push(newPath, { scroll: false });
   };
 
+  const handleMobileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+    setMobileMenuOpen(true);
+  };
+
+  const handleMobileMenuClose = () => {
+    setAnchorEl(null);
+    setMobileMenuOpen(false);
+  };
+
+  // Handle SSO logout
+  const handleLogout = () => {
+    // Clear tokens and user info from localStorage
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+
+    // Clear user state
+    setUser(null);
+
+    // Reload page to reset state
+    window.location.href = pathname || '/';
+  };
+
+  // Fetch user info from SSO API
+  const fetchUserFromSSO = async (accessToken: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://api.etik.vn';
+      const response = await fetch(`${apiUrl}/sso/me`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const userData: SSOUserResponse = await response.json();
+        // Map SSO user data to UserInfo format
+        const userInfo: UserInfo = {
+          id: userData.id,
+          email: userData.email,
+          fullName: userData.fullName,
+          phoneNumber: userData.phoneNumber,
+        };
+        // Store user info in localStorage
+        localStorage.setItem('user', JSON.stringify(userInfo));
+        setUser(userInfo);
+        return userInfo;
+      }
+    } catch (error) {
+      console.error('Failed to fetch user from SSO:', error);
+    }
+    return null;
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Ensure code runs only on the client
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-      setIsLoading(false);
+      const loadUser = async () => {
+        // Check if we have accessToken from SSO login
+        const accessToken = localStorage.getItem('accessToken');
+
+        if (accessToken) {
+          // Try to get user from localStorage first
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) {
+            try {
+              const parsedUser: UserInfo = JSON.parse(storedUser);
+              setUser(parsedUser);
+              setIsLoading(false);
+              return;
+            } catch (e) {
+              // If parsing fails, fetch from API
+            }
+          }
+
+          // If no user in localStorage, fetch from SSO API
+          await fetchUserFromSSO(accessToken);
+        }
+
+        setIsLoading(false);
+      };
+
+      loadUser();
     }
   }, []);
 
   return (
     <header
+      className="absolute left-2 right-2 md:left-4 md:right-4 top-4 md:top-[30px] h-12 md:h-14 w-[calc(100%-16px)] md:w-[calc(100%-32px)] px-3 md:px-6 lg:px-12"
       style={{
-        position: 'absolute',
-        left: '16px',
-        right: '16px',
-        top: '30px',
-        height: '56px',
-        width: 'calc(100% - 32px)',
         backgroundImage: `url(${headerBackground.src})`,
         backgroundSize: '100% 100%',
         backgroundPosition: 'center',
@@ -70,15 +169,36 @@ export default function PubgGalaPageHeader() {
         backdropFilter: 'blur(2.5px)',
         zIndex: 30,
         fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-        padding: '0 48px',
       }}
     >
-      <div className="mx-auto relative">
-        <div className="relative flex h-14 items-center justify-between gap-3 px-3">
+      <div className="mx-auto relative h-full">
+        <div className="relative flex h-full items-center justify-between gap-2 md:gap-3 px-1 md:px-3">
           {/* Site branding and Navigation */}
-          <div className="flex flex-1 items-center gap-6">
-            <Image src={fchoiceLogo} alt="FChoice Logo" width={120} height={40} className="object-contain" />
-            {/* Navigation Tabs */}
+          <div className="flex flex-1 items-center gap-2 md:gap-6 min-w-0">
+            <Image 
+              src={fchoiceLogo} 
+              alt="FChoice Logo" 
+              width={120} 
+              height={40} 
+              className="object-contain w-20 h-auto md:w-[120px] md:h-[40px]" 
+            />
+            {/* Mobile Menu Button - Only visible on mobile */}
+            <IconButton
+              onClick={handleMobileMenuOpen}
+              className="flex md:hidden"
+              sx={{
+                color: '#E1C693',
+                padding: '4px',
+                display: { xs: 'flex', md: 'none' },
+                '&:hover': {
+                  backgroundColor: 'rgba(225, 198, 147, 0.1)',
+                },
+              }}
+              aria-label="menu"
+            >
+              <MenuIcon size={24} />
+            </IconButton>
+            {/* Desktop Navigation Tabs */}
             <nav
               className="hidden md:flex items-center gap-4"
               style={{ fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}
@@ -114,8 +234,103 @@ export default function PubgGalaPageHeader() {
             </nav>
           </div>
 
+          {/* Mobile Menu */}
+          <Menu
+            anchorEl={anchorEl}
+            open={mobileMenuOpen}
+            onClose={handleMobileMenuClose}
+            PaperProps={{
+              sx: {
+                backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(225, 198, 147, 0.3)',
+                minWidth: '200px',
+                mt: 1,
+              },
+            }}
+            transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+          >
+            <MenuItem
+              onClick={handleMobileMenuClose}
+              sx={{
+                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                color: '#FFFFFF',
+                '&:hover': {
+                  backgroundColor: 'rgba(225, 198, 147, 0.1)',
+                  color: '#E1C693',
+                },
+              }}
+            >
+              <LocalizedLink
+                href="/events/pubggala/hall-of-fame"
+                className="w-full text-white hover:text-[#E1C693] transition-colors text-sm font-medium"
+                style={{ fontFamily: 'var(--font-montserrat), Montserrat, sans-serif', textDecoration: 'none' }}
+              >
+                {tt('Bảng vinh danh', 'Hall of Fame')}
+              </LocalizedLink>
+            </MenuItem>
+            <MenuItem
+              onClick={handleMobileMenuClose}
+              sx={{
+                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                color: '#FFFFFF',
+                '&:hover': {
+                  backgroundColor: 'rgba(225, 198, 147, 0.1)',
+                  color: '#E1C693',
+                },
+              }}
+            >
+              <LocalizedLink
+                href="/events/pubggala/judging-panel"
+                className="w-full text-white hover:text-[#E1C693] transition-colors text-sm font-medium"
+                style={{ fontFamily: 'var(--font-montserrat), Montserrat, sans-serif', textDecoration: 'none' }}
+              >
+                {tt('Hội đồng thẩm định', 'Judging Panel')}
+              </LocalizedLink>
+            </MenuItem>
+            <MenuItem
+              onClick={handleMobileMenuClose}
+              sx={{
+                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                color: '#FFFFFF',
+                '&:hover': {
+                  backgroundColor: 'rgba(225, 198, 147, 0.1)',
+                  color: '#E1C693',
+                },
+              }}
+            >
+              <LocalizedLink
+                href="/events/pubggala/news"
+                className="w-full text-white hover:text-[#E1C693] transition-colors text-sm font-medium"
+                style={{ fontFamily: 'var(--font-montserrat), Montserrat, sans-serif', textDecoration: 'none' }}
+              >
+                {tt('Tin tức', 'News')}
+              </LocalizedLink>
+            </MenuItem>
+            <MenuItem
+              onClick={handleMobileMenuClose}
+              sx={{
+                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                color: '#FFFFFF',
+                '&:hover': {
+                  backgroundColor: 'rgba(225, 198, 147, 0.1)',
+                  color: '#E1C693',
+                },
+              }}
+            >
+              <LocalizedLink
+                href="/events/pubggala/rules"
+                className="w-full text-white hover:text-[#E1C693] transition-colors text-sm font-medium"
+                style={{ fontFamily: 'var(--font-montserrat), Montserrat, sans-serif', textDecoration: 'none' }}
+              >
+                {tt('Thể lệ', 'Rules')}
+              </LocalizedLink>
+            </MenuItem>
+          </Menu>
+
           {/* Desktop sign in links */}
-          <ul className="flex flex-1 items-center justify-end gap-3">
+          <ul className="flex flex-1 items-center justify-end gap-1 md:gap-3 min-w-0">
             {isLoading ? (
               <li>
                 <LocalizedLink
@@ -129,79 +344,133 @@ export default function PubgGalaPageHeader() {
                 </LocalizedLink>
               </li>
             ) : user ? (
-              <li>
-                <LocalizedLink
-                  href="/dashboard"
-                  className="btn-sm bg-white text-gray-800 shadow hover:bg-gray-50"
-                  style={{ display: 'flex', alignItems: 'center' }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{ marginRight: '8px', fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}
-                  >
-                    {tt('Xin chào,', 'Hi,')}
-                  </Typography>
-                  <Avatar sx={{ width: '25px', height: '25px', marginRight: '8px' }}>
-                    {user.fullName?.charAt(0).toUpperCase() || 'U'}
-                  </Avatar>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 'bold',
-                      maxWidth: '170px',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap',
-                      textOverflow: 'ellipsis',
-                      display: 'block',
-                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                    }}
-                  >
-                    {user.fullName || tt('Người dùng', 'User')}
-                  </Typography>
-                </LocalizedLink>
-              </li>
-            ) : (
               <>
-                <li>
+                <li className="hidden sm:block">
                   <LocalizedLink
-                    href="/auth/login"
+                    href="/dashboard"
                     style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      textDecoration: 'none',
                       fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                       fontStyle: 'normal',
                       fontWeight: 600,
-                      fontSize: '14px',
-                      lineHeight: '16px',
-                      display: 'flex',
-                      alignItems: 'center',
+                      fontSize: '12px',
+                      lineHeight: '14px',
                       textTransform: 'uppercase',
                       color: '#E1C693',
-                      flex: 'none',
-                      order: 0,
-                      flexGrow: 0,
+                      gap: '4px',
+                    }}
+                    className="md:text-sm md:gap-1.5"
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ 
+                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                        fontSize: '12px',
+                        '@media (min-width: 640px)': { fontSize: '14px' },
+                      }}
+                    >
+                      {tt('Xin chào,', 'Hi,')}
+                    </Typography>
+                    <Avatar sx={{ width: '20px', height: '20px', '@media (min-width: 640px)': { width: '25px', height: '25px' } }}>
+                      {user.fullName?.charAt(0).toUpperCase() || 'U'}
+                    </Avatar>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 'bold',
+                        maxWidth: { xs: '100px', sm: '120px', md: '170px' },
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                        display: 'block',
+                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                        fontSize: '12px',
+                        '@media (min-width: 640px)': { fontSize: '14px' },
+                      }}
+                    >
+                      {user.fullName || tt('Người dùng', 'User')}
+                    </Typography>
+                  </LocalizedLink>
+                </li>
+                <li className="sm:hidden">
+                  <LocalizedLink
+                    href="/dashboard"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
                       textDecoration: 'none',
-                      gap: '6px',
                     }}
                   >
+                    <Avatar sx={{ width: '24px', height: '24px' }}>
+                      {user.fullName?.charAt(0).toUpperCase() || 'U'}
+                    </Avatar>
+                  </LocalizedLink>
+                </li>
+                <li>
+                  <IconButton
+                    onClick={handleLogout}
+                    sx={{
+                      width: { xs: '28px', sm: '32px' },
+                      height: { xs: '28px', sm: '32px' },
+                      backgroundColor: 'transparent',
+                      border: '1px solid rgba(225, 198, 147, 0.3)',
+                      color: '#E1C693',
+                      '&:hover': {
+                        borderColor: 'rgba(225, 198, 147, 0.5)',
+                        backgroundColor: 'rgba(225, 198, 147, 0.1)',
+                      },
+                    }}
+                    title={tt('Đăng xuất', 'Sign Out')}
+                  >
+                    <SignOutIcon size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  </IconButton>
+                </li>
+              </>
+            ) : (
+              <li>
+                <Button
+                  variant="outlined"
+                  onClick={handleSSOLogin}
+                  disabled={!isSSOEnabled}
+                  sx={{
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontStyle: 'normal',
+                    fontWeight: 600,
+                    fontSize: { xs: '11px', sm: '12px', md: '14px' },
+                    lineHeight: { xs: '13px', sm: '14px', md: '16px' },
+                    textTransform: 'uppercase',
+                    color: '#E1C693',
+                    borderColor: 'rgba(225, 198, 147, 0.3)',
+                    height: { xs: '28px', sm: '30px', md: '32px' },
+                    minWidth: 'auto',
+                    px: { xs: 1, sm: 1.25, md: 1.5 },
+                    gap: { xs: '4px', sm: '5px', md: '6px' },
+                    '&:hover': {
+                      borderColor: 'rgba(225, 198, 147, 0.5)',
+                      backgroundColor: 'rgba(225, 198, 147, 0.1)',
+                    },
+                    '&.Mui-disabled': {
+                      borderColor: 'rgba(225, 198, 147, 0.2)',
+                      color: 'rgba(225, 198, 147, 0.5)',
+                    },
+                  }}
+                  startIcon={
                     <Image
                       src={userLoginIcon}
                       alt="Login"
-                      width={16}
-                      height={16}
+                      width={14}
+                      height={14}
+                      className="md:w-4 md:h-4"
                       style={{ flexShrink: 0 }}
                     />
-                    {tt('Đăng nhập', 'Login')}
-                  </LocalizedLink>
-                </li>
-                {/* <li>
-                  <LocalizedLink
-                    href="/auth/sign-up"
-                    className="btn-sm bg-gray-800 text-gray-200 shadow hover:bg-gray-900"
-                    style={{ fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}
-                  >
-                    {tt("Đăng ký", "Sign Up")}
-                  </LocalizedLink>
-                </li> */}
-              </>
+                  }
+                >
+                  <span className="hidden sm:inline">{tt('Đăng nhập', 'Login')}</span>
+                  <span className="sm:hidden">{tt('Đăng nhập', 'Login').substring(0, 3)}</span>
+                </Button>
+              </li>
             )}
 
             {/* Language Selector */}
@@ -216,8 +485,8 @@ export default function PubgGalaPageHeader() {
                 size="small"
                 IconComponent={LanguageSelectIcon}
                 sx={{
-                  minWidth: 44,
-                  height: 32,
+                  minWidth: { xs: 36, sm: 40, md: 44 },
+                  height: { xs: '28px', sm: '30px', md: '32px' },
                   color: 'rgb(31, 41, 55)',
                   fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                   '& .MuiOutlinedInput-notchedOutline': {
