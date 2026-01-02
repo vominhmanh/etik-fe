@@ -106,7 +106,8 @@ export function VotingNominees({
       );
       setNominees(response.data || []);
     } catch (error: any) {
-      notificationCtx.error(error?.response?.data?.detail || "Không thể tải danh sách đề cử");
+      const errorMessage = error?.response?.data?.detail || error?.message || "Không thể tải danh sách đề cử";
+      notificationCtx.error(errorMessage);
     } finally {
       setLoadingNominees(false);
     }
@@ -176,7 +177,7 @@ export function VotingNominees({
       const { presignedUrl, fileUrl } = presignedResponse.data;
 
       // Step 2: Upload file directly to S3 using presigned URL
-      await fetch(presignedUrl, {
+      const uploadResponse = await fetch(presignedUrl, {
         method: 'PUT',
         body: file,
         headers: {
@@ -184,10 +185,15 @@ export function VotingNominees({
         },
       });
 
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed with status ${uploadResponse.status}`);
+      }
+
       // Step 3: Return the public file URL
       return fileUrl;
-    } catch (error) {
-      notificationCtx.error('Lỗi tải ảnh');
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.detail || error?.message || 'Lỗi tải ảnh';
+      notificationCtx.error(errorMessage);
       return null;
     }
   };
@@ -260,7 +266,8 @@ export function VotingNominees({
         await fetchNominees(category.id);
       }
     } catch (error: any) {
-      notificationCtx.error(error?.response?.data?.detail || "Có lỗi xảy ra");
+      const errorMessage = error?.response?.data?.detail || error?.message || "Có lỗi xảy ra";
+      notificationCtx.error(errorMessage);
     } finally {
       setSavingNominee(false);
     }
@@ -278,7 +285,8 @@ export function VotingNominees({
       handleCloseDeleteNomineeModal();
       await fetchNominees(category.id);
     } catch (error: any) {
-      notificationCtx.error(error?.response?.data?.detail || "Có lỗi xảy ra khi xóa");
+      const errorMessage = error?.response?.data?.detail || error?.message || "Có lỗi xảy ra khi xóa";
+      notificationCtx.error(errorMessage);
     } finally {
       setDeletingNomineeState(false);
     }

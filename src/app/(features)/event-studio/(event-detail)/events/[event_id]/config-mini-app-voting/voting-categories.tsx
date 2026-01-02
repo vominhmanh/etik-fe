@@ -82,7 +82,8 @@ export function VotingCategories({ event_id }: { event_id: number }) {
       );
       setCategories(response.data || []);
     } catch (error: any) {
-      notificationCtx.error(error?.response?.data?.detail || "Không thể tải danh sách hạng mục");
+      const errorMessage = error?.response?.data?.detail || error?.message || "Không thể tải danh sách hạng mục";
+      notificationCtx.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -172,7 +173,8 @@ export function VotingCategories({ event_id }: { event_id: number }) {
 
       fetchCategories();
     } catch (error: any) {
-      notificationCtx.error(error?.response?.data?.detail || "Có lỗi xảy ra");
+      const errorMessage = error?.response?.data?.detail || error?.message || "Có lỗi xảy ra";
+      notificationCtx.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -200,7 +202,8 @@ export function VotingCategories({ event_id }: { event_id: number }) {
       handleCloseDeleteModal();
       fetchCategories();
     } catch (error: any) {
-      notificationCtx.error(error?.response?.data?.detail || "Có lỗi xảy ra khi xóa");
+      const errorMessage = error?.response?.data?.detail || error?.message || "Có lỗi xảy ra khi xóa";
+      notificationCtx.error(errorMessage);
     } finally {
       setDeleting(false);
     }

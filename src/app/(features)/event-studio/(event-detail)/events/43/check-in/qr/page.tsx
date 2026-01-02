@@ -179,8 +179,9 @@ export default function Page(): React.JSX.Element {
           );
           setEvent(response.data);
           // setFormValues(response.data); // Initialize form with the event data
-        } catch (error) {
-          notificationCtx.error('Lỗi:', error);
+        } catch (error: any) {
+          const errorMessage = error?.response?.data?.detail || error?.message || "Có lỗi xảy ra";
+          notificationCtx.error(errorMessage);
         } finally {
           setIsLoading(false);
         }
@@ -259,8 +260,9 @@ export default function Page(): React.JSX.Element {
       }
 
       setIsSuccessful(true);
-    } catch (error) {
-      notificationCtx.error(error);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.detail || error?.message || "Có lỗi xảy ra";
+      notificationCtx.error(errorMessage);
       setIsSuccessful(false);
     } finally {
       setIsLoading(false);
@@ -314,8 +316,9 @@ export default function Page(): React.JSX.Element {
           setIsSuccessful(true);
           notificationCtx.success(`Check-in thành công.`);
         })
-        .catch(error => {
-          notificationCtx.error(error);
+        .catch((error: any) => {
+          const errorMessage = error?.response?.data?.detail || error?.message || "Có lỗi xảy ra khi check-in";
+          notificationCtx.error(errorMessage);
           setIsSuccessful(false);
         })
         .finally(() => {
