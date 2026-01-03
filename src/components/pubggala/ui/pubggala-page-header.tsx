@@ -180,7 +180,7 @@ export default function PubgGalaPageHeader() {
               alt="FChoice Logo" 
               width={120} 
               height={40} 
-              className="object-contain w-20 h-auto md:w-[120px] md:h-[40px]" 
+              className="object-contain w-10 h-auto md:w-[120px] md:h-[40px]" 
             />
             {/* Mobile Menu Button - Only visible on mobile */}
             <IconButton
