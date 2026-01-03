@@ -280,108 +280,107 @@ export default function Home() {
       </div>
 
       {/* Body2: Message Section */}
+
       <div
-        className="relative w-full"
+        className="relative z-10 w-full flex items-start py-8 md:py-16"
         style={{
-          position: 'relative',
-          isolation: 'isolate',
           background: 'linear-gradient(165.61deg, rgb(50, 50, 50) -4.98%, rgb(0, 0, 0) 107.54%)',
         }}
       >
-        <div className="relative z-10 w-full flex items-start px-4 py-8 md:py-16">
-          <Container maxWidth="xl" className="w-full">
-            <div className="flex flex-col gap-2 md:gap-4">
-              {/* Title 1: Những hạng mục vinh danh & bình chọn */}
-              <h3
-                className="text-base md:text-xl"
+        <Container maxWidth="xl" className="w-full">
+          <div className="flex flex-col gap-2 md:gap-4">
+            {/* Title 1: Những hạng mục vinh danh & bình chọn */}
+            <h3
+              className="text-base md:text-xl"
+              style={{
+                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                fontStyle: 'normal',
+                fontWeight: 500,
+                lineHeight: '24px',
+                letterSpacing: '0%',
+                textAlign: 'center',
+                verticalAlign: 'middle',
+                textTransform: 'uppercase',
+                color: 'rgba(255, 255, 255, 1)',
+                margin: 0,
+              }}
+            >
+              {tt('Danh sách hạng mục trao giải', 'Award Categories List')}
+            </h3>
+
+            {/* Title 2: pubg gala 2025 : gala of glory */}
+            <h2
+              className="text-2xl md:text-4xl md:leading-[48px]"
+              style={
+                {
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                  fontStyle: 'normal',
+                  fontWeight: 900,
+                  lineHeight: '32px',
+                  letterSpacing: '0%',
+                  textAlign: 'center',
+                  verticalAlign: 'middle',
+                  textTransform: 'uppercase',
+                  background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  margin: 0,
+                } as React.CSSProperties
+              }
+            >
+              {tt('pubg gala 2025', 'PUBG GALA 2025')}
+            </h2>
+
+            {/* Voting Categories List Section */}
+            <div
+              className="flex flex-col mt-6 p-4 md:p-6"
+              style={{
+                background: 'linear-gradient(165.61deg, rgb(50, 50, 50) -4.98%, rgb(0, 0, 0) 107.54%)',
+                borderRadius: '8px',
+              }}
+            >
+              {/* Title: Hạng mục Bình chọn */}
+              <h2
+                className="text-lg md:text-2xl mb-6 md:mb-8"
                 style={{
                   fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                   fontStyle: 'normal',
-                  fontWeight: 500,
-                  lineHeight: '24px',
+                  fontWeight: 900,
                   letterSpacing: '0%',
                   textAlign: 'left',
                   verticalAlign: 'middle',
                   textTransform: 'uppercase',
                   color: 'rgba(255, 255, 255, 1)',
-                  margin: 0,
                 }}
               >
-                {tt('Những hạng mục vinh danh & bình chọn', 'Honored & Voting Categories')}
-              </h3>
-
-              {/* Title 2: pubg gala 2025 : gala of glory */}
-              <h2
-                className="text-2xl md:text-4xl md:leading-[48px]"
-                style={
-                  {
-                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                    fontStyle: 'normal',
-                    fontWeight: 900,
-                    lineHeight: '32px',
-                    letterSpacing: '0%',
-                    textAlign: 'left',
-                    verticalAlign: 'middle',
-                    textTransform: 'uppercase',
-                    background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                    margin: 0,
-                  } as React.CSSProperties
-                }
-              >
-                {tt('pubg gala 2025 : gala of glory', 'PUBG GALA 2025 : GALA OF GLORY')}
+                {tt('Hạng mục Bình chọn', 'Voting Categories')}
               </h2>
 
-              {/* Voting Categories List Section */}
-              <div
-                className="flex flex-col mt-6 p-4 md:p-6"
-                style={{
-                  background: 'linear-gradient(165.61deg, rgb(50, 50, 50) -4.98%, rgb(0, 0, 0) 107.54%)',
-                  borderRadius: '8px',
-                }}
-              >
-                {/* Title: Hạng mục Bình chọn */}
-                <h2
-                  className="text-lg md:text-2xl mb-6 md:mb-8"
-                  style={{
-                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                    fontStyle: 'normal',
-                    fontWeight: 900,
-                    letterSpacing: '0%',
-                    textAlign: 'left',
-                    verticalAlign: 'middle',
-                    textTransform: 'uppercase',
-                    color: 'rgba(255, 255, 255, 1)',
-                  }}
-                >
-                  {tt('Hạng mục Bình chọn', 'Voting Categories')}
-                </h2>
-
-                {/* List of Categories */}
-                <div className="flex flex-col">
-                  {[
-                    { number: '01', name: 'Tuyển thủ Ấn tượng 2025', nameEn: 'Impresssive Player 2025' },
-                    { number: '02', name: 'Đội tuyển Ấn tượng 2025', nameEn: 'Impresssive Team 2025' },
-                    { number: '03', name: 'Steamer được yêu thích 2025', nameEn: 'Favorite Streamer 2025' },
-                    { number: '04', name: 'Đội ngũ Truyền thông 2025', nameEn: 'Media Team 2025' },
-                  ].map((category, index) => (
-                    <div
-                      key={index}
-                      className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full p-4"
-                      style={{
-                        borderBottom: index < 3 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
-                        backgroundImage: `url(${cardBackgroundImage.src})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        backgroundRepeat: 'no-repeat',
-                        position: 'relative',
-                      }}
-                    >
-                      {/* Number Box */}
+              {/* List of Categories */}
+              <div className="flex flex-col">
+                {[
+                  { number: '01', name: 'Tuyển thủ Ấn tượng 2025', nameEn: 'Impresssive Player 2025' },
+                  { number: '02', name: 'Đội tuyển Ấn tượng 2025', nameEn: 'Impresssive Team 2025' },
+                  { number: '03', name: 'Streamer được yêu thích', nameEn: 'Favorite Streamer 2025' },
+                  { number: '04', name: 'Đội ngũ Truyền thông 2025', nameEn: 'Media Team 2025' },
+                ].map((category, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 sm:gap-4 w-full p-4"
+                    style={{
+                      borderBottom: index < 3 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
+                      backgroundImage: `url(${cardBackgroundImage.src})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                      position: 'relative',
+                    }}
+                  >
+                    {/* Number Box */}
+                    <Stack direction="row" spacing={2}>
                       <div
-                        className="w-14 h-9 md:w-[70px] md:h-[45px] flex-shrink-0"
+                        className="w-10 h-7 md:w-[70px] md:h-[45px] flex-shrink-0"
                         style={{
                           backgroundColor: 'rgba(225, 198, 147, 1)',
                           display: 'flex',
@@ -392,7 +391,7 @@ export default function Home() {
                         }}
                       >
                         <span
-                          className="text-2xl md:text-4xl"
+                          className="text-xl md:text-4xl"
                           style={{
                             fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                             fontStyle: 'normal',
@@ -412,7 +411,7 @@ export default function Home() {
                       {/* Category Name */}
                       <div className="flex-1 min-w-0">
                         <h3
-                          className="text-lg md:text-3xl break-words"
+                          className="text-sm md:text-3xl break-words"
                           style={
                             {
                               fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
@@ -433,96 +432,134 @@ export default function Home() {
                           {tt(category.name, category.nameEn)}
                         </h3>
                       </div>
-
-                      {/* Vote Button */}
-                      <div className="relative w-full sm:w-auto flex-shrink-0 sm:px-4">
-                        <button
-                          onClick={() => scrollToCategory(index)}
-                          className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
-                          style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
+                    </Stack>
+                    {/* Vote Button - Desktop only */}
+                    <div className="hidden md:block relative w-full sm:w-auto flex-shrink-0 sm:px-4">
+                      <button
+                        onClick={() => scrollToCategory(index)}
+                        className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
+                        style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
+                      >
+                        <Image
+                          src={blackButtonBgImage}
+                          alt={tt('Bình chọn', 'Vote')}
+                          fill
+                          style={{ objectFit: 'contain' }}
+                        />
+                        {/* Text overlay */}
+                        <span
+                          className="text-base md:text-lg"
+                          style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                            fontStyle: 'normal',
+                            fontWeight: 900,
+                            lineHeight: '1.2',
+                            textAlign: 'center',
+                            textTransform: 'uppercase',
+                            color: 'rgba(255, 255, 255, 1)',
+                            zIndex: 2,
+                            pointerEvents: 'none',
+                            whiteSpace: 'nowrap',
+                          }}
                         >
-                          <Image
-                            src={blackButtonBgImage}
-                            alt={tt('Bình chọn', 'Vote')}
-                            fill
-                            style={{ objectFit: 'contain' }}
-                          />
-                          {/* Text overlay */}
-                          <span
-                            className="text-base md:text-lg"
-                            style={{
-                              position: 'absolute',
-                              top: '50%',
-                              left: '50%',
-                              transform: 'translate(-50%, -50%)',
-                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                              fontStyle: 'normal',
-                              fontWeight: 900,
-                              lineHeight: '1.2',
-                              textAlign: 'center',
-                              textTransform: 'uppercase',
-                              color: 'rgba(255, 255, 255, 1)',
-                              zIndex: 2,
-                              pointerEvents: 'none',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {tt('Bình chọn', 'Vote')}
-                          </span>
-                        </button>
-                      </div>
+                          {tt('Bình chọn', 'Vote')}
+                        </span>
+                      </button>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
+              {/* Vote Button - Mobile only */}
+              <div className="block md:hidden relative w-full sm:w-auto flex-shrink-0 sm:px-4 mt-4">
+                <button
+                  onClick={() => scrollToCategory(0)}
+                  className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
+                  style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
+                >
+                  <Image
+                    src={blackButtonBgImage}
+                    alt={tt('Bình chọn', 'Vote')}
+                    fill
+                    style={{ objectFit: 'contain' }}
+                  />
+                  {/* Text overlay */}
+                  <span
+                    className="text-base md:text-lg"
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                      fontStyle: 'normal',
+                      fontWeight: 900,
+                      lineHeight: '1.2',
+                      textAlign: 'center',
+                      textTransform: 'uppercase',
+                      color: 'rgba(255, 255, 255, 1)',
+                      zIndex: 2,
+                      pointerEvents: 'none',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {tt('Bình chọn', 'Vote')}
+                  </span>
+                </button>
+              </div>
+            </div>
 
-              {/* Honored Categories List Section */}
-              <div
-                className="flex flex-col mt-12 md:mt-12 p-4 md:p-6"
+            {/* Honored Categories List Section */}
+            <div
+              className="flex flex-col mt-12 md:mt-12 p-4 md:p-6"
+              style={{
+                background: 'linear-gradient(165.61deg, rgb(50, 50, 50) -4.98%, rgb(0, 0, 0) 107.54%)',
+                borderRadius: '8px',
+              }}
+            >
+              {/* Title: Hạng mục Vinh danh */}
+              <h2
+                className="text-lg md:text-2xl mb-6 md:mb-8"
                 style={{
-                  background: 'linear-gradient(165.61deg, rgb(50, 50, 50) -4.98%, rgb(0, 0, 0) 107.54%)',
-                  borderRadius: '8px',
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                  fontStyle: 'normal',
+                  fontWeight: 900,
+                  letterSpacing: '0%',
+                  textAlign: 'left',
+                  verticalAlign: 'middle',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255, 255, 255, 1)',
                 }}
               >
-                {/* Title: Hạng mục Vinh danh */}
-                <h2
-                  className="text-lg md:text-2xl mb-6 md:mb-8"
-                  style={{
-                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                    fontStyle: 'normal',
-                    fontWeight: 900,
-                    letterSpacing: '0%',
-                    textAlign: 'left',
-                    verticalAlign: 'middle',
-                    textTransform: 'uppercase',
-                    color: 'rgba(255, 255, 255, 1)',
-                  }}
-                >
-                  {tt('Hạng mục Vinh danh', 'Honored Categories')}
-                </h2>
+                {tt('Hạng mục Vinh danh', 'Honored Categories')}
+              </h2>
 
-                {/* List of Honored Categories */}
-                <div className="flex flex-col">
-                  {[
-                    { number: '01', name: 'Tuyển thủ Xuất sắc 2025', nameEn: 'Outstanding Player 2025' },
-                    { number: '02', name: 'Đội tuyển Xuất sắc 2025', nameEn: 'Outstanding Team 2025' },
-                    { number: '03', name: 'Tập thể Xuất sắc 2025', nameEn: 'Outstanding Collective 2025' },
-                  ].map((category, index) => (
-                    <div
-                      key={index}
-                      className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full p-4"
-                      style={{
-                        borderBottom: index < 2 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
-                        backgroundImage: `url(${cardBackgroundImage.src})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        backgroundRepeat: 'no-repeat',
-                        position: 'relative',
-                      }}
-                    >
-                      {/* Number Box */}
+              {/* List of Honored Categories */}
+              <div className="flex flex-col">
+                {[
+                  { number: '01', name: 'Tuyển thủ Xuất sắc 2025', nameEn: 'Outstanding Player 2025' },
+                  { number: '02', name: 'Đội tuyển Xuất sắc 2025', nameEn: 'Outstanding Team 2025' },
+                  { number: '03', name: 'Tập thể Xuất sắc 2025', nameEn: 'Outstanding Collective 2025' },
+                ].map((category, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full p-4"
+                    style={{
+                      borderBottom: index < 2 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
+                      backgroundImage: `url(${cardBackgroundImage.src})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                      position: 'relative',
+                    }}
+                  >
+                    {/* Number Box */}
+                    <Stack direction="row" spacing={2}>
                       <div
-                        className="w-14 h-9 md:w-[70px] md:h-[45px] flex-shrink-0"
+                        className="w-10 h-7 md:w-[70px] md:h-[45px] flex-shrink-0"
                         style={{
                           backgroundColor: 'rgba(225, 198, 147, 1)',
                           display: 'flex',
@@ -533,7 +570,7 @@ export default function Home() {
                         }}
                       >
                         <span
-                          className="text-2xl md:text-4xl"
+                          className="text-xl md:text-4xl"
                           style={{
                             fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                             fontStyle: 'normal',
@@ -553,7 +590,7 @@ export default function Home() {
                       {/* Category Name */}
                       <div className="flex-1 min-w-0">
                         <h3
-                          className="text-lg md:text-3xl break-words"
+                          className="text-sm md:text-3xl break-words"
                           style={
                             {
                               fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
@@ -574,14 +611,15 @@ export default function Home() {
                           {category.name}
                         </h3>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    </Stack>
+                  </div>
+                ))}
               </div>
             </div>
-          </Container>
-        </div>
+          </div>
+        </Container>
       </div>
+
 
       {/* Voting Categories Info Section */}
       <div className="relative w-full">
@@ -614,13 +652,13 @@ export default function Home() {
               <div className="flex flex-col items-center justify-center gap-4 md:gap-8 w-full">
                 {/* Title 1: Hạng mục Bình chọn */}
                 <h2
-                  className="text-3xl md:text-5xl"
+                  className="text-2xl md:text-4xl md:leading-[48px]"
                   style={
                     {
                       fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                       fontStyle: 'normal',
                       fontWeight: 900,
-                      lineHeight: '100%',
+                      lineHeight: '32px',
                       letterSpacing: '0%',
                       textAlign: 'center',
                       verticalAlign: 'middle',
@@ -638,7 +676,7 @@ export default function Home() {
 
                 {/* Title 2: kết quả dựa trên 70% bình chọn từ cộng đồng & 30% đánh giá từ ban tổ chức */}
                 <p
-                  className="text-base md:text-3xl"
+                  className="text-sm md:text-3xl"
                   style={{
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                     fontStyle: 'normal',
@@ -653,7 +691,7 @@ export default function Home() {
                   }}
                 >
                   {tt(
-                    'kết quả dựa trên 70% bình chọn từ cộng đồng & 30% đánh giá từ ban tổ chức',
+                    'kết quả dựa trên 70% bình chọn từ cộng đồng & 30% đánh giá từ BTC',
                     'results based on 70% community voting & 30% organizer evaluation'
                   )}
                 </p>
@@ -742,7 +780,7 @@ export default function Home() {
                         >
                           <span style={{ color: '#E1C693', fontSize: '20px', fontWeight: 'bold' }}>‹</span>
                         </button>
-                        
+
                         {/* Right Arrow */}
                         <button
                           onClick={() => {
@@ -870,76 +908,78 @@ export default function Home() {
                                     />
 
                                     {/* Vote Button and Count */}
-                                    <div className="flex flex-row items-center gap-3">
-                                      <div
-                                        style={{
-                                          background: 'linear-gradient(303.62deg, #000000 -52.52%, #5A5A5A 177.26%)',
-                                          borderRadius: '9999px',
-                                          padding: '1px',
-                                        }}
-                                      >
-                                        <button
-                                          onClick={() => handleVoteClick(nominee.socialIframe, nominee.socialUrl, nominee.voteCount || 0)}
-                                          className="flex flex-row justify-center items-center cursor-pointer"
+                                    {category.allowVoting && (
+                                      <div className="flex flex-row items-center gap-3">
+                                        <div
                                           style={{
-                                            padding: '12px',
-                                            gap: '8px',
-                                            background: 'rgba(0, 0, 0, 1)',
+                                            background: 'linear-gradient(303.62deg, #000000 -52.52%, #5A5A5A 177.26%)',
                                             borderRadius: '9999px',
-                                            border: 'none',
+                                            padding: '1px',
                                           }}
                                         >
-                                          <Image src={heartIcon} alt="Heart" width={20} height={20} />
+                                          <button
+                                            onClick={() => handleVoteClick(nominee.socialIframe, nominee.socialUrl, nominee.voteCount || 0)}
+                                            className="flex flex-row justify-center items-center cursor-pointer"
+                                            style={{
+                                              padding: '12px',
+                                              gap: '8px',
+                                              background: 'rgba(0, 0, 0, 1)',
+                                              borderRadius: '9999px',
+                                              border: 'none',
+                                            }}
+                                          >
+                                            <Image src={heartIcon} alt="Heart" width={20} height={20} />
+                                            <span
+                                              style={{
+                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                                fontWeight: 600,
+                                                fontStyle: 'normal',
+                                                fontSize: '14px',
+                                                lineHeight: '14px',
+                                                letterSpacing: '0%',
+                                                textAlign: 'center',
+                                                verticalAlign: 'middle',
+                                                color: 'rgba(225, 198, 147, 1)',
+                                              }}
+                                            >
+                                              {tt('Bình chọn', 'Vote')}
+                                            </span>
+                                          </button>
+                                        </div>
+
+                                        {/* Vote Count */}
+                                        <div className="flex items-baseline gap-1">
                                           <span
                                             style={{
                                               fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                              fontWeight: 600,
+                                              fontWeight: 700,
                                               fontStyle: 'normal',
                                               fontSize: '14px',
-                                              lineHeight: '14px',
+                                              lineHeight: '100%',
                                               letterSpacing: '0%',
-                                              textAlign: 'center',
                                               verticalAlign: 'middle',
-                                              color: 'rgba(225, 198, 147, 1)',
+                                              color: 'rgba(255, 255, 255, 1)',
                                             }}
                                           >
-                                            {tt('Bình chọn', 'Vote')}
+                                            {nominee.voteCount || 0}
                                           </span>
-                                        </button>
+                                          <span
+                                            style={{
+                                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                              fontWeight: 400,
+                                              fontStyle: 'normal',
+                                              fontSize: '12px',
+                                              lineHeight: '100%',
+                                              letterSpacing: '0%',
+                                              verticalAlign: 'middle',
+                                              color: 'rgba(255, 255, 255, 1)',
+                                            }}
+                                          >
+                                            {tt('lượt', 'votes')}
+                                          </span>
+                                        </div>
                                       </div>
-
-                                      {/* Vote Count */}
-                                      <div className="flex items-baseline gap-1">
-                                        <span
-                                          style={{
-                                            fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                            fontWeight: 700,
-                                            fontStyle: 'normal',
-                                            fontSize: '14px',
-                                            lineHeight: '100%',
-                                            letterSpacing: '0%',
-                                            verticalAlign: 'middle',
-                                            color: 'rgba(255, 255, 255, 1)',
-                                          }}
-                                        >
-                                          {nominee.voteCount || 0}
-                                        </span>
-                                        <span
-                                          style={{
-                                            fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                            fontWeight: 400,
-                                            fontStyle: 'normal',
-                                            fontSize: '12px',
-                                            lineHeight: '100%',
-                                            letterSpacing: '0%',
-                                            verticalAlign: 'middle',
-                                            color: 'rgba(255, 255, 255, 1)',
-                                          }}
-                                        >
-                                          {tt('lượt', 'votes')}
-                                        </span>
-                                      </div>
-                                    </div>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -1039,76 +1079,78 @@ export default function Home() {
                                     />
 
                                     {/* Vote Button and Count */}
-                                    <div className="flex flex-row items-center gap-3">
-                                      <div
-                                        style={{
-                                          background: 'linear-gradient(303.62deg, #000000 -52.52%, #5A5A5A 177.26%)',
-                                          borderRadius: '9999px',
-                                          padding: '1px',
-                                        }}
-                                      >
-                                        <button
-                                          onClick={() => handleVoteClick(nominee.socialIframe, nominee.socialUrl, nominee.voteCount || 0)}
-                                          className="flex flex-row justify-center items-center cursor-pointer"
+                                    {category.allowVoting && (
+                                      <div className="flex flex-row items-center gap-3">
+                                        <div
                                           style={{
-                                            padding: '12px',
-                                            gap: '8px',
-                                            background: 'rgba(0, 0, 0, 1)',
+                                            background: 'linear-gradient(303.62deg, #000000 -52.52%, #5A5A5A 177.26%)',
                                             borderRadius: '9999px',
-                                            border: 'none',
+                                            padding: '1px',
                                           }}
                                         >
-                                          <Image src={heartIcon} alt="Heart" width={20} height={20} />
+                                          <button
+                                            onClick={() => handleVoteClick(nominee.socialIframe, nominee.socialUrl, nominee.voteCount || 0)}
+                                            className="flex flex-row justify-center items-center cursor-pointer"
+                                            style={{
+                                              padding: '12px',
+                                              gap: '8px',
+                                              background: 'rgba(0, 0, 0, 1)',
+                                              borderRadius: '9999px',
+                                              border: 'none',
+                                            }}
+                                          >
+                                            <Image src={heartIcon} alt="Heart" width={20} height={20} />
+                                            <span
+                                              style={{
+                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                                fontWeight: 600,
+                                                fontStyle: 'normal',
+                                                fontSize: '14px',
+                                                lineHeight: '14px',
+                                                letterSpacing: '0%',
+                                                textAlign: 'center',
+                                                verticalAlign: 'middle',
+                                                color: 'rgba(225, 198, 147, 1)',
+                                              }}
+                                            >
+                                              {tt('Bình chọn', 'Vote')}
+                                            </span>
+                                          </button>
+                                        </div>
+
+                                        {/* Vote Count */}
+                                        <div className="flex items-baseline gap-1">
                                           <span
                                             style={{
                                               fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                              fontWeight: 600,
+                                              fontWeight: 700,
                                               fontStyle: 'normal',
                                               fontSize: '14px',
-                                              lineHeight: '14px',
+                                              lineHeight: '100%',
                                               letterSpacing: '0%',
-                                              textAlign: 'center',
                                               verticalAlign: 'middle',
-                                              color: 'rgba(225, 198, 147, 1)',
+                                              color: 'rgba(255, 255, 255, 1)',
                                             }}
                                           >
-                                            {tt('Bình chọn', 'Vote')}
+                                            {nominee.voteCount || 0}
                                           </span>
-                                        </button>
+                                          <span
+                                            style={{
+                                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                              fontWeight: 400,
+                                              fontStyle: 'normal',
+                                              fontSize: '12px',
+                                              lineHeight: '100%',
+                                              letterSpacing: '0%',
+                                              verticalAlign: 'middle',
+                                              color: 'rgba(255, 255, 255, 1)',
+                                            }}
+                                          >
+                                            {tt('lượt', 'votes')}
+                                          </span>
+                                        </div>
                                       </div>
-
-                                      {/* Vote Count */}
-                                      <div className="flex items-baseline gap-1">
-                                        <span
-                                          style={{
-                                            fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                            fontWeight: 700,
-                                            fontStyle: 'normal',
-                                            fontSize: '14px',
-                                            lineHeight: '100%',
-                                            letterSpacing: '0%',
-                                            verticalAlign: 'middle',
-                                            color: 'rgba(255, 255, 255, 1)',
-                                          }}
-                                        >
-                                          {nominee.voteCount || 0}
-                                        </span>
-                                        <span
-                                          style={{
-                                            fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                            fontWeight: 400,
-                                            fontStyle: 'normal',
-                                            fontSize: '12px',
-                                            lineHeight: '100%',
-                                            letterSpacing: '0%',
-                                            verticalAlign: 'middle',
-                                            color: 'rgba(255, 255, 255, 1)',
-                                          }}
-                                        >
-                                          {tt('lượt', 'votes')}
-                                        </span>
-                                      </div>
-                                    </div>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -1166,13 +1208,13 @@ export default function Home() {
                       <div className="flex flex-col items-center justify-center gap-4 md:gap-8 w-full">
                         {/* Title 1: Hạng mục Vinh danh */}
                         <h2
-                          className="text-3xl md:text-5xl"
+                          className="text-2xl md:text-4xl md:leading-[48px]"
                           style={
                             {
                               fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                               fontStyle: 'normal',
                               fontWeight: 900,
-                              lineHeight: '100%',
+                              lineHeight: '32px',
                               letterSpacing: '0%',
                               textAlign: 'center',
                               verticalAlign: 'middle',
@@ -1190,7 +1232,7 @@ export default function Home() {
 
                         {/* Title 2: Do ban tổ chức bình chọn */}
                         <p
-                          className="text-base md:text-3xl"
+                          className="text-sm md:text-3xl"
                           style={{
                             fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                             fontStyle: 'normal',
@@ -1289,7 +1331,7 @@ export default function Home() {
                 {tt('Hướng dẫn bình chọn', 'Voting Instructions')}
               </Typography>
 
-              <Typography
+              {/* <Typography
                 sx={{
                   fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                   fontWeight: 400,
@@ -1299,41 +1341,23 @@ export default function Home() {
                 }}
               >
                 {tt(
-                  'Vui lòng truy cập bài đăng Facebook bên dưới và nhấn “Thích” cho bài đăng để hoàn tất việc bình chọn.',
-                  'Please access the Facebook post below and like the post to complete the voting process.'
+                  'Nhấn Like bài đăng để bình chọn',
+                  'Like the post to complete the voting process.'
                 )}
-              </Typography>
+              </Typography> */}
             </Stack>
           </Box>
 
-          {/* Part 3: Body Iframe - Square */}
+          {/* Part 3: Body Iframe */}
           <Box
             sx={{
-              paddingX: { xs: '48px', md: '120px' },
+              paddingX: { xs: '16px', md: '80px' },
+              width: '100%',
             }}
           >
-            <Box
-              sx={{
-                position: 'relative',
-                width: '100%',
-                paddingTop: '100%', // Creates 1:1 aspect ratio
-                overflow: 'hidden',
-                border: '3px solid #E1C693',
-              }}
-            >
-              {selectedSocialIframe && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                  }}
-                  dangerouslySetInnerHTML={{ __html: selectedSocialIframe }}
-                />
-              )}
-            </Box>
+            {selectedSocialIframe && (
+              <iframe src={selectedSocialIframe} style={{ border: '3px solid #E1C693', backgroundColor: "#ffffff", width: '100%', aspectRatio: '480/691' }} title="Facebook Post" />
+            )}
           </Box>
 
           {/* Part 4: Footer Button and Vote Count */}
@@ -1380,6 +1404,21 @@ export default function Home() {
               </div>
             )}
 
+            <Typography
+              sx={{
+                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                fontWeight: 400,
+                fontSize: { xs: '13px', md: '14px' },
+                color: '#E1C693',
+                lineHeight: 1.5,
+              }}
+            >
+              {tt(
+                'Nhấn Like bài đăng để bình chọn',
+                'Like the post to complete the voting process.'
+              )}
+            </Typography>
+
             {/* Button */}
             {selectedSocialUrl && (
               <a
@@ -1406,7 +1445,7 @@ export default function Home() {
                 }}
               >
                 <div className="w-32 sm:w-40 md:w-[180px] h-10 sm:h-12 md:h-[50px]" style={{ position: 'relative' }}>
-                  <Image src={buttonBackgroundImage} alt={tt('Truy cập ngay', 'Visit now')} fill priority />
+                  <Image src={buttonBackgroundImage} alt={tt('Bình chọn ngay', 'Vote now')} fill priority />
                   {/* Text overlay */}
                   <span
                     className="text-xs sm:text-sm md:text-base"
@@ -1427,7 +1466,7 @@ export default function Home() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {tt('Truy cập ngay', 'Visit now')}
+                    {tt('Bình chọn ngay', 'Vote now')}
                   </span>
                 </div>
               </a>
@@ -1467,13 +1506,12 @@ export default function Home() {
                   <span
                     style={{
                       fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                      fontWeight: 700,
                       fontSize: '14px',
                       lineHeight: '20px',
                       color: '#FFFFFF',
                     }}
                   >
-                    PUBG GALA 2025:
+                    PUBG GALA 2025
                   </span>
                   <br />
                   <span
@@ -1681,7 +1719,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          </Container>
+        </Container>
       </footer>
     </div>
   );
