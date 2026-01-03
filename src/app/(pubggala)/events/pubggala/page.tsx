@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Dialog, IconButton, Box, Typography, Button, Stack, Container } from '@mui/material';
 import backgroundGradientImage from '@/images/pubg/background-gradient.png';
 import battlegroundsImage from '@/images/pubg/battlegrounds.png';
 import blackButtonBgImage from '@/images/pubg/black-button-bg.png';
 import buttonBackgroundImage from '@/images/pubg/button-background.png';
 import cafefLogo from '@/images/pubg/cafef.png';
+import cardBackgroundImage from '@/images/pubg/card-background.png';
 import chickenWinnerImage from '@/images/pubg/chicken-winner.png';
 import facebookIcon from '@/images/pubg/facebook.svg';
 import fcoiceLogo from '@/images/pubg/fcoice-2025.png';
@@ -17,6 +17,7 @@ import soldierBackgroundImage from '@/images/pubg/soldier-background.png';
 import tiktokIcon from '@/images/pubg/tiktok.svg';
 import vccorpLogo from '@/images/pubg/vccorp.png';
 import votingService from '@/services/Voting.service';
+import { Box, Button, Container, Dialog, IconButton, Stack, Typography } from '@mui/material';
 
 import { Category } from '@/types/voting';
 import { useTranslation } from '@/contexts/locale-context';
@@ -28,7 +29,7 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedSocialUrl, setSelectedSocialUrl] = useState<string>('');
+  const [selectedSocialIframe, setSelectedSocialIframe] = useState<string>('');
   const [selectedVoteCount, setSelectedVoteCount] = useState<number>(0);
 
   useEffect(() => {
@@ -54,6 +55,16 @@ export default function Home() {
     return String(index + 1).padStart(2, '0');
   };
 
+  // Strip HTML tags to get plain text for title attribute
+  const stripHtmlTags = (html: string): string => {
+    if (typeof window !== 'undefined') {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      return tmp.textContent || tmp.innerText || '';
+    }
+    return html.replace(/<[^>]*>/g, '');
+  };
+
   // Scroll to category section
   const scrollToCategory = (categoryIndex: number) => {
     if (categories.length > 0 && categories[categoryIndex]) {
@@ -66,9 +77,9 @@ export default function Home() {
   };
 
   // Handle vote button click
-  const handleVoteClick = (socialUrl: string, voteCount: number = 0) => {
-    if (socialUrl) {
-      setSelectedSocialUrl(socialUrl);
+  const handleVoteClick = (socialIframe: string, voteCount: number = 0) => {
+    if (socialIframe) {
+      setSelectedSocialIframe(socialIframe);
       setSelectedVoteCount(voteCount);
       setDialogOpen(true);
     }
@@ -77,14 +88,14 @@ export default function Home() {
   // Handle dialog close
   const handleCloseDialog = () => {
     setDialogOpen(false);
-    setSelectedSocialUrl('');
+    setSelectedSocialIframe('');
     setSelectedVoteCount(0);
   };
 
   return (
     <div className="relative w-full">
       {/* Body1: Background Image with Content */}
-      <div className="relative" style={{ width: '100%', height: '800px', backgroundColor: '#000000'}}>
+      <div className="relative" style={{ width: '100%', height: '800px', backgroundColor: '#000000' }}>
         {/* Background Image with Gradient Overlay */}
         <div className="absolute top-0 left-0 w-full h-full" style={{ paddingTop: '80px' }}>
           <Image
@@ -245,10 +256,7 @@ export default function Home() {
         style={{
           position: 'relative',
           isolation: 'isolate',
-          backgroundImage: `url(${backgroundGradientImage.src})`,
-          backgroundSize: '100% 100%',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
+          background: 'linear-gradient(165.61deg, rgb(50, 50, 50) -4.98%, rgb(0, 0, 0) 107.54%)',
         }}
       >
         <div className="relative z-10 w-full flex items-start" style={{ paddingTop: '4rem', paddingBottom: '4rem' }}>
@@ -298,7 +306,15 @@ export default function Home() {
               </h2>
 
               {/* Voting Categories List Section */}
-              <div className="flex flex-col" style={{ marginTop: '24px' }}>
+              <div
+                className="flex flex-col"
+                style={{
+                  marginTop: '24px',
+                  background: 'linear-gradient(165.61deg, rgb(50, 50, 50) -4.98%, rgb(0, 0, 0) 107.54%)',
+                  padding: '24px',
+                  borderRadius: '8px',
+                }}
+              >
                 {/* Title: Hạng mục Bình chọn */}
                 <h2
                   style={{
@@ -320,7 +336,7 @@ export default function Home() {
                 </h2>
 
                 {/* List of Categories */}
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col">
                   {[
                     { number: '01', name: 'Tuyển thủ Ấn tượng 2025', nameEn: 'Impresssive Player 2025' },
                     { number: '02', name: 'Đội tuyển Ấn tượng 2025', nameEn: 'Impresssive Team 2025' },
@@ -332,7 +348,13 @@ export default function Home() {
                       className="flex items-center gap-4 w-full"
                       style={{
                         borderBottom: index < 3 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
-                        paddingBottom: index < 3 ? '16px' : '0',
+                        padding: '16px',
+                        paddingBottom: index < 3 ? '16px' : '16px',
+                        backgroundImage: `url(${cardBackgroundImage.src})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat',
+                        position: 'relative',
                       }}
                     >
                       {/* Number Box */}
@@ -435,7 +457,15 @@ export default function Home() {
               </div>
 
               {/* Honored Categories List Section */}
-              <div className="flex flex-col" style={{ marginTop: '48px' }}>
+              <div
+                className="flex flex-col"
+                style={{
+                  marginTop: '48px',
+                  background: 'linear-gradient(165.61deg, rgb(50, 50, 50) -4.98%, rgb(0, 0, 0) 107.54%)',
+                  padding: '24px',
+                  borderRadius: '8px',
+                }}
+              >
                 {/* Title: Hạng mục Vinh danh */}
                 <h2
                   style={{
@@ -457,7 +487,7 @@ export default function Home() {
                 </h2>
 
                 {/* List of Honored Categories */}
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col">
                   {[
                     { number: '01', name: 'Tuyển thủ Xuất sắc 2025', nameEn: 'Outstanding Player 2025' },
                     { number: '02', name: 'Đội tuyển Xuất sắc 2025', nameEn: 'Outstanding Team 2025' },
@@ -468,7 +498,13 @@ export default function Home() {
                       className="flex items-center gap-4 w-full"
                       style={{
                         borderBottom: index < 2 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
-                        paddingBottom: index < 2 ? '16px' : '0',
+                        padding: '16px',
+                        paddingBottom: index < 2 ? '16px' : '16px',
+                        backgroundImage: `url(${cardBackgroundImage.src})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat',
+                        position: 'relative',
                       }}
                     >
                       {/* Number Box */}
@@ -731,7 +767,6 @@ export default function Home() {
                           position: 'relative',
                           overflow: 'hidden',
                           minHeight: '400px',
-                          width: 'calc(100vw - 64px)',
                           maxWidth: '400px',
                           scrollSnapAlign: 'start',
                         }}
@@ -761,6 +796,8 @@ export default function Home() {
                             backgroundRepeat: 'no-repeat',
                             opacity: 0.3,
                             zIndex: 0,
+                            width: '100%',
+                            height: '100%',
                           }}
                         />
 
@@ -791,21 +828,26 @@ export default function Home() {
 
                           {/* Card Content - Bottom */}
                           <div className="flex flex-col gap-3">
-                            <p
+                            <div
+                              title={stripHtmlTags(nominee.description)}
                               style={{
                                 fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                                 fontWeight: 400,
                                 fontStyle: 'normal',
-                                fontSize: '12px',
-                                lineHeight: '100%',
+                                fontSize: '14px',
+                                lineHeight: '1.4',
                                 letterSpacing: '0%',
                                 verticalAlign: 'middle',
                                 color: 'rgba(244, 245, 248, 1)',
                                 textAlign: 'left',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: 'vertical' as const,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
                               }}
-                            >
-                              {nominee.description}
-                            </p>
+                              dangerouslySetInnerHTML={{ __html: nominee.description }}
+                            />
 
                             {/* Vote Button and Count */}
                             <div className="flex flex-row items-center gap-3">
@@ -817,7 +859,7 @@ export default function Home() {
                                 }}
                               >
                                 <button
-                                  onClick={() => handleVoteClick(nominee.socialUrl, nominee.voteCount || 0)}
+                                  onClick={() => handleVoteClick(nominee.socialIframe, nominee.voteCount || 0)}
                                   className="flex flex-row justify-center items-center cursor-pointer"
                                   style={{
                                     padding: '12px',
@@ -921,7 +963,15 @@ export default function Home() {
           },
         }}
       >
-        <Box sx={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', background: 'linear-gradient(165.61deg, #323232 -4.98%, #000000 107.54%)' }}>
+        <Box
+          sx={{
+            position: 'relative',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'linear-gradient(165.61deg, #323232 -4.98%, #000000 107.54%)',
+          }}
+        >
           {/* Close Button */}
           <IconButton
             onClick={handleCloseDialog}
@@ -940,13 +990,7 @@ export default function Home() {
             }}
             aria-label={tt('Đóng', 'Close')}
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M15 5L5 15M5 5L15 15"
                 stroke="currentColor"
@@ -976,8 +1020,6 @@ export default function Home() {
                 {tt('Hướng dẫn bình chọn', 'Voting Instructions')}
               </Typography>
 
-
-
               <Typography
                 sx={{
                   fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
@@ -992,7 +1034,6 @@ export default function Home() {
                   'Please access the Facebook post below and like the post to complete the voting process.'
                 )}
               </Typography>
-
             </Stack>
           </Box>
 
@@ -1000,7 +1041,6 @@ export default function Home() {
           <Box
             sx={{
               paddingX: { xs: '48px', md: '120px' },
-              
             }}
           >
             <Box
@@ -1012,18 +1052,16 @@ export default function Home() {
                 border: '3px solid #E1C693',
               }}
             >
-              {selectedSocialUrl && (
-                <iframe
-                  src={selectedSocialUrl}
+              {selectedSocialIframe && (
+                <div
                   style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     width: '100%',
                     height: '100%',
-                    border: 'none',
                   }}
-                  allow="encrypted-media"
+                  dangerouslySetInnerHTML={{ __html: selectedSocialIframe }}
                 />
               )}
             </Box>
@@ -1039,7 +1077,7 @@ export default function Home() {
             }}
           >
             {/* Vote Count */}
-            {selectedSocialUrl && (
+            {selectedSocialIframe && (
               <div className="flex items-baseline gap-1">
                 <span
                   style={{
@@ -1070,64 +1108,6 @@ export default function Home() {
                   {tt('lượt', 'votes')}
                 </span>
               </div>
-            )}
-
-            {/* Button */}
-            {selectedSocialUrl && (
-              <a
-                href={selectedSocialUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  textDecoration: 'none',
-                  cursor: 'pointer',
-                  transition: 'opacity 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '0.9';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '1';
-                }}
-              >
-                <div
-                  className="relative"
-                  style={{
-                    width: '140px',
-                    height: '40px',
-                    position: 'relative',
-                  }}
-                >
-                  <Image
-                    src={buttonBackgroundImage}
-                    alt={tt('Truy cập ngay', 'Access now')}
-                    fill
-                    style={{ objectFit: 'contain' }}
-                  />
-                  {/* Text overlay */}
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                      fontStyle: 'normal',
-                      fontWeight: 900,
-                      fontSize: '12px',
-                      lineHeight: '1.2',
-                      textAlign: 'center',
-                      textTransform: 'uppercase',
-                      color: '#121026',
-                      zIndex: 2,
-                      pointerEvents: 'none',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {tt('Truy cập ngay', 'Access now')}
-                  </span>
-                </div>
-              </a>
             )}
           </Box>
         </Box>
