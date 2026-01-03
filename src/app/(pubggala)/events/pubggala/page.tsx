@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import backgroundGradientImage from '@/images/pubg/background-gradient.png';
 import battlegroundsImage from '@/images/pubg/battlegrounds.png';
@@ -17,7 +17,7 @@ import soldierBackgroundImage from '@/images/pubg/soldier-background.png';
 import tiktokIcon from '@/images/pubg/tiktok.svg';
 import vccorpLogo from '@/images/pubg/vccorp.png';
 import votingService from '@/services/Voting.service';
-import { Box, Button, Container, Dialog, IconButton, Stack, Typography } from '@mui/material';
+import { Box, Container, Dialog, IconButton, Stack, Typography } from '@mui/material';
 
 import { Category } from '@/types/voting';
 import { useTranslation } from '@/contexts/locale-context';
@@ -734,18 +734,18 @@ export default function Home() {
 
       {/* Body3: Categories Section */}
       {!isLoading &&
-        categories.map((category) => (
-          <div
-            key={category.id}
-            id={`category-${category.id}`}
-            className="relative w-full bg-black py-8 md:py-16"
-            style={{
-              backgroundImage: `url(${chickenWinnerImage.src})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'repeat',
-            }}
-          >
+        categories.map((category, categoryIndex) => (
+          <React.Fragment key={category.id}>
+            <div
+              id={`category-${category.id}`}
+              className="relative w-full bg-black py-8 md:py-16"
+              style={{
+                backgroundImage: `url(${chickenWinnerImage.src})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'repeat',
+              }}
+            >
             <div className="container mx-auto px-4 sm:px-6">
               <div className="flex flex-col gap-12">
                 {/* Section Titles */}
@@ -985,6 +985,90 @@ export default function Home() {
               </div>
             </div>
           </div>
+          
+          {/* Honored Categories Info Section - Insert between category id 6 and 7 */}
+          {category.id === 5 && (
+            <div className="relative w-full">
+              {/* Hidden image to maintain aspect ratio */}
+              <Image
+                src={battlegroundsImage}
+                alt=""
+                width={1920}
+                height={1080}
+                className="w-full h-auto opacity-0 pointer-events-none"
+                style={{ display: 'block' }}
+                aria-hidden="true"
+              />
+              {/* Background image overlay */}
+              <div
+                className="absolute inset-0 w-full"
+                style={{
+                  backgroundImage: `url(${battlegroundsImage.src})`,
+                  backgroundSize: '100% 100%',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                }}
+              >
+                <div
+                  className="absolute inset-0 z-10 w-full flex items-center justify-center"
+                  style={{ padding: '12px 16px' }}
+                >
+                  <div className="max-w-6xl mx-auto flex flex-col items-center justify-center gap-6 md:gap-8 w-full">
+                    {/* Title 1: Hạng mục Vinh danh */}
+                    <h2
+                      style={
+                        {
+                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                          fontStyle: 'normal',
+                          fontWeight: 900,
+                          fontSize: '55px',
+                          lineHeight: '100%',
+                          letterSpacing: '0%',
+                          textAlign: 'center',
+                          verticalAlign: 'middle',
+                          textTransform: 'uppercase',
+                          background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                          margin: 0,
+                        } as React.CSSProperties
+                      }
+                    >
+                      {tt('Hạng mục Vinh danh', 'Honored Categories')}
+                    </h2>
+
+                    {/* Title 2: Do ban tổ chức bình chọn */}
+                    <p
+                      style={{
+                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                        fontStyle: 'normal',
+                        fontWeight: 500,
+                        fontSize: '28px',
+                        lineHeight: '100%',
+                        letterSpacing: '0%',
+                        textAlign: 'center',
+                        verticalAlign: 'middle',
+                        textTransform: 'uppercase',
+                        color: 'rgba(255, 255, 255, 1)',
+                        margin: 0,
+                      }}
+                    >
+                      {tt(
+                        'Do ban tổ chức bình chọn',
+                        'Organized by the organizing committee'
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          </React.Fragment>
         ))}
 
       {/* Facebook Vote Dialog */}
