@@ -125,7 +125,7 @@ export default function Home() {
 
         {/* Content Area */}
         <div className="absolute inset-0 z-10 flex items-center pt-8 md:pt-14 px-4">
-          <Container maxWidth="lg" className="w-full">
+          <Container maxWidth="xl" className="w-full">
             <div className="flex flex-col gap-4 md:gap-6 w-full">
               {/* Title */}
               <div className="gap-3">
@@ -201,12 +201,13 @@ export default function Home() {
                   order: 0,
                   flexGrow: 0,
                 }}
-              >
-                {tt(
-                  'Tham gia bình chọn các đề cử Gala of glory 2025 nhằm tôn vinh những sự kiện, nhân vật, chính sách, công ty…nổi bật nhất trong nền kinh tế Việt Nam.',
-                  "Participate in voting for the Gala of Glory 2025 nominees to honor the most outstanding events, individuals, policies, companies... in Vietnam's economy."
-                )}
-              </p>
+                dangerouslySetInnerHTML={{
+                  __html: tt(
+                    'Tham gia bình chọn và cùng chúng tôi vinh danh những cá nhân, tập thể và dấu ấn đáng nhớ của PUBG Việt Nam trong năm 2025.\n\nPUBG Gala 2025 là dịp để cộng đồng và Ban Tổ Chức cùng nhìn lại hành trình đã qua, ghi nhận những đóng góp, nỗ lực và khoảnh khắc tiêu biểu đã tạo nên bản sắc của PUBG Esports Việt Nam.',
+                    "Join us in voting and honoring the individuals, teams, and memorable moments of PUBG Vietnam in 2025.\n\nPUBG Gala 2025 is an opportunity for the community and Organizing Committee to look back on the journey, recognize contributions, efforts, and representative moments that have shaped the identity of PUBG Esports Vietnam."
+                  ).replace(/\n\n/g, '<br /><br />').replace(/\n/g, '<br />')
+                }}
+              />
 
               {/* Button */}
               <div
@@ -284,7 +285,7 @@ export default function Home() {
         }}
       >
         <div className="relative z-10 w-full flex items-start px-4 py-8 md:py-16">
-          <Container maxWidth="lg" className="w-full">
+          <Container maxWidth="xl" className="w-full">
             <div className="flex flex-col gap-2 md:gap-4">
               {/* Title 1: Những hạng mục vinh danh & bình chọn */}
               <h3
@@ -605,53 +606,55 @@ export default function Home() {
           }}
         >
           <div className="absolute inset-0 z-10 w-full flex items-center justify-center py-4 px-4">
-            <div className="max-w-6xl mx-auto flex flex-col items-center justify-center gap-4 md:gap-8 w-full">
-              {/* Title 1: Hạng mục Bình chọn */}
-              <h2
-                className="text-3xl md:text-5xl"
-                style={
-                  {
+            <Container maxWidth="xl" className="w-full">
+              <div className="flex flex-col items-center justify-center gap-4 md:gap-8 w-full">
+                {/* Title 1: Hạng mục Bình chọn */}
+                <h2
+                  className="text-3xl md:text-5xl"
+                  style={
+                    {
+                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                      fontStyle: 'normal',
+                      fontWeight: 900,
+                      lineHeight: '100%',
+                      letterSpacing: '0%',
+                      textAlign: 'center',
+                      verticalAlign: 'middle',
+                      textTransform: 'uppercase',
+                      background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                      margin: 0,
+                    } as React.CSSProperties
+                  }
+                >
+                  {tt('Hạng mục Bình chọn', 'Voting Categories')}
+                </h2>
+
+                {/* Title 2: kết quả dựa trên 70% bình chọn từ cộng đồng & 30% đánh giá từ ban tổ chức */}
+                <p
+                  className="text-base md:text-3xl"
+                  style={{
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                     fontStyle: 'normal',
-                    fontWeight: 900,
-                    lineHeight: '100%',
+                    fontWeight: 500,
+                    lineHeight: '120%',
                     letterSpacing: '0%',
                     textAlign: 'center',
                     verticalAlign: 'middle',
                     textTransform: 'uppercase',
-                    background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
+                    color: 'rgba(255, 255, 255, 1)',
                     margin: 0,
-                  } as React.CSSProperties
-                }
-              >
-                {tt('Hạng mục Bình chọn', 'Voting Categories')}
-              </h2>
-
-              {/* Title 2: kết quả dựa trên 70% bình chọn từ cộng đồng & 30% đánh giá từ ban tổ chức */}
-              <p
-                className="text-base md:text-3xl"
-                style={{
-                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                  fontStyle: 'normal',
-                  fontWeight: 500,
-                  lineHeight: '120%',
-                  letterSpacing: '0%',
-                  textAlign: 'center',
-                  verticalAlign: 'middle',
-                  textTransform: 'uppercase',
-                  color: 'rgba(255, 255, 255, 1)',
-                  margin: 0,
-                }}
-              >
-                {tt(
-                  'kết quả dựa trên 70% bình chọn từ cộng đồng & 30% đánh giá từ ban tổ chức',
-                  'results based on 70% community voting & 30% organizer evaluation'
-                )}
-              </p>
-            </div>
+                  }}
+                >
+                  {tt(
+                    'kết quả dựa trên 70% bình chọn từ cộng đồng & 30% đánh giá từ ban tổ chức',
+                    'results based on 70% community voting & 30% organizer evaluation'
+                  )}
+                </p>
+              </div>
+            </Container>
           </div>
         </div>
       </div>
@@ -670,7 +673,7 @@ export default function Home() {
                 backgroundRepeat: 'repeat',
               }}
             >
-              <div className="container mx-auto px-4 sm:px-6">
+              <Container maxWidth="xl" className="w-full">
                 <div className="flex flex-col gap-12">
                   {/* Section Titles */}
                   <div className="flex flex-col gap-2 items-center">
@@ -900,6 +903,12 @@ export default function Home() {
                       display: none;
                     }
                     @media (min-width: 768px) {
+                      div[style*='scrollSnapType'] {
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                      }
                       div[style*='scrollSnapType'] > div {
                         width: 100% !important;
                         max-width: none !important;
@@ -907,7 +916,7 @@ export default function Home() {
                     }
                   `}</style>
                 </div>
-              </div>
+              </Container>
             </div>
 
             {/* Honored Categories Info Section - Insert between category id 6 and 7 */}
@@ -941,50 +950,52 @@ export default function Home() {
                     className="absolute inset-0 z-10 w-full flex items-center justify-center"
                     style={{ padding: '12px 16px' }}
                   >
-                    <div className="max-w-6xl mx-auto flex flex-col items-center justify-center gap-4 md:gap-8 w-full px-4">
-                      {/* Title 1: Hạng mục Vinh danh */}
-                      <h2
-                        className="text-3xl md:text-5xl"
-                        style={
-                          {
+                    <Container maxWidth="xl" className="w-full">
+                      <div className="flex flex-col items-center justify-center gap-4 md:gap-8 w-full">
+                        {/* Title 1: Hạng mục Vinh danh */}
+                        <h2
+                          className="text-3xl md:text-5xl"
+                          style={
+                            {
+                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                              fontStyle: 'normal',
+                              fontWeight: 900,
+                              lineHeight: '100%',
+                              letterSpacing: '0%',
+                              textAlign: 'center',
+                              verticalAlign: 'middle',
+                              textTransform: 'uppercase',
+                              background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                              backgroundClip: 'text',
+                              margin: 0,
+                            } as React.CSSProperties
+                          }
+                        >
+                          {tt('Hạng mục Vinh danh', 'Honored Categories')}
+                        </h2>
+
+                        {/* Title 2: Do ban tổ chức bình chọn */}
+                        <p
+                          className="text-base md:text-3xl"
+                          style={{
                             fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                             fontStyle: 'normal',
-                            fontWeight: 900,
-                            lineHeight: '100%',
+                            fontWeight: 500,
+                            lineHeight: '120%',
                             letterSpacing: '0%',
                             textAlign: 'center',
                             verticalAlign: 'middle',
                             textTransform: 'uppercase',
-                            background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            backgroundClip: 'text',
+                            color: 'rgba(255, 255, 255, 1)',
                             margin: 0,
-                          } as React.CSSProperties
-                        }
-                      >
-                        {tt('Hạng mục Vinh danh', 'Honored Categories')}
-                      </h2>
-
-                      {/* Title 2: Do ban tổ chức bình chọn */}
-                      <p
-                        className="text-base md:text-3xl"
-                        style={{
-                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                          fontStyle: 'normal',
-                          fontWeight: 500,
-                          lineHeight: '120%',
-                          letterSpacing: '0%',
-                          textAlign: 'center',
-                          verticalAlign: 'middle',
-                          textTransform: 'uppercase',
-                          color: 'rgba(255, 255, 255, 1)',
-                          margin: 0,
-                        }}
-                      >
-                        {tt('Do ban tổ chức bình chọn', 'Organized by the organizing committee')}
-                      </p>
-                    </div>
+                          }}
+                        >
+                          {tt('Do ban tổ chức bình chọn', 'Organized by the organizing committee')}
+                        </p>
+                      </div>
+                    </Container>
                   </div>
                 </div>
               </div>
@@ -1173,7 +1184,7 @@ export default function Home() {
             zIndex: 1,
           }}
         />
-        <div className="container mx-auto px-4 sm:px-6">
+        <Container maxWidth="xl" className="w-full">
           <div className="flex flex-col md:flex-row gap-8 justify-between items-stretch">
             {/* Part 1: Logo and Description */}
             <div className="flex flex-col gap-4 justify-between h-full md:h-auto" style={{ flex: '1 1 0%' }}>
@@ -1404,7 +1415,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </div>
+          </Container>
       </footer>
     </div>
   );
