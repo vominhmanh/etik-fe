@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Dialog, IconButton, Box, Typography, Button, Stack, Container } from '@mui/material';
+import { Dialog, IconButton, Box, Typography, Button, Stack } from '@mui/material';
 import backgroundGradientImage from '@/images/pubg/background-gradient.png';
 import battlegroundsImage from '@/images/pubg/battlegrounds.png';
 import blackButtonBgImage from '@/images/pubg/black-button-bg.png';
@@ -84,9 +84,20 @@ export default function Home() {
   return (
     <div className="relative w-full">
       {/* Body1: Background Image with Content */}
-      <div className="relative" style={{ width: '100%', height: '800px', backgroundColor: '#000000'}}>
+      <div className="relative w-full">
+        {/* Hidden image to maintain aspect ratio */}
+        <Image
+          src={backgroundImage}
+          alt=""
+          width={1920}
+          height={1080}
+          className="w-full h-auto opacity-0 pointer-events-none"
+          style={{ display: 'block' }}
+          aria-hidden="true"
+          priority
+        />
         {/* Background Image with Gradient Overlay */}
-        <div className="absolute top-0 left-0 w-full h-full" style={{ paddingTop: '80px' }}>
+        <div className="absolute top-0 left-0 w-full h-full">
           <Image
             src={backgroundImage}
             alt="PUBG GALA Background"
@@ -114,7 +125,7 @@ export default function Home() {
 
         {/* Content Area */}
         <div className="absolute inset-0 z-10 flex items-center pt-14">
-          <Container maxWidth="lg">
+          <div className="container mx-auto px-4 sm:px-6 w-full">
             <div className="flex flex-col gap-6">
               {/* Title */}
               <h1
@@ -235,7 +246,7 @@ export default function Home() {
                 </LocalizedLink>
               </div>
             </div>
-          </Container>
+          </div>
         </div>
       </div>
 
@@ -252,7 +263,7 @@ export default function Home() {
         }}
       >
         <div className="relative z-10 w-full flex items-start" style={{ paddingTop: '4rem', paddingBottom: '4rem' }}>
-          <Container maxWidth="lg">
+          <div className="container mx-auto px-4 sm:px-6 w-full">
             <div className="flex flex-col gap-2 md:gap-4">
               {/* Title 1: Những hạng mục vinh danh & bình chọn */}
               <h3
@@ -570,7 +581,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </Container>
+          </div>
         </div>
       </div>
 
