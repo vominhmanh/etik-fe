@@ -6,6 +6,7 @@ export type Nominee = {
   description: string;
   imageUrl: string;
   socialIframe: string;
+  socialUrl: string;
   voteCount: number;
   createdAt: string;
   updatedAt: string;

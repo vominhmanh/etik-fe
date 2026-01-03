@@ -569,44 +569,6 @@ export default function Home() {
                           {category.name}
                         </h3>
                       </div>
-
-                      {/* Vote Button */}
-                      <div className="relative w-full sm:w-auto flex-shrink-0 sm:px-4">
-                        <button
-                          onClick={() => scrollToCategory(4 + index)}
-                          className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
-                          style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
-                        >
-                          <Image
-                            src={blackButtonBgImage}
-                            alt={tt('Bình chọn', 'Vote')}
-                            fill
-                            style={{ objectFit: 'contain' }}
-                          />
-                          {/* Text overlay */}
-                          <span
-                            className="text-base md:text-lg"
-                            style={{
-                              position: 'absolute',
-                              top: '50%',
-                              left: '50%',
-                              transform: 'translate(-50%, -50%)',
-                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                              fontStyle: 'normal',
-                              fontWeight: 900,
-                              lineHeight: '1.2',
-                              textAlign: 'center',
-                              textTransform: 'uppercase',
-                              color: 'rgba(255, 255, 255, 1)',
-                              zIndex: 2,
-                              pointerEvents: 'none',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {tt('Bình chọn', 'Vote')}
-                          </span>
-                        </button>
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -642,9 +604,7 @@ export default function Home() {
             bottom: 0,
           }}
         >
-          <div
-            className="absolute inset-0 z-10 w-full flex items-center justify-center py-4 px-4"
-          >
+          <div className="absolute inset-0 z-10 w-full flex items-center justify-center py-4 px-4">
             <div className="max-w-6xl mx-auto flex flex-col items-center justify-center gap-4 md:gap-8 w-full">
               {/* Title 1: Hạng mục Bình chọn */}
               <h2
