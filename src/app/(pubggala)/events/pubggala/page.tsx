@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Dialog, IconButton, Box } from '@mui/material';
+import { Dialog, IconButton, Box, Typography, Button, Stack } from '@mui/material';
 import backgroundGradientImage from '@/images/pubg/background-gradient.png';
 import battlegroundsImage from '@/images/pubg/battlegrounds.png';
 import blackButtonBgImage from '@/images/pubg/black-button-bg.png';
@@ -29,6 +29,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedSocialUrl, setSelectedSocialUrl] = useState<string>('');
+  const [selectedVoteCount, setSelectedVoteCount] = useState<number>(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,9 +66,10 @@ export default function Home() {
   };
 
   // Handle vote button click
-  const handleVoteClick = (socialUrl: string) => {
+  const handleVoteClick = (socialUrl: string, voteCount: number = 0) => {
     if (socialUrl) {
       setSelectedSocialUrl(socialUrl);
+      setSelectedVoteCount(voteCount);
       setDialogOpen(true);
     }
   };
@@ -76,6 +78,7 @@ export default function Home() {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setSelectedSocialUrl('');
+    setSelectedVoteCount(0);
   };
 
   return (
@@ -825,7 +828,7 @@ export default function Home() {
                                 }}
                               >
                                 <button
-                                  onClick={() => handleVoteClick(nominee.socialUrl)}
+                                  onClick={() => handleVoteClick(nominee.socialUrl, nominee.voteCount || 0)}
                                   className="flex flex-row justify-center items-center cursor-pointer"
                                   style={{
                                     padding: '12px',
@@ -920,29 +923,30 @@ export default function Home() {
         fullWidth
         PaperProps={{
           sx: {
-            width: { xs: '95%', md: '90vw' },
-            maxWidth: '1200px',
-            height: { xs: '95%', md: '90vh' },
+            width: { xs: '90%', sm: '85%', md: '600px' },
+            maxWidth: '600px',
             borderRadius: { xs: '8px', md: '12px' },
             display: 'flex',
             flexDirection: 'column',
+            background: 'linear-gradient(165.61deg, #323232 -4.98%, #000000 107.54%)',
           },
         }}
       >
-        <Box sx={{ position: 'relative', width: '100%', height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', background: 'linear-gradient(165.61deg, #323232 -4.98%, #000000 107.54%)' }}>
           {/* Close Button */}
           <IconButton
             onClick={handleCloseDialog}
             sx={{
               position: 'absolute',
-              top: 16,
-              right: 16,
+              top: 12,
+              right: 12,
               zIndex: 10,
               bgcolor: 'rgba(0, 0, 0, 0.7)',
-              color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
+              color: '#E1C693',
+              border: '1px solid rgba(225, 198, 147, 0.3)',
               '&:hover': {
                 bgcolor: 'rgba(0, 0, 0, 0.9)',
+                border: '1px solid rgba(225, 198, 147, 0.5)',
               },
             }}
             aria-label={tt('Đóng', 'Close')}
@@ -964,18 +968,179 @@ export default function Home() {
             </svg>
           </IconButton>
 
-          {/* Iframe */}
-          {selectedSocialUrl && (
-            <iframe
-              src={selectedSocialUrl}
-              style={{
+          {/* Part 1: Header */}
+          <Box
+            sx={{
+              padding: { xs: '16px', md: '20px' },
+            }}
+          >
+            <Stack direction="column" spacing={2}>
+              <Typography
+                sx={{
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                  fontWeight: 900,
+                  fontSize: { xs: '18px', md: '20px' },
+                  textTransform: 'uppercase',
+                  color: '#E1C693',
+                }}
+              >
+                {tt('Hướng dẫn bình chọn', 'Voting Instructions')}
+              </Typography>
+
+
+
+              <Typography
+                sx={{
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                  fontWeight: 400,
+                  fontSize: { xs: '13px', md: '14px' },
+                  color: '#E1C693',
+                  lineHeight: 1.5,
+                }}
+              >
+                {tt(
+                  'Vui lòng truy cập bài đăng Facebook bên dưới và nhấn “Thích” cho bài đăng để hoàn tất việc bình chọn.',
+                  'Please access the Facebook post below and like the post to complete the voting process.'
+                )}
+              </Typography>
+
+            </Stack>
+          </Box>
+
+          {/* Part 3: Body Iframe - Square */}
+          <Box
+            sx={{
+              paddingX: { xs: '48px', md: '120px' },
+              
+            }}
+          >
+            <Box
+              sx={{
+                position: 'relative',
                 width: '100%',
-                height: '100%',
-                border: 'none',
+                paddingTop: '100%', // Creates 1:1 aspect ratio
+                overflow: 'hidden',
+                border: '3px solid #E1C693',
               }}
-              allow="encrypted-media"
-            />
-          )}
+            >
+              {selectedSocialUrl && (
+                <iframe
+                  src={selectedSocialUrl}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                  }}
+                  allow="encrypted-media"
+                />
+              )}
+            </Box>
+          </Box>
+
+          {/* Part 4: Footer Button and Vote Count */}
+          <Box
+            sx={{
+              padding: { xs: '24px 16px', md: '24px 20px' },
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            {/* Vote Count */}
+            {selectedSocialUrl && (
+              <div className="flex items-baseline gap-1">
+                <span
+                  style={{
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontWeight: 700,
+                    fontStyle: 'normal',
+                    fontSize: '14px',
+                    lineHeight: '100%',
+                    letterSpacing: '0%',
+                    verticalAlign: 'middle',
+                    color: '#E1C693',
+                  }}
+                >
+                  {selectedVoteCount || 0}
+                </span>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontWeight: 400,
+                    fontStyle: 'normal',
+                    fontSize: '12px',
+                    lineHeight: '100%',
+                    letterSpacing: '0%',
+                    verticalAlign: 'middle',
+                    color: '#E1C693',
+                  }}
+                >
+                  {tt('lượt', 'votes')}
+                </span>
+              </div>
+            )}
+
+            {/* Button */}
+            {selectedSocialUrl && (
+              <a
+                href={selectedSocialUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  transition: 'opacity 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.9';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+              >
+                <div
+                  className="relative"
+                  style={{
+                    width: '140px',
+                    height: '40px',
+                    position: 'relative',
+                  }}
+                >
+                  <Image
+                    src={buttonBackgroundImage}
+                    alt={tt('Truy cập ngay', 'Access now')}
+                    fill
+                    style={{ objectFit: 'contain' }}
+                  />
+                  {/* Text overlay */}
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                      fontStyle: 'normal',
+                      fontWeight: 900,
+                      fontSize: '12px',
+                      lineHeight: '1.2',
+                      textAlign: 'center',
+                      textTransform: 'uppercase',
+                      color: '#121026',
+                      zIndex: 2,
+                      pointerEvents: 'none',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {tt('Truy cập ngay', 'Access now')}
+                  </span>
+                </div>
+              </a>
+            )}
+          </Box>
         </Box>
       </Dialog>
 
