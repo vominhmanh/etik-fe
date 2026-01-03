@@ -51,6 +51,8 @@ interface VotingNominee {
   description: string | null;
   imageUrl: string | null;
   socialUrl: string | null;
+  socialIframe: string | null;
+  facebookPostId: string | null;
   voteCount: number;
   createdAt: string;
   updatedAt: string;
@@ -61,6 +63,8 @@ interface VotingNomineeFormData {
   description: string;
   imageUrl: string;
   socialUrl: string;
+  socialIframe: string;
+  facebookPostId: string;
 }
 
 interface VotingNomineesProps {
@@ -93,6 +97,8 @@ export function VotingNominees({
     description: "",
     imageUrl: "",
     socialUrl: "",
+    socialIframe: "",
+    facebookPostId: "",
   });
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string>("");
@@ -128,6 +134,8 @@ export function VotingNominees({
       description: "",
       imageUrl: "",
       socialUrl: "",
+      socialIframe: "",
+      facebookPostId: "",
     });
     setSelectedImageFile(null);
     setPreviewImageUrl("");
@@ -145,6 +153,8 @@ export function VotingNominees({
       description: nominee.description || "",
       imageUrl: nominee.imageUrl || "",
       socialUrl: nominee.socialUrl || "",
+      socialIframe: nominee.socialIframe || "",
+      facebookPostId: nominee.facebookPostId || "",
     });
     setSelectedImageFile(null);
     setPreviewImageUrl(nominee.imageUrl || "");
@@ -242,6 +252,8 @@ export function VotingNominees({
         description: nomineeFormData.description || null,
         imageUrl: imageUrl || null,
         socialUrl: nomineeFormData.socialUrl || null,
+        socialIframe: nomineeFormData.socialIframe || null,
+        facebookPostId: nomineeFormData.facebookPostId || null,
       };
 
       if (editingNominee) {
@@ -325,6 +337,7 @@ export function VotingNominees({
                     <TableCell>Tên đề cử</TableCell>
                     <TableCell>Mô tả</TableCell>
                     <TableCell>Mạng xã hội</TableCell>
+                    <TableCell>Facebook Post ID</TableCell>
                     <TableCell>Số phiếu</TableCell>
                     <TableCell align="right">Thao tác</TableCell>
                   </TableRow>
@@ -332,7 +345,7 @@ export function VotingNominees({
                 <TableBody>
                   {nominees.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7}>
+                      <TableCell colSpan={8}>
                         <Typography variant="body2" align="center">
                           Chưa có đề cử nào
                         </Typography>
@@ -370,6 +383,9 @@ export function VotingNominees({
                           ) : (
                             "-"
                           )}
+                        </TableCell>
+                        <TableCell>
+                          {nominee.facebookPostId || "-"}
                         </TableCell>
                         <TableCell>{nominee.voteCount}</TableCell>
                         <TableCell align="right">
@@ -492,6 +508,32 @@ export function VotingNominees({
               helperText="Nhập URL Facebook, Instagram, TikTok, etc. (nếu có)"
               placeholder="https://..."
             />
+            <TextField
+              label="Facebook Post ID"
+              fullWidth
+              value={nomineeFormData.facebookPostId}
+              onChange={(e) =>
+                setNomineeFormData({ ...nomineeFormData, facebookPostId: e.target.value })
+              }
+              helperText="Nhập Facebook Post ID (nếu có)"
+              placeholder="1234567890_1234567890"
+            />
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Social Iframe Code
+              </Typography>
+              <TextField
+                fullWidth
+                multiline
+                rows={6}
+                value={nomineeFormData.socialIframe}
+                onChange={(e) =>
+                  setNomineeFormData({ ...nomineeFormData, socialIframe: e.target.value })
+                }
+                helperText="Nhập iframe code để embed Facebook post, Instagram post, etc. (nếu có)"
+                placeholder='<iframe src="..." width="..." height="..."></iframe>'
+              />
+            </Box>
           </Stack>
         </DialogContent>
         <DialogActions>
@@ -592,6 +634,32 @@ export function VotingNominees({
               helperText="Nhập URL Facebook, Instagram, TikTok, etc. (nếu có)"
               placeholder="https://..."
             />
+            <TextField
+              label="Facebook Post ID"
+              fullWidth
+              value={nomineeFormData.facebookPostId}
+              onChange={(e) =>
+                setNomineeFormData({ ...nomineeFormData, facebookPostId: e.target.value })
+              }
+              helperText="Nhập Facebook Post ID (nếu có)"
+              placeholder="1234567890_1234567890"
+            />
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Social Iframe Code
+              </Typography>
+              <TextField
+                fullWidth
+                multiline
+                rows={6}
+                value={nomineeFormData.socialIframe}
+                onChange={(e) =>
+                  setNomineeFormData({ ...nomineeFormData, socialIframe: e.target.value })
+                }
+                helperText="Nhập iframe code để embed Facebook post, Instagram post, etc. (nếu có)"
+                placeholder='<iframe src="..." width="..." height="..."></iframe>'
+              />
+            </Box>
           </Stack>
         </DialogContent>
         <DialogActions>

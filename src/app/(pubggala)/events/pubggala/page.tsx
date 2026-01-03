@@ -128,14 +128,11 @@ export default function Home() {
           <Container maxWidth="lg">
             <div className="flex flex-col gap-6">
               {/* Title */}
-              <h1
-                className="text-3xl sm:text-5xl md:text-6xl lg:text-[72px] leading-tight md:leading-[76px]"
+              <div className="gap-3">
+              <h3
+                className="text-xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight md:leading-tight"
                 style={{
-                  width: '910px',
-                  maxWidth: '100%',
-                  height: 'auto',
                   fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                  fontStyle: 'normal',
                   fontWeight: 900,
                   display: 'flex',
                   alignItems: 'center',
@@ -148,8 +145,53 @@ export default function Home() {
                 }}
               >
                 {tt(
-                  'VINH DANH & BÌNH CHỌN PUBG GALA 2025:  GALA OF GLORY',
-                  'HONOR & VOTE PUBG GALA 2025: GALA OF GLORY'
+                  'VINH DANH & BÌNH CHỌN',
+                  'HONOR & VOTE'
+                )}
+               
+              </h3>
+              <h3
+                className="text-xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight md:leading-tight"
+                style={{
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                  fontWeight: 900,
+                  display: 'flex',
+                  alignItems: 'center',
+                  textTransform: 'uppercase',
+                  color: '#E1C693',
+                  flex: 'none',
+                  order: 0,
+                  alignSelf: 'stretch',
+                  flexGrow: 0,
+                }}
+              >
+                
+                {tt(
+                  'PUBG GALA 2025:',
+                  'PUBG GALA 2025:'
+                )}
+              </h3>
+             
+              </div>
+             
+              <h1
+                className="text-3xl sm:text-5xl md:text-6xl lg:text-[72px] leading-tight md:leading-[76px]"
+                style={{
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                  fontWeight: 900,
+                  display: 'flex',
+                  alignItems: 'center',
+                  textTransform: 'uppercase',
+                  color: '#E1C693',
+                  flex: 'none',
+                  order: 0,
+                  alignSelf: 'stretch',
+                  flexGrow: 0,
+                }}
+              >
+                {tt(
+                  'GALA OF GLORY',
+                  'GALA OF GLORY'
                 )}
               </h1>
 
@@ -217,7 +259,6 @@ export default function Home() {
                       src={buttonBackgroundImage}
                       alt={tt('Bình chọn', 'Vote')}
                       fill
-                      style={{ objectFit: 'contain' }}
                       priority
                     />
                     {/* Text overlay */}
@@ -240,7 +281,7 @@ export default function Home() {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {tt('Bình chọn', 'Vote')}
+                      {tt('Bình chọn ngay', 'Vote now')}
                     </span>
                   </div>
                 </LocalizedLink>
