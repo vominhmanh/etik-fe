@@ -175,43 +175,48 @@ export default function PubgGalaPageHeader() {
         <div className="relative flex h-full items-center justify-between gap-2 md:gap-3 px-1 md:px-3">
           {/* Site branding and Navigation */}
           <div className="flex flex-1 items-center min-w-0">
-            <Stack direction="row" spacing={4} style={{ width: '100%' }}>
-              <Stack direction="row" spacing={2}>
-              <Image
-                src={logo}
-                alt="PUBG GALA 2025"
-                width={40}
-                height={40}
-                className="object-contain w-10 h-auto md:w-[40px] md:h-[40px]"
-              />
-              <div style={{ width: '200px' }}>
-                <span
-                  style={{
-                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                    fontSize: '1rem',
-                    lineHeight: '1.2rem',
-                    color: 'rgb(255 255 255 / var(--tw-text-opacity, 1))',
-                  }}
-                >
-                  PUBG GALA 2025
-                </span>
-                <br />
-                <span
-                  style={{
-                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    lineHeight: '1.2rem',
-                    color: 'rgb(255 255 255 / var(--tw-text-opacity, 1))',
-                  }}
-                >
-                  GALA OF GLORY
-                </span>
-              </div>
-            </Stack>
+            <LocalizedLink
+              href="/events/pubggala"
+              style={{ textDecoration: 'none', width: '100%' }}
+            >
+              <Stack direction="row" spacing={4} style={{ width: '100%' }}>
+                <Stack direction="row" spacing={2}>
+                <Image
+                  src={logo}
+                  alt="PUBG GALA 2025"
+                  width={40}
+                  height={40}
+                  className="object-contain w-10 h-auto md:w-[40px] md:h-[40px]"
+                />
+                <div style={{ width: '200px' }}>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                      fontSize: '1rem',
+                      lineHeight: '1.2rem',
+                      color: 'rgb(255 255 255 / var(--tw-text-opacity, 1))',
+                    }}
+                  >
+                    PUBG GALA 2025
+                  </span>
+                  <br />
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                      fontWeight: 700,
+                      fontSize: '1rem',
+                      lineHeight: '1.2rem',
+                      color: 'rgb(255 255 255 / var(--tw-text-opacity, 1))',
+                    }}
+                  >
+                    GALA OF GLORY
+                  </span>
+                </div>
+              </Stack>
 
-            
-            </Stack>
+              
+              </Stack>
+            </LocalizedLink>
             
           </div>
 
@@ -301,7 +306,7 @@ export default function PubgGalaPageHeader() {
               }}
             >
               <LocalizedLink
-                href="/events/pubggala/rules"
+                href="/events/pubggala/terms-and-conditions"
                 className="w-full text-white hover:text-[#E1C693] transition-colors text-sm font-medium"
                 style={{ fontFamily: 'var(--font-montserrat), Montserrat, sans-serif', textDecoration: 'none' }}
               >
@@ -355,7 +360,7 @@ export default function PubgGalaPageHeader() {
                 {tt('Tin tức', 'News')}
               </LocalizedLink> */}
               <LocalizedLink
-                href="/events/pubggala/rules"
+                href="/events/pubggala/terms-and-conditions"
                 className="text-white hover:text-gray-300 transition-colors text-sm font-medium"
                 style={{ fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}
               >
