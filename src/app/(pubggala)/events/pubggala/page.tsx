@@ -30,6 +30,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedSocialIframe, setSelectedSocialIframe] = useState<string>('');
+  const [selectedSocialUrl, setSelectedSocialUrl] = useState<string>('');
   const [selectedVoteCount, setSelectedVoteCount] = useState<number>(0);
   const scrollRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
@@ -78,9 +79,10 @@ export default function Home() {
   };
 
   // Handle vote button click
-  const handleVoteClick = (socialIframe: string, voteCount: number = 0) => {
+  const handleVoteClick = (socialIframe: string, socialUrl: string, voteCount: number = 0) => {
     if (socialIframe) {
       setSelectedSocialIframe(socialIframe);
+      setSelectedSocialUrl(socialUrl || '');
       setSelectedVoteCount(voteCount);
       setDialogOpen(true);
     }
@@ -90,6 +92,7 @@ export default function Home() {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setSelectedSocialIframe('');
+    setSelectedSocialUrl('');
     setSelectedVoteCount(0);
   };
 
@@ -204,8 +207,8 @@ export default function Home() {
                 }}
                 dangerouslySetInnerHTML={{
                   __html: tt(
-                    'Tham gia bình chọn và cùng chúng tôi vinh danh những cá nhân, tập thể và dấu ấn đáng nhớ của PUBG Việt Nam trong năm 2025.\n\nPUBG Gala 2025 là dịp để cộng đồng và Ban Tổ Chức cùng nhìn lại hành trình đã qua, ghi nhận những đóng góp, nỗ lực và khoảnh khắc tiêu biểu đã tạo nên bản sắc của PUBG Esports Việt Nam.',
-                    "Join us in voting and honoring the individuals, teams, and memorable moments of PUBG Vietnam in 2025.\n\nPUBG Gala 2025 is an opportunity for the community and Organizing Committee to look back on the journey, recognize contributions, efforts, and representative moments that have shaped the identity of PUBG Esports Vietnam."
+                    'Tham gia bình chọn và cùng chúng tôi vinh danh những cá nhân, tập thể và dấu ấn đáng nhớ của PUBG Việt Nam trong năm 2025.',
+                    "Join us in voting and honoring the individuals, teams, and memorable moments of PUBG Vietnam in 2025."
                   ).replace(/\n\n/g, '<br /><br />').replace(/\n/g, '<br />')
                 }}
               />
@@ -876,7 +879,7 @@ export default function Home() {
                                         }}
                                       >
                                         <button
-                                          onClick={() => handleVoteClick(nominee.socialIframe, nominee.voteCount || 0)}
+                                          onClick={() => handleVoteClick(nominee.socialIframe, nominee.socialUrl, nominee.voteCount || 0)}
                                           className="flex flex-row justify-center items-center cursor-pointer"
                                           style={{
                                             padding: '12px',
@@ -1045,7 +1048,7 @@ export default function Home() {
                                         }}
                                       >
                                         <button
-                                          onClick={() => handleVoteClick(nominee.socialIframe, nominee.voteCount || 0)}
+                                          onClick={() => handleVoteClick(nominee.socialIframe, nominee.socialUrl, nominee.voteCount || 0)}
                                           className="flex flex-row justify-center items-center cursor-pointer"
                                           style={{
                                             padding: '12px',
@@ -1340,6 +1343,7 @@ export default function Home() {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
+              gap: '16px',
             }}
           >
             {/* Vote Count */}
@@ -1374,6 +1378,59 @@ export default function Home() {
                   {tt('lượt', 'votes')}
                 </span>
               </div>
+            )}
+
+            {/* Button */}
+            {selectedSocialUrl && (
+              <a
+                href={selectedSocialUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  textDecoration: 'none',
+                  flex: 'none',
+                  zIndex: 1,
+                  cursor: 'pointer',
+                  transition: 'opacity 0.2s ease',
+                  position: 'relative',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.9';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+              >
+                <div className="w-32 sm:w-40 md:w-[180px] h-10 sm:h-12 md:h-[50px]" style={{ position: 'relative' }}>
+                  <Image src={buttonBackgroundImage} alt={tt('Truy cập ngay', 'Visit now')} fill priority />
+                  {/* Text overlay */}
+                  <span
+                    className="text-xs sm:text-sm md:text-base"
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                      fontStyle: 'normal',
+                      fontWeight: 900,
+                      lineHeight: '1.2',
+                      textAlign: 'center',
+                      textTransform: 'uppercase',
+                      color: '#121026',
+                      zIndex: 2,
+                      pointerEvents: 'none',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {tt('Truy cập ngay', 'Visit now')}
+                  </span>
+                </div>
+              </a>
             )}
           </Box>
         </Box>
