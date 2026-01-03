@@ -1,6 +1,8 @@
 import './css/style.css';
 
 import { Inter, Montserrat } from 'next/font/google';
+import type { Metadata } from 'next';
+import favicon from '@/images/pubg/favicon.png';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -15,9 +17,12 @@ const montserrat = Montserrat({
   display: 'swap',
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'PUBG Gala 2025 - GALA OF GLORY',
   description: 'PUBG Gala 2025 - GALA OF GLORY',
+  icons: {
+    icon: favicon.src,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
