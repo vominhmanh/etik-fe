@@ -30,6 +30,17 @@ import { LocalizedLink } from '@/components/pubggala/localized-link';
 import PubgGalaPageHeader from '@/components/pubggala/ui/pubggala-page-header';
 import FlipClockCountdown from '@leenguyen/react-flip-clock-countdown';
 import '@leenguyen/react-flip-clock-countdown/dist/index.css';
+import dynamic from 'next/dynamic';
+
+const FacebookSDK = dynamic(
+  () => import('@/components/pubggala/FacebookSDK'),
+  { ssr: false }
+);
+
+const FBPost = dynamic(
+  () => import('@/components/pubggala/FBPost'),
+  { ssr: false }
+);
 
 
 export default function Home() {
@@ -1466,6 +1477,8 @@ export default function Home() {
           },
         }}
       >
+        {/* Load Facebook SDK */}
+        <FacebookSDK />
         <Box
           sx={{
             position: 'relative',
@@ -1540,15 +1553,40 @@ export default function Home() {
             </Stack>
           </Box>
 
-          {/* Part 3: Body Iframe */}
+          {/* Part 3: Body Facebook Post */}
           <Box
             sx={{
               paddingX: { xs: '16px', md: '80px' },
               width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
             }}
           >
-            {selectedSocialIframe && (
-              <iframe src={selectedSocialIframe} style={{ border: '3px solid #E1C693', backgroundColor: "#ffffff", width: '100%', aspectRatio: '480/691' }} title="Facebook Post" />
+            {selectedSocialUrl && (
+              <div
+                style={{
+                  border: '3px solid #E1C693',
+                  backgroundColor: '#ffffff',
+                  width: '100%',
+                  maxWidth: '100%',
+                  minHeight: '400px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'flex-start',
+                  padding: '10px',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: '100%',
+                    maxWidth: '500px',
+                    minWidth: '280px',
+                  }}
+                >
+                  <FBPost href={selectedSocialUrl} />
+                </div>
+              </div>
             )}
           </Box>
 
