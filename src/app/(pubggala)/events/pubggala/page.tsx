@@ -28,6 +28,9 @@ import { Category } from '@/types/voting';
 import { useTranslation } from '@/contexts/locale-context';
 import { LocalizedLink } from '@/components/pubggala/localized-link';
 import PubgGalaPageHeader from '@/components/pubggala/ui/pubggala-page-header';
+import FlipClockCountdown from '@leenguyen/react-flip-clock-countdown';
+import '@leenguyen/react-flip-clock-countdown/dist/index.css';
+
 
 export default function Home() {
   const { tt } = useTranslation();
@@ -38,6 +41,42 @@ export default function Home() {
   const [selectedSocialUrl, setSelectedSocialUrl] = useState<string>('');
   const [selectedVoteCount, setSelectedVoteCount] = useState<number>(0);
   const swiperRefs = useRef<{ [key: number]: SwiperType | null }>({});
+  const [isMobile, setIsMobile] = useState(false);
+  const [isSmallMobile, setIsSmallMobile] = useState(false);
+
+  // Detect screen size for responsive flip clock
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth <= 768);
+      setIsSmallMobile(window.innerWidth <= 480);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  // Flip clock responsive config
+  const getFlipClockConfig = () => {
+    if (isSmallMobile) {
+      return {
+        digitBlock: { width: 28, height: 40, fontSize: 18 },
+        label: { fontSize: 8 },
+      };
+    }
+    if (isMobile) {
+      return {
+        digitBlock: { width: 32, height: 45, fontSize: 20 },
+        label: { fontSize: 9 },
+      };
+    }
+    return {
+      digitBlock: { width: 50, height: 70, fontSize: 36 },
+      label: { fontSize: 12 },
+    };
+  };
+
+  const flipClockConfig = getFlipClockConfig();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -317,6 +356,117 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Voting Categories Info Section */}
+      <div
+        className="relative w-full"
+        style={{
+          backgroundImage: `url(${battlegroundsImage.src})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
+        <div className="relative z-10 w-full flex items-center justify-center py-8 md:py-12">
+          <Container maxWidth="xl" className="w-full">
+            <div className="flex flex-col items-center justify-center gap-2 md:gap-8 w-full">
+              <Stack spacing={1}>
+
+                <h2
+                  className="text-xl md:text-3xl md:leading-[48px]"
+                  style={
+                    {
+                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                      fontStyle: 'normal',
+                      fontWeight: 900,
+                      lineHeight: '32px',
+                      letterSpacing: '0%',
+                      textAlign: 'center',
+                      verticalAlign: 'middle',
+                      textTransform: 'uppercase',
+                      background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                      margin: 0,
+                    } as React.CSSProperties
+                  }
+                >
+                  {tt('16:00 | 17 / 01 / 2026', '16 : 00 | 17 / 01 / 2026')}
+                </h2>
+
+                {/* Title 2: kết quả dựa trên 70% bình chọn từ cộng đồng & 30% đánh giá từ ban tổ chức */}
+                <p
+                  className="text-sm md:text-2xl"
+                  style={{
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontStyle: 'normal',
+                    fontWeight: 500,
+                    lineHeight: '120%',
+                    letterSpacing: '0%',
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    textTransform: 'uppercase',
+                    color: 'rgba(255, 255, 255, 1)',
+                    margin: 0,
+                  }}
+                >
+                  {tt(
+                    'Ariyana Convention Centre - TP. Đà Nẵng',
+                    'Ariyana Convention Centre - TP. Đà Nẵng'
+                  )}
+                </p>
+              </Stack>
+              <div className="flex justify-center items-center w-full">
+                <FlipClockCountdown
+                  to={new Date('2026-01-17T16:00:00').getTime()}
+                  labels={['NGÀY', 'GIỜ', 'PHÚT', 'GIÂY']}
+                  labelStyle={{
+                    fontSize: flipClockConfig.label.fontSize,
+                    fontWeight: 900,
+                    textTransform: 'uppercase',
+                    color: '#E1C693',
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    letterSpacing: '1px',
+                  }}
+                  digitBlockStyle={{
+                    width: flipClockConfig.digitBlock.width,
+                    height: flipClockConfig.digitBlock.height,
+                    fontSize: flipClockConfig.digitBlock.fontSize,
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontWeight: 900,
+                    color: '#E1C693',
+                    borderRadius: 8,
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(225, 198, 147, 0.1)',
+                  }}
+                  dividerStyle={{
+                    color: 'rgba(225, 198, 147, 0.3)',
+                    height: 1,
+                  }}
+                  separatorStyle={{
+                    color: '#E1C693',
+                    size: isMobile ? '6px' : '8px',
+                  }}
+                  duration={0.5}
+                  className="flip-clock"
+                />
+              </div>
+            </div>
+          </Container>
+        </div>
+        {/* Border bottom with gradient */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '1px',
+            background: 'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
+            zIndex: 5,
+          }}
+        />
+      </div>
+
       {/* Body2: Message Section */}
 
       <div
@@ -325,7 +475,7 @@ export default function Home() {
         style={{
           background: 'linear-gradient(165.61deg, rgb(50, 50, 50) -4.98%, rgb(0, 0, 0) 107.54%)',
         }}
-        
+
       >
         <Container maxWidth="xl" className="w-full">
           <div className="flex flex-col gap-2 md:gap-4" data-aos="zoom-out">
@@ -678,9 +828,9 @@ export default function Home() {
             bottom: 0,
           }}
         >
-          <div className="absolute inset-0 z-10 w-full flex items-center justify-center py-4 px-4">
+          <div className="absolute inset-0 z-10 w-full flex items-center justify-center py-4">
             <Container maxWidth="xl" className="w-full">
-              <div className="flex flex-col items-center justify-center gap-4 md:gap-8 w-full">
+              <div className="flex flex-col items-center justify-center gap-2 md:gap-8 w-full">
                 {/* Title 1: Hạng mục Bình chọn */}
                 <h2
                   className="text-2xl md:text-4xl md:leading-[48px]"

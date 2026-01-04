@@ -5,5 +5,5 @@
 /* Additional styles */
 @import "additional-styles/utility-patterns.css";
 @import "additional-styles/theme.css";
-
+@import "additional-styles/flip-clock.css";
 @import "tailwindcss/utilities";
