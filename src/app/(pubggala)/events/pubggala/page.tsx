@@ -62,6 +62,10 @@ export default function Home() {
     return String(index + 1).padStart(2, '0');
   };
 
+  // Separate categories by allowVoting
+  const votingCategories = categories.filter((cat) => cat.allowVoting === true);
+  const honoredCategories = categories.filter((cat) => cat.allowVoting === false);
+
   // Strip HTML tags to get plain text for title attribute
   const stripHtmlTags = (html: string): string => {
     if (typeof window !== 'undefined') {
@@ -103,6 +107,33 @@ export default function Home() {
 
   return (
     <div className="relative w-full">
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes gradient-shift {
+            0% {
+              background-position: 0% 50%;
+            }
+            100% {
+              background-position: 200% 50%;
+            }
+          }
+          .animated-gradient-text {
+            background: linear-gradient(
+              90deg,
+              #E1C693 0%,
+              #FFFFFF 25%,
+              #E1C693 50%,
+              #FFFFFF 75%,
+              #E1C693 100%
+            );
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 9s ease-in-out infinite;
+          }
+        `
+      }} />
       {/* Body1: Background Image with Content */}
       <div className="relative h-[600px] md:h-[800px] w-full" style={{ backgroundColor: '#000000' }}>
         {/* Background Image with Gradient Overlay */}
@@ -135,7 +166,7 @@ export default function Home() {
         {/* Content Area */}
         <div className="absolute inset-0 z-10 flex items-center pt-8 md:pt-14 px-4">
           <Container maxWidth="xl" className="w-full">
-            <div className="flex flex-col gap-4 md:gap-6 w-full">
+            <div className="flex flex-col gap-4 md:gap-6 w-full" data-aos="fade-right">
               {/* Title */}
               <div className="gap-3">
                 <h3
@@ -175,19 +206,21 @@ export default function Home() {
               </div>
 
               <h1
-                className="text-3xl sm:text-5xl md:text-6xl lg:text-[72px] leading-tight md:leading-[76px]"
-                style={{
-                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                  fontWeight: 900,
-                  display: 'flex',
-                  alignItems: 'center',
-                  textTransform: 'uppercase',
-                  color: '#E1C693',
-                  flex: 'none',
-                  order: 0,
-                  alignSelf: 'stretch',
-                  flexGrow: 0,
-                }}
+                className="text-3xl sm:text-5xl md:text-6xl lg:text-[72px] leading-tight md:leading-[76px] animated-gradient-text"
+                style={
+                  {
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontStyle: 'normal',
+                    fontWeight: 900,
+                    display: 'flex',
+                    alignItems: 'center',
+                    textTransform: 'uppercase',
+                    flex: 'none',
+                    order: 0,
+                    alignSelf: 'stretch',
+                    flexGrow: 0,
+                  } as React.CSSProperties
+                }
               >
                 {tt('GALA OF GLORY', 'GALA OF GLORY')}
               </h1>
@@ -292,9 +325,10 @@ export default function Home() {
         style={{
           background: 'linear-gradient(165.61deg, rgb(50, 50, 50) -4.98%, rgb(0, 0, 0) 107.54%)',
         }}
+        
       >
         <Container maxWidth="xl" className="w-full">
-          <div className="flex flex-col gap-2 md:gap-4">
+          <div className="flex flex-col gap-2 md:gap-4" data-aos="zoom-out">
             {/* Title 1: Những hạng mục vinh danh & bình chọn */}
             <h3
               className="text-base md:text-xl"
@@ -365,17 +399,12 @@ export default function Home() {
 
               {/* List of Categories */}
               <div className="flex flex-col">
-                {[
-                  { number: '01', name: 'Tuyển thủ Ấn tượng 2025', nameEn: 'Impresssive Player 2025' },
-                  { number: '02', name: 'Đội tuyển Ấn tượng 2025', nameEn: 'Impresssive Team 2025' },
-                  { number: '03', name: 'Streamer được yêu thích', nameEn: 'Favorite Streamer 2025' },
-                  { number: '04', name: 'Đội ngũ Truyền thông 2025', nameEn: 'Media Team 2025' },
-                ].map((category, index) => (
+                {votingCategories.map((category, index) => (
                   <div
-                    key={index}
+                    key={category.id}
                     className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 sm:gap-4 w-full p-4"
                     style={{
-                      borderBottom: index < 3 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
+                      borderBottom: index < votingCategories.length - 1 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
                       backgroundImage: `url(${cardBackgroundImage.src})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
@@ -410,7 +439,7 @@ export default function Home() {
                             color: 'rgba(18, 16, 38, 1)',
                           }}
                         >
-                          {category.number}
+                          {formatCategoryNumber(index)}
                         </span>
                       </div>
 
@@ -435,7 +464,7 @@ export default function Home() {
                             } as React.CSSProperties
                           }
                         >
-                          {tt(category.name, category.nameEn)}
+                          {tt(category.name, category.name)}
                         </h3>
                       </div>
                     </Stack>
@@ -545,16 +574,12 @@ export default function Home() {
 
               {/* List of Honored Categories */}
               <div className="flex flex-col">
-                {[
-                  { number: '01', name: 'Tuyển thủ Xuất sắc 2025', nameEn: 'Outstanding Player 2025' },
-                  { number: '02', name: 'Đội tuyển Xuất sắc 2025', nameEn: 'Outstanding Team 2025' },
-                  { number: '03', name: 'Tập thể Xuất sắc 2025', nameEn: 'Outstanding Collective 2025' },
-                ].map((category, index) => (
+                {honoredCategories.map((category, index) => (
                   <div
-                    key={index}
+                    key={category.id}
                     className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full p-4"
                     style={{
-                      borderBottom: index < 2 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
+                      borderBottom: index < honoredCategories.length - 1 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
                       backgroundImage: `url(${cardBackgroundImage.src})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
@@ -589,7 +614,7 @@ export default function Home() {
                             color: 'rgba(18, 16, 38, 1)',
                           }}
                         >
-                          {category.number}
+                          {formatCategoryNumber(index)}
                         </span>
                       </div>
 
@@ -614,7 +639,7 @@ export default function Home() {
                             } as React.CSSProperties
                           }
                         >
-                          {category.name}
+                          {tt(category.name, category.name)}
                         </h3>
                       </div>
                     </Stack>
@@ -722,7 +747,7 @@ export default function Home() {
               }}
             >
               <Container maxWidth="xl" className="w-full">
-                <div className="flex flex-col gap-12">
+                <div className="flex flex-col gap-12" data-aos="fade-up">
                   {/* Section Titles */}
                   <div className="flex flex-col gap-2 items-center">
                     {/* Title 1 */}

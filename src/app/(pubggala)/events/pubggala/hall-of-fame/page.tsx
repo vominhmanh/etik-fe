@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
-import backgroundGradientImage from '@/images/pubg/background-gradient.png';
 import battlegroundsImage from '@/images/pubg/battlegrounds.png';
 import blackButtonBgImage from '@/images/pubg/black-button-bg.png';
 import buttonBackgroundImage from '@/images/pubg/button-background.png';
@@ -39,7 +38,14 @@ export default function Home() {
         setIsLoading(true);
         const response = await votingService.getAllInfo(51);
         if (response.data?.categories) {
-          setCategories(response.data.categories);
+          // Sort nominees by voteCount in descending order for each category
+          const sortedCategories = response.data.categories.map((category) => ({
+            ...category,
+            nominees: category.nominees
+              ? [...category.nominees].sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))
+              : [],
+          }));
+          setCategories(sortedCategories);
         }
       } catch (error) {
         console.error('Error fetching voting data:', error);
@@ -55,6 +61,10 @@ export default function Home() {
   const formatCategoryNumber = (index: number) => {
     return String(index + 1).padStart(2, '0');
   };
+
+  // Separate categories by allowVoting
+  const votingCategories = categories.filter((cat) => cat.allowVoting === true);
+  const honoredCategories = categories.filter((cat) => cat.allowVoting === false);
 
   // Strip HTML tags to get plain text for title attribute
   const stripHtmlTags = (html: string): string => {
@@ -129,7 +139,7 @@ export default function Home() {
         {/* Content Area */}
         <div className="absolute inset-0 z-10 flex items-center pt-8 md:pt-14 px-4">
           <Container maxWidth="xl" className="w-full">
-            <div className="flex flex-col gap-4 md:gap-6 w-full">
+            <div className="flex flex-col gap-4 md:gap-6 w-full" data-aos="fade-right">
               {/* Title */}
               <div className="gap-3">
                 <h3
@@ -147,7 +157,7 @@ export default function Home() {
                     flexGrow: 0,
                   }}
                 >
-                  {tt('VINH DANH & BÌNH CHỌN', 'HONOR & VOTE')}
+                  {tt('BẢNG VINH DANH', 'HALL OF FAME')}
                 </h3>
                 <h3
                   className="text-xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight md:leading-tight"
@@ -170,18 +180,24 @@ export default function Home() {
 
               <h1
                 className="text-3xl sm:text-5xl md:text-6xl lg:text-[72px] leading-tight md:leading-[76px]"
-                style={{
-                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                  fontWeight: 900,
-                  display: 'flex',
-                  alignItems: 'center',
-                  textTransform: 'uppercase',
-                  color: '#E1C693',
-                  flex: 'none',
-                  order: 0,
-                  alignSelf: 'stretch',
-                  flexGrow: 0,
-                }}
+                style={
+                  {
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontStyle: 'normal',
+                    fontWeight: 900,
+                    display: 'flex',
+                    alignItems: 'center',
+                    textTransform: 'uppercase',
+                    background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    flex: 'none',
+                    order: 0,
+                    alignSelf: 'stretch',
+                    flexGrow: 0,
+                  } as React.CSSProperties
+                }
               >
                 {tt('GALA OF GLORY', 'GALA OF GLORY')}
               </h1>
@@ -287,7 +303,7 @@ export default function Home() {
         }}
       >
         <Container maxWidth="xl" className="w-full">
-          <div className="flex flex-col gap-2 md:gap-4">
+          <div className="flex flex-col gap-2 md:gap-4" data-aos="zoom-out">
             {/* Title 1: Những hạng mục vinh danh & bình chọn */}
             <h3
               className="text-base md:text-xl"
@@ -358,17 +374,12 @@ export default function Home() {
 
               {/* List of Categories */}
               <div className="flex flex-col">
-                {[
-                  { number: '01', name: 'Tuyển thủ Ấn tượng 2025', nameEn: 'Impresssive Player 2025' },
-                  { number: '02', name: 'Đội tuyển Ấn tượng 2025', nameEn: 'Impresssive Team 2025' },
-                  { number: '03', name: 'Streamer được yêu thích', nameEn: 'Favorite Streamer 2025' },
-                  { number: '04', name: 'Đội ngũ Truyền thông 2025', nameEn: 'Media Team 2025' },
-                ].map((category, index) => (
+                {votingCategories.map((category, index) => (
                   <div
-                    key={index}
+                    key={category.id}
                     className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 sm:gap-4 w-full p-4"
                     style={{
-                      borderBottom: index < 3 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
+                      borderBottom: index < votingCategories.length - 1 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
                       backgroundImage: `url(${cardBackgroundImage.src})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
@@ -403,7 +414,7 @@ export default function Home() {
                             color: 'rgba(18, 16, 38, 1)',
                           }}
                         >
-                          {category.number}
+                          {formatCategoryNumber(index)}
                         </span>
                       </div>
 
@@ -428,14 +439,19 @@ export default function Home() {
                             } as React.CSSProperties
                           }
                         >
-                          {tt(category.name, category.nameEn)}
+                          {tt(category.name, category.name)}
                         </h3>
                       </div>
                     </Stack>
                     {/* Vote Button - Desktop only */}
                     <div className="hidden md:block relative w-full sm:w-auto flex-shrink-0 sm:px-4">
                       <button
-                        onClick={() => scrollToCategory(index)}
+                        onClick={() => {
+                          const categoryIndex = categories.findIndex((cat) => cat.id === category.id);
+                          if (categoryIndex !== -1) {
+                            scrollToCategory(categoryIndex);
+                          }
+                        }}
                         className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
                         style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
                       >
@@ -475,7 +491,14 @@ export default function Home() {
               {/* Vote Button - Mobile only */}
               <div className="block md:hidden relative w-full sm:w-auto flex-shrink-0 sm:px-4 mt-4">
                 <button
-                  onClick={() => scrollToCategory(0)}
+                  onClick={() => {
+                    if (votingCategories.length > 0) {
+                      const categoryIndex = categories.findIndex((cat) => cat.id === votingCategories[0].id);
+                      if (categoryIndex !== -1) {
+                        scrollToCategory(categoryIndex);
+                      }
+                    }
+                  }}
                   className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
                   style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
                 >
@@ -538,16 +561,12 @@ export default function Home() {
 
               {/* List of Honored Categories */}
               <div className="flex flex-col">
-                {[
-                  { number: '01', name: 'Tuyển thủ Xuất sắc 2025', nameEn: 'Outstanding Player 2025' },
-                  { number: '02', name: 'Đội tuyển Xuất sắc 2025', nameEn: 'Outstanding Team 2025' },
-                  { number: '03', name: 'Tập thể Xuất sắc 2025', nameEn: 'Outstanding Collective 2025' },
-                ].map((category, index) => (
+                {honoredCategories.map((category, index) => (
                   <div
-                    key={index}
+                    key={category.id}
                     className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full p-4"
                     style={{
-                      borderBottom: index < 2 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
+                      borderBottom: index < honoredCategories.length - 1 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
                       backgroundImage: `url(${cardBackgroundImage.src})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
@@ -582,7 +601,7 @@ export default function Home() {
                             color: 'rgba(18, 16, 38, 1)',
                           }}
                         >
-                          {category.number}
+                          {formatCategoryNumber(index)}
                         </span>
                       </div>
 
@@ -607,7 +626,7 @@ export default function Home() {
                             } as React.CSSProperties
                           }
                         >
-                          {category.name}
+                          {tt(category.name, category.name)}
                         </h3>
                       </div>
                     </Stack>
@@ -715,7 +734,7 @@ export default function Home() {
               }}
             >
               <Container maxWidth="xl" className="w-full">
-                <div className="flex flex-col gap-12">
+                <div className="flex flex-col gap-12" data-aos="fade-up">
                   {/* Section Titles */}
                   <div className="flex flex-col gap-2 items-center">
                     {/* Number Box */}
@@ -786,17 +805,43 @@ export default function Home() {
                   </div>
 
                   {/* Grid Layout - 2 columns on desktop, 1 column on mobile */}
-                  {category.nominees && category.nominees.length > 0 ? (
-                    <Grid container spacing={3}>
-                      {category.nominees.map((nominee) => (
+                  <div
+                    className="flex flex-col mt-6 p-4 md:p-10"
+                    style={{
+                      background: 'linear-gradient(165.61deg, rgb(50, 50, 50) -4.98%, rgb(0, 0, 0) 107.54%)',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    {category.nominees && category.nominees.length > 0 ? (
+                      <Grid container spacing={3}>
+                      {category.nominees.map((nominee, nomineeIndex) => (
                         <Grid item xs={12} md={6} key={nominee.id}>
                           <div
-                            className="flex flex-row bg-black w-full p-4 gap-4"
+                            className="flex flex-row w-full p-4 gap-4"
                             style={{
                               position: 'relative',
                               overflow: 'hidden',
+                              backgroundColor: nomineeIndex === 0 ? 'transparent' : '#000000',
+                              backgroundImage: nomineeIndex === 0
+                                ? 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)'
+                                : undefined,
                             }}
                           >
+                            {/* Gradient Overlay for non-first items */}
+                            {nomineeIndex !== 0 && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  background: 'radial-gradient(67.71% 67.71% at 71.95% 54.6%, rgba(225, 198, 147, 0.2) 0%, rgba(225, 198, 147, 0) 100%)',
+                                  pointerEvents: 'none',
+                                  zIndex: 0,
+                                }}
+                              />
+                            )}
                             {/* Profile Picture - Left Side */}
                             <div
                               className="flex-shrink-0"
@@ -805,6 +850,7 @@ export default function Home() {
                                 height: '100px',
                                 position: 'relative',
                                 overflow: 'hidden',
+                                zIndex: 1,
                               }}
                             >
                               <Image
@@ -818,19 +864,19 @@ export default function Home() {
                             </div>
 
                             {/* Content - Right Side */}
-                            <div className="flex flex-col flex-1 gap-3">
+                            <div className="flex flex-col flex-1 gap-3" style={{ position: 'relative', zIndex: 1 }}>
                               {/* Player Name */}
                               <h3
+                                className="text-sm md:text-lg"
                                 style={{
                                   fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                                   fontWeight: 900,
                                   fontStyle: 'normal',
-                                  fontSize: '18px',
-                                  lineHeight: '23.4px',
+                                  lineHeight: '1.3',
                                   letterSpacing: '-0.36px',
                                   verticalAlign: 'middle',
                                   textTransform: 'uppercase',
-                                  color: 'rgba(255, 255, 255, 1)',
+                                  color: nomineeIndex === 0 ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)',
                                   margin: 0,
                                 }}
                               >
@@ -840,15 +886,15 @@ export default function Home() {
                               {/* Description */}
                               <div
                                 title={stripHtmlTags(nominee.description)}
+                                className="text-xs md:text-sm"
                                 style={{
                                   fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                                   fontWeight: 400,
                                   fontStyle: 'normal',
-                                  fontSize: '14px',
                                   lineHeight: '1.4',
                                   letterSpacing: '0%',
                                   verticalAlign: 'middle',
-                                  color: 'rgba(255, 255, 255, 1)',
+                                  color: nomineeIndex === 0 ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)',
                                   textAlign: 'left',
                                   display: '-webkit-box',
                                   WebkitLineClamp: 3,
@@ -859,12 +905,14 @@ export default function Home() {
                                 dangerouslySetInnerHTML={{ __html: nominee.description }}
                               />
 
-                              {/* Gold Separator Line */}
+                              {/* Separator Line */}
                               <div
                                 style={{
                                   width: '100%',
                                   height: '1px',
-                                  background: '#E1C693',
+                                  background: nomineeIndex === 0
+                                    ? 'linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0) 100%)'
+                                    : 'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
                                   marginTop: '4px',
                                   marginBottom: '4px',
                                 }}
@@ -921,7 +969,7 @@ export default function Home() {
                                         lineHeight: '100%',
                                         letterSpacing: '0%',
                                         verticalAlign: 'middle',
-                                        color: 'rgba(255, 255, 255, 1)',
+                                        color: nomineeIndex === 0 ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)',
                                       }}
                                     >
                                       {nominee.voteCount || 0}
@@ -935,7 +983,7 @@ export default function Home() {
                                         lineHeight: '100%',
                                         letterSpacing: '0%',
                                         verticalAlign: 'middle',
-                                        color: 'rgba(255, 255, 255, 1)',
+                                        color: nomineeIndex === 0 ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)',
                                       }}
                                     >
                                       {tt('lượt', 'votes')}
@@ -944,13 +992,28 @@ export default function Home() {
                                 </div>
                               )}
                             </div>
+                            {/* Border bottom with gradient */}
+                            <div
+                              style={{
+                                position: 'absolute',
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                height: '1px',
+                                background: nomineeIndex === 0
+                                  ? 'linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0) 100%)'
+                                  : 'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
+                                zIndex: 5,
+                              }}
+                            />
                           </div>
                         </Grid>
                       ))}
-                    </Grid>
-                  ) : (
-                    <div className="text-white text-center">{tt('Chưa có ứng viên nào', 'No nominees yet')}</div>
-                  )}
+                      </Grid>
+                    ) : (
+                      <div className="text-white text-center">{tt('Chưa có ứng viên nào', 'No nominees yet')}</div>
+                    )}
+                  </div>
                 </div>
               </Container>
             </div>

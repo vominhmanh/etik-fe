@@ -206,7 +206,7 @@ export default function PubgGalaPageHeader() {
                       fontWeight: 700,
                       fontSize: '1rem',
                       lineHeight: '1.2rem',
-                      color: 'rgb(255 255 255 / var(--tw-text-opacity, 1))',
+                      background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
                     }}
                   >
                     GALA OF GLORY
