@@ -1586,7 +1586,7 @@ export default function Home() {
                     minWidth: '280px',
                   }}
                 >
-                  <FBPost href={selectedSocialUrl} />
+                  <FBPost key={`${selectedSocialUrl}-${dialogOpen}`} href={selectedSocialUrl} />
                 </div>
               </div>
             )}
