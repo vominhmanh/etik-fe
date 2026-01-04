@@ -571,6 +571,13 @@ export default function Home() {
                       backgroundPosition: 'center',
                       backgroundRepeat: 'no-repeat',
                       position: 'relative',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => {
+                      const categoryIndex = categories.findIndex((cat) => cat.id === category.id);
+                      if (categoryIndex !== -1) {
+                        scrollToCategory(categoryIndex);
+                      }
                     }}
                   >
                     {/* Number Box */}
@@ -632,7 +639,13 @@ export default function Home() {
                     {/* Vote Button - Desktop only */}
                     <div className="hidden md:block relative w-full sm:w-auto flex-shrink-0 sm:px-4">
                       <button
-                        onClick={() => scrollToCategory(index)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const categoryIndex = categories.findIndex((cat) => cat.id === category.id);
+                          if (categoryIndex !== -1) {
+                            scrollToCategory(categoryIndex);
+                          }
+                        }}
                         className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
                         style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
                       >
