@@ -1,13 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import logo from '@/images/pubg/logo.png';
 import { Box, Container, Typography } from '@mui/material';
 
 import { useTranslation } from '@/contexts/locale-context';
 import PubgGalaPageHeader from '@/components/pubggala/ui/pubggala-page-header';
 import PubgGalaFooter from '@/components/pubggala/ui/pubggala-footer';
+
+import Image from 'next/image';
+import buttonBackgroundImage from '@/images/pubg/button-background.png';
+import backgroundImage from '@/images/pubg/KV_PUBG_GALA_16x9.jpg';
+import { LocalizedLink } from '@/components/pubggala/localized-link';
 
 export default function TermsAndConditionsPage() {
   const { tt } = useTranslation();
@@ -42,8 +46,216 @@ export default function TermsAndConditionsPage() {
         position: 'relative',
       }}
     >
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes gradient-shift {
+            0% {
+              background-position: 0% 50%;
+            }
+            100% {
+              background-position: 200% 50%;
+            }
+          }
+          .animated-gradient-text {
+            background: linear-gradient(
+              90deg,
+              #E1C693 0%,
+              #FFFFFF 25%,
+              #E1C693 50%,
+              #FFFFFF 75%,
+              #E1C693 100%
+            );
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 9s ease-in-out infinite;
+          }
+        `
+      }} />
+      {/* Body1: Background Image with Content */}
+      <div className="relative h-[600px] md:h-[800px] w-full" style={{ backgroundColor: '#000000' }}>
+        {/* Background Image with Gradient Overlay */}
+        <div className="absolute top-0 left-0 w-full h-full pt-[60px] md:pt-20">
+          <Image
+            src={backgroundImage}
+            alt="PUBG GALA Background"
+            width={1920}
+            height={1080}
+            priority
+            className="w-full h-full"
+            style={{ zIndex: 0, objectFit: 'cover', width: '100%', height: '100%', display: 'block' }}
+            sizes="100vw"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(94.87deg, #000000 -3.8%, rgba(0, 0, 0, 0) 104.83%)',
+              zIndex: 1,
+              pointerEvents: 'none',
+            }}
+          />
+        </div>
+
+        {/* Header */}
+        <div className="absolute top-0 left-0 w-full z-20">
+          <PubgGalaPageHeader />
+        </div>
+
+        {/* Content Area */}
+        <div className="absolute inset-0 z-10 flex items-center pt-8 md:pt-14 px-4">
+          <Container maxWidth="xl" className="w-full">
+            <div className="flex flex-col gap-4 md:gap-6 w-full" data-aos="fade-right">
+              {/* Title */}
+              <div className="gap-3">
+                <h3
+                  className="text-xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight md:leading-tight"
+                  style={{
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontWeight: 900,
+                    display: 'flex',
+                    alignItems: 'center',
+                    textTransform: 'uppercase',
+                    color: '#E1C693',
+                    flex: 'none',
+                    order: 0,
+                    alignSelf: 'stretch',
+                    flexGrow: 0,
+                  }}
+                >
+                  {tt('VINH DANH & BÌNH CHỌN', 'HONOR & VOTE')}
+                </h3>
+                <h3
+                  className="text-xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight md:leading-tight"
+                  style={{
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontWeight: 900,
+                    display: 'flex',
+                    alignItems: 'center',
+                    textTransform: 'uppercase',
+                    color: '#E1C693',
+                    flex: 'none',
+                    order: 0,
+                    alignSelf: 'stretch',
+                    flexGrow: 0,
+                  }}
+                >
+                  {tt('PUBG GALA 2025:', 'PUBG GALA 2025:')}
+                </h3>
+              </div>
+
+              <h1
+                className="text-3xl sm:text-5xl md:text-6xl lg:text-[72px] leading-tight md:leading-[76px] animated-gradient-text"
+                style={
+                  {
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontStyle: 'normal',
+                    fontWeight: 900,
+                    display: 'flex',
+                    alignItems: 'center',
+                    textTransform: 'uppercase',
+                    flex: 'none',
+                    order: 0,
+                    alignSelf: 'stretch',
+                    flexGrow: 0,
+                  } as React.CSSProperties
+                }
+              >
+                {tt('GALA OF GLORY', 'GALA OF GLORY')}
+              </h1>
+
+              {/* Description */}
+              <p
+                className="text-sm sm:text-base md:text-lg"
+                style={{
+                  width: '100%',
+                  maxWidth: '476px',
+                  height: 'auto',
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                  fontStyle: 'normal',
+                  fontWeight: 900,
+                  lineHeight: '1.3',
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: '#FFFFFF',
+                  flex: 'none',
+                  order: 0,
+                  flexGrow: 0,
+                }}
+                dangerouslySetInnerHTML={{
+                  __html: tt(
+                    'Tham gia bình chọn và cùng chúng tôi vinh danh những cá nhân, tập thể và dấu ấn đáng nhớ của PUBG Việt Nam trong năm 2025.',
+                    "Join us in voting and honoring the individuals, teams, and memorable moments of PUBG Vietnam in 2025."
+                  ).replace(/\n\n/g, '<br /><br />').replace(/\n/g, '<br />')
+                }}
+              />
+
+              {/* Button */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  isolation: 'isolate',
+                  flex: 'none',
+                  order: 1,
+                  flexGrow: 0,
+                }}
+              >
+                <LocalizedLink
+                  href="/events/pubggala#award-categories-list"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    textDecoration: 'none',
+                    flex: 'none',
+                    order: 1,
+                    flexGrow: 0,
+                    zIndex: 1,
+                    cursor: 'pointer',
+                    transition: 'opacity 0.2s ease',
+                    position: 'relative',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '0.9';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                >
+                  <div className="w-40 sm:w-48 md:w-[220px] h-12 sm:h-14 md:h-[60px]" style={{ position: 'relative' }}>
+                    <Image src={buttonBackgroundImage} alt={tt('Bình chọn', 'Vote')} fill priority />
+                    {/* Text overlay */}
+                    <span
+                      className="text-sm sm:text-base md:text-xl"
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                        fontStyle: 'normal',
+                        fontWeight: 900,
+                        lineHeight: '1.2',
+                        textAlign: 'center',
+                        textTransform: 'uppercase',
+                        color: '#121026',
+                        zIndex: 2,
+                        pointerEvents: 'none',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {tt('Bình chọn ngay', 'Vote now')}
+                    </span>
+                  </div>
+                </LocalizedLink>
+              </div>
+            </div>
+          </Container>
+        </div>
+      </div>
       <div style={{ position: 'relative', zIndex: 10 }}>
-        <PubgGalaPageHeader />
 
         <Container maxWidth="xl" className="w-full py-32 md:py-32">
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
@@ -63,7 +275,7 @@ export default function TermsAndConditionsPage() {
                           fontSize: '16px',
                           fontWeight: 900,
                           fontStyle: 'normal',
-                          lineHeight: '100%',
+                          lineHeight: '150%',
                           letterSpacing: '0%',
                           verticalAlign: 'middle',
                           padding: '8px 0',
@@ -108,7 +320,7 @@ export default function TermsAndConditionsPage() {
                   fontSize: '32px',
                   fontWeight: 900,
                   fontStyle: 'normal',
-                  lineHeight: '100%',
+                  lineHeight: '150%',
                   letterSpacing: '0%',
                   verticalAlign: 'middle',
                   color: 'rgba(255, 255, 255, 1)',
@@ -137,7 +349,7 @@ export default function TermsAndConditionsPage() {
                     fontSize: '16px',
                     fontWeight: 900,
                     fontStyle: 'normal',
-                    lineHeight: '100%',
+                    lineHeight: '150%',
                     letterSpacing: '0%',
                     verticalAlign: 'middle',
                     color: 'rgba(255, 255, 255, 1)',
@@ -152,7 +364,7 @@ export default function TermsAndConditionsPage() {
                     fontSize: '14px',
                     fontWeight: 500,
                     fontStyle: 'normal',
-                    lineHeight: '100%',
+                    lineHeight: '150%',
                     letterSpacing: '0%',
                     verticalAlign: 'middle',
                     color: 'rgba(255, 255, 255, 1)',
@@ -186,7 +398,7 @@ export default function TermsAndConditionsPage() {
                     fontSize: '16px',
                     fontWeight: 900,
                     fontStyle: 'normal',
-                    lineHeight: '100%',
+                    lineHeight: '150%',
                     letterSpacing: '0%',
                     verticalAlign: 'middle',
                     color: 'rgba(255, 255, 255, 1)',
@@ -201,7 +413,7 @@ export default function TermsAndConditionsPage() {
                     fontSize: '14px',
                     fontWeight: 500,
                     fontStyle: 'normal',
-                    lineHeight: '100%',
+                    lineHeight: '150%',
                     letterSpacing: '0%',
                     verticalAlign: 'middle',
                     color: 'rgba(255, 255, 255, 1)',
@@ -235,7 +447,7 @@ export default function TermsAndConditionsPage() {
                     fontSize: '16px',
                     fontWeight: 900,
                     fontStyle: 'normal',
-                    lineHeight: '100%',
+                    lineHeight: '150%',
                     letterSpacing: '0%',
                     verticalAlign: 'middle',
                     color: 'rgba(255, 255, 255, 1)',
@@ -250,7 +462,7 @@ export default function TermsAndConditionsPage() {
                     fontSize: '14px',
                     fontWeight: 500,
                     fontStyle: 'normal',
-                    lineHeight: '100%',
+                    lineHeight: '150%',
                     letterSpacing: '0%',
                     verticalAlign: 'middle',
                     color: 'rgba(255, 255, 255, 1)',
@@ -274,7 +486,7 @@ export default function TermsAndConditionsPage() {
                       fontSize: '16px',
                       fontWeight: 900,
                       fontStyle: 'normal',
-                      lineHeight: '100%',
+                      lineHeight: '150%',
                       letterSpacing: '0%',
                       verticalAlign: 'middle',
                       color: '#E1C693',
@@ -289,7 +501,7 @@ export default function TermsAndConditionsPage() {
                       fontSize: '14px',
                       fontWeight: 500,
                       fontStyle: 'normal',
-                      lineHeight: '100%',
+                      lineHeight: '150%',
                       letterSpacing: '0%',
                       verticalAlign: 'middle',
                       color: 'rgba(255, 255, 255, 1)',
@@ -309,7 +521,7 @@ export default function TermsAndConditionsPage() {
                         fontSize: '14px',
                         fontWeight: 500,
                         fontStyle: 'normal',
-                        lineHeight: '100%',
+                        lineHeight: '150%',
                         letterSpacing: '0%',
                         verticalAlign: 'middle',
                         color: 'rgba(255, 255, 255, 1)',
@@ -328,7 +540,7 @@ export default function TermsAndConditionsPage() {
                         fontSize: '14px',
                         fontWeight: 500,
                         fontStyle: 'normal',
-                        lineHeight: '100%',
+                        lineHeight: '150%',
                         letterSpacing: '0%',
                         verticalAlign: 'middle',
                         color: 'rgba(255, 255, 255, 1)',
@@ -353,7 +565,7 @@ export default function TermsAndConditionsPage() {
                       fontSize: '16px',
                       fontWeight: 900,
                       fontStyle: 'normal',
-                      lineHeight: '100%',
+                      lineHeight: '150%',
                       letterSpacing: '0%',
                       verticalAlign: 'middle',
                       color: '#E1C693',
@@ -368,7 +580,7 @@ export default function TermsAndConditionsPage() {
                       fontSize: '14px',
                       fontWeight: 500,
                       fontStyle: 'normal',
-                      lineHeight: '100%',
+                      lineHeight: '150%',
                       letterSpacing: '0%',
                       verticalAlign: 'middle',
                       color: 'rgba(255, 255, 255, 1)',
@@ -388,7 +600,7 @@ export default function TermsAndConditionsPage() {
                         fontSize: '16px',
                         fontWeight: 900,
                         fontStyle: 'normal',
-                        lineHeight: '100%',
+                        lineHeight: '150%',
                         letterSpacing: '0%',
                         verticalAlign: 'middle',
                         color: '#E1C693',
@@ -403,7 +615,7 @@ export default function TermsAndConditionsPage() {
                         fontSize: '14px',
                         fontWeight: 500,
                         fontStyle: 'normal',
-                        lineHeight: '100%',
+                        lineHeight: '150%',
                         letterSpacing: '0%',
                         verticalAlign: 'middle',
                         color: 'rgba(255, 255, 255, 1)',
