@@ -1,26 +1,23 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import backgroundGradientImage from '@/images/pubg/background-gradient.png';
 import battlegroundsImage from '@/images/pubg/battlegrounds.png';
 import blackButtonBgImage from '@/images/pubg/black-button-bg.png';
 import buttonBackgroundImage from '@/images/pubg/button-background.png';
-import cafefLogo from '@/images/pubg/cafef.png';
 import cardBackgroundImage from '@/images/pubg/card-background.png';
 import chickenWinnerImage from '@/images/pubg/chicken-winner.png';
-import facebookIcon from '@/images/pubg/facebook.svg';
 import heartIcon from '@/images/pubg/heart.svg';
 import backgroundImage from '@/images/pubg/KV_PUBG_GALA_16x9.jpg';
 import logo from '@/images/pubg/logo.png';
 import soldierBackgroundImage from '@/images/pubg/soldier-background.png';
-import tiktokIcon from '@/images/pubg/tiktok.svg';
-import vccorpLogo from '@/images/pubg/vccorp.png';
 import votingService from '@/services/Voting.service';
 import { Box, Container, Dialog, Grid, IconButton, Stack, Typography } from '@mui/material';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation } from 'swiper/modules';
 import type { Swiper as SwiperType } from 'swiper';
+import { Navigation } from 'swiper/modules';
+import { Swiper, SwiperSlide } from 'swiper/react';
+
 import 'swiper/css';
 import 'swiper/css/navigation';
 
@@ -28,6 +25,7 @@ import { Category } from '@/types/voting';
 import { useTranslation } from '@/contexts/locale-context';
 import { LocalizedLink } from '@/components/pubggala/localized-link';
 import PubgGalaPageHeader from '@/components/pubggala/ui/pubggala-page-header';
+import PubgGalaFooter from '@/components/pubggala/ui/pubggala-footer';
 
 export default function Home() {
   const { tt } = useTranslation();
@@ -213,8 +211,10 @@ export default function Home() {
                 dangerouslySetInnerHTML={{
                   __html: tt(
                     'Tham gia bình chọn và cùng chúng tôi vinh danh những cá nhân, tập thể và dấu ấn đáng nhớ của PUBG Việt Nam trong năm 2025.',
-                    "Join us in voting and honoring the individuals, teams, and memorable moments of PUBG Vietnam in 2025."
-                  ).replace(/\n\n/g, '<br /><br />').replace(/\n/g, '<br />')
+                    'Join us in voting and honoring the individuals, teams, and memorable moments of PUBG Vietnam in 2025.'
+                  )
+                    .replace(/\n\n/g, '<br /><br />')
+                    .replace(/\n/g, '<br />'),
                 }}
               />
 
@@ -486,12 +486,7 @@ export default function Home() {
                   className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
                   style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
                 >
-                  <Image
-                    src={blackButtonBgImage}
-                    alt={tt('Bình chọn', 'Vote')}
-                    fill
-                    style={{ objectFit: 'contain' }}
-                  />
+                  <Image src={blackButtonBgImage} alt={tt('Bình chọn', 'Vote')} fill style={{ objectFit: 'contain' }} />
                   {/* Text overlay */}
                   <span
                     className="text-base md:text-lg"
@@ -625,7 +620,6 @@ export default function Home() {
           </div>
         </Container>
       </div>
-
 
       {/* Voting Categories Info Section */}
       <div className="relative w-full">
@@ -867,9 +861,7 @@ export default function Home() {
                                 />
 
                                 {/* Card Content */}
-                                <div
-                                  className="relative z-10 flex flex-col h-full p-4 justify-between"
-                                >
+                                <div className="relative z-10 flex flex-col h-full p-4 justify-between">
                                   {/* Card Title - Top */}
                                   <h3
                                     style={{
@@ -924,7 +916,13 @@ export default function Home() {
                                           }}
                                         >
                                           <button
-                                            onClick={() => handleVoteClick(nominee.socialIframe, nominee.socialUrl, nominee.voteCount || 0)}
+                                            onClick={() =>
+                                              handleVoteClick(
+                                                nominee.socialIframe,
+                                                nominee.socialUrl,
+                                                nominee.voteCount || 0
+                                              )
+                                            }
                                             className="flex flex-row justify-center items-center cursor-pointer"
                                             style={{
                                               padding: '12px',
@@ -1038,9 +1036,7 @@ export default function Home() {
                                 />
 
                                 {/* Card Content */}
-                                <div
-                                  className="relative z-10 flex flex-col h-full p-4 justify-between"
-                                >
+                                <div className="relative z-10 flex flex-col h-full p-4 justify-between">
                                   {/* Card Title - Top */}
                                   <h3
                                     style={{
@@ -1095,7 +1091,13 @@ export default function Home() {
                                           }}
                                         >
                                           <button
-                                            onClick={() => handleVoteClick(nominee.socialIframe, nominee.socialUrl, nominee.voteCount || 0)}
+                                            onClick={() =>
+                                              handleVoteClick(
+                                                nominee.socialIframe,
+                                                nominee.socialUrl,
+                                                nominee.voteCount || 0
+                                              )
+                                            }
                                             className="flex flex-row justify-center items-center cursor-pointer"
                                             style={{
                                               padding: '12px',
@@ -1373,7 +1375,16 @@ export default function Home() {
             }}
           >
             {selectedSocialIframe && (
-              <iframe src={selectedSocialIframe} style={{ border: '3px solid #E1C693', backgroundColor: "#ffffff", width: '100%', aspectRatio: '480/691' }} title="Facebook Post" />
+              <iframe
+                src={selectedSocialIframe}
+                style={{
+                  border: '3px solid #E1C693',
+                  backgroundColor: '#ffffff',
+                  width: '100%',
+                  aspectRatio: '480/691',
+                }}
+                title="Facebook Post"
+              />
             )}
           </Box>
 
@@ -1430,10 +1441,7 @@ export default function Home() {
                 lineHeight: 1.5,
               }}
             >
-              {tt(
-                'Nhấn Like bài đăng để bình chọn',
-                'Like the post to complete the voting process.'
-              )}
+              {tt('Nhấn Like bài đăng để bình chọn', 'Like the post to complete the voting process.')}
             </Typography>
 
             {/* Button */}
@@ -1493,251 +1501,7 @@ export default function Home() {
       </Dialog>
 
       {/* Footer */}
-      <footer className="relative w-full bg-black py-8 md:py-12">
-        {/* Border top with gradient */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '1px',
-            background: 'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
-            zIndex: 1,
-          }}
-        />
-        <Container maxWidth="xl" className="w-full">
-          <div className="flex flex-col md:flex-row gap-8 justify-between items-stretch">
-            {/* Part 1: Logo and Description */}
-            <div className="flex flex-col gap-4 justify-between h-full md:h-auto" style={{ flex: '1 1 0%' }}>
-              <div className="flex gap-1">
-                <Image
-                  src={logo}
-                  alt="PUBG GALA 2025"
-                  width={40}
-                  height={40}
-                  className="h-auto"
-                  style={{ height: 'auto' }}
-                />
-                <div>
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                      fontSize: '14px',
-                      lineHeight: '20px',
-                      color: '#FFFFFF',
-                    }}
-                  >
-                    PUBG GALA 2025
-                  </span>
-                  <br />
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                      fontWeight: 700,
-                      fontSize: '14px',
-                      lineHeight: '20px',
-                      color: '#FFFFFF',
-                    }}
-                  >
-                    GALA OF GLORY
-                  </span>
-                </div>
-              </div>
-              <p
-                style={{
-                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                  fontWeight: 400,
-                  fontSize: '14px',
-                  lineHeight: '20px',
-                  color: '#FFFFFF',
-                  textAlign: 'left',
-                }}
-              >
-                {tt(
-                  'FChoice là bảng bình chọn do Cafef.vn – công bố hàng năm, nhằm tôn vinh những sự kiện, nhân vật, chính sách, công ty...nổi bật nhất trong nền kinh tế Việt Nam.',
-                  'FChoice is an annual voting board announced by Cafef.vn, aiming to honor the most outstanding events, figures, policies, companies... in the Vietnamese economy.'
-                )}
-              </p>
-            </div>
-
-            {/* Part 2: Contact, Address, and Organizing Unit */}
-            <div className="flex flex-col gap-4 md:gap-6 justify-between md:h-auto">
-              <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
-                {/* Contact Information */}
-                <div className="flex flex-col gap-2">
-                  <h4
-                    className="text-xs md:text-sm"
-                    style={{
-                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                      fontWeight: 500,
-                      lineHeight: '16px',
-                      textTransform: 'uppercase',
-                      color: '#FFFFFF',
-                      marginBottom: '8px',
-                    }}
-                  >
-                    {tt('THÔNG TIN LIÊN HỆ', 'CONTACT INFORMATION')}
-                  </h4>
-                  <p
-                    className="text-xs md:text-sm"
-                    style={{
-                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                      fontWeight: 400,
-                      lineHeight: '20px',
-                      color: '#FFFFFF',
-                    }}
-                  >
-                    info@cafef.vn
-                  </p>
-                  <p
-                    className="text-xs md:text-sm"
-                    style={{
-                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                      fontWeight: 400,
-                      lineHeight: '20px',
-                      color: '#FFFFFF',
-                    }}
-                  >
-                    (+84) 84 7611565
-                  </p>
-                </div>
-
-                {/* Address */}
-                <div className="flex flex-col gap-2">
-                  <h4
-                    className="text-xs md:text-sm"
-                    style={{
-                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                      fontWeight: 500,
-                      lineHeight: '16px',
-                      textTransform: 'uppercase',
-                      color: '#FFFFFF',
-                      marginBottom: '8px',
-                    }}
-                  >
-                    {tt('ĐỊA CHỈ', 'ADDRESS')}
-                  </h4>
-                  <p
-                    className="text-xs md:text-sm"
-                    style={{
-                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                      fontWeight: 400,
-                      lineHeight: '20px',
-                      color: '#FFFFFF',
-                    }}
-                  >
-                    Hapulico Complex, Center Building, số 01,
-                    <br />
-                    phố Nguyễn Huy Tưởng, phường Thanh
-                    <br />
-                    Xuân, Thành phố Hà Nội
-                  </p>
-                </div>
-              </div>
-
-              {/* Organizing Unit */}
-              <div className="flex flex-col gap-3 md:gap-4">
-                <h4
-                  className="text-xs md:text-sm"
-                  style={{
-                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                    fontWeight: 500,
-                    lineHeight: '16px',
-                    textTransform: 'uppercase',
-                    color: '#FFFFFF',
-                  }}
-                >
-                  {tt('ĐƠN VỊ TỔ CHỨC', 'ORGANIZING UNIT')}
-                </h4>
-                <div className="flex gap-4 md:gap-6 items-center">
-                  <Image
-                    src={vccorpLogo}
-                    alt="VCCORP"
-                    width={120}
-                    height={40}
-                    className="h-auto w-24 md:w-[120px]"
-                    style={{ height: 'auto' }}
-                  />
-                  <Image
-                    src={cafefLogo}
-                    alt="CAFEF"
-                    width={120}
-                    height={40}
-                    className="h-auto w-24 md:w-[120px]"
-                    style={{ height: 'auto' }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Part 3: Social Media, Copyright and Privacy Policy */}
-            <div
-              className="flex flex-col gap-4 md:gap-6 items-start md:items-end justify-between md:h-auto"
-              style={{ flex: '1 1 0%' }}
-            >
-              {/* Social Media */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:justify-center items-start sm:items-center">
-                <h4
-                  className="text-xs md:text-sm"
-                  style={{
-                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                    fontWeight: 500,
-                    lineHeight: '16px',
-                    textTransform: 'uppercase',
-                    color: '#FFFFFF',
-                  }}
-                >
-                  {tt('THEO DÕI CHÚNG TÔI TẠI', 'FOLLOW US AT')}
-                </h4>
-                <div className="flex gap-4">
-                  <a
-                    href="https://facebook.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center"
-                  >
-                    <Image src={facebookIcon} alt="Facebook" width={20} height={20} />
-                  </a>
-                  <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer" className="flex items-center">
-                    <Image src={tiktokIcon} alt="TikTok" width={18} height={20} />
-                  </a>
-                </div>
-              </div>
-
-              {/* Copyright and Privacy Policy */}
-              <div className="flex flex-col gap-2 items-start md:items-end">
-                <p
-                  className="text-xs md:text-xs"
-                  style={{
-                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                    fontWeight: 400,
-                    lineHeight: '16px',
-                    color: '#FFFFFF',
-                    textAlign: 'right',
-                  }}
-                >
-                  © Copyright 2025 {tt('Công ty cổ phần VCCorp', 'VCCorp Joint Stock Company')}
-                </p>
-                <a
-                  href="/privacy-policy"
-                  className="text-xs md:text-xs"
-                  style={{
-                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                    fontWeight: 400,
-                    lineHeight: '16px',
-                    textTransform: 'uppercase',
-                    color: '#FFFFFF',
-                    textDecoration: 'none',
-                  }}
-                >
-                  {tt('CHÍNH SÁCH BẢO MẬT', 'PRIVACY POLICY')}
-                </a>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </footer>
+      <PubgGalaFooter />
     </div>
   );
 }

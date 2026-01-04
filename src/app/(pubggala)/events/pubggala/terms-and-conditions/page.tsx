@@ -7,6 +7,7 @@ import { Box, Container, Typography } from '@mui/material';
 
 import { useTranslation } from '@/contexts/locale-context';
 import PubgGalaPageHeader from '@/components/pubggala/ui/pubggala-page-header';
+import PubgGalaFooter from '@/components/pubggala/ui/pubggala-footer';
 
 export default function TermsAndConditionsPage() {
   const { tt } = useTranslation();
@@ -422,6 +423,9 @@ export default function TermsAndConditionsPage() {
           </div>
         </Container>
       </div>
+
+      {/* Footer */}
+      <PubgGalaFooter />
     </div>
   );
 }
