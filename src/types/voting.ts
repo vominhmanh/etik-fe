@@ -20,6 +20,7 @@ export type Category = {
   maxVotesPerUserTotal: number;
   maxVotesPerUserDaily: number;
   allowMultipleNominees: boolean;
+  allowVoting: boolean;
   startAt: string;
   endAt: string;
   createdAt: string;

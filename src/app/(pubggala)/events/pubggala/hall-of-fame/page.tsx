@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import backgroundGradientImage from '@/images/pubg/background-gradient.png';
 import battlegroundsImage from '@/images/pubg/battlegrounds.png';
@@ -18,11 +18,6 @@ import tiktokIcon from '@/images/pubg/tiktok.svg';
 import vccorpLogo from '@/images/pubg/vccorp.png';
 import votingService from '@/services/Voting.service';
 import { Box, Container, Dialog, Grid, IconButton, Stack, Typography } from '@mui/material';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation } from 'swiper/modules';
-import type { Swiper as SwiperType } from 'swiper';
-import 'swiper/css';
-import 'swiper/css/navigation';
 
 import { Category } from '@/types/voting';
 import { useTranslation } from '@/contexts/locale-context';
@@ -37,7 +32,6 @@ export default function Home() {
   const [selectedSocialIframe, setSelectedSocialIframe] = useState<string>('');
   const [selectedSocialUrl, setSelectedSocialUrl] = useState<string>('');
   const [selectedVoteCount, setSelectedVoteCount] = useState<number>(0);
-  const swiperRefs = useRef<{ [key: number]: SwiperType | null }>({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -230,7 +224,7 @@ export default function Home() {
                 }}
               >
                 <LocalizedLink
-                  href="/events/pubggala#award-categories-list"
+                  href="/events/pubggala/vote"
                   style={{
                     display: 'flex',
                     flexDirection: 'row',
@@ -287,7 +281,6 @@ export default function Home() {
       {/* Body2: Message Section */}
 
       <div
-        id="award-categories-list"
         className="relative z-10 w-full flex items-start py-8 md:py-16"
         style={{
           background: 'linear-gradient(165.61deg, rgb(50, 50, 50) -4.98%, rgb(0, 0, 0) 107.54%)',
@@ -725,6 +718,35 @@ export default function Home() {
                 <div className="flex flex-col gap-12">
                   {/* Section Titles */}
                   <div className="flex flex-col gap-2 items-center">
+                    {/* Number Box */}
+                    <div
+                      className="w-10 h-7 md:w-[70px] md:h-[45px] flex-shrink-0"
+                      style={{
+                        backgroundColor: 'rgba(225, 198, 147, 1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingLeft: '10px',
+                        paddingRight: '10px',
+                      }}
+                    >
+                      <span
+                        className="text-xl md:text-4xl"
+                        style={{
+                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                          fontStyle: 'normal',
+                          fontWeight: 800,
+                          lineHeight: '44.28px',
+                          letterSpacing: '0%',
+                          textAlign: 'center',
+                          verticalAlign: 'middle',
+                          textTransform: 'uppercase',
+                          color: 'rgba(18, 16, 38, 1)',
+                        }}
+                      >
+                        {formatCategoryNumber(categoryIndex)}
+                      </span>
+                    </div>
                     {/* Title 1 */}
                     <h3
                       style={{
@@ -763,429 +785,172 @@ export default function Home() {
                     </h2>
                   </div>
 
-                  {/* Grid Layout - 3 items per row on desktop, horizontal scroll on mobile */}
+                  {/* Grid Layout - 2 columns on desktop, 1 column on mobile */}
                   {category.nominees && category.nominees.length > 0 ? (
-                    <div className="relative">
-                      {/* Mobile: Horizontal scroll container with arrows */}
-                      <div className="md:hidden relative">
-                        {/* Left Arrow */}
-                        <button
-                          onClick={() => {
-                            const swiper = swiperRefs.current[category.id];
-                            if (swiper) {
-                              swiper.slidePrev();
-                            }
-                          }}
-                          className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 rounded-full p-2 flex items-center justify-center transition-all"
-                          style={{
-                            width: '40px',
-                            height: '40px',
-                            border: '1px solid rgba(225, 198, 147, 0.5)',
-                          }}
-                          aria-label="Scroll left"
-                        >
-                          <span style={{ color: '#E1C693', fontSize: '20px', fontWeight: 'bold' }}>‹</span>
-                        </button>
-
-                        {/* Right Arrow */}
-                        <button
-                          onClick={() => {
-                            const swiper = swiperRefs.current[category.id];
-                            if (swiper) {
-                              swiper.slideNext();
-                            }
-                          }}
-                          className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 rounded-full p-2 flex items-center justify-center transition-all"
-                          style={{
-                            width: '40px',
-                            height: '40px',
-                            border: '1px solid rgba(225, 198, 147, 0.5)',
-                          }}
-                          aria-label="Scroll right"
-                        >
-                          <span style={{ color: '#E1C693', fontSize: '20px', fontWeight: 'bold' }}>›</span>
-                        </button>
-
-                        <Swiper
-                          onSwiper={(swiper) => {
-                            swiperRefs.current[category.id] = swiper;
-                          }}
-                          modules={[Navigation]}
-                          slidesPerView="auto"
-                          spaceBetween={16}
-                          centeredSlides={true}
-                          className="!pb-4"
-                          style={{
-                            paddingLeft: '7.5vw',
-                            paddingRight: '7.5vw',
-                          }}
-                        >
-                          {category.nominees.map((nominee) => (
-                            <SwiperSlide
-                              key={nominee.id}
+                    <Grid container spacing={3}>
+                      {category.nominees.map((nominee) => (
+                        <Grid item xs={12} md={6} key={nominee.id}>
+                          <div
+                            className="flex flex-row bg-black w-full p-4 gap-4"
+                            style={{
+                              position: 'relative',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {/* Profile Picture - Left Side */}
+                            <div
+                              className="flex-shrink-0"
                               style={{
-                                width: '85vw',
-                                maxWidth: '400px',
+                                width: '100px',
+                                height: '100px',
+                                position: 'relative',
+                                overflow: 'hidden',
                               }}
                             >
-                              <div
-                                className="flex flex-col bg-black w-full"
+                              <Image
+                                src={nominee.imageUrl || soldierBackgroundImage.src}
+                                alt={nominee.title}
+                                fill
                                 style={{
-                                  position: 'relative',
-                                  overflow: 'hidden',
-                                  aspectRatio: '1 / 1',
+                                  objectFit: 'cover',
+                                }}
+                              />
+                            </div>
+
+                            {/* Content - Right Side */}
+                            <div className="flex flex-col flex-1 gap-3">
+                              {/* Player Name */}
+                              <h3
+                                style={{
+                                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                  fontWeight: 900,
+                                  fontStyle: 'normal',
+                                  fontSize: '18px',
+                                  lineHeight: '23.4px',
+                                  letterSpacing: '-0.36px',
+                                  verticalAlign: 'middle',
+                                  textTransform: 'uppercase',
+                                  color: 'rgba(255, 255, 255, 1)',
+                                  margin: 0,
                                 }}
                               >
-                                {/* Border bottom with gradient */}
-                                <div
-                                  style={{
-                                    position: 'absolute',
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    height: '1px',
-                                    background:
-                                      'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
-                                    zIndex: 5,
-                                  }}
-                                />
-                                {/* Background Image */}
-                                <div
-                                  className="absolute inset-0"
-                                  style={{
-                                    backgroundImage: nominee.imageUrl
-                                      ? `url(${nominee.imageUrl})`
-                                      : `url(${soldierBackgroundImage.src})`,
-                                    backgroundSize: 'cover',
-                                    backgroundPosition: 'center',
-                                    backgroundRepeat: 'no-repeat',
-                                    opacity: 0.5,
-                                    zIndex: 0,
-                                    width: '100%',
-                                    height: '100%',
-                                  }}
-                                />
+                                {nominee.title}
+                              </h3>
 
-                                {/* Card Content */}
-                                <div
-                                  className="relative z-10 flex flex-col h-full p-4 justify-between"
-                                >
-                                  {/* Card Title - Top */}
-                                  <h3
+                              {/* Description */}
+                              <div
+                                title={stripHtmlTags(nominee.description)}
+                                style={{
+                                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                  fontWeight: 400,
+                                  fontStyle: 'normal',
+                                  fontSize: '14px',
+                                  lineHeight: '1.4',
+                                  letterSpacing: '0%',
+                                  verticalAlign: 'middle',
+                                  color: 'rgba(255, 255, 255, 1)',
+                                  textAlign: 'left',
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 3,
+                                  WebkitBoxOrient: 'vertical' as const,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                                dangerouslySetInnerHTML={{ __html: nominee.description }}
+                              />
+
+                              {/* Gold Separator Line */}
+                              <div
+                                style={{
+                                  width: '100%',
+                                  height: '1px',
+                                  background: '#E1C693',
+                                  marginTop: '4px',
+                                  marginBottom: '4px',
+                                }}
+                              />
+
+                              {/* Vote Button and Count */}
+                              {category.allowVoting && (
+                                <div className="flex flex-row items-center gap-3">
+                                  <div
                                     style={{
-                                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                      fontWeight: 900,
-                                      fontStyle: 'normal',
-                                      fontSize: '18px',
-                                      lineHeight: '23.4px',
-                                      letterSpacing: '-0.36px',
-                                      verticalAlign: 'middle',
-                                      textTransform: 'uppercase',
-                                      color: 'rgba(255, 255, 255, 1)',
+                                      background: 'linear-gradient(303.62deg, #000000 -52.52%, #5A5A5A 177.26%)',
+                                      borderRadius: '9999px',
+                                      padding: '1px',
                                     }}
                                   >
-                                    {nominee.title}
-                                  </h3>
+                                    <button
+                                      onClick={() => handleVoteClick(nominee.socialIframe, nominee.socialUrl, nominee.voteCount || 0)}
+                                      className="flex flex-row justify-center items-center cursor-pointer"
+                                      style={{
+                                        padding: '12px',
+                                        gap: '8px',
+                                        background: 'rgba(0, 0, 0, 1)',
+                                        borderRadius: '9999px',
+                                        border: 'none',
+                                      }}
+                                    >
+                                      <Image src={heartIcon} alt="Heart" width={20} height={20} />
+                                      <span
+                                        style={{
+                                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                          fontWeight: 600,
+                                          fontStyle: 'normal',
+                                          fontSize: '14px',
+                                          lineHeight: '14px',
+                                          letterSpacing: '0%',
+                                          textAlign: 'center',
+                                          verticalAlign: 'middle',
+                                          color: 'rgba(225, 198, 147, 1)',
+                                        }}
+                                      >
+                                        {tt('Bình chọn', 'Vote')}
+                                      </span>
+                                    </button>
+                                  </div>
 
-                                  {/* Spacer to push content to bottom */}
-                                  <div style={{ flex: 1 }} />
-
-                                  {/* Card Content - Bottom */}
-                                  <div className="flex flex-col gap-3">
-                                    <div
-                                      title={stripHtmlTags(nominee.description)}
+                                  {/* Vote Count */}
+                                  <div className="flex items-baseline gap-1">
+                                    <span
+                                      style={{
+                                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                        fontWeight: 700,
+                                        fontStyle: 'normal',
+                                        fontSize: '14px',
+                                        lineHeight: '100%',
+                                        letterSpacing: '0%',
+                                        verticalAlign: 'middle',
+                                        color: 'rgba(255, 255, 255, 1)',
+                                      }}
+                                    >
+                                      {nominee.voteCount || 0}
+                                    </span>
+                                    <span
                                       style={{
                                         fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                                         fontWeight: 400,
                                         fontStyle: 'normal',
-                                        fontSize: '14px',
-                                        lineHeight: '1.4',
+                                        fontSize: '12px',
+                                        lineHeight: '100%',
                                         letterSpacing: '0%',
                                         verticalAlign: 'middle',
-                                        color: 'rgba(244, 245, 248, 1)',
-                                        textAlign: 'left',
-                                        display: '-webkit-box',
-                                        WebkitLineClamp: 3,
-                                        WebkitBoxOrient: 'vertical' as const,
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
+                                        color: 'rgba(255, 255, 255, 1)',
                                       }}
-                                      dangerouslySetInnerHTML={{ __html: nominee.description }}
-                                    />
-
-                                    {/* Vote Button and Count */}
-                                    {category.allowVoting && (
-                                      <div className="flex flex-row items-center gap-3">
-                                        <div
-                                          style={{
-                                            background: 'linear-gradient(303.62deg, #000000 -52.52%, #5A5A5A 177.26%)',
-                                            borderRadius: '9999px',
-                                            padding: '1px',
-                                          }}
-                                        >
-                                          <button
-                                            onClick={() => handleVoteClick(nominee.socialIframe, nominee.socialUrl, nominee.voteCount || 0)}
-                                            className="flex flex-row justify-center items-center cursor-pointer"
-                                            style={{
-                                              padding: '12px',
-                                              gap: '8px',
-                                              background: 'rgba(0, 0, 0, 1)',
-                                              borderRadius: '9999px',
-                                              border: 'none',
-                                            }}
-                                          >
-                                            <Image src={heartIcon} alt="Heart" width={20} height={20} />
-                                            <span
-                                              style={{
-                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                                fontWeight: 600,
-                                                fontStyle: 'normal',
-                                                fontSize: '14px',
-                                                lineHeight: '14px',
-                                                letterSpacing: '0%',
-                                                textAlign: 'center',
-                                                verticalAlign: 'middle',
-                                                color: 'rgba(225, 198, 147, 1)',
-                                              }}
-                                            >
-                                              {tt('Bình chọn', 'Vote')}
-                                            </span>
-                                          </button>
-                                        </div>
-
-                                        {/* Vote Count */}
-                                        <div className="flex items-baseline gap-1">
-                                          <span
-                                            style={{
-                                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                              fontWeight: 700,
-                                              fontStyle: 'normal',
-                                              fontSize: '14px',
-                                              lineHeight: '100%',
-                                              letterSpacing: '0%',
-                                              verticalAlign: 'middle',
-                                              color: 'rgba(255, 255, 255, 1)',
-                                            }}
-                                          >
-                                            {nominee.voteCount || 0}
-                                          </span>
-                                          <span
-                                            style={{
-                                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                              fontWeight: 400,
-                                              fontStyle: 'normal',
-                                              fontSize: '12px',
-                                              lineHeight: '100%',
-                                              letterSpacing: '0%',
-                                              verticalAlign: 'middle',
-                                              color: 'rgba(255, 255, 255, 1)',
-                                            }}
-                                          >
-                                            {tt('lượt', 'votes')}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    )}
+                                    >
+                                      {tt('lượt', 'votes')}
+                                    </span>
                                   </div>
                                 </div>
-                              </div>
-                            </SwiperSlide>
-                          ))}
-                        </Swiper>
-                      </div>
-
-                      {/* Desktop: Grid Layout */}
-                      <div className="hidden md:block">
-                        <Grid container spacing={2} justifyContent="center">
-                          {category.nominees.map((nominee) => (
-                            <Grid item xs={12} md={3} lg={3} key={nominee.id}>
-                              <div
-                                className="flex flex-col bg-black w-full"
-                                style={{
-                                  position: 'relative',
-                                  overflow: 'hidden',
-                                  aspectRatio: '1 / 1',
-                                }}
-                              >
-                                {/* Border bottom with gradient */}
-                                <div
-                                  style={{
-                                    position: 'absolute',
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    height: '1px',
-                                    background:
-                                      'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
-                                    zIndex: 5,
-                                  }}
-                                />
-                                {/* Background Image */}
-                                <div
-                                  className="absolute inset-0"
-                                  style={{
-                                    backgroundImage: nominee.imageUrl
-                                      ? `url(${nominee.imageUrl})`
-                                      : `url(${soldierBackgroundImage.src})`,
-                                    backgroundSize: 'cover',
-                                    backgroundPosition: 'center',
-                                    backgroundRepeat: 'no-repeat',
-                                    opacity: 0.5,
-                                    zIndex: 0,
-                                    width: '100%',
-                                    height: '100%',
-                                  }}
-                                />
-
-                                {/* Card Content */}
-                                <div
-                                  className="relative z-10 flex flex-col h-full p-4 justify-between"
-                                >
-                                  {/* Card Title - Top */}
-                                  <h3
-                                    style={{
-                                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                      fontWeight: 900,
-                                      fontStyle: 'normal',
-                                      fontSize: '18px',
-                                      lineHeight: '23.4px',
-                                      letterSpacing: '-0.36px',
-                                      verticalAlign: 'middle',
-                                      textTransform: 'uppercase',
-                                      color: 'rgba(255, 255, 255, 1)',
-                                    }}
-                                  >
-                                    {nominee.title}
-                                  </h3>
-
-                                  {/* Spacer to push content to bottom */}
-                                  <div style={{ flex: 1 }} />
-
-                                  {/* Card Content - Bottom */}
-                                  <div className="flex flex-col gap-3">
-                                    <div
-                                      title={stripHtmlTags(nominee.description)}
-                                      style={{
-                                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                        fontWeight: 400,
-                                        fontStyle: 'normal',
-                                        fontSize: '14px',
-                                        lineHeight: '1.4',
-                                        letterSpacing: '0%',
-                                        verticalAlign: 'middle',
-                                        color: 'rgba(244, 245, 248, 1)',
-                                        textAlign: 'left',
-                                        display: '-webkit-box',
-                                        WebkitLineClamp: 3,
-                                        WebkitBoxOrient: 'vertical' as const,
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                      }}
-                                      dangerouslySetInnerHTML={{ __html: nominee.description }}
-                                    />
-
-                                    {/* Vote Button and Count */}
-                                    {category.allowVoting && (
-                                      <div className="flex flex-row items-center gap-3">
-                                        <div
-                                          style={{
-                                            background: 'linear-gradient(303.62deg, #000000 -52.52%, #5A5A5A 177.26%)',
-                                            borderRadius: '9999px',
-                                            padding: '1px',
-                                          }}
-                                        >
-                                          <button
-                                            onClick={() => handleVoteClick(nominee.socialIframe, nominee.socialUrl, nominee.voteCount || 0)}
-                                            className="flex flex-row justify-center items-center cursor-pointer"
-                                            style={{
-                                              padding: '12px',
-                                              gap: '8px',
-                                              background: 'rgba(0, 0, 0, 1)',
-                                              borderRadius: '9999px',
-                                              border: 'none',
-                                            }}
-                                          >
-                                            <Image src={heartIcon} alt="Heart" width={20} height={20} />
-                                            <span
-                                              style={{
-                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                                fontWeight: 600,
-                                                fontStyle: 'normal',
-                                                fontSize: '14px',
-                                                lineHeight: '14px',
-                                                letterSpacing: '0%',
-                                                textAlign: 'center',
-                                                verticalAlign: 'middle',
-                                                color: 'rgba(225, 198, 147, 1)',
-                                              }}
-                                            >
-                                              {tt('Bình chọn', 'Vote')}
-                                            </span>
-                                          </button>
-                                        </div>
-
-                                        {/* Vote Count */}
-                                        <div className="flex items-baseline gap-1">
-                                          <span
-                                            style={{
-                                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                              fontWeight: 700,
-                                              fontStyle: 'normal',
-                                              fontSize: '14px',
-                                              lineHeight: '100%',
-                                              letterSpacing: '0%',
-                                              verticalAlign: 'middle',
-                                              color: 'rgba(255, 255, 255, 1)',
-                                            }}
-                                          >
-                                            {nominee.voteCount || 0}
-                                          </span>
-                                          <span
-                                            style={{
-                                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                              fontWeight: 400,
-                                              fontStyle: 'normal',
-                                              fontSize: '12px',
-                                              lineHeight: '100%',
-                                              letterSpacing: '0%',
-                                              verticalAlign: 'middle',
-                                              color: 'rgba(255, 255, 255, 1)',
-                                            }}
-                                          >
-                                            {tt('lượt', 'votes')}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </Grid>
-                          ))}
+                              )}
+                            </div>
+                          </div>
                         </Grid>
-                      </div>
-                    </div>
+                      ))}
+                    </Grid>
                   ) : (
                     <div className="text-white text-center">{tt('Chưa có ứng viên nào', 'No nominees yet')}</div>
                   )}
-
-                  {/* Hide scrollbar for mobile and Swiper navigation */}
-                  <style jsx>{`
-                    div[style*='scrollSnapType']::-webkit-scrollbar {
-                      display: none;
-                    }
-                    .swiper {
-                      overflow: visible;
-                    }
-                    .swiper-wrapper {
-                      padding-left: 7.5vw;
-                      padding-right: 7.5vw;
-                    }
-                    .swiper-slide {
-                      display: flex;
-                      justify-content: center;
-                    }
-                  `}</style>
                 </div>
               </Container>
             </div>
