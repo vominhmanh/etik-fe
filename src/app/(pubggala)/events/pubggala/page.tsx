@@ -754,6 +754,13 @@ export default function Home() {
                       backgroundPosition: 'center',
                       backgroundRepeat: 'no-repeat',
                       position: 'relative',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => {
+                      const categoryIndex = categories.findIndex((cat) => cat.id === category.id);
+                      if (categoryIndex !== -1) {
+                        scrollToCategory(categoryIndex);
+                      }
                     }}
                   >
                     {/* Number Box */}
