@@ -1694,23 +1694,19 @@ export default function Home() {
                   maxWidth: '100%',
                   minHeight: '400px',
                   display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'flex-start',
-                  padding: '10px',
-                  overflow: 'hidden',
+                  textAlign: 'left',
+                  paddingLeft: '16px',
+                  alignItems: 'center',
+                  animation: 'bounce-up-down 1.5s ease-in-out infinite',
+
                 }}
               >
-                <div
-                  style={{
-                    width: '100%',
-                    maxWidth: '500px',
-                    minWidth: '280px',
-                  }}
-                >
-                  <FBPost key={`${selectedSocialUrl}-${dialogOpen}`} href={selectedSocialUrl} />
-                </div>
-              </div>
-            )}
+                <CaretDoubleUp size={'1.2rem'} />
+                &nbsp; {tt('Nhấn Like bài đăng để bình chọn', 'Like the post to complete the voting process.')}
+              </Typography>
+
+            </Stack>
+
           </Box>
 
           {/* Part 4: Footer Button and Vote Count */}
