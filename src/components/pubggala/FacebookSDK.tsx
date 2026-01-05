@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 declare global {
   interface Window {
     FB?: any;
+    fbAsyncInit?: () => void;
   }
 }
 
@@ -12,6 +13,7 @@ const SCRIPT_ID = 'facebook-jssdk';
 const SDK_SRC = 'https://connect.facebook.net/vi_VN/sdk.js#xfbml=1&version=v18.0';
 
 let loaded = false;
+let initRegistered = false;
 
 export default function FacebookSDK() {
   useEffect(() => {
@@ -33,10 +35,35 @@ export default function FacebookSDK() {
     const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
     if (existing) {
       existing.addEventListener('load', () => {
+        if (window.FB?.XFBML) {
+          loaded = true;
+          notifyReady();
+        }
+      }, { once: true });
+      if (window.FB?.XFBML) {
         loaded = true;
         notifyReady();
-      }, { once: true });
+      }
       return;
+    }
+
+    if (!initRegistered) {
+      const previous = window.fbAsyncInit;
+      window.fbAsyncInit = () => {
+        try {
+          previous?.();
+        } catch {
+          // ignore
+        }
+        try {
+          window.FB?.init?.({ xfbml: true, version: 'v18.0' });
+        } catch {
+          // ignore
+        }
+        loaded = true;
+        notifyReady();
+      };
+      initRegistered = true;
     }
 
     const script = document.createElement('script');
@@ -46,13 +73,14 @@ export default function FacebookSDK() {
     script.defer = true;
     script.crossOrigin = 'anonymous';
     script.onload = () => {
-      loaded = true;
-      notifyReady();
+      // fbAsyncInit should run, but keep as safety net
+      if (window.FB?.XFBML) {
+        loaded = true;
+        notifyReady();
+      }
     };
 
     document.body.appendChild(script);
-
-    loaded = true;
   }, []);
 
   return null;

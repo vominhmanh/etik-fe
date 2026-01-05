@@ -13,10 +13,11 @@ import backgroundImage from '@/images/pubg/KV_PUBG_GALA_16x9.jpg';
 import logo from '@/images/pubg/logo.png';
 import soldierBackgroundImage from '@/images/pubg/soldier-background.png';
 import votingService from '@/services/Voting.service';
-import { Box, Container, Dialog, Grid, IconButton, Stack, Typography } from '@mui/material';
+import { Box, Container, Dialog, Grid, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import type { Swiper as SwiperType } from 'swiper';
 import { Navigation } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
+import dayjs from 'dayjs';
 
 import 'swiper/css';
 import 'swiper/css/navigation';
@@ -51,7 +52,7 @@ export default function Home() {
   const [selectedSocialUrl, setSelectedSocialUrl] = useState<string>('');
   const [selectedVoteCount, setSelectedVoteCount] = useState<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [selectedNominee, setSelectedNominee] = useState<{ title: string } | null>(null);
+  const [selectedNominee, setSelectedNominee] = useState<{ title: string; updatedAt?: string } | null>(null);
   const swiperRefs = useRef<{ [key: number]: SwiperType | null }>({});
   const [isMobile, setIsMobile] = useState(false);
   const [isSmallMobile, setIsSmallMobile] = useState(false);
@@ -144,7 +145,7 @@ export default function Home() {
     socialUrl: string,
     voteCount: number = 0,
     category?: Category,
-    nominee?: { title: string }
+    nominee?: { title: string; updatedAt?: string }
   ) => {
     if (socialIframe) {
       setSelectedSocialIframe(socialIframe);
@@ -168,8 +169,8 @@ export default function Home() {
 
   return (
     <div className="relative w-full">
-      {/* Load Facebook SDK */}
-      <FacebookSDK />
+      {/* Load Facebook SDK only on mobile (XFBML mode) */}
+      {isMobile && <FacebookSDK />}
       <style dangerouslySetInnerHTML={{
         __html: `
           @keyframes gradient-shift {
@@ -1166,7 +1167,7 @@ export default function Home() {
                                                 nominee.socialUrl,
                                                 nominee.voteCount || 0,
                                                 category,
-                                                { title: nominee.title }
+                                                { title: nominee.title, updatedAt: nominee.updatedAt }
                                               )
                                             }
                                             className="flex flex-row justify-center items-center cursor-pointer"
@@ -1358,7 +1359,7 @@ export default function Home() {
                                                 nominee.socialUrl,
                                                 nominee.voteCount || 0,
                                                 category,
-                                                { title: nominee.title }
+                                                { title: nominee.title, updatedAt: nominee.updatedAt }
                                               )
                                             }
                                             className="flex flex-row justify-center items-center cursor-pointer"
@@ -1679,9 +1680,13 @@ export default function Home() {
           {/* Part 3: Body Facebook Post */}
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <Stack direction="column" spacing={2}>
-              {selectedSocialUrl && (
-           
-                  <FBPost href={selectedSocialUrl} />
+              {(selectedSocialIframe || selectedSocialUrl) && (
+                  <FBPost
+                    socialIframe={selectedSocialIframe}
+                    socialUrl={selectedSocialUrl}
+                    preferXfbml={isMobile}
+                    width={350}
+                  />
               )}
               <Typography
                 sx={{
@@ -1724,7 +1729,7 @@ export default function Home() {
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                     fontWeight: 700,
                     fontStyle: 'normal',
-                    fontSize: '14px',
+                    fontSize: '20px',
                     lineHeight: '100%',
                     letterSpacing: '0%',
                     verticalAlign: 'middle',
@@ -1738,14 +1743,53 @@ export default function Home() {
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                     fontWeight: 400,
                     fontStyle: 'normal',
-                    fontSize: '12px',
+                    fontSize: '14px',
                     lineHeight: '100%',
                     letterSpacing: '0%',
                     verticalAlign: 'middle',
                     color: '#E1C693',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
                   }}
                 >
-                  {tt('lượt', 'votes')}
+                  {tt('lượt bình chọn', 'votes')}
+                  <Tooltip
+                    arrow
+                    title={tt(
+                      `Lượt bình chọn = tổng số lượt reactions, được cập nhật mỗi 5 phút, cập nhật lần cuối lúc: ${
+                        selectedNominee?.updatedAt
+                          ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
+                          : '—'
+                      }`,
+                      `Votes = total reactions, updated every 5 minutes, last updated at: ${
+                        selectedNominee?.updatedAt
+                          ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
+                          : '—'
+                      }`
+                    )}
+                  >
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: 9999,
+                        border: '1px solid #E1C693',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        lineHeight: '16px',
+                        cursor: 'help',
+                        userSelect: 'none',
+                      }}
+                    >
+                      i
+                    </span>
+                  </Tooltip>
                 </span>
               </div>
             )}
