@@ -882,7 +882,7 @@ export default function Home() {
                             {/* Content - Right Side */}
                             <div className="flex flex-col flex-1 gap-3" style={{ position: 'relative', zIndex: 1 }}>
                               {/* Player Name */}
-                              {/* <h3
+                              <h3
                                 className="text-sm md:text-lg"
                                 style={{
                                   fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
@@ -897,10 +897,10 @@ export default function Home() {
                                 }}
                               >
                                 {nominee.title}
-                              </h3> */}
+                              </h3>
 
                               {/* Description */}
-                              {/* <div
+                              <div
                                 title={stripHtmlTags(nominee.description)}
                                 className="text-xs md:text-sm"
                                 style={{
@@ -919,7 +919,7 @@ export default function Home() {
                                   textOverflow: 'ellipsis',
                                 }}
                                 dangerouslySetInnerHTML={{ __html: nominee.description }}
-                              /> */}
+                              />
 
                               {/* Separator Line */}
                               <div
