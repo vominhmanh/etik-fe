@@ -29,6 +29,7 @@ import PubgGalaFooter from '@/components/pubggala/ui/pubggala-footer';
 import FlipClockCountdown from '@leenguyen/react-flip-clock-countdown';
 import '@leenguyen/react-flip-clock-countdown/dist/index.css';
 import dynamic from 'next/dynamic';
+import { CaretDoubleUp } from '@phosphor-icons/react/dist/ssr';
 
 const FacebookSDK = dynamic(
   () => import('@/components/pubggala/FacebookSDK'),
@@ -49,6 +50,8 @@ export default function Home() {
   const [selectedSocialIframe, setSelectedSocialIframe] = useState<string>('');
   const [selectedSocialUrl, setSelectedSocialUrl] = useState<string>('');
   const [selectedVoteCount, setSelectedVoteCount] = useState<number>(0);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedNominee, setSelectedNominee] = useState<{ title: string } | null>(null);
   const swiperRefs = useRef<{ [key: number]: SwiperType | null }>({});
   const [isMobile, setIsMobile] = useState(false);
   const [isSmallMobile, setIsSmallMobile] = useState(false);
@@ -136,11 +139,19 @@ export default function Home() {
   };
 
   // Handle vote button click
-  const handleVoteClick = (socialIframe: string, socialUrl: string, voteCount: number = 0) => {
+  const handleVoteClick = (
+    socialIframe: string,
+    socialUrl: string,
+    voteCount: number = 0,
+    category?: Category,
+    nominee?: { title: string }
+  ) => {
     if (socialIframe) {
       setSelectedSocialIframe(socialIframe);
       setSelectedSocialUrl(socialUrl || '');
       setSelectedVoteCount(voteCount);
+      setSelectedCategory(category || null);
+      setSelectedNominee(nominee || null);
       setDialogOpen(true);
     }
   };
@@ -151,10 +162,14 @@ export default function Home() {
     setSelectedSocialIframe('');
     setSelectedSocialUrl('');
     setSelectedVoteCount(0);
+    setSelectedCategory(null);
+    setSelectedNominee(null);
   };
 
   return (
     <div className="relative w-full">
+      {/* Load Facebook SDK */}
+      <FacebookSDK />
       <style dangerouslySetInnerHTML={{
         __html: `
           @keyframes gradient-shift {
@@ -179,6 +194,14 @@ export default function Home() {
             -webkit-text-fill-color: transparent;
             background-clip: text;
             animation: gradient-shift 9s ease-in-out infinite;
+          }
+          @keyframes bounce-up-down {
+            0%, 100% {
+              transform: translateY(0);
+            }
+            50% {
+              transform: translateY(-8px);
+            }
           }
         `
       }} />
@@ -1059,17 +1082,32 @@ export default function Home() {
                                     backgroundSize: 'cover',
                                     backgroundPosition: 'center',
                                     backgroundRepeat: 'no-repeat',
-                                    opacity: 0.5,
+                                    // opacity: 0.5,
                                     zIndex: 0,
                                     width: '100%',
                                     height: '100%',
                                   }}
                                 />
 
+                                {/* Fade Background Overlay */}
+                                <div
+                                  className="absolute"
+                                  style={{
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    width: '100%',
+                                    height: '30%',
+                                    background: 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0) 100%)',
+                                    pointerEvents: 'none',
+                                    zIndex: 1,
+                                  }}
+                                />
+
                                 {/* Card Content */}
                                 <div className="relative z-10 flex flex-col h-full p-4 justify-between">
                                   {/* Card Title - Top */}
-                                  <h3
+                                  {/* <h3
                                     style={{
                                       fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                                       fontWeight: 900,
@@ -1083,14 +1121,14 @@ export default function Home() {
                                     }}
                                   >
                                     {nominee.title}
-                                  </h3>
+                                  </h3> */}
 
                                   {/* Spacer to push content to bottom */}
                                   <div style={{ flex: 1 }} />
 
                                   {/* Card Content - Bottom */}
                                   <div className="flex flex-col gap-3">
-                                    <div
+                                    {/* <div
                                       title={stripHtmlTags(nominee.description)}
                                       style={{
                                         fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
@@ -1109,7 +1147,7 @@ export default function Home() {
                                         textOverflow: 'ellipsis',
                                       }}
                                       dangerouslySetInnerHTML={{ __html: nominee.description }}
-                                    />
+                                    /> */}
 
                                     {/* Vote Button and Count */}
                                     {category.allowVoting && (
@@ -1126,7 +1164,9 @@ export default function Home() {
                                               handleVoteClick(
                                                 nominee.socialIframe,
                                                 nominee.socialUrl,
-                                                nominee.voteCount || 0
+                                                nominee.voteCount || 0,
+                                                category,
+                                                { title: nominee.title }
                                               )
                                             }
                                             className="flex flex-row justify-center items-center cursor-pointer"
@@ -1234,17 +1274,32 @@ export default function Home() {
                                     backgroundSize: 'cover',
                                     backgroundPosition: 'center',
                                     backgroundRepeat: 'no-repeat',
-                                    opacity: 0.5,
+                                    // opacity: 0.5,
                                     zIndex: 0,
                                     width: '100%',
                                     height: '100%',
                                   }}
                                 />
 
+                                {/* Fade Background Overlay */}
+                                <div
+                                  className="absolute"
+                                  style={{
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    width: '100%',
+                                    height: '20%',
+                                    background: 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0) 100%)',
+                                    pointerEvents: 'none',
+                                    zIndex: 1,
+                                  }}
+                                />
+
                                 {/* Card Content */}
                                 <div className="relative z-10 flex flex-col h-full p-4 justify-between">
                                   {/* Card Title - Top */}
-                                  <h3
+                                  {/* <h3
                                     style={{
                                       fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                                       fontWeight: 900,
@@ -1258,14 +1313,14 @@ export default function Home() {
                                     }}
                                   >
                                     {nominee.title}
-                                  </h3>
+                                  </h3> */}
 
                                   {/* Spacer to push content to bottom */}
                                   <div style={{ flex: 1 }} />
 
                                   {/* Card Content - Bottom */}
                                   <div className="flex flex-col gap-3">
-                                    <div
+                                    {/* <div
                                       title={stripHtmlTags(nominee.description)}
                                       style={{
                                         fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
@@ -1284,7 +1339,7 @@ export default function Home() {
                                         textOverflow: 'ellipsis',
                                       }}
                                       dangerouslySetInnerHTML={{ __html: nominee.description }}
-                                    />
+                                    /> */}
 
                                     {/* Vote Button and Count */}
                                     {category.allowVoting && (
@@ -1301,7 +1356,9 @@ export default function Home() {
                                               handleVoteClick(
                                                 nominee.socialIframe,
                                                 nominee.socialUrl,
-                                                nominee.voteCount || 0
+                                                nominee.voteCount || 0,
+                                                category,
+                                                { title: nominee.title }
                                               )
                                             }
                                             className="flex flex-row justify-center items-center cursor-pointer"
@@ -1486,38 +1543,54 @@ export default function Home() {
       <Dialog
         open={dialogOpen}
         onClose={handleCloseDialog}
-        maxWidth={false}
-        fullWidth
+        scroll="body"
         PaperProps={{
           sx: {
-            width: { xs: '90%', sm: '85%', md: '600px' },
-            maxWidth: '600px',
-            borderRadius: { xs: '8px', md: '12px' },
-            display: 'flex',
-            flexDirection: 'column',
-            background: 'linear-gradient(165.61deg, #323232 -4.98%, #000000 107.54%)',
+            width: { xs: '97%', md: '600px' },
+            minWidth: '360px',
+            overflow: 'visible',
+            margin: '32px 12px',
+            '@media (max-width: 663.95px)': {
+              maxWidth: '100% !important',
+            },
+            
           },
         }}
       >
-        {/* Load Facebook SDK */}
-        <FacebookSDK />
+
         <Box
           sx={{
             position: 'relative',
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
-            background: 'linear-gradient(165.61deg, #323232 -4.98%, #000000 107.54%)',
+            backgroundImage: `url(${chickenWinnerImage.src})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'repeat',
+            overflow: 'visible',
           }}
         >
+          {/* Gradient Border Top */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '1px',
+              background: 'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
+              zIndex: 5,
+            }}
+          />
           {/* Close Button */}
           <IconButton
             onClick={handleCloseDialog}
             sx={{
               position: 'absolute',
-              top: 12,
-              right: 12,
-              zIndex: 10,
+              top: -14,
+              right: -14,
+              zIndex: 1301,
               bgcolor: 'rgba(0, 0, 0, 0.7)',
               color: '#E1C693',
               border: '1px solid rgba(225, 198, 147, 0.3)',
@@ -1546,17 +1619,45 @@ export default function Home() {
             }}
           >
             <Stack direction="column" spacing={2}>
-              <Typography
-                sx={{
-                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                  fontWeight: 900,
-                  fontSize: { xs: '18px', md: '20px' },
-                  textTransform: 'uppercase',
-                  color: '#E1C693',
-                }}
-              >
-                {tt('Hướng dẫn bình chọn', 'Voting Instructions')}
-              </Typography>
+              {selectedCategory && (
+                <p
+                  className="text-xs md:text-base"
+                  style={{
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontStyle: 'normal',
+                    fontWeight: 500,
+                    lineHeight: '120%',
+                    letterSpacing: '0%',
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    textTransform: 'uppercase',
+                    color: 'rgba(255, 255, 255, 1)',
+                    margin: 0,
+                  }}
+                >
+                  {tt('Hạng mục', 'Voting Category')} {selectedCategory.name}
+                </p>
+              )}
+              {selectedNominee?.title && (
+                <Typography
+                  sx={{
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontStyle: 'normal',
+                    fontWeight: 900,
+                    fontSize: { xs: '18px', md: '28px' },
+                    letterSpacing: '0%',
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    textTransform: 'uppercase',
+                    background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  {selectedNominee.title}
+                </Typography>
+              )}
 
               {/* <Typography
                 sx={{
@@ -1656,17 +1757,7 @@ export default function Home() {
               </div>
             )}
 
-            <Typography
-              sx={{
-                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                fontWeight: 400,
-                fontSize: { xs: '13px', md: '14px' },
-                color: '#E1C693',
-                lineHeight: 1.5,
-              }}
-            >
-              {tt('Nhấn Like bài đăng để bình chọn', 'Like the post to complete the voting process.')}
-            </Typography>
+
 
             {/* Button */}
             {selectedSocialUrl && (
@@ -1721,6 +1812,18 @@ export default function Home() {
               </a>
             )}
           </Box>
+          {/* Gradient Border Bottom */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '1px',
+              background: 'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
+              zIndex: 5,
+            }}
+          />
         </Box>
       </Dialog>
 
