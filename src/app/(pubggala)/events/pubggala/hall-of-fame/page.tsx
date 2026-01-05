@@ -16,13 +16,26 @@ import soldierBackgroundImage from '@/images/pubg/soldier-background.png';
 import tiktokIcon from '@/images/pubg/tiktok.svg';
 import vccorpLogo from '@/images/pubg/vccorp.png';
 import votingService from '@/services/Voting.service';
-import { Box, Container, Dialog, Grid, IconButton, Stack, Typography } from '@mui/material';
+import { Box, Container, Dialog, Grid, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import dayjs from 'dayjs';
+import dynamic from 'next/dynamic';
+import { CaretDoubleUp } from '@phosphor-icons/react/dist/ssr';
 
 import { Category } from '@/types/voting';
 import { useTranslation } from '@/contexts/locale-context';
 import { LocalizedLink } from '@/components/pubggala/localized-link';
 import PubgGalaPageHeader from '@/components/pubggala/ui/pubggala-page-header';
 import PubgGalaFooter from '@/components/pubggala/ui/pubggala-footer';
+
+const FacebookSDK = dynamic(
+  () => import('@/components/pubggala/FacebookSDK'),
+  { ssr: false }
+);
+
+const FBPost = dynamic(
+  () => import('@/components/pubggala/FBPost'),
+  { ssr: false }
+);
 
 export default function Home() {
   const { tt } = useTranslation();
@@ -32,6 +45,16 @@ export default function Home() {
   const [selectedSocialIframe, setSelectedSocialIframe] = useState<string>('');
   const [selectedSocialUrl, setSelectedSocialUrl] = useState<string>('');
   const [selectedVoteCount, setSelectedVoteCount] = useState<number>(0);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedNominee, setSelectedNominee] = useState<{ title: string; updatedAt?: string } | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => setIsMobile(window.innerWidth <= 768);
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -89,11 +112,19 @@ export default function Home() {
   };
 
   // Handle vote button click
-  const handleVoteClick = (socialIframe: string, socialUrl: string, voteCount: number = 0) => {
+  const handleVoteClick = (
+    socialIframe: string,
+    socialUrl: string,
+    voteCount: number = 0,
+    category?: Category,
+    nominee?: { title: string; updatedAt?: string }
+  ) => {
     if (socialIframe) {
       setSelectedSocialIframe(socialIframe);
       setSelectedSocialUrl(socialUrl || '');
       setSelectedVoteCount(voteCount);
+      setSelectedCategory(category || null);
+      setSelectedNominee(nominee || null);
       setDialogOpen(true);
     }
   };
@@ -104,10 +135,14 @@ export default function Home() {
     setSelectedSocialIframe('');
     setSelectedSocialUrl('');
     setSelectedVoteCount(0);
+    setSelectedCategory(null);
+    setSelectedNominee(null);
   };
 
   return (
     <div className="relative w-full">
+      {/* Load Facebook SDK only on mobile (XFBML mode) */}
+      {isMobile && <FacebookSDK />}
       {/* Body1: Background Image with Content */}
       <div className="relative h-[600px] md:h-[800px] w-full" style={{ backgroundColor: '#000000' }}>
         {/* Background Image with Gradient Overlay */}
@@ -945,7 +980,15 @@ export default function Home() {
                                     }}
                                   >
                                     <button
-                                      onClick={() => handleVoteClick(nominee.socialIframe, nominee.socialUrl, nominee.voteCount || 0)}
+                                      onClick={() =>
+                                        handleVoteClick(
+                                          nominee.socialIframe,
+                                          nominee.socialUrl,
+                                          nominee.voteCount || 0,
+                                          category,
+                                          { title: nominee.title, updatedAt: nominee.updatedAt }
+                                        )
+                                      }
                                       className="flex flex-row justify-center items-center cursor-pointer"
                                       style={{
                                         padding: '12px',
@@ -1122,36 +1165,54 @@ export default function Home() {
       <Dialog
         open={dialogOpen}
         onClose={handleCloseDialog}
-        maxWidth={false}
-        fullWidth
+        scroll="body"
         PaperProps={{
           sx: {
-            width: { xs: '90%', sm: '85%', md: '600px' },
-            maxWidth: '600px',
-            borderRadius: { xs: '8px', md: '12px' },
-            display: 'flex',
-            flexDirection: 'column',
-            background: 'linear-gradient(165.61deg, #323232 -4.98%, #000000 107.54%)',
+            width: { xs: '97%', md: '600px' },
+            minWidth: '360px',
+            overflow: 'visible',
+            margin: '32px 12px',
+            '@media (max-width: 663.95px)': {
+              maxWidth: '100% !important',
+            },
+            
           },
         }}
       >
+
         <Box
           sx={{
             position: 'relative',
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
-            background: 'linear-gradient(165.61deg, #323232 -4.98%, #000000 107.54%)',
+            backgroundImage: `url(${chickenWinnerImage.src})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'repeat',
+            overflow: 'visible',
           }}
         >
+          {/* Gradient Border Top */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '1px',
+              background: 'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
+              zIndex: 5,
+            }}
+          />
           {/* Close Button */}
           <IconButton
             onClick={handleCloseDialog}
             sx={{
               position: 'absolute',
-              top: 12,
-              right: 12,
-              zIndex: 10,
+              top: -14,
+              right: -14,
+              zIndex: 1301,
               bgcolor: 'rgba(0, 0, 0, 0.7)',
               color: '#E1C693',
               border: '1px solid rgba(225, 198, 147, 0.3)',
@@ -1180,17 +1241,45 @@ export default function Home() {
             }}
           >
             <Stack direction="column" spacing={2}>
-              <Typography
-                sx={{
-                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                  fontWeight: 900,
-                  fontSize: { xs: '18px', md: '20px' },
-                  textTransform: 'uppercase',
-                  color: '#E1C693',
-                }}
-              >
-                {tt('Hướng dẫn bình chọn', 'Voting Instructions')}
-              </Typography>
+              {selectedCategory && (
+                <p
+                  className="text-xs md:text-base"
+                  style={{
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontStyle: 'normal',
+                    fontWeight: 500,
+                    lineHeight: '120%',
+                    letterSpacing: '0%',
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    textTransform: 'uppercase',
+                    color: 'rgba(255, 255, 255, 1)',
+                    margin: 0,
+                  }}
+                >
+                  {tt('Hạng mục', 'Voting Category')} {selectedCategory.name}
+                </p>
+              )}
+              {selectedNominee?.title && (
+                <Typography
+                  sx={{
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontStyle: 'normal',
+                    fontWeight: 900,
+                    fontSize: { xs: '18px', md: '28px' },
+                    letterSpacing: '0%',
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    textTransform: 'uppercase',
+                    background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  {selectedNominee.title}
+                </Typography>
+              )}
 
               {/* <Typography
                 sx={{
@@ -1209,16 +1298,38 @@ export default function Home() {
             </Stack>
           </Box>
 
-          {/* Part 3: Body Iframe */}
-          <Box
-            sx={{
-              paddingX: { xs: '16px', md: '80px' },
-              width: '100%',
-            }}
-          >
-            {selectedSocialIframe && (
-              <iframe src={selectedSocialIframe} style={{ border: '3px solid #E1C693', backgroundColor: "#ffffff", width: '100%', aspectRatio: '480/691' }} title="Facebook Post" />
-            )}
+          {/* Part 3: Body Facebook Post */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Stack direction="column" spacing={2}>
+              {(selectedSocialIframe || selectedSocialUrl) && (
+                  <FBPost
+                    socialIframe={selectedSocialIframe}
+                    socialUrl={selectedSocialUrl}
+                    preferXfbml={isMobile}
+                    width={350}
+                  />
+              )}
+              <Typography
+                sx={{
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                  fontWeight: 400,
+                  fontSize: { xs: '13px', md: '14px' },
+                  color: '#E1C693',
+                  lineHeight: 1.5,
+                  display: 'flex',
+                  textAlign: 'left',
+                  paddingLeft: '16px',
+                  alignItems: 'center',
+                  animation: 'bounce-up-down 1.5s ease-in-out infinite',
+
+                }}
+              >
+                <CaretDoubleUp size={'1.2rem'} />
+                &nbsp; {tt('Nhấn Like bài đăng để bình chọn', 'Like the post to complete the voting process.')}
+              </Typography>
+
+            </Stack>
+
           </Box>
 
           {/* Part 4: Footer Button and Vote Count */}
@@ -1239,7 +1350,7 @@ export default function Home() {
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                     fontWeight: 700,
                     fontStyle: 'normal',
-                    fontSize: '14px',
+                    fontSize: '20px',
                     lineHeight: '100%',
                     letterSpacing: '0%',
                     verticalAlign: 'middle',
@@ -1253,32 +1364,58 @@ export default function Home() {
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                     fontWeight: 400,
                     fontStyle: 'normal',
-                    fontSize: '12px',
+                    fontSize: '14px',
                     lineHeight: '100%',
                     letterSpacing: '0%',
                     verticalAlign: 'middle',
                     color: '#E1C693',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
                   }}
                 >
-                  {tt('lượt', 'votes')}
+                  {tt('lượt bình chọn', 'votes')}
+                  <Tooltip
+                    arrow
+                    title={tt(
+                      `Lượt bình chọn = tổng số lượt reactions, được cập nhật mỗi 5 phút, cập nhật lần cuối lúc: ${
+                        selectedNominee?.updatedAt
+                          ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
+                          : '—'
+                      }`,
+                      `Votes = total reactions, updated every 5 minutes, last updated at: ${
+                        selectedNominee?.updatedAt
+                          ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
+                          : '—'
+                      }`
+                    )}
+                  >
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: 9999,
+                        border: '1px solid #E1C693',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        lineHeight: '16px',
+                        cursor: 'help',
+                        userSelect: 'none',
+                      }}
+                    >
+                      i
+                    </span>
+                  </Tooltip>
                 </span>
               </div>
             )}
 
-            <Typography
-              sx={{
-                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                fontWeight: 400,
-                fontSize: { xs: '13px', md: '14px' },
-                color: '#E1C693',
-                lineHeight: 1.5,
-              }}
-            >
-              {tt(
-                'Nhấn Like bài đăng để bình chọn',
-                'Like the post to complete the voting process.'
-              )}
-            </Typography>
+
 
             {/* Button */}
             {selectedSocialUrl && (
@@ -1333,6 +1470,18 @@ export default function Home() {
               </a>
             )}
           </Box>
+          {/* Gradient Border Bottom */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '1px',
+              background: 'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
+              zIndex: 5,
+            }}
+          />
         </Box>
       </Dialog>
 
