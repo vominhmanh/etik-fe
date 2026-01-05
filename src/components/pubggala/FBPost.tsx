@@ -145,7 +145,7 @@ function FBPost({
         width: finalWidth,
         border: "3px solid #E1C693",
         background: "#fff",
-        overflow: preferXfbml ? "visible" : "hidden",
+        overflow: preferXfbml ? "hidden" : "hidden",
         minHeight: '591px',
       }}
     >
