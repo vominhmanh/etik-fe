@@ -485,6 +485,7 @@ export default function Home() {
                   className="flip-clock"
                 />
               </div>
+
             </div>
           </Container>
         </div>
@@ -707,37 +708,62 @@ export default function Home() {
                 ))}
               </div>
               {/* Vote Button - Mobile only */}
-              <div className="block md:hidden relative w-full sm:w-auto flex-shrink-0 sm:px-4 mt-4">
-                <button
-                  onClick={() => scrollToCategory(0)}
-                  className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
-                  style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
-                >
-                  <Image src={blackButtonBgImage} alt={tt('Bình chọn', 'Vote')} fill style={{ objectFit: 'contain' }} />
-                  {/* Text overlay */}
-                  <span
-                    className="text-base md:text-lg"
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                      fontStyle: 'normal',
-                      fontWeight: 900,
-                      lineHeight: '1.2',
-                      textAlign: 'center',
-                      textTransform: 'uppercase',
-                      color: 'rgba(255, 255, 255, 1)',
-                      zIndex: 2,
-                      pointerEvents: 'none',
-                      whiteSpace: 'nowrap',
-                    }}
+              <Stack direction="column" spacing={2} className="sm:px-4 mt-4">
+                <div className="block md:hidden relative w-full sm:w-auto flex-shrink-0">
+
+                  <button
+                    onClick={() => scrollToCategory(0)}
+                    className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
+                    style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
                   >
-                    {tt('Bình chọn', 'Vote')}
-                  </span>
-                </button>
-              </div>
+                    <Image src={blackButtonBgImage} alt={tt('Bình chọn', 'Vote')} fill style={{ objectFit: 'contain' }} />
+                    {/* Text overlay */}
+                    <span
+                      className="text-base md:text-lg"
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                        fontStyle: 'normal',
+                        fontWeight: 900,
+                        lineHeight: '1.2',
+                        textAlign: 'center',
+                        textTransform: 'uppercase',
+                        color: 'rgba(255, 255, 255, 1)',
+                        zIndex: 2,
+                        pointerEvents: 'none',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {tt('Bình chọn', 'Vote')}
+                    </span>
+                  </button>
+
+                </div>
+                {/* Title 2: kết quả dựa trên 70% bình chọn từ cộng đồng & 30% đánh giá từ ban tổ chức */}
+                <p
+                  className="text-xs md:text-lg md:mt-4"
+                  style={{
+                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                    fontStyle: 'normal',
+                    fontWeight: 900,
+                    lineHeight: '120%',
+                    letterSpacing: '20%',
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    textTransform: 'uppercase',
+                    color: 'rgba(255, 255, 255, 1)',
+                    margin: 0,
+                  }}
+                >
+                  {tt(
+                    'Hạn cuối bình chọn: 12:00:00 15/01/2026',
+                    'End of voting: 12:00:00 15/01/2026'
+                  )}
+                </p>
+              </Stack>
             </div>
 
             {/* Honored Categories List Section */}
@@ -1554,7 +1580,7 @@ export default function Home() {
             '@media (max-width: 663.95px)': {
               maxWidth: '100% !important',
             },
-            
+
           },
         }}
       >
@@ -1681,12 +1707,12 @@ export default function Home() {
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <Stack direction="column" spacing={2}>
               {(selectedSocialIframe || selectedSocialUrl) && (
-                  <FBPost
-                    socialIframe={selectedSocialIframe}
-                    socialUrl={selectedSocialUrl}
-                    preferXfbml={isMobile}
-                    width={350}
-                  />
+                <FBPost
+                  socialIframe={selectedSocialIframe}
+                  socialUrl={selectedSocialUrl}
+                  preferXfbml={isMobile}
+                  width={350}
+                />
               )}
               <Typography
                 sx={{
@@ -1753,19 +1779,17 @@ export default function Home() {
                     gap: '6px',
                   }}
                 >
-                  {tt('lượt bình chọn', 'votes')}
+                  {tt('bình chọn', 'votes')}
                   <Tooltip
                     arrow
                     title={tt(
-                      `Lượt bình chọn = tổng số lượt reactions, được cập nhật mỗi 5 phút, cập nhật lần cuối lúc: ${
-                        selectedNominee?.updatedAt
-                          ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
-                          : '—'
+                      `Số lượt bình chọn là tổng số lượt reactions của bài đăng, được cập nhật mỗi 5 phút, cập nhật lần cuối lúc: ${selectedNominee?.updatedAt
+                        ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
+                        : '—'
                       }`,
-                      `Votes = total reactions, updated every 5 minutes, last updated at: ${
-                        selectedNominee?.updatedAt
-                          ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
-                          : '—'
+                      `Votes = total reactions, updated every 5 minutes, last updated at: ${selectedNominee?.updatedAt
+                        ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
+                        : '—'
                       }`
                     )}
                   >

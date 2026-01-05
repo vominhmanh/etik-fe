@@ -1374,19 +1374,17 @@ export default function Home() {
                     gap: '6px',
                   }}
                 >
-                  {tt('lượt bình chọn', 'votes')}
+                  {tt('bình chọn', 'votes')}
                   <Tooltip
                     arrow
                     title={tt(
-                      `Lượt bình chọn = tổng số lượt reactions, được cập nhật mỗi 5 phút, cập nhật lần cuối lúc: ${
-                        selectedNominee?.updatedAt
-                          ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
-                          : '—'
+                      `Số lượt bình chọn là tổng số lượt reactions của bài đăng, được cập nhật mỗi 5 phút, cập nhật lần cuối lúc: ${selectedNominee?.updatedAt
+                        ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
+                        : '—'
                       }`,
-                      `Votes = total reactions, updated every 5 minutes, last updated at: ${
-                        selectedNominee?.updatedAt
-                          ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
-                          : '—'
+                      `Votes = total reactions, updated every 5 minutes, last updated at: ${selectedNominee?.updatedAt
+                        ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
+                        : '—'
                       }`
                     )}
                   >

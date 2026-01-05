@@ -532,6 +532,7 @@ export default function TermsAndConditionsPage() {
                         'Điểm bình chọn từ Người hâm mộ: Ghi nhận sức hút và tình cảm của cộng đồng dành cho các hạng mục như Tuyển thủ Ấn tượng, Đội tuyển Ấn tượng, Streamer được yêu thích và Đội ngũ truyền thông.',
                         'Fan voting points: Recognizing the appeal and affection from the community for categories such as Impressive Player, Impressive Team, Favorite Streamer, and Media Team.'
                       )}
+                      {' '}Thời gian bình chọn tính từ:{' '} <span style={{ color: '#E1C693', fontWeight: 900 }}> 08/01/2026 - 12:00:00 15/01/2026</span>
                     </Typography>
                     <Typography
                       className="text-white"
