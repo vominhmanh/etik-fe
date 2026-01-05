@@ -2,11 +2,26 @@
 
 import { useEffect } from 'react';
 
+declare global {
+  interface Window {
+    FB?: any;
+  }
+}
+
+const SCRIPT_ID = 'facebook-jssdk';
+const SDK_SRC = 'https://connect.facebook.net/vi_VN/sdk.js#xfbml=1&version=v18.0';
+
 let loaded = false;
 
 export default function FacebookSDK() {
   useEffect(() => {
-    if (loaded) return;
+    const notifyReady = () => window.dispatchEvent(new Event('fb-sdk-ready'));
+
+    if (loaded || window.FB?.XFBML) {
+      loaded = true;
+      notifyReady();
+      return;
+    }
 
     // fb-root chỉ tồn tại ở client
     if (!document.getElementById('fb-root')) {
@@ -15,11 +30,25 @@ export default function FacebookSDK() {
       document.body.appendChild(root);
     }
 
+    const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
+    if (existing) {
+      existing.addEventListener('load', () => {
+        loaded = true;
+        notifyReady();
+      }, { once: true });
+      return;
+    }
+
     const script = document.createElement('script');
-    script.src = 'https://connect.facebook.net/vi_VN/sdk.js#xfbml=1&version=v18.0';
+    script.id = SCRIPT_ID;
+    script.src = SDK_SRC;
     script.async = true;
     script.defer = true;
     script.crossOrigin = 'anonymous';
+    script.onload = () => {
+      loaded = true;
+      notifyReady();
+    };
 
     document.body.appendChild(script);
 

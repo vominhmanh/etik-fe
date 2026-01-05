@@ -1677,22 +1677,19 @@ export default function Home() {
           </Box>
 
           {/* Part 3: Body Facebook Post */}
-          <Box
-            sx={{
-              paddingX: { xs: '16px', md: '80px' },
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-            }}
-          >
-            {selectedSocialUrl && (
-              <div
-                style={{
-                  border: '3px solid #E1C693',
-                  backgroundColor: '#ffffff',
-                  width: '100%',
-                  maxWidth: '100%',
-                  minHeight: '400px',
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Stack direction="column" spacing={2}>
+              {selectedSocialUrl && (
+           
+                  <FBPost href={selectedSocialUrl} />
+              )}
+              <Typography
+                sx={{
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                  fontWeight: 400,
+                  fontSize: { xs: '13px', md: '14px' },
+                  color: '#E1C693',
+                  lineHeight: 1.5,
                   display: 'flex',
                   textAlign: 'left',
                   paddingLeft: '16px',
