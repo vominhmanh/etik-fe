@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import battlegroundsImageLong  from '@/images/pubg/background-battleground-long-light.png';
+import battlegroundsImageLong from '@/images/pubg/background-battleground-long-light.png';
 import battlegroundsImage from '@/images/pubg/battlegrounds.png';
 import blackButtonBgImage from '@/images/pubg/black-button-bg.png';
 import buttonBackgroundImage from '@/images/pubg/button-background.png';
@@ -68,8 +68,8 @@ export default function Home() {
   const isVotingDisabled = () => {
     const cutoffDate = dayjs.tz('2026-01-15 12:00:00', 'Asia/Ho_Chi_Minh');
     const now = dayjs.tz(dayjs(), 'Asia/Ho_Chi_Minh');
-    // return now.isAfter(cutoffDate);
-    return true;
+    return now.isAfter(cutoffDate);
+    // return true;
   };
 
   // Format number with dot as thousands separator (1.234.567)
@@ -81,8 +81,8 @@ export default function Home() {
   const isCountdownPassed = useMemo(() => {
     const countdownDate = dayjs.tz('2026-01-17 16:00:00', 'Asia/Ho_Chi_Minh');
     const now = dayjs.tz(dayjs(), 'Asia/Ho_Chi_Minh');
-    // return now.isAfter(countdownDate);
-    return true;
+    return now.isAfter(countdownDate);
+    // return true;
   }, []);
 
   // Detect screen size for responsive flip clock
@@ -601,110 +601,114 @@ export default function Home() {
         />
       </div>
       {/* Body2: Message Section */}
-      {isCountdownPassed && (
-        <div className="relative w-full bg-black py-8 md:py-16">
-          <Container maxWidth="xl">
-            <div className="flex flex-col gap-12" data-aos="fade-left">
-              {/* Title */}
-              <h2
-                className="text-2xl sm:text-3xl md:text-4xl leading-tight md:leading-[48px]"
-                style={{
-                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                  fontWeight: 900,
-                  fontStyle: 'normal',
-                  letterSpacing: '0%',
-                  verticalAlign: 'middle',
-                  textTransform: 'uppercase',
-                  background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                  textAlign: isMobile ? 'center' : 'left',
-                }}
-              >
-                {tt('🏆 WINNER WINNER CHICKEN DINNER!', '🏆 WINNER WINNER CHICKEN DINNER!')}
-              </h2>
+      <div className="relative w-full bg-black py-8 md:py-16">
+        <Container maxWidth="xl">
+          <div className="flex flex-col gap-12" data-aos="fade-left">
+            {/* Title */}
+            <h2
+              className="text-2xl sm:text-3xl md:text-4xl leading-tight md:leading-[48px]"
+              style={{
+                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                fontWeight: 900,
+                fontStyle: 'normal',
+                letterSpacing: '0%',
+                verticalAlign: 'middle',
+                textTransform: 'uppercase',
+                background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textAlign: isMobile ? 'center' : 'left',
+              }}
+            >
+              {tt('🏆 WINNER WINNER CHICKEN DINNER!', '🏆 WINNER WINNER CHICKEN DINNER!')}
+            </h2>
 
-              {/* Content: Video left, Text right */}
-              <Grid container spacing={8}>
-                {/* Video */}
-                <Grid item xs={12} md={5}>
-                  <div className="relative w-full" style={{ paddingBottom: '56.25%', height: 0, overflow: 'hidden' }}>
-                    <iframe
-                      src="https://www.youtube-nocookie.com/embed/GgDDVrx8njg?si=y1vCTug2EF31pgVk"
-                      title="YouTube video player"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      referrerPolicy="strict-origin-when-cross-origin"
-                      allowFullScreen
-                      className="absolute top-0 left-0 w-full h-full"
-                    />
-                  </div>
-                </Grid>
-
-                {/* Text Content */}
-                <Grid item xs={12} md={7}>
-                  <div className="flex flex-col gap-4 md:gap-6">
-                    {/* Paragraph 1 - Font Weight 900 */}
-                    <div
-                      className="text-sm sm:text-base md:text-lg leading-relaxed"
-                      style={{
-                        width: '100%',
-                        height: 'auto',
-                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                        fontStyle: 'normal',
-                        fontWeight: 900,
-                        color: '#FFFFFF',
-                      }}
-                    >
-                      {tt(
-                        '🏆 KHOẢNH KHẮC VINH QUANG ĐÃ ĐIỂM!',
-                        '🏆 THE MOMENT OF GLORY HAS ARRIVED!'
-                      )}
-                    </div>
-                    {/* Paragraph 2 - Font Weight Normal */}
-                    <div
-                      className="text-sm sm:text-base md:text-lg leading-relaxed"
-                      style={{
-                        width: '100%',
-                        height: 'auto',
-                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                        fontStyle: 'normal',
-                        fontWeight: 400,
-                        color: '#FFFFFF',
-                        textAlign: 'justify',
-                      }}
-                    >
-                      {tt(
-                        'Lần đầu tiên, hành trình rực lửa của cộng đồng PUBG Việt Nam được tái hiện trọn vẹn tại PUBG Gala 2025 – Gala of Glory. Không chỉ là một lễ trao giải, đây là nơi tôn vinh những giọt mồ hôi, sự đoàn kết và đam mê cháy bỏng đã kiến tạo nên một năm 2025 đầy tự hào. Cùng nhìn lại những cột mốc vàng son và tri ân những "chiến binh" đã cống hiến hết mình cho nền Esports nước nhà.',
-                        'For the first time, the blazing journey of the PUBG Vietnam community is fully recreated at PUBG Gala 2025 – Gala of Glory. More than just an awards ceremony, this is a place to honor the sweat, unity, and burning passion that created a proud 2025. Together, let\'s look back at the golden milestones and pay tribute to the "warriors" who have dedicated themselves to the country\'s Esports scene.'
-                      )}
-                    </div>
-                    {/* Paragraph 3 - Font Weight Normal */}
-                    <div
-                      className="text-sm sm:text-base md:text-lg leading-relaxed"
-                      style={{
-                        width: '100%',
-                        height: 'auto',
-                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                        fontStyle: 'normal',
-                        fontWeight: 400,
-                        color: '#FFFFFF',
-                        textAlign: 'justify',
-                      }}
-                    >
-                      {tt(
-                        '🔥 Đừng bỏ lỡ giây phút lịch sử này! Cùng theo dõi livestream và hòa mình vào không khí vinh quang!',
-                        '🔥 Don\'t miss this historic moment! Join us in the atmosphere of glory!'
-                      )}
-                    </div>
-                  </div>
-                </Grid>
+            {/* Content: Video left, Text right */}
+            <Grid container spacing={8}>
+              {/* Video */}
+              <Grid item xs={12} md={5}>
+                <div className="relative w-full" style={{ paddingBottom: '56.25%', height: 0, overflow: 'hidden' }}>
+                  <iframe
+                    src="https://www.youtube-nocookie.com/embed/Dtgkzm26dzg?si=a3LBQCkw1g5YXkjd&autoplay=1&mute=1"
+                    title="[Livestream] PUBG Gala 2025 - Gala of Glory"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                    className="absolute top-0 left-0 w-full h-full"
+                  />
+                </div>
               </Grid>
-            </div>
-          </Container>
-        </div>
-      )}
+
+              {/* Text Content */}
+              <Grid item xs={12} md={7}>
+                <div className="flex flex-col gap-4 md:gap-6">
+                  {/* Paragraph 1 - Font Weight 900 */}
+                  <div
+                    className="text-sm sm:text-base md:text-lg leading-relaxed"
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                      fontStyle: 'normal',
+                      fontWeight: 900,
+                      color: '#FFFFFF',
+                    }}
+                  >
+                    {isCountdownPassed ? tt(
+                      '🏆 KHOẢNH KHẮC VINH QUANG ĐÃ ĐIỂM!',
+                      '🏆 THE MOMENT OF GLORY HAS ARRIVED!'
+                    ) : tt(
+                      '🏆 CÙNG ĐÓN CHỜ KHOẢNH KHẮC VINH QUANG!',
+                      '🏆 JOIN US TO WAIT FOR THE MOMENT OF GLORY!'
+                    )}
+                  </div>
+                  {/* Paragraph 2 - Font Weight Normal */}
+                  <div
+                    className="text-sm sm:text-base md:text-lg leading-relaxed"
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                      fontStyle: 'normal',
+                      fontWeight: 400,
+                      color: '#FFFFFF',
+                      textAlign: 'justify',
+                    }}
+                  >
+                    {tt(
+                      'Lần đầu tiên, hành trình rực lửa của cộng đồng PUBG Việt Nam được tái hiện trọn vẹn tại PUBG Gala 2025 – Gala of Glory. Không chỉ là một lễ trao giải, đây là nơi tôn vinh những giọt mồ hôi, sự đoàn kết và đam mê cháy bỏng đã kiến tạo nên một năm 2025 đầy tự hào. Cùng nhìn lại những cột mốc vàng son và tri ân những "chiến binh" đã cống hiến hết mình cho nền Esports nước nhà.',
+                      'For the first time, the blazing journey of the PUBG Vietnam community is fully recreated at PUBG Gala 2025 – Gala of Glory. More than just an awards ceremony, this is a place to honor the sweat, unity, and burning passion that created a proud 2025. Together, let\'s look back at the golden milestones and pay tribute to the "warriors" who have dedicated themselves to the country\'s Esports scene.'
+                    )}
+                  </div>
+                  {/* Paragraph 3 - Font Weight Normal */}
+                  <div
+                    className="text-sm sm:text-base md:text-lg leading-relaxed"
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                      fontStyle: 'normal',
+                      fontWeight: 400,
+                      color: '#FFFFFF',
+                      textAlign: 'justify',
+                    }}
+                  >
+                    {isCountdownPassed ? tt(
+                      '🔥 Đừng bỏ lỡ giây phút lịch sử này! Cùng theo dõi livestream và hòa mình vào không khí vinh quang!',
+                      '🔥 Don\'t miss this historic moment! Join us in the atmosphere of glory!'
+                    ) : tt(
+                      '🔥 Đừng bỏ lỡ giây phút lịch sử này! Cùng theo dõi livestream vào lúc 16h ngày 17/01/2026.',
+                      '🔥 Don\'t miss this historic moment! Join us at 4pm on January 17th.'
+                    )}
+                  </div>
+                </div>
+              </Grid>
+            </Grid>
+          </div>
+        </Container>
+      </div>
 
 
       <div
@@ -1136,7 +1140,7 @@ export default function Home() {
 
                 {/* Title 2: kết quả dựa trên 70% bình chọn từ cộng đồng & 30% đánh giá từ ban tổ chức */}
                 <p
-                  className="text-sm md:text-3xl"
+                  className="text-xs md:text-3xl"
                   style={{
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                     fontStyle: 'normal',
@@ -1278,7 +1282,7 @@ export default function Home() {
                             <SwiperSlide
                               key={nominee.id}
                               style={{
-                                width: '85vw',
+                                width: '80vw',
                                 maxWidth: '400px',
                               }}
                             >
@@ -1441,7 +1445,7 @@ export default function Home() {
                                                 fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                                                 fontWeight: 700,
                                                 fontStyle: 'normal',
-                                                fontSize: '14px',
+                                                fontSize: '18px',
                                                 lineHeight: '100%',
                                                 letterSpacing: '0%',
                                                 verticalAlign: 'middle',
@@ -1456,7 +1460,7 @@ export default function Home() {
                                                 fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                                                 fontWeight: 400,
                                                 fontStyle: 'normal',
-                                                fontSize: '12px',
+                                                fontSize: '14px',
                                                 lineHeight: '100%',
                                                 letterSpacing: '0%',
                                                 verticalAlign: 'middle',
@@ -1641,7 +1645,7 @@ export default function Home() {
                                                 fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                                                 fontWeight: 700,
                                                 fontStyle: 'normal',
-                                                fontSize: '14px',
+                                                fontSize: '18px',
                                                 lineHeight: '100%',
                                                 letterSpacing: '0%',
                                                 verticalAlign: 'middle',
@@ -1656,7 +1660,7 @@ export default function Home() {
                                                 fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                                                 fontWeight: 400,
                                                 fontStyle: 'normal',
-                                                fontSize: '12px',
+                                                fontSize: '14px',
                                                 lineHeight: '100%',
                                                 letterSpacing: '0%',
                                                 verticalAlign: 'middle',
@@ -2045,7 +2049,7 @@ export default function Home() {
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                     fontWeight: 700,
                     fontStyle: 'normal',
-                    fontSize: '20px',
+                    fontSize: '24px',
                     lineHeight: '100%',
                     letterSpacing: '0%',
                     verticalAlign: 'middle',
@@ -2059,7 +2063,7 @@ export default function Home() {
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                     fontWeight: 400,
                     fontStyle: 'normal',
-                    fontSize: '14px',
+                    fontSize: '16px',
                     lineHeight: '100%',
                     letterSpacing: '0%',
                     verticalAlign: 'middle',
@@ -2077,14 +2081,14 @@ export default function Home() {
                     disableHoverListener={false}
                     disableTouchListener={false}
                     title={tt(
-                      `Số lượt bình chọn được tính bằng tổng số cảm xúc (thích, thả tim...) trong bài đăng, được cập nhật mỗi 5 phút, cập nhật lần cuối lúc: ${selectedNominee?.updatedAt
+                      `Số lượt bình chọn được tính bằng tổng số cảm xúc (thích, thả tim...) trong bài đăng. Được cập nhật mỗi 5 phút. Cập nhật lần cuối lúc: ${selectedNominee?.updatedAt
                         ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
                         : '—'
                       }`,
-                      `Votes = total reactions, updated every 5 minutes, last updated at: ${selectedNominee?.updatedAt
+                      `Votes are calculated by the total number of reactions (likes, heart, etc.) in the post. Updated every 5 minutes. Last updated at: ${selectedNominee?.updatedAt
                         ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
                         : '—'
-                      }`
+                      }.`
                     )}
                   >
                     <span

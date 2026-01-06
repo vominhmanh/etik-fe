@@ -8,7 +8,7 @@ import tiktokIcon from '@/images/pubg/tiktok.svg';
 import { Container } from '@mui/material';
 
 import { useTranslation } from '@/contexts/locale-context';
-import { YoutubeLogo } from '@phosphor-icons/react/dist/ssr';
+import { InstagramLogo, YoutubeLogo } from '@phosphor-icons/react/dist/ssr';
 
 export default function PubgGalaFooter() {
   const { tt } = useTranslation();
@@ -123,7 +123,15 @@ export default function PubgGalaFooter() {
                   rel="noopener noreferrer"
                   className="flex items-center"
                 >
-                  <YoutubeLogo size={18} weight="fill" color="#FFFFFF" />
+                  <YoutubeLogo size={24} weight="fill" color="#FFFFFF" />
+                </a>
+                <a
+                  href="https://instagram.com/pubg_battlegrounds_vn"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center"
+                >
+                  <InstagramLogo size={24} color="#FFFFFF" />
                 </a>
               </div>
             </div>
@@ -147,7 +155,7 @@ export default function PubgGalaFooter() {
               <div className="flex gap-4 md:gap-6 items-center">
                 <Image
                   src={kraftonLogo}
-                  alt="KRAFTON. Inc."
+                  alt="KRAFTON, Inc."
                   width={120}
                   height={40}
                   className="h-auto w-24 md:w-[120px]"
@@ -180,7 +188,7 @@ export default function PubgGalaFooter() {
           >
             © 2026 PUBG GALA. All rights reserved.
             <br />
-            Powered by KRAFTON. Inc.
+            Powered by KRAFTON, Inc.
           </p>
         </div>
       </Container>
