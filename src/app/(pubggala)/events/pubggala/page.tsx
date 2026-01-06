@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
+import battlegroundsImageLong  from '@/images/pubg/background-battleground-long-light.png';
 import battlegroundsImage from '@/images/pubg/battlegrounds.png';
 import blackButtonBgImage from '@/images/pubg/black-button-bg.png';
 import buttonBackgroundImage from '@/images/pubg/button-background.png';
@@ -75,6 +76,14 @@ export default function Home() {
   const formatNumber = (num: number): string => {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   };
+
+  // Check if countdown time has passed (2026-01-17T16:00:00 UTC+7)
+  const isCountdownPassed = useMemo(() => {
+    const countdownDate = dayjs.tz('2026-01-17 16:00:00', 'Asia/Ho_Chi_Minh');
+    const now = dayjs.tz(dayjs(), 'Asia/Ho_Chi_Minh');
+    // return now.isAfter(countdownDate);
+    return true;
+  }, []);
 
   // Detect screen size for responsive flip clock
   useEffect(() => {
@@ -477,11 +486,12 @@ export default function Home() {
         </div>
       </div>
 
+
       {/* Voting Categories Info Section */}
       <div
         className="relative w-full"
         style={{
-          backgroundImage: `url(${battlegroundsImage.src})`,
+          backgroundImage: `url(${battlegroundsImageLong.src})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -537,40 +547,42 @@ export default function Home() {
                   )}
                 </p>
               </Stack>
-              <div className="flex justify-center items-center w-full">
-                <FlipClockCountdown
-                  to={new Date('2026-01-17T16:00:00').getTime()}
-                  labels={['NGÀY', 'GIỜ', 'PHÚT', 'GIÂY']}
-                  labelStyle={{
-                    fontSize: flipClockConfig.label.fontSize,
-                    fontWeight: 900,
-                    textTransform: 'uppercase',
-                    color: '#E1C693',
-                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                    letterSpacing: '1px',
-                  }}
-                  digitBlockStyle={{
-                    width: flipClockConfig.digitBlock.width,
-                    height: flipClockConfig.digitBlock.height,
-                    fontSize: flipClockConfig.digitBlock.fontSize,
-                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                    fontWeight: 900,
-                    color: '#E1C693',
-                    borderRadius: 8,
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(225, 198, 147, 0.1)',
-                  }}
-                  dividerStyle={{
-                    color: 'rgba(225, 198, 147, 0.3)',
-                    height: 1,
-                  }}
-                  separatorStyle={{
-                    color: '#E1C693',
-                    size: isMobile ? '6px' : '8px',
-                  }}
-                  duration={0.5}
-                  className="flip-clock"
-                />
-              </div>
+              {!isCountdownPassed && (
+                <div className="flex justify-center items-center w-full">
+                  <FlipClockCountdown
+                    to={new Date('2026-01-17T16:00:00').getTime()}
+                    labels={['NGÀY', 'GIỜ', 'PHÚT', 'GIÂY']}
+                    labelStyle={{
+                      fontSize: flipClockConfig.label.fontSize,
+                      fontWeight: 900,
+                      textTransform: 'uppercase',
+                      color: '#E1C693',
+                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                      letterSpacing: '1px',
+                    }}
+                    digitBlockStyle={{
+                      width: flipClockConfig.digitBlock.width,
+                      height: flipClockConfig.digitBlock.height,
+                      fontSize: flipClockConfig.digitBlock.fontSize,
+                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                      fontWeight: 900,
+                      color: '#E1C693',
+                      borderRadius: 8,
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(225, 198, 147, 0.1)',
+                    }}
+                    dividerStyle={{
+                      color: 'rgba(225, 198, 147, 0.3)',
+                      height: 1,
+                    }}
+                    separatorStyle={{
+                      color: '#E1C693',
+                      size: isMobile ? '6px' : '8px',
+                    }}
+                    duration={0.5}
+                    className="flip-clock"
+                  />
+                </div>
+              )}
 
             </div>
           </Container>
@@ -588,8 +600,112 @@ export default function Home() {
           }}
         />
       </div>
-
       {/* Body2: Message Section */}
+      {isCountdownPassed && (
+        <div className="relative w-full bg-black py-8 md:py-16">
+          <Container maxWidth="xl">
+            <div className="flex flex-col gap-12" data-aos="fade-left">
+              {/* Title */}
+              <h2
+                className="text-2xl sm:text-3xl md:text-4xl leading-tight md:leading-[48px]"
+                style={{
+                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                  fontWeight: 900,
+                  fontStyle: 'normal',
+                  letterSpacing: '0%',
+                  verticalAlign: 'middle',
+                  textTransform: 'uppercase',
+                  background: 'linear-gradient(90deg, #E1C693 0%, #FFFFFF 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  textAlign: isMobile ? 'center' : 'left',
+                }}
+              >
+                {tt('🏆 WINNER WINNER CHICKEN DINNER!', '🏆 WINNER WINNER CHICKEN DINNER!')}
+              </h2>
+
+              {/* Content: Video left, Text right */}
+              <Grid container spacing={8}>
+                {/* Video */}
+                <Grid item xs={12} md={5}>
+                  <div className="relative w-full" style={{ paddingBottom: '56.25%', height: 0, overflow: 'hidden' }}>
+                    <iframe
+                      src="https://www.youtube-nocookie.com/embed/GgDDVrx8njg?si=y1vCTug2EF31pgVk"
+                      title="YouTube video player"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                      className="absolute top-0 left-0 w-full h-full"
+                    />
+                  </div>
+                </Grid>
+
+                {/* Text Content */}
+                <Grid item xs={12} md={7}>
+                  <div className="flex flex-col gap-4 md:gap-6">
+                    {/* Paragraph 1 - Font Weight 900 */}
+                    <div
+                      className="text-sm sm:text-base md:text-lg leading-relaxed"
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                        fontStyle: 'normal',
+                        fontWeight: 900,
+                        color: '#FFFFFF',
+                      }}
+                    >
+                      {tt(
+                        '🏆 KHOẢNH KHẮC VINH QUANG ĐÃ ĐIỂM!',
+                        '🏆 THE MOMENT OF GLORY HAS ARRIVED!'
+                      )}
+                    </div>
+                    {/* Paragraph 2 - Font Weight Normal */}
+                    <div
+                      className="text-sm sm:text-base md:text-lg leading-relaxed"
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                        fontStyle: 'normal',
+                        fontWeight: 400,
+                        color: '#FFFFFF',
+                        textAlign: 'justify',
+                      }}
+                    >
+                      {tt(
+                        'Lần đầu tiên, hành trình rực lửa của cộng đồng PUBG Việt Nam được tái hiện trọn vẹn tại PUBG Gala 2025 – Gala of Glory. Không chỉ là một lễ trao giải, đây là nơi tôn vinh những giọt mồ hôi, sự đoàn kết và đam mê cháy bỏng đã kiến tạo nên một năm 2025 đầy tự hào. Cùng nhìn lại những cột mốc vàng son và tri ân những "chiến binh" đã cống hiến hết mình cho nền Esports nước nhà.',
+                        'For the first time, the blazing journey of the PUBG Vietnam community is fully recreated at PUBG Gala 2025 – Gala of Glory. More than just an awards ceremony, this is a place to honor the sweat, unity, and burning passion that created a proud 2025. Together, let\'s look back at the golden milestones and pay tribute to the "warriors" who have dedicated themselves to the country\'s Esports scene.'
+                      )}
+                    </div>
+                    {/* Paragraph 3 - Font Weight Normal */}
+                    <div
+                      className="text-sm sm:text-base md:text-lg leading-relaxed"
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                        fontStyle: 'normal',
+                        fontWeight: 400,
+                        color: '#FFFFFF',
+                        textAlign: 'justify',
+                      }}
+                    >
+                      {tt(
+                        '🔥 Đừng bỏ lỡ giây phút lịch sử này! Cùng theo dõi livestream và hòa mình vào không khí vinh quang!',
+                        '🔥 Don\'t miss this historic moment! Join us in the atmosphere of glory!'
+                      )}
+                    </div>
+                  </div>
+                </Grid>
+              </Grid>
+            </div>
+          </Container>
+        </div>
+      )}
+
 
       <div
         id="award-categories-list"
@@ -981,8 +1097,8 @@ export default function Home() {
         <div
           className="absolute inset-0 w-full"
           style={{
-            backgroundImage: `url(${battlegroundsImage.src})`,
-            backgroundSize: '100% 100%',
+            backgroundImage: `url(${battlegroundsImageLong.src})`,
+            backgroundSize: 'auto 100%',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
             top: 0,
@@ -1603,8 +1719,8 @@ export default function Home() {
                 <div
                   className="absolute inset-0 w-full"
                   style={{
-                    backgroundImage: `url(${battlegroundsImage.src})`,
-                    backgroundSize: '100% 100%',
+                    backgroundImage: `url(${battlegroundsImageLong.src})`,
+                    backgroundSize: 'auto 100%',
                     backgroundPosition: 'center',
                     backgroundRepeat: 'no-repeat',
                     top: 0,
@@ -1956,6 +2072,10 @@ export default function Home() {
                   {tt('bình chọn', 'votes')}
                   <Tooltip
                     arrow
+                    enterDelay={isMobile ? 200 : 0}
+                    leaveDelay={isMobile ? 5000 : 0}
+                    disableHoverListener={false}
+                    disableTouchListener={false}
                     title={tt(
                       `Số lượt bình chọn được tính bằng tổng số cảm xúc (thích, thả tim...) trong bài đăng, được cập nhật mỗi 5 phút, cập nhật lần cuối lúc: ${selectedNominee?.updatedAt
                         ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
