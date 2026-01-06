@@ -118,7 +118,7 @@ export default function TermsAndConditionsPage() {
         {/* Content Area */}
         <div className="absolute inset-0 z-10 flex items-center pt-8 md:pt-14 px-4">
           <Container maxWidth="xl" className="w-full">
-            <div className="flex flex-col gap-4 md:gap-6 w-full" data-aos="fade-right">
+            <div className="flex flex-col gap-4 md:gap-6 w-full" data-aos="fade-right" id='terms-and-conditions'>
               {/* Title */}
               <div className="gap-3">
                 <h3
@@ -136,7 +136,7 @@ export default function TermsAndConditionsPage() {
                     flexGrow: 0,
                   }}
                 >
-                  {tt('VINH DANH & BÌNH CHỌN', 'HONOR & VOTE')}
+                  {tt('THỂ LỆ', 'TERMS AND CONDITIONS')}
                 </h3>
                 <h3
                   className="text-xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight md:leading-tight"
@@ -153,11 +153,12 @@ export default function TermsAndConditionsPage() {
                     flexGrow: 0,
                   }}
                 >
-                  {tt('PUBG GALA 2025:', 'PUBG GALA 2025:')}
+                  {tt('PUBG GALA 2025', 'PUBG GALA 2025')}
                 </h3>
               </div>
 
               <h1
+                
                 className="text-3xl sm:text-5xl md:text-6xl lg:text-[72px] leading-tight md:leading-[76px] animated-gradient-text"
                 style={
                   {
@@ -178,7 +179,7 @@ export default function TermsAndConditionsPage() {
               </h1>
 
               {/* Description */}
-              <p
+              {/* <p
                 className="text-sm sm:text-base md:text-lg"
                 style={{
                   width: '100%',
@@ -201,10 +202,10 @@ export default function TermsAndConditionsPage() {
                     "Join us in voting and honoring the individuals, teams, and memorable moments of PUBG Vietnam in 2025."
                   ).replace(/\n\n/g, '<br /><br />').replace(/\n/g, '<br />')
                 }}
-              />
+              /> */}
 
               {/* Button */}
-              {!isVotingDisabled() && (
+              {/* {!isVotingDisabled() && (
                 <div
                   style={{
                     display: 'flex',
@@ -240,7 +241,7 @@ export default function TermsAndConditionsPage() {
                   >
                     <div className="w-40 sm:w-48 md:w-[220px] h-12 sm:h-14 md:h-[60px]" style={{ position: 'relative' }}>
                       <Image src={buttonBackgroundImage} alt={tt('Bình chọn', 'Vote')} fill priority />
-                      {/* Text overlay */}
+                      
                       <span
                         className="text-sm sm:text-base md:text-xl"
                         style={{
@@ -265,14 +266,14 @@ export default function TermsAndConditionsPage() {
                     </div>
                   </LocalizedLink>
                 </div>
-              )}
+              )} */}
             </div>
           </Container>
         </div>
       </div>
       <div style={{ position: 'relative', zIndex: 10 }}>
 
-        <Container maxWidth="xl" className="w-full py-32 md:py-32">
+        <Container maxWidth="xl" className="w-full py-16 md:py-16">
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
             {/* Sidebar Navigation */}
             <aside className="w-full lg:w-64 flex-shrink-0">

@@ -306,11 +306,11 @@ export default function PubgGalaPageHeader() {
               }}
             >
               <LocalizedLink
-                href="/events/pubggala/terms-and-conditions"
+                href="/events/pubggala/terms-and-conditions#terms-and-conditions"
                 className="w-full text-white hover:text-[#E1C693] transition-colors text-sm font-medium"
                 style={{ fontFamily: 'var(--font-montserrat), Montserrat, sans-serif', textDecoration: 'none' }}
               >
-                {tt('Thể lệ', 'Rules')}
+                {tt('Thể lệ', 'Terms and Conditions')}
               </LocalizedLink>
             </MenuItem>
           </Menu>
@@ -360,11 +360,11 @@ export default function PubgGalaPageHeader() {
                 {tt('Tin tức', 'News')}
               </LocalizedLink> */}
               <LocalizedLink
-                href="/events/pubggala/terms-and-conditions"
+                href="/events/pubggala/terms-and-conditions#terms-and-conditions"
                 className="text-white hover:text-gray-300 transition-colors text-sm font-medium"
                 style={{ fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}
               >
-                {tt('Thể lệ', 'Rules')}
+                {tt('Thể lệ', 'Terms and Conditions')}
               </LocalizedLink>
             </nav>
             {/* {isLoading ? (
