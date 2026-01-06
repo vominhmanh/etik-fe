@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import backgroundGradientImage from '@/images/pubg/background-gradient.png';
 import battlegroundsImage from '@/images/pubg/battlegrounds.png';
 import blackButtonBgImage from '@/images/pubg/black-button-bg.png';
 import buttonBackgroundImage from '@/images/pubg/button-background.png';
@@ -10,7 +9,6 @@ import cardBackgroundImage from '@/images/pubg/card-background.png';
 import chickenWinnerImage from '@/images/pubg/chicken-winner.png';
 import heartIcon from '@/images/pubg/heart.svg';
 import backgroundImage from '@/images/pubg/KV_PUBG_GALA_16x9.jpg';
-import logo from '@/images/pubg/logo.png';
 import soldierBackgroundImage from '@/images/pubg/soldier-background.png';
 import votingService from '@/services/Voting.service';
 import { Box, Container, Dialog, Grid, IconButton, Stack, Tooltip, Typography } from '@mui/material';
@@ -18,9 +16,14 @@ import type { Swiper as SwiperType } from 'swiper';
 import { Navigation } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import dayjs from 'dayjs';
-
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+import Link from 'next/link';
 import 'swiper/css';
 import 'swiper/css/navigation';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 import { Category } from '@/types/voting';
 import { useTranslation } from '@/contexts/locale-context';
@@ -53,9 +56,25 @@ export default function Home() {
   const [selectedVoteCount, setSelectedVoteCount] = useState<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedNominee, setSelectedNominee] = useState<{ title: string; updatedAt?: string } | null>(null);
+  const [selectedNomineeIndex, setSelectedNomineeIndex] = useState<number>(-1);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const swiperRefs = useRef<{ [key: number]: SwiperType | null }>({});
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isSmallMobile, setIsSmallMobile] = useState(false);
+
+  // Check if current time is after 12:00 PM on 15/01/2026 UTC+7
+  const isVotingDisabled = () => {
+    const cutoffDate = dayjs.tz('2026-01-15 12:00:00', 'Asia/Ho_Chi_Minh');
+    const now = dayjs.tz(dayjs(), 'Asia/Ho_Chi_Minh');
+    // return now.isAfter(cutoffDate);
+    return true;
+  };
+
+  // Format number with dot as thousands separator (1.234.567)
+  const formatNumber = (num: number): string => {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
 
   // Detect screen size for responsive flip clock
   useEffect(() => {
@@ -91,13 +110,28 @@ export default function Home() {
 
   const flipClockConfig = getFlipClockConfig();
 
+  // Shuffle array function (Fisher-Yates algorithm)
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
         const response = await votingService.getAllInfo(51);
         if (response.data?.categories) {
-          setCategories(response.data.categories);
+          // Shuffle nominees for each category
+          const categoriesWithShuffledNominees = response.data.categories.map(category => ({
+            ...category,
+            nominees: shuffleArray(category.nominees || [])
+          }));
+          setCategories(categoriesWithShuffledNominees);
         }
       } catch (error) {
         console.error('Error fetching voting data:', error);
@@ -118,15 +152,6 @@ export default function Home() {
   const votingCategories = categories.filter((cat) => cat.allowVoting === true);
   const honoredCategories = categories.filter((cat) => cat.allowVoting === false);
 
-  // Strip HTML tags to get plain text for title attribute
-  const stripHtmlTags = (html: string): string => {
-    if (typeof window !== 'undefined') {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = html;
-      return tmp.textContent || tmp.innerText || '';
-    }
-    return html.replace(/<[^>]*>/g, '');
-  };
 
   // Scroll to category section
   const scrollToCategory = (categoryIndex: number) => {
@@ -147,12 +172,19 @@ export default function Home() {
     category?: Category,
     nominee?: { title: string; updatedAt?: string }
   ) => {
-    if (socialIframe) {
+    if (socialIframe && category) {
       setSelectedSocialIframe(socialIframe);
       setSelectedSocialUrl(socialUrl || '');
       setSelectedVoteCount(voteCount);
-      setSelectedCategory(category || null);
+      setSelectedCategory(category);
       setSelectedNominee(nominee || null);
+
+      // Find index of selected nominee
+      const nomineeIndex = category.nominees.findIndex(
+        (n) => n.title === nominee?.title
+      );
+      setSelectedNomineeIndex(nomineeIndex >= 0 ? nomineeIndex : -1);
+
       setDialogOpen(true);
     }
   };
@@ -165,6 +197,74 @@ export default function Home() {
     setSelectedVoteCount(0);
     setSelectedCategory(null);
     setSelectedNominee(null);
+    setSelectedNomineeIndex(-1);
+  };
+
+  // Navigate to next/previous nominee
+  const navigateNominee = (direction: 'next' | 'prev') => {
+    if (!selectedCategory || selectedNomineeIndex < 0 || isTransitioning) return;
+
+    const nominees = selectedCategory.nominees;
+    if (nominees.length === 0) return;
+
+    setIsTransitioning(true);
+
+    let newIndex = direction === 'next'
+      ? selectedNomineeIndex + 1
+      : selectedNomineeIndex - 1;
+
+    // Wrap around
+    if (newIndex < 0) newIndex = nominees.length - 1;
+    if (newIndex >= nominees.length) newIndex = 0;
+
+    const nominee = nominees[newIndex];
+    if (nominee) {
+      // Small delay for fade effect
+      setTimeout(() => {
+        setSelectedSocialIframe(nominee.socialIframe);
+        setSelectedSocialUrl(nominee.socialUrl || '');
+        setSelectedVoteCount(nominee.voteCount || 0);
+        setSelectedNominee({ title: nominee.title, updatedAt: nominee.updatedAt });
+        setSelectedNomineeIndex(newIndex);
+
+        // Reset transition after content updates
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 50);
+      }, 150);
+    } else {
+      setIsTransitioning(false);
+    }
+  };
+
+  // Handle swipe gestures
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+
+    // Minimum swipe distance (50px)
+    const minSwipeDistance = 50;
+
+    // Check if horizontal swipe is greater than vertical swipe
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+      if (deltaX > 0) {
+        // Swipe right - go to previous
+        navigateNominee('prev');
+      } else {
+        // Swipe left - go to next
+        navigateNominee('next');
+      }
+    }
+
+    touchStartRef.current = null;
   };
 
   return (
@@ -194,7 +294,7 @@ export default function Home() {
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            animation: gradient-shift 9s ease-in-out infinite;
+            animation: gradient-shift 4s ease-in-out infinite;
           }
           @keyframes bounce-up-down {
             0%, 100% {
@@ -241,6 +341,7 @@ export default function Home() {
             <div className="flex flex-col gap-4 md:gap-6 w-full" data-aos="fade-right">
               {/* Title */}
               <div className="gap-3">
+
                 <h3
                   className="text-xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight md:leading-tight"
                   style={{
@@ -256,24 +357,7 @@ export default function Home() {
                     flexGrow: 0,
                   }}
                 >
-                  {tt('VINH DANH & BÌNH CHỌN', 'HONOR & VOTE')}
-                </h3>
-                <h3
-                  className="text-xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight md:leading-tight"
-                  style={{
-                    fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                    fontWeight: 900,
-                    display: 'flex',
-                    alignItems: 'center',
-                    textTransform: 'uppercase',
-                    color: '#E1C693',
-                    flex: 'none',
-                    order: 0,
-                    alignSelf: 'stretch',
-                    flexGrow: 0,
-                  }}
-                >
-                  {tt('PUBG GALA 2025:', 'PUBG GALA 2025:')}
+                  {tt('PUBG GALA 2025', 'PUBG GALA 2025')}
                 </h3>
               </div>
 
@@ -326,66 +410,68 @@ export default function Home() {
               />
 
               {/* Button */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  isolation: 'isolate',
-                  flex: 'none',
-                  order: 1,
-                  flexGrow: 0,
-                }}
-              >
-                <LocalizedLink
-                  href="/events/pubggala#award-categories-list"
+              {!isVotingDisabled() && (
+                <div
                   style={{
                     display: 'flex',
                     flexDirection: 'row',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    textDecoration: 'none',
+                    isolation: 'isolate',
                     flex: 'none',
                     order: 1,
                     flexGrow: 0,
-                    zIndex: 1,
-                    cursor: 'pointer',
-                    transition: 'opacity 0.2s ease',
-                    position: 'relative',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '0.9';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '1';
                   }}
                 >
-                  <div className="w-40 sm:w-48 md:w-[220px] h-12 sm:h-14 md:h-[60px]" style={{ position: 'relative' }}>
-                    <Image src={buttonBackgroundImage} alt={tt('Bình chọn', 'Vote')} fill priority />
-                    {/* Text overlay */}
-                    <span
-                      className="text-sm sm:text-base md:text-xl"
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                        fontStyle: 'normal',
-                        fontWeight: 900,
-                        lineHeight: '1.2',
-                        textAlign: 'center',
-                        textTransform: 'uppercase',
-                        color: '#121026',
-                        zIndex: 2,
-                        pointerEvents: 'none',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {tt('Bình chọn ngay', 'Vote now')}
-                    </span>
-                  </div>
-                </LocalizedLink>
-              </div>
+                  <Link
+                    href="#award-categories-list"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      textDecoration: 'none',
+                      flex: 'none',
+                      order: 1,
+                      flexGrow: 0,
+                      zIndex: 1,
+                      cursor: 'pointer',
+                      transition: 'opacity 0.2s ease',
+                      position: 'relative',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '0.9';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                  >
+                    <div className="w-40 sm:w-48 md:w-[220px] h-12 sm:h-14 md:h-[60px]" style={{ position: 'relative' }}>
+                      <Image src={buttonBackgroundImage} alt={tt('Bình chọn', 'Vote')} fill priority />
+                      {/* Text overlay */}
+                      <span
+                        className="text-sm sm:text-base md:text-xl"
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                          fontStyle: 'normal',
+                          fontWeight: 900,
+                          lineHeight: '1.2',
+                          textAlign: 'center',
+                          textTransform: 'uppercase',
+                          color: '#121026',
+                          zIndex: 2,
+                          pointerEvents: 'none',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {tt('Bình chọn ngay', 'Vote now')}
+                      </span>
+                    </div>
+                  </Link>
+                </div>
+              )}
             </div>
           </Container>
         </div>
@@ -662,86 +748,88 @@ export default function Home() {
                       </div>
                     </Stack>
                     {/* Vote Button - Desktop only */}
-                    <div className="hidden md:block relative w-full sm:w-auto flex-shrink-0 sm:px-4">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const categoryIndex = categories.findIndex((cat) => cat.id === category.id);
-                          if (categoryIndex !== -1) {
-                            scrollToCategory(categoryIndex);
-                          }
-                        }}
-                        className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
-                        style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
-                      >
-                        <Image
-                          src={blackButtonBgImage}
-                          alt={tt('Bình chọn', 'Vote')}
-                          fill
-                          style={{ objectFit: 'contain' }}
-                        />
-                        {/* Text overlay */}
-                        <span
-                          className="text-base md:text-lg"
-                          style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                            fontStyle: 'normal',
-                            fontWeight: 900,
-                            lineHeight: '1.2',
-                            textAlign: 'center',
-                            textTransform: 'uppercase',
-                            color: 'rgba(255, 255, 255, 1)',
-                            zIndex: 2,
-                            pointerEvents: 'none',
-                            whiteSpace: 'nowrap',
+                    {!isVotingDisabled() && (
+                      <div className="hidden md:block relative w-full sm:w-auto flex-shrink-0 sm:px-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const categoryIndex = categories.findIndex((cat) => cat.id === category.id);
+                            if (categoryIndex !== -1) {
+                              scrollToCategory(categoryIndex);
+                            }
                           }}
+                          className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
+                          style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
                         >
-                          {tt('Bình chọn', 'Vote')}
-                        </span>
-                      </button>
-                    </div>
+                          <Image
+                            src={blackButtonBgImage}
+                            alt={tt('Bình chọn', 'Vote')}
+                            fill
+                            style={{ objectFit: 'contain' }}
+                          />
+                          {/* Text overlay */}
+                          <span
+                            className="text-base md:text-lg"
+                            style={{
+                              position: 'absolute',
+                              top: '50%',
+                              left: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                              fontStyle: 'normal',
+                              fontWeight: 900,
+                              lineHeight: '1.2',
+                              textAlign: 'center',
+                              textTransform: 'uppercase',
+                              color: 'rgba(255, 255, 255, 1)',
+                              zIndex: 2,
+                              pointerEvents: 'none',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {tt('Bình chọn', 'Vote')}
+                          </span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
               {/* Vote Button - Mobile only */}
               <Stack direction="column" spacing={2} className="sm:px-4 mt-4">
-                <div className="block md:hidden relative w-full sm:w-auto flex-shrink-0">
-
-                  <button
-                    onClick={() => scrollToCategory(0)}
-                    className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
-                    style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
-                  >
-                    <Image src={blackButtonBgImage} alt={tt('Bình chọn', 'Vote')} fill style={{ objectFit: 'contain' }} />
-                    {/* Text overlay */}
-                    <span
-                      className="text-base md:text-lg"
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                        fontStyle: 'normal',
-                        fontWeight: 900,
-                        lineHeight: '1.2',
-                        textAlign: 'center',
-                        textTransform: 'uppercase',
-                        color: 'rgba(255, 255, 255, 1)',
-                        zIndex: 2,
-                        pointerEvents: 'none',
-                        whiteSpace: 'nowrap',
-                      }}
+                {!isVotingDisabled() && (
+                  <div className="block md:hidden relative w-full sm:w-auto flex-shrink-0">
+                    <button
+                      onClick={() => scrollToCategory(0)}
+                      className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
+                      style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
                     >
-                      {tt('Bình chọn', 'Vote')}
-                    </span>
-                  </button>
-
-                </div>
+                      <Image src={blackButtonBgImage} alt={tt('Bình chọn', 'Vote')} fill style={{ objectFit: 'contain' }} />
+                      {/* Text overlay */}
+                      <span
+                        className="text-base md:text-lg"
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                          fontStyle: 'normal',
+                          fontWeight: 900,
+                          lineHeight: '1.2',
+                          textAlign: 'center',
+                          textTransform: 'uppercase',
+                          color: 'rgba(255, 255, 255, 1)',
+                          zIndex: 2,
+                          pointerEvents: 'none',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {tt('Bình chọn', 'Vote')}
+                      </span>
+                    </button>
+                  </div>
+                )}
                 {/* Title 2: kết quả dựa trên 70% bình chọn từ cộng đồng & 30% đánh giá từ ban tổ chức */}
                 <p
                   className="text-xs md:text-lg md:mt-4"
@@ -1109,7 +1197,7 @@ export default function Home() {
                                     backgroundSize: 'cover',
                                     backgroundPosition: 'center',
                                     backgroundRepeat: 'no-repeat',
-                                    // opacity: 0.5,
+                                    opacity: category.allowVoting && isVotingDisabled() ? 0.33 : 1,
                                     zIndex: 0,
                                     width: '100%',
                                     height: '100%',
@@ -1155,26 +1243,29 @@ export default function Home() {
 
                                   {/* Card Content - Bottom */}
                                   <div className="flex flex-col gap-3">
-                                    {/* <div
-                                      title={stripHtmlTags(nominee.description)}
-                                      style={{
-                                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                        fontWeight: 400,
-                                        fontStyle: 'normal',
-                                        fontSize: '14px',
-                                        lineHeight: '1.4',
-                                        letterSpacing: '0%',
-                                        verticalAlign: 'middle',
-                                        color: 'rgba(244, 245, 248, 1)',
-                                        textAlign: 'left',
-                                        display: '-webkit-box',
-                                        WebkitLineClamp: 3,
-                                        WebkitBoxOrient: 'vertical' as const,
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                      }}
-                                      dangerouslySetInnerHTML={{ __html: nominee.description }}
-                                    /> */}
+                                    {category.allowVoting && isVotingDisabled() &&
+                                      <div
+                                        style={{
+                                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                          fontWeight: 400,
+                                          fontStyle: 'normal',
+                                          fontSize: '14px',
+                                          lineHeight: '1.4',
+                                          letterSpacing: '0%',
+                                          verticalAlign: 'middle',
+                                          color: 'rgba(244, 245, 248, 1)',
+                                          textAlign: 'left',
+                                          display: '-webkit-box',
+                                          WebkitLineClamp: 3,
+                                          WebkitBoxOrient: 'vertical' as const,
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                        }}
+                                      >
+                                        <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
+                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala vào 16h 17/01.</p>
+                                      </div>
+                                    }
 
                                     {/* Vote Button and Count */}
                                     {category.allowVoting && (
@@ -1188,6 +1279,7 @@ export default function Home() {
                                         >
                                           <button
                                             onClick={() =>
+                                              !isVotingDisabled() &&
                                               handleVoteClick(
                                                 nominee.socialIframe,
                                                 nominee.socialUrl,
@@ -1219,42 +1311,46 @@ export default function Home() {
                                                 color: 'rgba(225, 198, 147, 1)',
                                               }}
                                             >
-                                              {tt('Bình chọn', 'Vote')}
+                                              {isVotingDisabled() ? formatNumber(nominee.voteCount || 0) + ' lượt' : tt('Bình chọn', 'Vote')}
                                             </span>
                                           </button>
                                         </div>
 
                                         {/* Vote Count */}
-                                        <div className="flex items-baseline gap-1">
-                                          <span
-                                            style={{
-                                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                              fontWeight: 700,
-                                              fontStyle: 'normal',
-                                              fontSize: '14px',
-                                              lineHeight: '100%',
-                                              letterSpacing: '0%',
-                                              verticalAlign: 'middle',
-                                              color: 'rgba(255, 255, 255, 1)',
-                                            }}
-                                          >
-                                            {nominee.voteCount || 0}
-                                          </span>
-                                          <span
-                                            style={{
-                                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                              fontWeight: 400,
-                                              fontStyle: 'normal',
-                                              fontSize: '12px',
-                                              lineHeight: '100%',
-                                              letterSpacing: '0%',
-                                              verticalAlign: 'middle',
-                                              color: 'rgba(255, 255, 255, 1)',
-                                            }}
-                                          >
-                                            {tt('lượt', 'votes')}
-                                          </span>
-                                        </div>
+                                        {!isVotingDisabled() && (
+                                          <div className="flex items-baseline gap-1">
+
+                                            <span
+                                              style={{
+                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                                fontWeight: 700,
+                                                fontStyle: 'normal',
+                                                fontSize: '14px',
+                                                lineHeight: '100%',
+                                                letterSpacing: '0%',
+                                                verticalAlign: 'middle',
+                                                color: 'rgba(255, 255, 255, 1)',
+                                              }}
+                                            >
+                                              {formatNumber(nominee.voteCount || 0)}
+                                            </span>
+
+                                            <span
+                                              style={{
+                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                                fontWeight: 400,
+                                                fontStyle: 'normal',
+                                                fontSize: '12px',
+                                                lineHeight: '100%',
+                                                letterSpacing: '0%',
+                                                verticalAlign: 'middle',
+                                                color: 'rgba(255, 255, 255, 1)',
+                                              }}
+                                            >
+                                              {tt('lượt', 'votes')}
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
                                     )}
                                   </div>
@@ -1301,7 +1397,7 @@ export default function Home() {
                                     backgroundSize: 'cover',
                                     backgroundPosition: 'center',
                                     backgroundRepeat: 'no-repeat',
-                                    // opacity: 0.5,
+                                    opacity: category.allowVoting && isVotingDisabled() ? 0.33 : 1,
                                     zIndex: 0,
                                     width: '100%',
                                     height: '100%',
@@ -1347,26 +1443,29 @@ export default function Home() {
 
                                   {/* Card Content - Bottom */}
                                   <div className="flex flex-col gap-3">
-                                    {/* <div
-                                      title={stripHtmlTags(nominee.description)}
-                                      style={{
-                                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                        fontWeight: 400,
-                                        fontStyle: 'normal',
-                                        fontSize: '14px',
-                                        lineHeight: '1.4',
-                                        letterSpacing: '0%',
-                                        verticalAlign: 'middle',
-                                        color: 'rgba(244, 245, 248, 1)',
-                                        textAlign: 'left',
-                                        display: '-webkit-box',
-                                        WebkitLineClamp: 3,
-                                        WebkitBoxOrient: 'vertical' as const,
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                      }}
-                                      dangerouslySetInnerHTML={{ __html: nominee.description }}
-                                    /> */}
+                                    {category.allowVoting && isVotingDisabled() && (
+                                      <div
+                                        style={{
+                                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                          fontWeight: 400,
+                                          fontStyle: 'normal',
+                                          fontSize: '14px',
+                                          lineHeight: '1.4',
+                                          letterSpacing: '0%',
+                                          verticalAlign: 'middle',
+                                          color: 'rgba(244, 245, 248, 1)',
+                                          textAlign: 'left',
+                                          display: '-webkit-box',
+                                          WebkitLineClamp: 3,
+                                          WebkitBoxOrient: 'vertical' as const,
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                        }}
+                                      >
+                                        <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
+                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala vào 16h 17/01.</p>
+
+                                      </div>)}
 
                                     {/* Vote Button and Count */}
                                     {category.allowVoting && (
@@ -1380,6 +1479,7 @@ export default function Home() {
                                         >
                                           <button
                                             onClick={() =>
+                                              !isVotingDisabled() &&
                                               handleVoteClick(
                                                 nominee.socialIframe,
                                                 nominee.socialUrl,
@@ -1411,42 +1511,46 @@ export default function Home() {
                                                 color: 'rgba(225, 198, 147, 1)',
                                               }}
                                             >
-                                              {tt('Bình chọn', 'Vote')}
+                                              {isVotingDisabled() ? formatNumber(nominee.voteCount || 0) + ' lượt' : tt('Bình chọn', 'Vote')}
                                             </span>
                                           </button>
                                         </div>
 
                                         {/* Vote Count */}
-                                        <div className="flex items-baseline gap-1">
-                                          <span
-                                            style={{
-                                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                              fontWeight: 700,
-                                              fontStyle: 'normal',
-                                              fontSize: '14px',
-                                              lineHeight: '100%',
-                                              letterSpacing: '0%',
-                                              verticalAlign: 'middle',
-                                              color: 'rgba(255, 255, 255, 1)',
-                                            }}
-                                          >
-                                            {nominee.voteCount || 0}
-                                          </span>
-                                          <span
-                                            style={{
-                                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                              fontWeight: 400,
-                                              fontStyle: 'normal',
-                                              fontSize: '12px',
-                                              lineHeight: '100%',
-                                              letterSpacing: '0%',
-                                              verticalAlign: 'middle',
-                                              color: 'rgba(255, 255, 255, 1)',
-                                            }}
-                                          >
-                                            {tt('lượt', 'votes')}
-                                          </span>
-                                        </div>
+                                        {!isVotingDisabled() && (
+                                          <div className="flex items-baseline gap-1">
+
+                                            <span
+                                              style={{
+                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                                fontWeight: 700,
+                                                fontStyle: 'normal',
+                                                fontSize: '14px',
+                                                lineHeight: '100%',
+                                                letterSpacing: '0%',
+                                                verticalAlign: 'middle',
+                                                color: 'rgba(255, 255, 255, 1)',
+                                              }}
+                                            >
+                                              {formatNumber(nominee.voteCount || 0)}
+                                            </span>
+
+                                            <span
+                                              style={{
+                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                                fontWeight: 400,
+                                                fontStyle: 'normal',
+                                                fontSize: '12px',
+                                                lineHeight: '100%',
+                                                letterSpacing: '0%',
+                                                verticalAlign: 'middle',
+                                                color: 'rgba(255, 255, 255, 1)',
+                                              }}
+                                            >
+                                              {tt('lượt', 'votes')}
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
                                     )}
                                   </div>
@@ -1586,6 +1690,8 @@ export default function Home() {
       >
 
         <Box
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           sx={{
             position: 'relative',
             width: '100%',
@@ -1596,6 +1702,9 @@ export default function Home() {
             backgroundPosition: 'center',
             backgroundRepeat: 'repeat',
             overflow: 'visible',
+            touchAction: 'pan-y', // Allow vertical scrolling but handle horizontal swipes
+            opacity: isTransitioning ? 0.7 : 1,
+            transition: 'opacity 0.15s ease-in-out',
           }}
         >
           {/* Gradient Border Top */}
@@ -1639,6 +1748,71 @@ export default function Home() {
             </svg>
           </IconButton>
 
+          {/* Navigation Buttons */}
+          {selectedCategory && selectedCategory.nominees.length > 1 && (
+            <>
+              {/* Previous Button */}
+              <IconButton
+                onClick={() => navigateNominee('prev')}
+                sx={{
+                  position: 'absolute',
+                  left: -14,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  zIndex: 1301,
+                  bgcolor: 'rgba(0, 0, 0, 0.7)',
+                  color: '#E1C693',
+                  border: '1px solid rgba(225, 198, 147, 0.3)',
+                  '&:hover': {
+                    bgcolor: 'rgba(0, 0, 0, 0.9)',
+                    border: '1px solid rgba(225, 198, 147, 0.5)',
+                  },
+                }}
+                aria-label={tt('Trước', 'Previous')}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M12 15L7 10L12 5"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </IconButton>
+
+              {/* Next Button */}
+              <IconButton
+                onClick={() => navigateNominee('next')}
+                sx={{
+                  position: 'absolute',
+                  right: -14,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  zIndex: 1301,
+                  bgcolor: 'rgba(0, 0, 0, 0.7)',
+                  color: '#E1C693',
+                  border: '1px solid rgba(225, 198, 147, 0.3)',
+                  '&:hover': {
+                    bgcolor: 'rgba(0, 0, 0, 0.9)',
+                    border: '1px solid rgba(225, 198, 147, 0.5)',
+                  },
+                }}
+                aria-label={tt('Tiếp', 'Next')}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M8 5L13 10L8 15"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </IconButton>
+            </>
+          )}
+
           {/* Part 1: Header */}
           <Box
             sx={{
@@ -1671,7 +1845,7 @@ export default function Home() {
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                     fontStyle: 'normal',
                     fontWeight: 900,
-                    fontSize: { xs: '18px', md: '28px' },
+                    fontSize: { xs: '24px', md: '36px' },
                     letterSpacing: '0%',
                     textAlign: 'center',
                     verticalAlign: 'middle',
@@ -1762,7 +1936,7 @@ export default function Home() {
                     color: '#E1C693',
                   }}
                 >
-                  {selectedVoteCount || 0}
+                  {formatNumber(selectedVoteCount || 0)}
                 </span>
                 <span
                   style={{
@@ -1783,7 +1957,7 @@ export default function Home() {
                   <Tooltip
                     arrow
                     title={tt(
-                      `Số lượt bình chọn là tổng số lượt reactions của bài đăng, được cập nhật mỗi 5 phút, cập nhật lần cuối lúc: ${selectedNominee?.updatedAt
+                      `Số lượt bình chọn được tính bằng tổng số cảm xúc (thích, thả tim...) trong bài đăng, được cập nhật mỗi 5 phút, cập nhật lần cuối lúc: ${selectedNominee?.updatedAt
                         ? dayjs(selectedNominee.updatedAt).format('HH:mm:ss DD/MM/YYYY')
                         : '—'
                       }`,

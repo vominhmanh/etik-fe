@@ -12,10 +12,23 @@ import Image from 'next/image';
 import buttonBackgroundImage from '@/images/pubg/button-background.png';
 import backgroundImage from '@/images/pubg/KV_PUBG_GALA_16x9.jpg';
 import { LocalizedLink } from '@/components/pubggala/localized-link';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export default function TermsAndConditionsPage() {
   const { tt } = useTranslation();
   const [activeSection, setActiveSection] = useState<string>('');
+
+  // Check if current time is after 12:00 PM on 15/01/2026 UTC+7
+  const isVotingDisabled = () => {
+    const cutoffDate = dayjs.tz('2026-01-15 12:00:00', 'Asia/Ho_Chi_Minh');
+    const now = dayjs.tz(dayjs(), 'Asia/Ho_Chi_Minh');
+    return now.isAfter(cutoffDate);
+  };
 
   const sections = [
     { id: 'intro', title: 'I. Giới thiệu chung', titleEn: 'I. General Introduction' },
@@ -191,66 +204,68 @@ export default function TermsAndConditionsPage() {
               />
 
               {/* Button */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  isolation: 'isolate',
-                  flex: 'none',
-                  order: 1,
-                  flexGrow: 0,
-                }}
-              >
-                <LocalizedLink
-                  href="/events/pubggala#award-categories-list"
+              {!isVotingDisabled() && (
+                <div
                   style={{
                     display: 'flex',
                     flexDirection: 'row',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    textDecoration: 'none',
+                    isolation: 'isolate',
                     flex: 'none',
                     order: 1,
                     flexGrow: 0,
-                    zIndex: 1,
-                    cursor: 'pointer',
-                    transition: 'opacity 0.2s ease',
-                    position: 'relative',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '0.9';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '1';
                   }}
                 >
-                  <div className="w-40 sm:w-48 md:w-[220px] h-12 sm:h-14 md:h-[60px]" style={{ position: 'relative' }}>
-                    <Image src={buttonBackgroundImage} alt={tt('Bình chọn', 'Vote')} fill priority />
-                    {/* Text overlay */}
-                    <span
-                      className="text-sm sm:text-base md:text-xl"
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                        fontStyle: 'normal',
-                        fontWeight: 900,
-                        lineHeight: '1.2',
-                        textAlign: 'center',
-                        textTransform: 'uppercase',
-                        color: '#121026',
-                        zIndex: 2,
-                        pointerEvents: 'none',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {tt('Bình chọn ngay', 'Vote now')}
-                    </span>
-                  </div>
-                </LocalizedLink>
-              </div>
+                  <LocalizedLink
+                    href="/events/pubggala#award-categories-list"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      textDecoration: 'none',
+                      flex: 'none',
+                      order: 1,
+                      flexGrow: 0,
+                      zIndex: 1,
+                      cursor: 'pointer',
+                      transition: 'opacity 0.2s ease',
+                      position: 'relative',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '0.9';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                  >
+                    <div className="w-40 sm:w-48 md:w-[220px] h-12 sm:h-14 md:h-[60px]" style={{ position: 'relative' }}>
+                      <Image src={buttonBackgroundImage} alt={tt('Bình chọn', 'Vote')} fill priority />
+                      {/* Text overlay */}
+                      <span
+                        className="text-sm sm:text-base md:text-xl"
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                          fontStyle: 'normal',
+                          fontWeight: 900,
+                          lineHeight: '1.2',
+                          textAlign: 'center',
+                          textTransform: 'uppercase',
+                          color: '#121026',
+                          zIndex: 2,
+                          pointerEvents: 'none',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {tt('Bình chọn ngay', 'Vote now')}
+                      </span>
+                    </div>
+                  </LocalizedLink>
+                </div>
+              )}
             </div>
           </Container>
         </div>

@@ -18,8 +18,13 @@ import vccorpLogo from '@/images/pubg/vccorp.png';
 import votingService from '@/services/Voting.service';
 import { Box, Container, Dialog, Grid, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import dynamic from 'next/dynamic';
 import { CaretDoubleUp } from '@phosphor-icons/react/dist/ssr';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 import { Category } from '@/types/voting';
 import { useTranslation } from '@/contexts/locale-context';
@@ -48,6 +53,18 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedNominee, setSelectedNominee] = useState<{ title: string; updatedAt?: string } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Check if current time is after 12:00 PM on 15/01/2026 UTC+7
+  const isVotingDisabled = () => {
+    const cutoffDate = dayjs.tz('2026-01-15 12:00:00', 'Asia/Ho_Chi_Minh');
+    const now = dayjs.tz(dayjs(), 'Asia/Ho_Chi_Minh');
+    return now.isAfter(cutoffDate);
+  };
+
+  // Format number with dot as thousands separator (1.234.567)
+  const formatNumber = (num: number): string => {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
 
   useEffect(() => {
     const checkScreenSize = () => setIsMobile(window.innerWidth <= 768);
@@ -265,66 +282,68 @@ export default function Home() {
               />
 
               {/* Button */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  isolation: 'isolate',
-                  flex: 'none',
-                  order: 1,
-                  flexGrow: 0,
-                }}
-              >
-                <LocalizedLink
-                  href="/events/pubggala/vote"
+              {!isVotingDisabled() && (
+                <div
                   style={{
                     display: 'flex',
                     flexDirection: 'row',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    textDecoration: 'none',
+                    isolation: 'isolate',
                     flex: 'none',
                     order: 1,
                     flexGrow: 0,
-                    zIndex: 1,
-                    cursor: 'pointer',
-                    transition: 'opacity 0.2s ease',
-                    position: 'relative',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '0.9';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '1';
                   }}
                 >
-                  <div className="w-40 sm:w-48 md:w-[220px] h-12 sm:h-14 md:h-[60px]" style={{ position: 'relative' }}>
-                    <Image src={buttonBackgroundImage} alt={tt('Bình chọn', 'Vote')} fill priority />
-                    {/* Text overlay */}
-                    <span
-                      className="text-sm sm:text-base md:text-xl"
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                        fontStyle: 'normal',
-                        fontWeight: 900,
-                        lineHeight: '1.2',
-                        textAlign: 'center',
-                        textTransform: 'uppercase',
-                        color: '#121026',
-                        zIndex: 2,
-                        pointerEvents: 'none',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {tt('Bình chọn ngay', 'Vote now')}
-                    </span>
-                  </div>
-                </LocalizedLink>
-              </div>
+                  <LocalizedLink
+                    href="/events/pubggala#award-categories-list"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      textDecoration: 'none',
+                      flex: 'none',
+                      order: 1,
+                      flexGrow: 0,
+                      zIndex: 1,
+                      cursor: 'pointer',
+                      transition: 'opacity 0.2s ease',
+                      position: 'relative',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '0.9';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                  >
+                    <div className="w-40 sm:w-48 md:w-[220px] h-12 sm:h-14 md:h-[60px]" style={{ position: 'relative' }}>
+                      <Image src={buttonBackgroundImage} alt={tt('Bình chọn', 'Vote')} fill priority />
+                      {/* Text overlay */}
+                      <span
+                        className="text-sm sm:text-base md:text-xl"
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                          fontStyle: 'normal',
+                          fontWeight: 900,
+                          lineHeight: '1.2',
+                          textAlign: 'center',
+                          textTransform: 'uppercase',
+                          color: '#121026',
+                          zIndex: 2,
+                          pointerEvents: 'none',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {tt('Bình chọn ngay', 'Vote now')}
+                      </span>
+                    </div>
+                  </LocalizedLink>
+                </div>
+              )}
             </div>
           </Container>
         </div>
@@ -487,95 +506,99 @@ export default function Home() {
                       </div>
                     </Stack>
                     {/* Vote Button - Desktop only */}
-                    <div className="hidden md:block relative w-full sm:w-auto flex-shrink-0 sm:px-4">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const categoryIndex = categories.findIndex((cat) => cat.id === category.id);
-                          if (categoryIndex !== -1) {
-                            scrollToCategory(categoryIndex);
-                          }
-                        }}
-                        className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
-                        style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
-                      >
-                        <Image
-                          src={blackButtonBgImage}
-                          alt={tt('Bình chọn', 'Vote')}
-                          fill
-                          style={{ objectFit: 'contain' }}
-                        />
-                        {/* Text overlay */}
-                        <span
-                          className="text-base md:text-lg"
-                          style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                            fontStyle: 'normal',
-                            fontWeight: 900,
-                            lineHeight: '1.2',
-                            textAlign: 'center',
-                            textTransform: 'uppercase',
-                            color: 'rgba(255, 255, 255, 1)',
-                            zIndex: 2,
-                            pointerEvents: 'none',
-                            whiteSpace: 'nowrap',
+                    {!isVotingDisabled() && (
+                      <div className="hidden md:block relative w-full sm:w-auto flex-shrink-0 sm:px-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const categoryIndex = categories.findIndex((cat) => cat.id === category.id);
+                            if (categoryIndex !== -1) {
+                              scrollToCategory(categoryIndex);
+                            }
                           }}
+                          className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
+                          style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
                         >
-                          {tt('Bình chọn', 'Vote')}
-                        </span>
-                      </button>
-                    </div>
+                          <Image
+                            src={blackButtonBgImage}
+                            alt={tt('Bình chọn', 'Vote')}
+                            fill
+                            style={{ objectFit: 'contain' }}
+                          />
+                          {/* Text overlay */}
+                          <span
+                            className="text-base md:text-lg"
+                            style={{
+                              position: 'absolute',
+                              top: '50%',
+                              left: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                              fontStyle: 'normal',
+                              fontWeight: 900,
+                              lineHeight: '1.2',
+                              textAlign: 'center',
+                              textTransform: 'uppercase',
+                              color: 'rgba(255, 255, 255, 1)',
+                              zIndex: 2,
+                              pointerEvents: 'none',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {tt('Bình chọn', 'Vote')}
+                          </span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
               {/* Vote Button - Mobile only */}
-              <div className="block md:hidden relative w-full sm:w-auto flex-shrink-0 sm:px-4 mt-4">
-                <button
-                  onClick={() => {
-                    if (votingCategories.length > 0) {
-                      const categoryIndex = categories.findIndex((cat) => cat.id === votingCategories[0].id);
-                      if (categoryIndex !== -1) {
-                        scrollToCategory(categoryIndex);
+              {!isVotingDisabled() && (
+                <div className="block md:hidden relative w-full sm:w-auto flex-shrink-0 sm:px-4 mt-4">
+                  <button
+                    onClick={() => {
+                      if (votingCategories.length > 0) {
+                        const categoryIndex = categories.findIndex((cat) => cat.id === votingCategories[0].id);
+                        if (categoryIndex !== -1) {
+                          scrollToCategory(categoryIndex);
+                        }
                       }
-                    }
-                  }}
-                  className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
-                  style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
-                >
-                  <Image
-                    src={blackButtonBgImage}
-                    alt={tt('Bình chọn', 'Vote')}
-                    fill
-                    style={{ objectFit: 'contain' }}
-                  />
-                  {/* Text overlay */}
-                  <span
-                    className="text-base md:text-lg"
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                      fontStyle: 'normal',
-                      fontWeight: 900,
-                      lineHeight: '1.2',
-                      textAlign: 'center',
-                      textTransform: 'uppercase',
-                      color: 'rgba(255, 255, 255, 1)',
-                      zIndex: 2,
-                      pointerEvents: 'none',
-                      whiteSpace: 'nowrap',
                     }}
+                    className="w-full sm:w-[240px] h-[50px] sm:h-[55px] cursor-pointer"
+                    style={{ position: 'relative', background: 'none', border: 'none', padding: 0 }}
                   >
-                    {tt('Bình chọn', 'Vote')}
-                  </span>
-                </button>
-              </div>
+                    <Image
+                      src={blackButtonBgImage}
+                      alt={tt('Bình chọn', 'Vote')}
+                      fill
+                      style={{ objectFit: 'contain' }}
+                    />
+                    {/* Text overlay */}
+                    <span
+                      className="text-base md:text-lg"
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                        fontStyle: 'normal',
+                        fontWeight: 900,
+                        lineHeight: '1.2',
+                        textAlign: 'center',
+                        textTransform: 'uppercase',
+                        color: 'rgba(255, 255, 255, 1)',
+                        zIndex: 2,
+                        pointerEvents: 'none',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {tt('Bình chọn', 'Vote')}
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Honored Categories List Section */}
@@ -970,7 +993,7 @@ export default function Home() {
                               />
 
                               {/* Vote Button and Count */}
-                              {category.allowVoting && (
+                              {category.allowVoting && !isVotingDisabled() && (
                                 <div className="flex flex-row items-center gap-3">
                                   <div
                                     style={{
@@ -1031,7 +1054,7 @@ export default function Home() {
                                         color: nomineeIndex === 0 ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)',
                                       }}
                                     >
-                                      {nominee.voteCount || 0}
+                                      {formatNumber(nominee.voteCount || 0)}
                                     </span>
                                     <span
                                       style={{
