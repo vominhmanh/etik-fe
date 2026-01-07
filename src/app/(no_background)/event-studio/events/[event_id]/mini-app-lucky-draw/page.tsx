@@ -7,9 +7,11 @@ import dayjs from "dayjs";
 import NotificationContext from "@/contexts/notification-context";
 import { useTranslation } from '@/contexts/locale-context';
 import React from "react";
-import { RandomReveal } from "react-random-reveal";
-import { Box, Button } from "@mui/material";
+import { Box } from "@mui/material";
 import { useRouter } from "next/navigation";
+import luckyDrawMainAppBackground from "@/images/mini-app-lucky-draw/lucky_draw_main_app_background.jpg";
+import ghostLegend2025Icon from "@/images/mini-app-lucky-draw/ghost-legend-2025-icon.png";
+import pubgGala2025Icon from "@/images/mini-app-lucky-draw/pubg-gala-2025.png";
 
 // Define TypeScript interface matching FastAPI schema
 interface TransactionECodeResponse {
@@ -115,7 +117,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           }}
         >
           <Box component="img"
-            src="/assets/lucky_draw_main_app_background.jpg"
+            src={luckyDrawMainAppBackground.src}
             sx={{
               width: '100%',
               height: '100%',
@@ -146,14 +148,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             style={{
               position: 'absolute',
               top: '30%',  // Adjust vertical position
-              left: '20%',  // Center horizontally
-              width: '10%',  // Parent takes up 90% of the width
+              left: '12%',  // Evenly spaced: 12% margin + 0% offset
+              width: '10%',  // Each icon is 10% wide
               aspectRatio: '1/1.5',  // Maintain aspect ratio for the container
               cursor: 'pointer'
             }}
           >
             <Box component="img"
-              src="/assets/ghost-legend-2025-icon.png"  // Path to the app icon image
+              src={ghostLegend2025Icon.src}  // Path to the app icon image
               alt="App Icon"
               sx={{
                 width: '100%',  // Image takes up 100% of the parent width
@@ -187,14 +189,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             style={{
               position: 'absolute',
               top: '30%',  // Adjust vertical position
-              left: '35%',  // Center horizontally
-              width: '10%',  // Parent takes up 90% of the width
+              left: '34%',  // Evenly spaced: 12% + 10% + 12% = 34%
+              width: '10%',  // Each icon is 10% wide
               aspectRatio: '1/1.5',  // Maintain aspect ratio for the container
               cursor: 'pointer'
             }}
           >
             <Box component="img"
-              src="/assets/ghost-legend-2025-icon.png"  // Path to the app icon image
+              src={ghostLegend2025Icon.src}  // Path to the app icon image
               alt="App Icon"
               sx={{
                 width: '100%',  // Image takes up 100% of the parent width
@@ -228,14 +230,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             style={{
               position: 'absolute',
               top: '30%',  // Adjust vertical position
-              left: '50%',  // Center horizontally
-              width: '10%',  // Parent takes up 90% of the width
+              left: '56%',  // Evenly spaced: 34% + 10% + 12% = 56%
+              width: '10%',  // Each icon is 10% wide
               aspectRatio: '1/1.5',  // Maintain aspect ratio for the container
               cursor: 'pointer'
             }}
           >
             <Box component="img"
-              src="/assets/ghost-legend-2025-icon.png"  // Path to the app icon image
+              src={ghostLegend2025Icon.src}  // Path to the app icon image
               alt="App Icon"
               sx={{
                 width: '100%',  // Image takes up 100% of the parent width
@@ -258,6 +260,47 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               }}
             >
               Ghost Legend 5 users
+            </div>
+          </div>
+
+          <div
+            onClick={() => { 
+              const path = `/event-studio/events/${event_id}/mini-app-lucky-draw/pubg-gala-2025`;
+              router.push(locale === 'en' ? `/en${path}` : path);
+            }} // Use Next.js router for navigation
+            style={{
+              position: 'absolute',
+              top: '30%',  // Adjust vertical position
+              left: '78%',  // Evenly spaced: 56% + 10% + 12% = 78%
+              width: '10%',  // Each icon is 10% wide
+              aspectRatio: '1/1.5',  // Maintain aspect ratio for the container
+              cursor: 'pointer'
+            }}
+          >
+            <Box component="img"
+              src={pubgGala2025Icon.src}  // Path to the app icon image
+              alt="App Icon"
+              sx={{
+                width: '100%',  // Image takes up 100% of the parent width
+                height: 'auto',  // Maintain the image's aspect ratio
+                borderRadius: '10%',  // Rounded corners
+                boxShadow: '0 10px 20px rgba(0, 0, 0, 0.3)',
+              }}
+            />
+
+            {/* App name below the icon */}
+            <div
+              style={{
+                position: 'absolute',
+                width: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontSize: '1.5cqw',
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+            >
+              PUBG Gala 2025
             </div>
           </div>
         </div>

@@ -1,0 +1,213 @@
+/* Local font declarations for PUBG Gala 2025 - Only used in this component */
+/* Note: Fonts should be placed in public/fonts/pubg-gala-2025/BODY/ */
+
+/* Narrow Variants */
+@font-face {
+  font-family: 'Shuttleblock-Narrow';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-NarrowMedium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Narrow';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-NarrowMediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Narrow';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-NarrowBold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Narrow';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-NarrowBoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Narrow';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-NarrowDemi.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Narrow';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-NarrowDemiItalic.otf') format('opentype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Condensed Variants */
+@font-face {
+  font-family: 'Shuttleblock-Condensed';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-CondensedMedium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Condensed';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-CondensedMediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Condensed';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-CondensedBold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Condensed';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-CondensedBoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Condensed';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-CondensedDemi.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Condensed';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-CondensedDemiItalic.otf') format('opentype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Wide Variants */
+@font-face {
+  font-family: 'Shuttleblock-Wide';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-WideMedium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Wide';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-WideMediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Wide';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-WideBold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Wide';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-WideBoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Wide';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-WideDemi.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock-Wide';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-WideDemiItalic.otf') format('opentype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Regular/Standard Variants */
+@font-face {
+  font-family: 'Shuttleblock';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-MediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-Demi.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shuttleblock';
+  src: url('/fonts/pubg-gala-2025/BODY/500B-Shuttleblock-DemiItalic.otf') format('opentype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Ensure RandomReveal component and all its children use Shuttleblock font */
+.pubg-gala-reveal-container,
+.pubg-gala-reveal-container *,
+.pubg-gala-reveal-container span,
+.pubg-gala-reveal-container div {
+  font-family: 'Shuttleblock', sans-serif !important;
+}
+
+/* Target RandomReveal component specifically */
+[class*="RandomReveal"],
+[class*="random-reveal"] {
+  font-family: 'Shuttleblock', sans-serif !important;
+}
+
