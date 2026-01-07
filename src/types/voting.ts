@@ -8,6 +8,8 @@ export type Nominee = {
   socialIframe: string;
   socialUrl: string;
   voteCount: number;
+  voteCountBackup?: number;
+  finalRank?: number;
   createdAt: string;
   updatedAt: string;
 };
