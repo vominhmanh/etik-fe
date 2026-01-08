@@ -563,7 +563,7 @@ export default function Home() {
 
 
       {/* Voting Categories Info Section */}
-      <div
+      {/* <div
         className="relative w-full"
         style={{
           backgroundImage: `url(${battlegroundsImageLong.src})`,
@@ -600,7 +600,6 @@ export default function Home() {
                   {tt('14:30 | 17 / 01 / 2026', '14:30 | 17 / 01 / 2026')}
                 </h2>
 
-                {/* Title 2: kết quả dựa trên 70% bình chọn từ cộng đồng & 30% đánh giá từ ban tổ chức */}
                 <p
                   className="text-sm md:text-2xl"
                   style={{
@@ -662,7 +661,6 @@ export default function Home() {
             </div>
           </Container>
         </div>
-        {/* Border bottom with gradient */}
         <div
           style={{
             position: 'absolute',
@@ -674,12 +672,11 @@ export default function Home() {
             zIndex: 5,
           }}
         />
-      </div>
+      </div> */}
       {/* Body2: Message Section */}
-      <div className="relative w-full bg-black py-8 md:py-16">
+      {/* <div className="relative w-full bg-black py-8 md:py-16">
         <Container maxWidth="xl">
           <div className="flex flex-col gap-12" data-aos="fade-left">
-            {/* Title */}
             <h2
               className="text-2xl sm:text-3xl md:text-4xl leading-tight md:leading-[48px]"
               style={{
@@ -699,9 +696,7 @@ export default function Home() {
               {tt('🏆 WINNER WINNER CHICKEN DINNER!', '🏆 WINNER WINNER CHICKEN DINNER!')}
             </h2>
 
-            {/* Content: Video left, Text right */}
             <Grid container spacing={8}>
-              {/* Video */}
               <Grid item xs={12} md={5}>
                 <div className="relative w-full" style={{ paddingBottom: '56.25%', height: 0, overflow: 'hidden' }}>
                   <iframe
@@ -716,10 +711,8 @@ export default function Home() {
                 </div>
               </Grid>
 
-              {/* Text Content */}
               <Grid item xs={12} md={7}>
                 <div className="flex flex-col gap-4 md:gap-6">
-                  {/* Paragraph 1 - Font Weight 900 */}
                   <div
                     className="text-sm sm:text-base md:text-lg leading-relaxed"
                     style={{
@@ -739,7 +732,6 @@ export default function Home() {
                       '🏆 JOIN US TO WAIT FOR THE MOMENT OF GLORY!'
                     )}
                   </div>
-                  {/* Paragraph 2 - Font Weight Normal */}
                   <div
                     className="text-sm sm:text-base md:text-lg leading-relaxed"
                     style={{
@@ -757,7 +749,6 @@ export default function Home() {
                       'For the first time, the blazing journey of the PUBG Vietnam community is fully recreated at PUBG Gala 2025 – Gala of Glory. More than just an awards ceremony, this is a place to honor the sweat, unity, and burning passion that created a proud 2025. Together, let\'s look back at the golden milestones and pay tribute to the "warriors" who have dedicated themselves to the country\'s Esports scene.'
                     )}
                   </div>
-                  {/* Paragraph 3 - Font Weight Normal */}
                   <div
                     className="text-sm sm:text-base md:text-lg leading-relaxed"
                     style={{
@@ -783,7 +774,7 @@ export default function Home() {
             </Grid>
           </div>
         </Container>
-      </div>
+      </div> */}
 
 
       <div
