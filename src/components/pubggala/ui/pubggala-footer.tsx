@@ -136,7 +136,7 @@ export default function PubgGalaFooter() {
             </div>
 
             {/* Organizing Unit */}
-            <div className="flex flex-col gap-3 md:gap-4">
+            {/* <div className="flex flex-col gap-3 md:gap-4">
               <h4
                 className="text-xs md:text-sm"
                 style={{
@@ -161,7 +161,7 @@ export default function PubgGalaFooter() {
                   style={{ height: 'auto' }}
                 />
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -187,7 +187,7 @@ export default function PubgGalaFooter() {
           >
             © 2026 PUBG GALA. All rights reserved.
             <br />
-            Powered by 500Bros Media.
+            {/* Powered by 500Bros Media. */}
           </p>
         </div>
       </Container>
