@@ -86,7 +86,7 @@ export default function PubgGalaFooter() {
           {/* Right: Social Media and Organizing Unit */}
           <div className="flex flex-col gap-10 md:gap-12 items-start md:items-end">
             {/* Social Media */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:justify-center items-start sm:items-center">
+            {/* <div className="flex flex-col sm:flex-row gap-2 sm:justify-center items-start sm:items-center">
               <h4
                 className="text-xs md:text-sm"
                 style={{
@@ -133,7 +133,7 @@ export default function PubgGalaFooter() {
                   <InstagramLogo size={24} color="#FFFFFF" />
                 </a>
               </div>
-            </div>
+            </div> */}
 
             {/* Organizing Unit */}
             {/* <div className="flex flex-col gap-3 md:gap-4">
