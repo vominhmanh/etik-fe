@@ -508,7 +508,7 @@ export default function TermsAndConditionsPage() {
                       color: '#E1C693',
                     }}
                   >
-                    {tt('Danh sách Đề cử (Hạng mục Ấn tượng)', 'Nomination List (Impressive Category)')}
+                    {tt('Danh sách Đề cử - Hạng mục Bình Chọn', 'Nomination List - Voting Category')}
                   </Typography>
                   <Typography
                     className="text-white mb-4"
@@ -524,14 +524,13 @@ export default function TermsAndConditionsPage() {
                     }}
                     dangerouslySetInnerHTML={{
                       __html: tt(
-                        'Kết quả dựa trên sự đồng thuận giữa cộng đồng và Ban Tổ Chức.',
-                        'The results are based on a consensus between the community and the Organizing Committee.'
+                        'Kết quả dựa trên tổng số điểm của Cộng đồng bình chọn và Ban Tổ Chức PUBG Gala.',
+                        'The results are based on the total points of the community voting and the PUBG Gala Organizing Committee.'
                       ),
                     }}
                   />
-                  <Box className="ml-4 space-y-3">
-                    <Typography
-                      className="text-white"
+                  <Box className="ml-4">
+                    <ul
                       style={{
                         fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                         fontSize: '14px',
@@ -539,36 +538,59 @@ export default function TermsAndConditionsPage() {
                         fontStyle: 'normal',
                         lineHeight: '150%',
                         letterSpacing: '0%',
-                        verticalAlign: 'middle',
                         color: 'rgba(255, 255, 255, 1)',
+                        listStyleType: 'none',
+                        paddingLeft: 0,
+                        margin: 0,
                       }}
                     >
-                      <span style={{ color: '#E1C693', fontWeight: 900 }}>70%</span>{' '}
-                      {tt(
-                        'Điểm bình chọn từ Người hâm mộ: Ghi nhận sức hút và tình cảm của cộng đồng dành cho các hạng mục như Tuyển thủ Ấn tượng, Đội tuyển Ấn tượng, Streamer được yêu thích và Đội ngũ truyền thông.',
-                        'Fan voting points: Recognizing the appeal and affection from the community for categories such as Impressive Player, Impressive Team, Favorite Streamer, and Media Team.'
-                      )}
-                      {' '}Thời gian bình chọn tính từ:{' '} <span style={{ color: '#E1C693', fontWeight: 900 }}> 08/01/2026 - 12:00:00 15/01/2026</span>
-                    </Typography>
-                    <Typography
-                      className="text-white"
-                      style={{
-                        fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                        fontSize: '14px',
-                        fontWeight: 500,
-                        fontStyle: 'normal',
-                        lineHeight: '150%',
-                        letterSpacing: '0%',
-                        verticalAlign: 'middle',
-                        color: 'rgba(255, 255, 255, 1)',
-                      }}
-                    >
-                      <span style={{ color: '#E1C693', fontWeight: 900 }}>30%</span>{' '}
-                      {tt(
-                        'Điểm đánh giá từ Hội đồng chuyên môn: Đảm bảo các tiêu chí về đạo đức nghề nghiệp, sự nỗ lực và đóng góp bền bỉ của ứng viên.',
-                        'Professional Council evaluation points: Ensuring criteria related to professional ethics, effort, and sustained contributions of candidates.'
-                      )}
-                    </Typography>
+                      <li
+                        style={{
+                          marginBottom: '12px',
+                          paddingLeft: '20px',
+                          position: 'relative',
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: 'absolute',
+                            left: 0,
+                            color: '#E1C693',
+                            fontSize: '14px',
+                          }}
+                        >
+                          ■
+                        </span>
+                        <span style={{ color: '#E1C693', fontWeight: 900 }}>70%</span>{' '}
+                        {tt(
+                          'Điểm bình chọn từ Cộng đồng: Ghi nhận sức hút và tình cảm của cộng đồng dành cho các hạng mục như Tuyển thủ Ấn tượng, Đội tuyển Ấn tượng, Streamer được yêu thích và Đội ngũ truyền thông.',
+                          'Community voting points: Recognizing the appeal and affection from the community for categories such as Impressive Player, Impressive Team, Favorite Streamer, and Media Team.'
+                        )}
+                        {' '}Thời gian bình chọn tính từ:{' '} <span style={{ color: '#E1C693', fontWeight: 900 }}> 08/01/2026 - 12:00:00 15/01/2026</span>
+                      </li>
+                      <li
+                        style={{
+                          paddingLeft: '20px',
+                          position: 'relative',
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: 'absolute',
+                            left: 0,
+                            color: '#E1C693',
+                            fontSize: '14px',
+                          }}
+                        >
+                          ■
+                        </span>
+                        <span style={{ color: '#E1C693', fontWeight: 900 }}>30%</span>{' '}
+                        {tt(
+                          'Điểm đánh giá từ Ban Tổ Chức PUBG Gala: Đảm bảo các tiêu chí về đạo đức nghề nghiệp, sự nỗ lực và đóng góp bền bỉ của ứng viên.',
+                          'Organizing Committee evaluation points: Ensuring criteria related to professional ethics, effort, and sustained contributions of candidates.'
+                        )}
+                      </li>
+                    </ul>
                   </Box>
                 </Box>
 
@@ -588,7 +610,7 @@ export default function TermsAndConditionsPage() {
                       color: '#E1C693',
                     }}
                   >
-                    {tt('Danh sách Vinh danh (Hạng mục Xuất sắc)', 'Honoring List (Excellent Category)')}
+                    {tt('Danh sách Đề cử - Hạng mục Vinh Danh', 'Honoring List - Excellent Category')}
                   </Typography>
                   <Typography
                     className="text-white mb-4"
@@ -623,10 +645,9 @@ export default function TermsAndConditionsPage() {
                         color: '#E1C693',
                       }}
                     >
-                      {tt('Hình thức:', 'Format:')}
+                      {tt('Hình thức bình chọn:', 'Voting Format:')}
                     </Typography>
-                    <Typography
-                      className="text-white"
+                    <ul
                       style={{
                         fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                         fontSize: '14px',
@@ -634,16 +655,34 @@ export default function TermsAndConditionsPage() {
                         fontStyle: 'normal',
                         lineHeight: '150%',
                         letterSpacing: '0%',
-                        verticalAlign: 'middle',
                         color: 'rgba(255, 255, 255, 1)',
+                        listStyleType: 'none',
+                        paddingLeft: 0,
+                        margin: 0,
                       }}
-                      dangerouslySetInnerHTML={{
-                        __html: tt(
-                          'Được thẩm định và quyết định trực tiếp bởi Ban Tổ Chức PUBG Gala 2025 dựa trên hệ thống thành tích thi đấu trong nước và quốc tế cũng như những cống hiến đặc biệt quan trọng trong năm.',
-                          'Directly reviewed and decided by the PUBG Gala 2025 Organizing Committee based on the system of achievements in domestic and international competitions as well as particularly important contributions throughout the year.'
-                        ),
-                      }}
-                    />
+                    >
+                      <li
+                        style={{
+                          paddingLeft: '20px',
+                          position: 'relative',
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: 'absolute',
+                            left: 0,
+                            color: '#E1C693',
+                            fontSize: '14px',
+                          }}
+                        >
+                          ■
+                        </span>
+                        {tt(
+                          'Được thẩm định và quyết định trực tiếp bởi Ban Tổ Chức PUBG Gala 2025 dựa trên thành tích thi đấu trong nước và quốc tế, thái độ chuyên nghiệp cùng những cống hiến đặc biệt quan trọng trong năm.',
+                          'Determined directly by the PUBG Gala Organizing Committee 2025 based on performance in domestic and international competitions, professional attitude, and special contributions in the year.'
+                        )}
+                      </li>
+                    </ul>
                   </Box>
                 </Box>
               </section>
