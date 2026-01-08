@@ -2,11 +2,10 @@
 
 import Image from 'next/image';
 import facebookIcon from '@/images/pubg/facebook.svg';
-import kraftonLogo from '@/images/pubg/kfrafton.png';
 import logo from '@/images/pubg/logo.png';
 import tiktokIcon from '@/images/pubg/tiktok.svg';
 import { Container } from '@mui/material';
-
+import fiveHundredBrosMediaLogo from '@/images/pubg/500bros_Media.png';
 import { useTranslation } from '@/contexts/locale-context';
 import { InstagramLogo, YoutubeLogo } from '@phosphor-icons/react/dist/ssr';
 
@@ -154,8 +153,8 @@ export default function PubgGalaFooter() {
               </h4>
               <div className="flex gap-4 md:gap-6 items-center">
                 <Image
-                  src={kraftonLogo}
-                  alt="KRAFTON, Inc."
+                  src={fiveHundredBrosMediaLogo}
+                  alt="500Bros Media"
                   width={120}
                   height={40}
                   className="h-auto w-24 md:w-[120px]"
@@ -188,7 +187,7 @@ export default function PubgGalaFooter() {
           >
             © 2026 PUBG GALA. All rights reserved.
             <br />
-            Powered by KRAFTON, Inc.
+            Powered by 500Bros Media.
           </p>
         </div>
       </Container>
