@@ -549,10 +549,12 @@ export default function TermsAndConditionsPage() {
                           marginBottom: '12px',
                           paddingLeft: '20px',
                           position: 'relative',
+                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                         }}
                       >
                         <span
                           style={{
+                            fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                             position: 'absolute',
                             left: 0,
                             color: '#E1C693',
@@ -561,7 +563,7 @@ export default function TermsAndConditionsPage() {
                         >
                           ■
                         </span>
-                        <span style={{ color: '#E1C693', fontWeight: 900 }}>70%</span>{' '}
+                        <span style={{ color: '#E1C693', fontWeight: 900, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>70%</span>{' '}
                         {tt(
                           'Điểm bình chọn từ Cộng đồng: Ghi nhận sức hút và tình cảm của cộng đồng dành cho các hạng mục như Tuyển thủ Ấn tượng, Đội tuyển Ấn tượng, Streamer được yêu thích và Đội ngũ truyền thông.',
                           'Community voting points: Recognizing the appeal and affection from the community for categories such as Impressive Player, Impressive Team, Favorite Streamer, and Media Team.'
@@ -572,6 +574,7 @@ export default function TermsAndConditionsPage() {
                         style={{
                           paddingLeft: '20px',
                           position: 'relative',
+                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                         }}
                       >
                         <span
@@ -584,7 +587,7 @@ export default function TermsAndConditionsPage() {
                         >
                           ■
                         </span>
-                        <span style={{ color: '#E1C693', fontWeight: 900 }}>30%</span>{' '}
+                        <span style={{ color: '#E1C693', fontWeight: 900, fontFamily: 'var(--font-montserrat), Montserrat, sans-serif' }}>30%</span>{' '}
                         {tt(
                           'Điểm đánh giá từ Ban Tổ Chức PUBG Gala: Đảm bảo các tiêu chí về đạo đức nghề nghiệp, sự nỗ lực và đóng góp bền bỉ của ứng viên.',
                           'Organizing Committee evaluation points: Ensuring criteria related to professional ethics, effort, and sustained contributions of candidates.'
@@ -665,10 +668,12 @@ export default function TermsAndConditionsPage() {
                         style={{
                           paddingLeft: '20px',
                           position: 'relative',
+                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                         }}
                       >
                         <span
                           style={{
+                            fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                             position: 'absolute',
                             left: 0,
                             color: '#E1C693',
