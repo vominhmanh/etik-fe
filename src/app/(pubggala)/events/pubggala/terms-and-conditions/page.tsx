@@ -486,7 +486,7 @@ export default function TermsAndConditionsPage() {
                   }}
                   dangerouslySetInnerHTML={{
                     __html: tt(
-                      'Để đảm bảo sự công bằng và tính chuyên môn cao nhất, hệ thống giải thưởng được chia thành hai danh mục riêng biệt:',
+                      'Để đảm bảo sự công bằng và tính chuyên môn cao nhất, hệ thống giải thưởng được chia thành hai hạng mục riêng biệt:',
                       'To ensure the highest fairness and professionalism, the award system is divided into two distinct categories:'
                     ),
                   }}
