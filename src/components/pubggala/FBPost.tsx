@@ -83,7 +83,7 @@ function FBPost({
   socialIframe,
   preferXfbml = false,
   width = 350,
-  height = 591,
+  height = 531,
 }: FBPostProps) {
   const finalWidth = Math.max(350, width);
   const normalizedUrl = normalizeFbUrl(socialUrl || "");
@@ -146,7 +146,7 @@ function FBPost({
         border: "3px solid #E1C693",
         background: "#fff",
         overflow: preferXfbml ? "hidden" : "hidden",
-        minHeight: '591px',
+        minHeight: '530px',
       }}
     >
       {preferXfbml ? (
