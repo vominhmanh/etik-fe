@@ -7,6 +7,7 @@ import {
   AccordionSummary,
   Avatar,
   Box,
+  Container,
   IconButton,
   InputAdornment,
   Menu,
@@ -23,17 +24,18 @@ import FormControl from '@mui/material/FormControl';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
+import Radio from '@mui/material/Radio';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
 import Grid from '@mui/material/Unstable_Grid2';
 import { alpha } from '@mui/material/styles';
-import { CaretDown, DotsThreeOutlineVertical, Pencil, Plus } from '@phosphor-icons/react/dist/ssr';
+import { CaretDown, DotsThreeOutlineVertical, Pencil, Plus, Copy, User, EnvelopeSimple, Phone, MapPin, IdentificationCard, CalendarBlank } from '@phosphor-icons/react/dist/ssr';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 
 import { LocalizedLink } from '@/components/homepage/localized-link';
-import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from '@/config/phone-countries';
+import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone } from '@/config/phone-countries';
 
 import { Order, TicketInfo, HolderInfo, CheckoutRuntimeField, Show } from './page';
 
@@ -56,7 +58,6 @@ export type Step2InfoProps = {
   checkoutCustomAnswers: Record<string, any>;
   setCheckoutCustomAnswers: React.Dispatch<React.SetStateAction<Record<string, any>>>;
 
-  requireGuestAvatar: boolean;
   requireTicketHolderInfo: boolean;
   shows: Show[];
 
@@ -86,7 +87,6 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     builtinInternalNames,
     checkoutCustomAnswers,
     setCheckoutCustomAnswers,
-    requireGuestAvatar,
     requireTicketHolderInfo,
     shows,
     handleCustomerAvatarFile,
@@ -97,6 +97,32 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     onBack,
     onNext,
   } = props;
+
+  // State to control expanded accordions
+  const [expandedAccordions, setExpandedAccordions] = React.useState<Record<number, boolean>>(() => {
+    const initial: Record<number, boolean> = {};
+    order.tickets.forEach((_, index) => {
+      initial[index] = true; // Default expanded
+    });
+    return initial;
+  });
+
+  // Update expanded state when tickets count changes
+  React.useEffect(() => {
+    setExpandedAccordions(prev => {
+      const updated = { ...prev };
+      order.tickets.forEach((_, index) => {
+        if (!(index in updated)) {
+          updated[index] = true; // Default expanded for new tickets
+        }
+      });
+      return updated;
+    });
+  }, [order.tickets.length]);
+
+  const handleAccordionChange = (index: number) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    setExpandedAccordions(prev => ({ ...prev, [index]: isExpanded }));
+  };
 
   const customer = order.customer;
   const setCustomer = (patch: any) => {
@@ -121,606 +147,696 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
 
   return (
     <Stack spacing={3}>
-      {/* Customer Information Card */}
-      <Card>
-        <CardHeader
-          subheader={tt("Vui lòng điền các trường thông tin phía dưới.", "Please fill in the information fields below.")}
-          title={tt("Thông tin người mua", "Buyer Information")}
-          action={
-            <>
-              <IconButton onClick={onOpenFormMenu}>
-                <DotsThreeOutlineVertical />
-              </IconButton>
-              <Menu
-                anchorEl={formMenuAnchorEl}
-                open={Boolean(formMenuAnchorEl)}
-                onClose={onCloseFormMenu}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-              >
-                <MenuItem onClick={onCloseFormMenu}>
-                  <LocalizedLink
-                    style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
-                    href={`/event-studio/events/${paramsEventId}/etik-forms/checkout-form?back_to=/event-studio/events/${paramsEventId}/transactions/create`}
-                  >
-                    {tt("Thêm câu hỏi vào biểu mẫu này", "Add questions to this form")}
-                  </LocalizedLink>
-                </MenuItem>
-              </Menu>
-            </>
-          }
-        />
-        <Divider />
-        <CardContent>
-          <Grid container spacing={3}>
-            <Grid lg={4} xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel htmlFor="customer-name">{tt("Danh xưng* &emsp; Họ và tên", "Title* &emsp; Full Name")}</InputLabel>
-                <OutlinedInput
-                  id="customer-name"
-                  label={tt("Danh xưng* &emsp; Họ và tên", "Title* &emsp; Full Name")}
-                  name="customer_name"
-                  value={customer.name}
-                  onChange={(e) => {
-                    // Update customer
-                    setCustomer({ name: e.target.value });
-
-                    // Also auto-fill first ticket holder if it's "you" and empty
-                    if (order.tickets.length > 0) {
-                      setOrder(prev => {
-                        const newTickets = [...prev.tickets];
-                        const firstHolder = newTickets[0].holder;
-                        if (firstHolder && (!firstHolder.name || firstHolder.name === prev.customer.name)) {
-                          newTickets[0] = {
-                            ...newTickets[0],
-                            holder: { ...firstHolder, name: e.target.value } as HolderInfo
-                          };
-                        }
-                        // Or if undefined holder, init it? Usually step 1 creates holder undefined.
-                        // Logic here is tricky if we don't want to enforce it.
-                        // Original logic: !ticketHolderEditted && ticketHolders.length > 0
-
-                        return { ...prev, customer: { ...prev.customer, name: e.target.value }, tickets: newTickets };
-                      });
-                      return; // handled above
-                    }
-                    setCustomer({ name: e.target.value });
-                  }}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <Select
-                        variant="standard"
-                        disableUnderline
-                        value={customer.title || defaultTitle}
-                        onChange={(e) => setCustomer({ ...customer, title: e.target.value })}
-                        sx={{ minWidth: 65 }}
-                      >
-                        <MenuItem value="Anh">Anh</MenuItem>
-                        <MenuItem value="Chị">Chị</MenuItem>
-                        <MenuItem value="Bạn">Bạn</MenuItem>
-                        <MenuItem value="Em">Em</MenuItem>
-                        <MenuItem value="Ông">Ông</MenuItem>
-                        <MenuItem value="Bà">Bà</MenuItem>
-                        <MenuItem value="Cô">Cô</MenuItem>
-                        <MenuItem value="Thầy">Thầy</MenuItem>
-                        <MenuItem value="Mr.">Mr.</MenuItem>
-                        <MenuItem value="Ms.">Ms.</MenuItem>
-                        <MenuItem value="Mx.">Mx.</MenuItem>
-                        <MenuItem value="Miss">Miss</MenuItem>
-                      </Select>
-                    </InputAdornment>
-                  }
-                />
-              </FormControl>
-            </Grid>
-
-            <Grid md={4} xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>{tt("Địa chỉ Email", "Email Address")}</InputLabel>
-                <OutlinedInput
-                  label={tt("Địa chỉ Email", "Email Address")}
-                  name="customer_email"
-                  type="email"
-                  value={customer.email}
-                  onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
-                />
-              </FormControl>
-            </Grid>
-
-            <Grid md={4} xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>{tt("Số điện thoại", "Phone Number")}</InputLabel>
-                <OutlinedInput
-                  label={tt("Số điện thoại", "Phone Number")}
-                  name="customer_phone_number"
-                  type="tel"
-                  value={customer.phoneNumber}
-                  onChange={(e) => setCustomer({ ...customer, phoneNumber: e.target.value })}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <Select
-                        variant="standard"
-                        disableUnderline
-                        value={customer.phoneCountryIso2}
-                        onChange={(e) => setCustomer({ ...customer, phoneCountryIso2: e.target.value as string })}
-                        sx={{ minWidth: 80 }}
-                        renderValue={(value) => {
-                          const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
-                          return country.dialCode;
-                        }}
-                      >
-                        {PHONE_COUNTRIES.map((country) => (
-                          <MenuItem key={country.iso2} value={country.iso2}>
-                            {tt(country.nameVi, country.nameEn)} ({country.dialCode})
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </InputAdornment>
-                  }
-                />
-              </FormControl>
-            </Grid>
-
-            {/* Builtin optional fields controlled by checkout form config */}
-            {(() => {
-              const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
-              const visible = !!dobCfg && dobCfg.visible;
-              const required = !!dobCfg?.required;
-              return (
-                visible && (
-                  <Grid lg={6} xs={12}>
-                    <TextField
-                      fullWidth
-                      label={tt("Ngày tháng năm sinh", "Date of Birth")}
-                      name="customer_dob"
-                      type="date"
-                      required={required}
-                      value={customer.dob || ""}
-                      onChange={(e) => setCustomer({ ...customer, dob: e.target.value })}
-                      InputLabelProps={{ shrink: true }}
-                      inputProps={{ max: new Date().toISOString().slice(0, 10) }}
-                    />
-                  </Grid>
-                )
-              );
-            })()}
-
-            {(() => {
-              const idCfg = checkoutFormFields.find((f) => f.internalName === 'idcard_number');
-              const visible = !!idCfg && idCfg.visible;
-              const required = !!idCfg?.required;
-              return (
-                visible && (
-                  <Grid lg={6} xs={12}>
-                    <FormControl fullWidth required={required}>
-                      <InputLabel>{tt("Số Căn cước công dân", "ID Card Number")}</InputLabel>
-                      <OutlinedInput
-                        label={tt("Số Căn cước công dân", "ID Card Number")}
-                        name="customer_idcard_number"
-                        value={customer.idcard_number}
-                        onChange={(e) => setCustomer({ ...customer, idcard_number: e.target.value })}
-                      />
-                    </FormControl>
-                  </Grid>
-                )
-              );
-            })()}
-
-            {(() => {
-              const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
-              const visible = !!addrCfg && addrCfg.visible;
-              const required = !!addrCfg?.required;
-              return (
-                visible && (
-                  <Grid lg={12} xs={12}>
-                    <FormControl fullWidth required={required}>
-                      <InputLabel>{tt("Địa chỉ", "Address")}</InputLabel>
-                      <OutlinedInput
-                        label={tt("Địa chỉ", "Address")}
-                        name="customer_address"
-                        value={customer.address}
-                        onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                      />
-                    </FormControl>
-                  </Grid>
-                )
-              );
-            })()}
-
-            {/* Custom checkout fields */}
-            {customCheckoutFields.map((field) => (
-              <Grid key={field.internalName} xs={12}>
-                <Stack spacing={0.5}>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {field.label}
-                    {field.required && ' *'}
-                  </Typography>
-                  {field.note && (
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                      {field.note}
-                    </Typography>
-                  )}
-
-                  {['text', 'number'].includes(field.fieldType) && (
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type={field.fieldType === 'number' ? 'number' : 'text'}
-                      value={checkoutCustomAnswers[field.internalName] ?? ''}
-                      onChange={(e) =>
-                        setCheckoutCustomAnswers((prev) => ({
-                          ...prev,
-                          [field.internalName]: e.target.value,
-                        }))
-                      }
-                    />
-                  )}
-
-                  {['date', 'time', 'datetime'].includes(field.fieldType) && (
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type={
-                        field.fieldType === 'date'
-                          ? 'date'
-                          : field.fieldType === 'time'
-                            ? 'time'
-                            : 'datetime-local'
-                      }
-                      InputLabelProps={{ shrink: true }}
-                      value={checkoutCustomAnswers[field.internalName] ?? ''}
-                      onChange={(e) =>
-                        setCheckoutCustomAnswers((prev) => ({
-                          ...prev,
-                          [field.internalName]: e.target.value,
-                        }))
-                      }
-                    />
-                  )}
-
-                  {field.fieldType === 'radio' && field.options && (
-                    <FormControl component="fieldset" variant="standard">
-                      <Stack spacing={1}>
-                        {field.options.map((opt) => (
-                          <FormControlLabel
-                            key={opt.value}
-                            value={opt.value}
-                            control={
-                              <Checkbox
-                                checked={checkoutCustomAnswers[field.internalName] === opt.value}
-                                onChange={() =>
-                                  setCheckoutCustomAnswers((prev) => ({
-                                    ...prev,
-                                    [field.internalName]: opt.value,
-                                  }))
-                                }
-                              />
-                            }
-                            label={opt.label}
-                          />
-                        ))}
-                      </Stack>
-                    </FormControl>
-                  )}
-
-                  {field.fieldType === 'checkbox' && field.options && (
-                    <FormGroup>
-                      {field.options.map((opt) => {
-                        const current: string[] = checkoutCustomAnswers[field.internalName] ?? [];
-                        const checked = current.includes(opt.value);
-                        return (
-                          <FormControlLabel
-                            key={opt.value}
-                            control={
-                              <Checkbox
-                                size="small"
-                                checked={checked}
-                                onChange={(e) => {
-                                  setCheckoutCustomAnswers((prev) => {
-                                    const prevArr: string[] = prev[field.internalName] ?? [];
-                                    const nextArr = e.target.checked
-                                      ? Array.from(new Set([...prevArr, opt.value]))
-                                      : prevArr.filter((v) => v !== opt.value);
-                                    return { ...prev, [field.internalName]: nextArr };
-                                  });
-                                }}
-                              />
-                            }
-                            label={opt.label}
-                          />
-                        );
-                      })}
-                    </FormGroup>
-                  )}
-                </Stack>
-              </Grid>
-            ))}
-          </Grid>
-        </CardContent>
-      </Card>
-
-      {/* Ticket holders input (accordion) */}
-      {order.tickets.length > 0 && (
-        <Card>
-          <CardHeader
-            title={tt(
-              `Thông tin người sở hữu vé: ${order.tickets.length} vé`,
-              `Ticket List`
-            )}
-            action={
-              requireGuestAvatar && (
-                <Box sx={{ position: 'relative', width: 36, height: 36, '&:hover .avatarUploadBtn': { opacity: 1, visibility: 'visible' } }}>
-                  <Avatar src={customer.avatar || ''} sx={{ width: 36, height: 36 }} />
-                  <IconButton
-                    className="avatarUploadBtn"
-                    sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      borderRadius: '50%',
-                      opacity: 0,
-                      visibility: 'hidden',
-                      backdropFilter: 'blur(6px)',
-                      backgroundColor: 'rgba(0,0,0,0.35)',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 1,
-                    }}
-                    onClick={() => {
-                      const input = document.getElementById('upload-customer-avatar') as HTMLInputElement | null;
-                      input?.click();
-                    }}
-                  >
-                    <Plus size={14} />
-                  </IconButton>
-                  <input
-                    id="upload-customer-avatar"
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      handleCustomerAvatarFile(f);
-                      e.currentTarget.value = '';
-                    }}
-                  />
-                </Box>
-              )
-            }
-          />
-          <Divider />
-          <CardContent>
-            <Stack spacing={3}>
-              {/* Summary of categories */}
-              {ticketSummary.map((group, idx) => (
-                <Stack spacing={2} key={`summary-${idx}`}>
-                  <Stack direction={{ xs: 'column', md: 'row' }} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                        {group.show?.name || tt('Chưa xác định', 'Not specified')} - {group.category?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
-                      </Typography>
-                      <IconButton
-                        size="small"
-                        sx={{ ml: 1, alignSelf: 'flex-start' }}
-                        onClick={() => {
-                          setActiveScheduleId(group.show.id);
-                          setRequestedCategoryModalId(group.category?.id || 0);
-                        }}
-                      >
-                        <Pencil />
-                      </IconButton>
-                    </Stack>
-                    <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                      <Typography variant="caption">{formatPrice(group.total / group.quantity)}</Typography>
-                      <Typography variant="caption">x {group.quantity}</Typography>
-                      <Typography variant="caption">= {formatPrice(group.total)}</Typography>
-                    </Stack>
-                  </Stack>
-                </Stack>
-              ))}
-
-              {requireTicketHolderInfo && (
-                <Stack spacing={2}>
-                  {order.tickets.map((ticket, index) => {
-                    const holderInfo = ticket.holder || {
-                      title: locale === 'en' ? 'Mx.' : 'Bạn',
-                      name: '',
-                      email: '',
-                      phone: '',
-                      phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
-                      avatar: '',
-                    };
-
-                    const setHolderInfo = (patch: Partial<HolderInfo>) => {
-                      setOrder(prev => {
-                        const newTickets = [...prev.tickets];
-                        newTickets[index] = {
-                          ...newTickets[index],
-                          holder: { ...holderInfo, ...patch } as HolderInfo
-                        };
-                        return { ...prev, tickets: newTickets };
-                      });
-                    };
-
-                    return (
-                      <Accordion
-                        key={`ticket-${index}`}
-                        defaultExpanded
-                        disableGutters
-                        elevation={0}
-                        sx={{
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          borderRadius: 1,
-                          backgroundColor: 'background.paper',
-                          backgroundImage: (theme) =>
-                            `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.06)}, ${alpha(theme.palette.secondary.main, 0.04)})`,
-                          '&:before': { display: 'none' },
-                        }}
-                      >
-                        <AccordionSummary
-                          expandIcon={<CaretDown />}
-                          sx={{
-                            minHeight: 44,
-                            '& .MuiAccordionSummary-content': { my: 0.5, alignItems: 'center' },
-                          }}
+      <Grid container spacing={3}>
+        <Grid xs={12} md={5}>
+          <Stack spacing={3}>
+            {/* Customer Information Card */}
+            <Card>
+              <CardHeader
+                title={tt("Thông tin người mua", "Buyer Information")}
+                action={
+                  <>
+                    <IconButton onClick={onOpenFormMenu} size='small'>
+                      <DotsThreeOutlineVertical />
+                    </IconButton>
+                    <Menu
+                      anchorEl={formMenuAnchorEl}
+                      open={Boolean(formMenuAnchorEl)}
+                      onClose={onCloseFormMenu}
+                      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                      transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                    >
+                      <MenuItem onClick={onCloseFormMenu}>
+                        <LocalizedLink
+                          style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
+                          href={`/event-studio/events/${paramsEventId}/etik-forms/checkout-form?back_to=/event-studio/events/${paramsEventId}/transactions/create`}
                         >
-                          <Stack direction="row" spacing={1} alignItems="center" sx={{ width: '100%', minWidth: 0 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                              {tt(`Vé ${index + 1}`, `Ticket ${index + 1}`)}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-                              {holderInfo.name ? `${holderInfo.title ? `${holderInfo.title} ` : ''}${holderInfo.name}` : tt('Chưa có thông tin', 'No information')}
-                            </Typography>
-                          </Stack>
-                        </AccordionSummary>
-                        <AccordionDetails sx={{ pt: 0, pb: 2 }}>
-                          <Grid container spacing={2} alignItems="center">
-                            <Grid xs={12} md={2}>
-                              <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'center' } }}>
-                                <Box sx={{ position: 'relative', width: 48, height: 48, '&:hover .avatarUploadBtn': { opacity: 1, visibility: 'visible' } }}>
-                                  <Avatar src={holderInfo.avatar || ''} sx={{ width: 48, height: 48 }} />
-                                  <IconButton
-                                    className="avatarUploadBtn"
-                                    size="small"
-                                    sx={{
-                                      position: 'absolute',
-                                      top: 0,
-                                      left: 0,
-                                      width: '100%',
-                                      height: '100%',
-                                      borderRadius: '50%',
-                                      opacity: 0,
-                                      visibility: 'hidden',
-                                      backdropFilter: 'blur(6px)',
-                                      backgroundColor: 'rgba(0,0,0,0.35)',
-                                      color: 'white',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      zIndex: 1,
-                                    }}
-                                    onClick={() => {
-                                      const input = document.getElementById(`upload-holder-${index}`) as HTMLInputElement | null;
-                                      input?.click();
-                                    }}
-                                    aria-label={tt('Tải ảnh đại diện', 'Upload avatar')}
-                                  >
-                                    <Plus size={14} />
-                                  </IconButton>
-                                  <input
-                                    id={`upload-holder-${index}`}
-                                    type="file"
-                                    accept="image/*"
-                                    hidden
-                                    onChange={(e) => {
-                                      const f = e.target.files?.[0];
-                                      handleTicketHolderAvatarFile(index, f);
-                                      e.currentTarget.value = '';
-                                    }}
-                                  />
-                                </Box>
-                              </Box>
-                            </Grid>
+                          {tt("Thêm câu hỏi vào biểu mẫu này", "Add questions to this form")}
+                        </LocalizedLink>
+                      </MenuItem>
+                    </Menu>
+                  </>
+                }
+              />
+              <Divider />
+              <CardContent>
+                <Grid container spacing={3}>
+                  <Grid lg={12} xs={12}>
+                    <FormControl fullWidth required>
+                      <InputLabel htmlFor="customer-name">{tt("Danh xưng*   Họ và tên", "Title*   Full Name")}</InputLabel>
+                      <OutlinedInput
+                        id="customer-name"
+                        size="small"
+                        label={tt("Danh xưng*    Họ và tên", "Title*    Full Name")}
+                        name="customer_name"
+                        value={customer.name}
+                        onChange={(e) => {
+                          // Update customer
+                          setCustomer({ name: e.target.value });
 
-                            <Grid xs={12} md={4}>
-                              <FormControl fullWidth size="small" required>
-                                <InputLabel>
-                                  {tt(`Danh xưng*    Họ và tên vé ${index + 1}`, `Title* &emsp; Full Name ticket ${index + 1}`)}
-                                </InputLabel>
-                                <OutlinedInput
-                                  label={tt(`Danh xưng*    Họ và tên vé ${index + 1}`, `Title* &emsp; Full Name ticket ${index + 1}`)}
-                                  value={holderInfo.name}
-                                  onChange={(e) => setHolderInfo({ name: e.target.value })}
-                                  startAdornment={
-                                    <InputAdornment position="start">
-                                      <Select
-                                        variant="standard"
-                                        disableUnderline
-                                        value={holderInfo.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
-                                        onChange={(e) => setHolderInfo({ title: e.target.value })}
-                                        sx={{ minWidth: 65 }}
-                                      >
-                                        <MenuItem value="Anh">Anh</MenuItem>
-                                        <MenuItem value="Chị">Chị</MenuItem>
-                                        <MenuItem value="Bạn">Bạn</MenuItem>
-                                        <MenuItem value="Em">Em</MenuItem>
-                                        <MenuItem value="Ông">Ông</MenuItem>
-                                        <MenuItem value="Bà">Bà</MenuItem>
-                                        <MenuItem value="Cô">Cô</MenuItem>
-                                        <MenuItem value="Mr.">Mr.</MenuItem>
-                                        <MenuItem value="Ms.">Ms.</MenuItem>
-                                        <MenuItem value="Mx.">Mx.</MenuItem>
-                                        <MenuItem value="Miss">Miss</MenuItem>
-                                        <MenuItem value="Thầy">Thầy</MenuItem>
-                                      </Select>
-                                    </InputAdornment>
+                          // Also auto-fill first ticket holder if it's "you" and empty
+                          if (order.tickets.length > 0) {
+                            setOrder(prev => {
+                              const newTickets = [...prev.tickets];
+                              const firstHolder = newTickets[0].holder;
+                              if (firstHolder && (!firstHolder.name || firstHolder.name === prev.customer.name)) {
+                                newTickets[0] = {
+                                  ...newTickets[0],
+                                  holder: { ...firstHolder, name: e.target.value } as HolderInfo
+                                };
+                              }
+                              // Or if undefined holder, init it? Usually step 1 creates holder undefined.
+                              // Logic here is tricky if we don't want to enforce it.
+                              // Original logic: !ticketHolderEditted && ticketHolders.length > 0
+
+                              return { ...prev, customer: { ...prev.customer, name: e.target.value }, tickets: newTickets };
+                            });
+                            return; // handled above
+                          }
+                          setCustomer({ name: e.target.value });
+                        }}
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <Select
+                              variant="standard"
+                              disableUnderline
+                              value={customer.title || defaultTitle}
+                              onChange={(e) => setCustomer({ ...customer, title: e.target.value })}
+                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                            >
+                              <MenuItem value="Anh">Anh</MenuItem>
+                              <MenuItem value="Chị">Chị</MenuItem>
+                              <MenuItem value="Bạn">Bạn</MenuItem>
+                              <MenuItem value="Em">Em</MenuItem>
+                              <MenuItem value="Ông">Ông</MenuItem>
+                              <MenuItem value="Bà">Bà</MenuItem>
+                              <MenuItem value="Cô">Cô</MenuItem>
+                              <MenuItem value="Thầy">Thầy</MenuItem>
+                              <MenuItem value="Mr.">Mr.</MenuItem>
+                              <MenuItem value="Ms.">Ms.</MenuItem>
+                              <MenuItem value="Mx.">Mx.</MenuItem>
+                              <MenuItem value="Miss">Miss</MenuItem>
+                            </Select>
+                          </InputAdornment>
+                        }
+                      />
+                    </FormControl>
+                  </Grid>
+
+                  <Grid lg={6} xs={12}>
+                    <FormControl fullWidth required>
+                      <InputLabel>{tt("Địa chỉ Email", "Email Address")}</InputLabel>
+                      <OutlinedInput
+                        label={tt("Địa chỉ Email", "Email Address")}
+                        size="small"
+                        name="customer_email"
+                        type="email"
+                        value={customer.email}
+                        onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
+                      />
+                    </FormControl>
+                  </Grid>
+
+                  <Grid lg={6} xs={12}>
+                    <FormControl fullWidth required>
+                      <InputLabel>{tt("Số điện thoại", "Phone Number")}</InputLabel>
+                      <OutlinedInput
+                        label={tt("Số điện thoại", "Phone Number")}
+                        size="small"
+                        name="customer_national_phone"
+                        type="tel"
+                        value={customer.nationalPhone}
+                        onChange={(e) => setCustomer({ ...customer, nationalPhone: e.target.value })}
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <Select
+                              variant="standard"
+                              disableUnderline
+                              value={customer.phoneCountryIso2}
+                              onChange={(e) => setCustomer({ ...customer, phoneCountryIso2: e.target.value as string })}
+                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                              renderValue={(value) => {
+                                const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                return country.dialCode;
+                              }}
+                            >
+                              {PHONE_COUNTRIES.map((country) => (
+                                <MenuItem key={country.iso2} value={country.iso2}>
+                                  {tt(country.nameVi, country.nameEn)} ({country.dialCode})
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </InputAdornment>
+                        }
+                      />
+                    </FormControl>
+                  </Grid>
+
+                  {/* Builtin optional fields controlled by checkout form config */}
+                  {(() => {
+                    const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
+                    const visible = !!dobCfg && dobCfg.visible;
+                    const required = !!dobCfg?.required;
+                    return (
+                      visible && (
+                        <Grid lg={6} xs={12}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label={tt("Ngày tháng năm sinh", "Date of Birth")}
+                            name="customer_dob"
+                            type="date"
+                            required={required}
+                            value={customer.dob || ""}
+                            onChange={(e) => setCustomer({ ...customer, dob: e.target.value })}
+                            InputLabelProps={{ shrink: true }}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <CalendarBlank size={18} weight="duotone" style={{ opacity: 0.7 }} />
+                                </InputAdornment>
+                              ),
+                            }}
+                            inputProps={{ max: new Date().toISOString().slice(0, 10) }}
+                          />
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {(() => {
+                    const idCfg = checkoutFormFields.find((f) => f.internalName === 'idcard_number');
+                    const visible = !!idCfg && idCfg.visible;
+                    const required = !!idCfg?.required;
+                    return (
+                      visible && (
+                        <Grid lg={6} xs={12}>
+                          <FormControl fullWidth required={required}>
+                            <InputLabel>{tt("Số Căn cước công dân", "ID Card Number")}</InputLabel>
+                            <OutlinedInput
+                              label={tt("Số Căn cước công dân", "ID Card Number")}
+                              size="small"
+                              name="customer_idcard_number"
+                              value={customer.idcard_number}
+                              onChange={(e) => setCustomer({ ...customer, idcard_number: e.target.value })}
+                              startAdornment={
+                                <InputAdornment position="start">
+                                  <IdentificationCard size={18} weight="duotone" style={{ opacity: 0.7 }} />
+                                </InputAdornment>
+                              }
+                            />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {(() => {
+                    const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
+                    const visible = !!addrCfg && addrCfg.visible;
+                    const required = !!addrCfg?.required;
+                    return (
+                      visible && (
+                        <Grid lg={12} xs={12}>
+                          <FormControl fullWidth required={required}>
+                            <InputLabel>{tt("Địa chỉ", "Address")}</InputLabel>
+                            <OutlinedInput
+                              label={tt("Địa chỉ", "Address")}
+                              size="small"
+                              name="customer_address"
+                              value={customer.address}
+                              onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
+                              startAdornment={
+                                <InputAdornment position="start">
+                                  <MapPin size={18} weight="duotone" style={{ opacity: 0.7 }} />
+                                </InputAdornment>
+                              }
+                            />
+                          </FormControl>
+                        </Grid>
+                      )
+                    );
+                  })()}
+
+                  {/* Custom checkout fields */}
+                  {customCheckoutFields.map((field) => (
+                    <Grid key={field.internalName} xs={12}>
+                      <Stack spacing={0.5}>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {field.label}
+                          {field.required && ' *'}
+                        </Typography>
+                        {field.note && (
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {field.note}
+                          </Typography>
+                        )}
+
+                        {['text', 'number'].includes(field.fieldType) && (
+                          <TextField
+                            fullWidth
+                            size="small"
+                            type={field.fieldType === 'number' ? 'number' : 'text'}
+                            value={checkoutCustomAnswers[field.internalName] ?? ''}
+                            onChange={(e) =>
+                              setCheckoutCustomAnswers((prev) => ({
+                                ...prev,
+                                [field.internalName]: e.target.value,
+                              }))
+                            }
+                          />
+                        )}
+
+                        {['date', 'time', 'datetime'].includes(field.fieldType) && (
+                          <TextField
+                            fullWidth
+                            size="small"
+                            type={
+                              field.fieldType === 'date'
+                                ? 'date'
+                                : field.fieldType === 'time'
+                                  ? 'time'
+                                  : 'datetime-local'
+                            }
+                            InputLabelProps={{ shrink: true }}
+                            value={checkoutCustomAnswers[field.internalName] ?? ''}
+                            onChange={(e) =>
+                              setCheckoutCustomAnswers((prev) => ({
+                                ...prev,
+                                [field.internalName]: e.target.value,
+                              }))
+                            }
+                          />
+                        )}
+
+                        {field.fieldType === 'radio' && field.options && (
+                          <FormControl component="fieldset" variant="standard">
+                            <Stack spacing={0.5}>
+                              {field.options.map((opt) => (
+                                <FormControlLabel
+                                  key={opt.value}
+                                  value={opt.value}
+                                  control={
+                                    <Radio
+                                      size="small"
+                                      sx={{ p: 0.5 }}
+                                      checked={checkoutCustomAnswers[field.internalName] === opt.value}
+                                      onChange={() =>
+                                        setCheckoutCustomAnswers((prev) => ({
+                                          ...prev,
+                                          [field.internalName]: opt.value,
+                                        }))
+                                      }
+                                    />
                                   }
+                                  label={opt.label}
+                                  componentsProps={{ typography: { variant: 'body2', fontSize: '0.875rem' } }}
                                 />
-                              </FormControl>
-                            </Grid>
+                              ))}
+                            </Stack>
+                          </FormControl>
+                        )}
 
-                            <Grid xs={12} md={3}>
-                              <FormControl fullWidth size="small">
-                                <InputLabel>{tt(`Email vé ${index + 1}`, `Email ticket ${index + 1}`)}</InputLabel>
-                                <OutlinedInput
-                                  label={tt(`Email vé ${index + 1}`, `Email ticket ${index + 1}`)}
-                                  type="email"
-                                  value={holderInfo.email || ''}
-                                  onChange={(e) => setHolderInfo({ email: e.target.value })}
-                                />
-                              </FormControl>
-                            </Grid>
+                        {field.fieldType === 'checkbox' && field.options && (
+                          <FormGroup>
+                            <Stack spacing={0.5}>
+                              {field.options.map((opt) => {
+                                const current: string[] = checkoutCustomAnswers[field.internalName] ?? [];
+                                const checked = current.includes(opt.value);
+                                return (
+                                  <FormControlLabel
+                                    key={opt.value}
+                                    control={
+                                      <Checkbox
+                                        size="small"
+                                        sx={{ p: 0.5 }}
+                                        checked={checked}
+                                        onChange={(e) => {
+                                          setCheckoutCustomAnswers((prev) => {
+                                            const prevArr: string[] = prev[field.internalName] ?? [];
+                                            const nextArr = e.target.checked
+                                              ? Array.from(new Set([...prevArr, opt.value]))
+                                              : prevArr.filter((v) => v !== opt.value);
+                                            return { ...prev, [field.internalName]: nextArr };
+                                          });
+                                        }}
+                                      />
+                                    }
+                                    label={opt.label}
+                                    componentsProps={{ typography: { variant: 'body2', fontSize: '0.875rem' } }}
+                                  />
+                                );
+                              })}
+                            </Stack>
+                          </FormGroup>
+                        )}
+                      </Stack>
+                    </Grid>
+                  ))}
+                </Grid>
+              </CardContent>
+            </Card>
+          </Stack>
+        </Grid>
+        <Grid xs={12} md={7}>
+          <Stack spacing={3}>
+            {/* Ticket holders input (accordion) */}
+            {order.tickets.length > 0 && (
+              <Card>
+                <CardHeader
+                  title={tt(
+                    `Thông tin người sở hữu vé: ${order.tickets.length} vé`,
+                    `Ticket List`
+                  )}
+                />
+                <Divider />
+                <CardContent>
+                  <Stack spacing={3}>
+                    {/* Summary of categories */}
+                    {ticketSummary.map((group, idx) => (
+                      <Stack spacing={2} key={`summary-${idx}`}>
+                        <Stack direction={{ xs: 'column', md: 'row' }} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                            <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                              {group.show?.name || tt('Chưa xác định', 'Not specified')} - {group.category?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
+                            </Typography>
+                            <IconButton
+                              size="small"
+                              sx={{ ml: 1, alignSelf: 'flex-start' }}
+                              onClick={() => {
+                                setActiveScheduleId(group.show.id);
+                                setRequestedCategoryModalId(group.category?.id || 0);
+                              }}
+                            >
+                              <Pencil />
+                            </IconButton>
+                          </Stack>
+                          <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                            <Typography variant="caption">{formatPrice(group.total / group.quantity)}</Typography>
+                            <Typography variant="caption">x {group.quantity}</Typography>
+                            <Typography variant="caption">= {formatPrice(group.total)}</Typography>
+                          </Stack>
+                        </Stack>
+                      </Stack>
+                    ))}
 
-                            <Grid xs={12} md={3}>
-                              <FormControl fullWidth size="small">
-                                <InputLabel>{tt(`SĐT vé ${index + 1}`, `Phone ticket ${index + 1}`)}</InputLabel>
-                                <OutlinedInput
-                                  label={tt(`SĐT vé ${index + 1}`, `Phone ticket ${index + 1}`)}
-                                  type="tel"
-                                  value={holderInfo.phone || ''}
-                                  onChange={(e) => setHolderInfo({ phone: e.target.value })}
-                                  startAdornment={
-                                    <InputAdornment position="start">
-                                      <Select
-                                        variant="standard"
-                                        disableUnderline
-                                        value={holderInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
-                                        onChange={(event) => setHolderInfo({ phoneCountryIso2: event.target.value })}
-                                        sx={{ minWidth: 50 }}
-                                        renderValue={(value) => {
-                                          const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
-                                          return country.dialCode;
+                    {requireTicketHolderInfo && (
+                      <Stack spacing={2}>
+                        {order.tickets.map((ticket, index) => {
+                          const holderInfo = ticket.holder || {
+                            title: locale === 'en' ? 'Mx.' : 'Bạn',
+                            name: '',
+                            email: '',
+                            phone: '',
+                            nationalPhone: '',
+                            phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
+                            avatar: '',
+                          };
+
+                          const setHolderInfo = (patch: Partial<HolderInfo>) => {
+                            setOrder(prev => {
+                              const newTickets = [...prev.tickets];
+                              newTickets[index] = {
+                                ...newTickets[index],
+                                holder: { ...holderInfo, ...patch } as HolderInfo
+                              };
+                              return { ...prev, tickets: newTickets };
+                            });
+                          };
+
+                          return (
+                            <Accordion
+                              key={`ticket-${index}`}
+                              expanded={expandedAccordions[index] ?? true}
+                              onChange={handleAccordionChange(index)}
+                              disableGutters
+                              elevation={0}
+                              sx={{
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 1,
+                                backgroundColor: 'background.paper',
+                                backgroundImage: (theme) =>
+                                  `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.06)}, ${alpha(theme.palette.secondary.main, 0.04)})`,
+                                '&:before': { display: 'none' },
+                              }}
+                            >
+                              <AccordionSummary
+                                expandIcon={<CaretDown />}
+                                sx={{
+                                  minHeight: 44,
+                                  '& .MuiAccordionSummary-content': { my: 0.5, alignItems: 'center' },
+                                }}
+                              >
+                                <Stack
+                                  direction={{ xs: 'column', md: 'row' }}
+                                  spacing={1}
+                                  alignItems={{ xs: 'flex-start', md: 'center' }}
+                                  sx={{ width: '100%', minWidth: 0, flex: 1 }}
+                                >
+                                  <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                      {tt(`Vé ${index + 1}`, `Ticket ${index + 1}`)}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+                                      {holderInfo.name ? `${holderInfo.title ? `${holderInfo.title} ` : ''}${holderInfo.name}` : tt('Chưa có thông tin', 'No information')}
+                                    </Typography>
+                                  </Stack>
+                                  <Box sx={{ flex: 1, display: { xs: 'none', md: 'block' } }} />
+                                  <Stack
+                                    direction="row"
+                                    spacing={0.5}
+                                    sx={{
+                                      ml: { xs: 0, md: 'auto' },
+                                      mt: { xs: 0.5, md: 0 }
+                                    }}
+                                  >
+                                    <Button
+                                      size="small"
+                                      variant="text"
+                                      startIcon={<Copy size={12} />}
+                                      sx={{
+                                        minWidth: 'auto',
+                                        px: 1,
+                                        py: 0.25,
+                                        fontSize: '0.75rem',
+                                        textTransform: 'none',
+                                        '&:hover': { backgroundColor: 'action.hover' }
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Always expand accordion
+                                        setExpandedAccordions(prev => ({ ...prev, [index]: true }));
+                                        // Copy from customer - copy nationalPhone and phoneCountryIso2
+                                        setHolderInfo({
+                                          title: order.customer.title,
+                                          name: order.customer.name,
+                                          email: order.customer.email,
+                                          nationalPhone: order.customer.nationalPhone || '',
+                                          phoneCountryIso2: order.customer.phoneCountryIso2,
+                                          avatar: order.customer.avatar || undefined,
+                                        });
+                                      }}
+                                    >
+                                      {tt('Copy từ người mua', 'Copy from buyer')}
+                                    </Button>
+                                    {index > 0 && (
+                                      <Button
+                                        size="small"
+                                        variant="text"
+                                        startIcon={<Copy size={12} />}
+                                        sx={{
+                                          minWidth: 'auto',
+                                          px: 1,
+                                          py: 0.25,
+                                          fontSize: '0.75rem',
+                                          textTransform: 'none',
+                                          '&:hover': { backgroundColor: 'action.hover' }
+                                        }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          // Always expand accordion
+                                          setExpandedAccordions(prev => ({ ...prev, [index]: true }));
+                                          // Copy from ticket 1 (index 0)
+                                          const firstTicket = order.tickets[0];
+                                          const firstHolder = firstTicket.holder || {
+                                            title: locale === 'en' ? 'Mx.' : 'Bạn',
+                                            name: '',
+                                            email: '',
+                                            phone: '',
+                                            nationalPhone: '',
+                                            phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
+                                            avatar: '',
+                                          };
+
+                                          // Copy from ticket 1 - copy nationalPhone and phoneCountryIso2
+                                          setHolderInfo({
+                                            title: firstHolder.title,
+                                            name: firstHolder.name,
+                                            email: firstHolder.email,
+                                            nationalPhone: firstHolder.nationalPhone || '',
+                                            phoneCountryIso2: firstHolder.phoneCountryIso2,
+                                            avatar: firstHolder.avatar,
+                                          });
                                         }}
                                       >
-                                        {PHONE_COUNTRIES.map((country) => (
-                                          <MenuItem key={country.iso2} value={country.iso2}>
-                                            {country.nameVi} ({country.dialCode})
-                                          </MenuItem>
-                                        ))}
-                                      </Select>
-                                    </InputAdornment>
-                                  }
-                                />
-                              </FormControl>
-                            </Grid>
-                          </Grid>
-                        </AccordionDetails>
-                      </Accordion>
-                    );
-                  })}
-                </Stack>
-              )}
-            </Stack>
-          </CardContent>
-        </Card>
-      )}
+                                        {tt('Copy từ vé 1', 'Copy from ticket 1')}
+                                      </Button>
+                                    )}
+                                  </Stack>
+                                </Stack>
+                              </AccordionSummary>
+                              <AccordionDetails sx={{ pt: 0, pb: 2 }}>
+                                <Grid container spacing={2} alignItems="center">
+                                  <Grid xs={12} md={2}>
+                                    <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'center' }, width: 48 }}>
+                                      <Box sx={{ position: 'relative', width: 48, height: 48, '&:hover .avatarUploadBtn': { opacity: 1, visibility: 'visible' } }}>
+                                        <Avatar src={holderInfo.avatar || ''} sx={{ width: 48, height: 48 }} />
+                                        <IconButton
+                                          className="avatarUploadBtn"
+                                          size="small"
+                                          sx={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            height: '100%',
+                                            borderRadius: '50%',
+                                            opacity: 0,
+                                            visibility: 'hidden',
+                                            backdropFilter: 'blur(6px)',
+                                            backgroundColor: 'rgba(0,0,0,0.35)',
+                                            color: 'white',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            zIndex: 1,
+                                          }}
+                                          onClick={() => {
+                                            const input = document.getElementById(`upload-holder-${index}`) as HTMLInputElement | null;
+                                            input?.click();
+                                          }}
+                                          aria-label={tt('Tải ảnh đại diện', 'Upload avatar')}
+                                        >
+                                          <Plus size={14} />
+                                        </IconButton>
+                                        <input
+                                          id={`upload-holder-${index}`}
+                                          type="file"
+                                          accept="image/*"
+                                          hidden
+                                          onChange={(e) => {
+                                            const f = e.target.files?.[0];
+                                            handleTicketHolderAvatarFile(index, f);
+                                            e.currentTarget.value = '';
+                                          }}
+                                        />
+                                      </Box>
+                                    </Box>
+                                  </Grid>
 
+                                  <Grid xs={12} md={4}>
+                                    <FormControl fullWidth size="small" required>
+                                      <InputLabel>
+                                        {tt(`Danh xưng*    Họ và tên`, `Title*    Full Name`)}
+                                      </InputLabel>
+                                      <OutlinedInput
+                                        label={tt(`Danh xưng*    Họ và tên`, `Title*    Full Name`)}
+                                        size="small"
+                                        value={holderInfo.name}
+                                        onChange={(e) => setHolderInfo({ name: e.target.value })}
+                                        startAdornment={
+                                          <InputAdornment position="start">
+                                            <Select
+                                              variant="standard"
+                                              disableUnderline
+                                              value={holderInfo.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
+                                              onChange={(e) => setHolderInfo({ title: e.target.value })}
+                                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                                            >
+                                              <MenuItem value="Anh">Anh</MenuItem>
+                                              <MenuItem value="Chị">Chị</MenuItem>
+                                              <MenuItem value="Bạn">Bạn</MenuItem>
+                                              <MenuItem value="Em">Em</MenuItem>
+                                              <MenuItem value="Ông">Ông</MenuItem>
+                                              <MenuItem value="Bà">Bà</MenuItem>
+                                              <MenuItem value="Cô">Cô</MenuItem>
+                                              <MenuItem value="Mr.">Mr.</MenuItem>
+                                              <MenuItem value="Ms.">Ms.</MenuItem>
+                                              <MenuItem value="Mx.">Mx.</MenuItem>
+                                              <MenuItem value="Miss">Miss</MenuItem>
+                                              <MenuItem value="Thầy">Thầy</MenuItem>
+                                            </Select>
+                                          </InputAdornment>
+                                        }
+                                      />
+                                    </FormControl>
+                                  </Grid>
+
+                                  <Grid xs={12} md={3}>
+                                    <FormControl fullWidth size="small">
+                                      <InputLabel>{tt(`Email vé ${index + 1}`, `Email ticket ${index + 1}`)}</InputLabel>
+                                      <OutlinedInput
+                                        label={tt(`Email vé ${index + 1}`, `Email ticket ${index + 1}`)}
+                                        size="small"
+                                        type="email"
+                                        value={holderInfo.email || ''}
+                                        onChange={(e) => setHolderInfo({ email: e.target.value })}
+
+                                      />
+                                    </FormControl>
+                                  </Grid>
+
+                                  <Grid xs={12} md={3}>
+                                    <FormControl fullWidth size="small">
+                                      <InputLabel>{tt(`SĐT vé ${index + 1}`, `Phone ticket ${index + 1}`)}</InputLabel>
+                                      <OutlinedInput
+                                        label={tt(`SĐT vé ${index + 1}`, `Phone ticket ${index + 1}`)}
+                                        size="small"
+                                        type="tel"
+                                        value={holderInfo.nationalPhone || ''}
+                                        onChange={(e) => setHolderInfo({ nationalPhone: e.target.value })}
+                                        startAdornment={
+                                          <InputAdornment position="start">
+                                            <Select
+                                              variant="standard"
+                                              disableUnderline
+                                              value={holderInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
+                                              onChange={(event) => setHolderInfo({ phoneCountryIso2: event.target.value })}
+                                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                                              renderValue={(value) => {
+                                                const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                                return country.dialCode;
+                                              }}
+                                            >
+                                              {PHONE_COUNTRIES.map((country) => (
+                                                <MenuItem key={country.iso2} value={country.iso2}>
+                                                  {country.nameVi} ({country.dialCode})
+                                                </MenuItem>
+                                              ))}
+                                            </Select>
+                                          </InputAdornment>
+                                        }
+                                      />
+                                    </FormControl>
+                                  </Grid>
+                                </Grid>
+                              </AccordionDetails>
+                            </Accordion>
+                          );
+                        })}
+                      </Stack>
+                    )}
+                  </Stack>
+                </CardContent>
+              </Card>
+            )}
+
+
+          </Stack>
+        </Grid>
+      </Grid>
       <Stack direction="row" justifyContent="space-between">
         <Button variant="outlined" onClick={onBack}>
           {tt('Quay lại', 'Back')}

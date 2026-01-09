@@ -25,7 +25,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
-import { Accordion, AccordionDetails, AccordionSummary, CardHeader, Container, FormControlLabel, IconButton, InputLabel, Modal, OutlinedInput, Switch } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, CardHeader, Container, FormControlLabel, IconButton, InputLabel, Modal, OutlinedInput, Switch, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import { ArrowRight, Calendar, Clock, Users } from '@phosphor-icons/react';
 import { Armchair, Pencil } from '@phosphor-icons/react/dist/ssr';
 import dayjs from 'dayjs';
@@ -57,6 +57,7 @@ interface Show {
   startDateTime?: string | null; // ISO string format for datetime
   endDateTime?: string | null;   // ISO string format for datetime
   ticketCategories: TicketCategory[];
+  seatmapMode: 'no_seatmap' | 'seatings_selection' | 'ticket_categories_selection';
 }
 
 type StatusKey = 'not_opened_for_sale' | 'on_sale' | 'out_of_stock' | 'temporarily_locked';
@@ -105,7 +106,45 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [selectedTicketCategory, setSelectedTicketCategory] = React.useState<TicketCategory | null>(null);
   const [formDataQuantity, setFormDataQuantity] = React.useState(0);
   const [formDataDisabled, setFormDataDisabled] = React.useState(false);
-  const [useSeatMap, setUseSeatMap] = React.useState(false);
+
+  // Confirmation Dialog State
+  const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
+  const [pendingSeatmapChange, setPendingSeatmapChange] = React.useState<{ show: Show, newMode: Show['seatmapMode'] } | null>(null);
+
+  const handleToggleSeatmapMode = (show: Show, checked: boolean) => {
+    const newMode = checked ? 'seatings_selection' : 'no_seatmap';
+    // If turning ON, checking if we need to ask user which mode? 
+    // User request: "chuyển action bật tắt sơ đồ ghế về từng show ... giao diện nhỏ text nhỏ"
+    // The previous implementation utilized a simple switch "Use Seat Map". 
+    // Logic: Switch ON -> 'seatings_selection' (default for now or based on old logic?), Switch OFF -> 'no_seatmap'.
+    // The user mentioned "giao diện nhỏ text nhỏ", implying a simple switch.
+    // Let's assume Switch ON means 'seatings_selection'.
+
+    setPendingSeatmapChange({ show, newMode });
+    setConfirmDialogOpen(true);
+  };
+
+  const confirmSeatmapChange = async () => {
+    if (!pendingSeatmapChange) return;
+    const { show, newMode } = pendingSeatmapChange;
+
+    try {
+      setIsLoading(true);
+      await baseHttpServiceInstance.patch(
+        `/event-studio/events/${params.event_id}/shows/${show.id}/seatmap-mode`,
+        { seatmap_mode: newMode }
+      );
+      notificationCtx.success(tt('Cập nhật thành công', 'Update successful'));
+      // Reload to reflect changes (and potential deletions)
+      window.location.reload();
+    } catch (error) {
+      notificationCtx.error(tt('Lỗi:', 'Error:'), error);
+      setIsLoading(false); // Only set loading false on error, success reloads page
+    } finally {
+      setConfirmDialogOpen(false);
+      setPendingSeatmapChange(null);
+    }
+  };
 
   const handleCloseEditorModal = (event: {}, reason: "backdropClick" | "escapeKeyDown") => {
     setOpenEditorModal(false);
@@ -198,16 +237,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 }
                 sx={{ maxWidth: '500px' }}
               />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={useSeatMap}
-                    onChange={(e) => setUseSeatMap(e.target.checked)}
-                  />
-                }
-                label={tt("Sử dụng sơ đồ ghế", "Use Seat Map")}
-              />
             </Stack>
+
           </Card>
           <Grid container spacing={3}>
             {shows.map((show) => (
@@ -274,9 +305,22 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                             size="small"
                             variant="soft"
                           />}
+
+                        {/* Seatmap Toggle for each Show */}
+                        <FormControlLabel
+                          onClick={(e) => e.stopPropagation()}
+                          control={
+                            <Switch
+                              size="small"
+                              checked={show.seatmapMode !== 'no_seatmap'}
+                              onChange={(e) => handleToggleSeatmapMode(show, e.target.checked)}
+                            />
+                          }
+                          label={<Typography variant="caption">{tt("Sơ đồ ghế", "Seat Map")}</Typography>}
+                        />
                       </Stack>
                       <Stack direction="row" spacing={1}>
-                        {useSeatMap && (
+                        {show.seatmapMode !== 'no_seatmap' && (
                           <Tooltip title={tt("Thiết kế sơ đồ ghế", "Design Seat Map")}>
                             <IconButton
                               component={LocalizedLink}
@@ -461,8 +505,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
               </Accordion>
             ))}
           </Grid>
-        </Stack>
-      </Stack>
+        </Stack >
+      </Stack >
 
       <Modal
         open={openEditorModal}
@@ -535,6 +579,34 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           </Card>
         </Container>
       </Modal>
+
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={() => setConfirmDialogOpen(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {tt("Xác nhận thay đổi", "Confirm Change")}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            {tt(
+              "Nếu thay đổi chế độ bán vé, toàn bộ vé của Show diễn này sẽ bị xóa. Bạn có muốn tiếp tục?",
+              "Changing the ticket sales mode will delete all tickets for this Show. Do you want to continue?"
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialogOpen(false)} color="inherit">
+            {tt("Hủy", "Cancel")}
+          </Button>
+          <Button onClick={confirmSeatmapChange} color="error" autoFocus>
+            {tt("OK", "OK")}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

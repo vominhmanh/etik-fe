@@ -12,7 +12,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, CaretDoubleRight, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, Gift, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, CaretDoubleRight, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, Gift, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X, Chair, CalendarBlank, IdentificationCard, CheckCircle, User as UserIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import * as React from 'react';
@@ -154,6 +154,12 @@ interface Event {
 };
 
 
+export interface ShowSeat {
+  id: number;
+  rowLabel: string | null;
+  seatNumber: string | null;
+}
+
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
   holderName: string;        // Name of the ticket holder
@@ -166,6 +172,7 @@ export interface Ticket {
   checkInAt: string | null; // The date/time the ticket was checked in, nullable
   status: string;      // Ticket status
   historyCheckIns: CheckInHistory[]; // List of check-in history
+  showSeat: ShowSeat | null; // Seat information if the ticket has an assigned seat
 }
 
 export interface Show {
@@ -257,7 +264,6 @@ export interface Transaction {
   email: string;                    // Email of the customer
   name: string;                     // Name of the customer
   avatar: string | null;            // Avatar URL of the customer
-  requireGuestAvatar: boolean;       // Whether to require guest avatar
   gender: string;                   // Gender of the customer
   title: string;                   // Gender of the customer
   phoneNumber: string;              // Customer's phone number in E.164 format (e.g., +84333247242)
@@ -333,13 +339,12 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const searchParams = useSearchParams()
   const checkInCode = searchParams.get('checkInCode') || undefined
   const [selectedStatus, setSelectedStatus] = useState<string>(formData.status || '');
-  const [editCategoryModalOpen, setEditCategoryModalOpen] = useState<boolean>(false);
-  const [editingCategory, setEditingCategory] = useState<TransactionTicketCategory | null>(null);
-  const [editingHolderInfos, setEditingHolderInfos] = useState<{ title: string; name: string; email: string; phone: string; phoneCountryIso2?: string; avatar?: string; }[]>([]);
+  const [editTicketModalOpen, setEditTicketModalOpen] = useState<boolean>(false);
+  const [editingTicket, setEditingTicket] = useState<{ categoryIndex: number; ticketIndex: number } | null>(null);
+  const [editingHolderInfo, setEditingHolderInfo] = useState<{ title: string; name: string; email: string; phone: string; phoneCountryIso2?: string; avatar?: string; } | null>(null);
   const [ticketMenuAnchorEl, setTicketMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [activeMenuTicket, setActiveMenuTicket] = useState<{ categoryIndex: number; ticketIndex: number } | null>(null);
-  const [pendingHolderAvatarFiles, setPendingHolderAvatarFiles] = useState<Record<number, File>>({});
-  const [requireGuestAvatar, setRequireGuestAvatar] = useState<boolean>(false);
+  const [pendingHolderAvatarFile, setPendingHolderAvatarFile] = useState<File | null>(null);
   const [printTagModalOpen, setPrintTagModalOpen] = useState<boolean>(false);
   const [giftTicketModalOpen, setGiftTicketModalOpen] = useState<boolean>(false);
   const [checkoutFormFields, setCheckoutFormFields] = useState<CheckoutRuntimeField[]>([]);
@@ -388,24 +393,17 @@ export default function Page({ params }: { params: { event_id: number; transacti
     return URL.createObjectURL(file);
   };
 
-  const handleHolderAvatarFile = (ticketId: number, file?: File) => {
+  const handleHolderAvatarFile = (file?: File) => {
     if (!file) return;
     try {
       // Create local preview URL
       const previewUrl = createLocalPreviewUrl(file);
 
       // Store the file for later upload
-      setPendingHolderAvatarFiles(prev => ({ ...prev, [ticketId]: file }));
+      setPendingHolderAvatarFile(file);
 
       // Update the holder info with preview URL
-      setEditingHolderInfos(prev => {
-        return prev.map((h, i) => {
-          if (editingCategory?.tickets[i]?.id === ticketId) {
-            return { ...h, avatar: previewUrl };
-          }
-          return h;
-        });
-      });
+      setEditingHolderInfo(prev => prev ? { ...prev, avatar: previewUrl } : null);
     } catch (error) {
       notificationCtx.error(error);
     }
@@ -533,8 +531,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
         }
         setCheckoutCustomAnswers(answersDict);
 
-        // Load requireGuestAvatar from transaction data
-        setRequireGuestAvatar(response.data?.requireGuestAvatar || false);
 
         // Load checkout form fields
         setCheckoutFormFields(response.data?.checkoutFormFields || []);
@@ -698,25 +694,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
     }
   };
 
-  const openEditCategoryModal = (category: TransactionTicketCategory) => {
-    setEditingCategory(category);
-    const infos = category.tickets.map((t) => {
-      // Parse E.164 phone number to extract country and national number
-      const parsedPhone = parseE164Phone(t.holderPhone);
-      const defaultTitle = locale === 'en' ? 'Mx.' : 'Bạn';
-      return {
-        title: t.holderTitle || defaultTitle,
-        name: t.holderName || '',
-        email: t.holderEmail || '',
-        phone: parsedPhone?.nationalNumber || '',
-        phoneCountryIso2: parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2,
-        avatar: t.holderAvatar || '',
-      };
-    });
-    setEditingHolderInfos(infos);
-    setPendingHolderAvatarFiles({});
-    setEditCategoryModalOpen(true);
-  };
 
   const handleOpenTicketMenu = (
     anchorEl: HTMLElement,
@@ -794,81 +771,99 @@ export default function Page({ params }: { params: { event_id: number; transacti
     }
   };
 
-  const handleSaveTicketHolders = async () => {
-    if (!editingCategory) return;
-    const hasInvalid = editingHolderInfos.some((h) => !h.title || !h.name);
-    if (hasInvalid) {
-      notificationCtx.warning(tt('Vui lòng điền đủ Danh xưng, Họ tên và SĐT cho mỗi vé.', 'Please fill in Title, Full Name, and Phone Number for each ticket.'));
+  const handleOpenEditTicketModal = () => {
+    if (!activeMenuTicket || !transaction) return;
+    const ticket = transaction.transactionTicketCategories[activeMenuTicket.categoryIndex]?.tickets[activeMenuTicket.ticketIndex];
+    if (!ticket) return;
+    
+    // Parse phone number
+    const parsedPhone = ticket.holderPhone ? parseE164Phone(ticket.holderPhone) : null;
+    const phoneCountryIso2 = parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2;
+    const phoneNumber = parsedPhone?.nationalNumber || ticket.holderPhone || '';
+    
+    setEditingTicket(activeMenuTicket);
+    setEditingHolderInfo({
+      title: ticket.holderTitle || (locale === 'en' ? 'Mx.' : 'Bạn'),
+      name: ticket.holderName || '',
+      email: ticket.holderEmail || '',
+      phone: phoneNumber,
+      phoneCountryIso2: phoneCountryIso2,
+      avatar: ticket.holderAvatar || undefined,
+    });
+    setEditTicketModalOpen(true);
+    setTicketMenuAnchorEl(null);
+  };
+
+  const handleSaveTicket = async () => {
+    if (!editingTicket || !editingHolderInfo || !transaction) return;
+    
+    if (!editingHolderInfo.title || !editingHolderInfo.name) {
+      notificationCtx.warning(tt('Vui lòng điền đủ Danh xưng và Họ tên.', 'Please fill in Title and Full Name.'));
       return;
     }
+    
     try {
       setIsLoading(true);
 
-      // Upload avatars to S3 if any pending
-      const avatarUrls: Record<number, string> = {};
-      for (const [ticketIdStr, file] of Object.entries(pendingHolderAvatarFiles)) {
-        const ticketId = parseInt(ticketIdStr);
-        const uploadedUrl = await uploadImageToS3(file);
+      // Upload avatar to S3 if pending
+      let avatarUrl: string | null = null;
+      if (pendingHolderAvatarFile) {
+        const uploadedUrl = await uploadImageToS3(pendingHolderAvatarFile);
         if (uploadedUrl) {
-          avatarUrls[ticketId] = uploadedUrl;
+          avatarUrl = uploadedUrl;
         }
       }
 
+      const ticket = transaction.transactionTicketCategories[editingTicket.categoryIndex]?.tickets[editingTicket.ticketIndex];
+      if (!ticket) return;
+
+      // Format phone to E.164
+      const e164Phone = formatToE164(
+        editingHolderInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2,
+        editingHolderInfo.phone.replace(/\D/g, '').replace(/^0+/, '')
+      );
+
       const payload = {
-        tickets: editingCategory.tickets.map((ticket, index) => {
-          const holder = editingHolderInfos[index];
-          if (!holder) return null;
-
-          // Derive NSN from phone number (strip leading '0' if present)
-          const digits = holder.phone.replace(/\D/g, '');
-          const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
-
-          return {
-            id: ticket.id,
-            holderTitle: holder.title,
-            holderName: holder.name,
-            holderPhone: holder.phone,
-            holderPhoneCountry: holder.phoneCountryIso2,
-            holderPhoneNationalNumber: phoneNSN,
-            holderAvatar: avatarUrls[ticket.id] || holder.avatar || null,
-          };
-        }).filter(Boolean),
+        holderTitle: editingHolderInfo.title,
+        holderName: editingHolderInfo.name,
+        // holderEmail cannot be changed
+        holderPhone: e164Phone || null,
+        holderAvatar: avatarUrl || editingHolderInfo.avatar || null,
       };
+
       await baseHttpServiceInstance.patch(
-        `/event-studio/events/${event_id}/transactions/${transaction_id}/update-ticket-holders`,
+        `/event-studio/events/${event_id}/tickets/${ticket.id}`,
         payload
       );
 
-      // Update transaction state with E.164 formatted phone numbers
+      // Update transaction state
       setTransaction((prev) => {
-        if (!prev) return prev;
-        const updatedCategories = prev.transactionTicketCategories.map((cat) => {
-          if (cat.ticketCategory.id !== (editingCategory?.ticketCategory.id || 0)) return cat;
-          return {
-            ...cat,
-            tickets: cat.tickets.map((t, i) => {
-              const holder = editingHolderInfos[i];
-              if (!holder) return t;
-
-              // Format phone to E.164
-              const e164Phone = formatToE164(holder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2, holder.phone.replace(/\D/g, '').replace(/^0+/, ''));
-
-              return {
-                ...t,
-                holderTitle: holder.title || t.holderTitle,
-                holderName: holder.name || t.holderName,
-                holderPhone: e164Phone || t.holderPhone,
-                holderAvatar: avatarUrls[t.id] || holder.avatar || t.holderAvatar,
-              };
-            }),
+        if (!prev || !editingTicket) return prev;
+        const updatedCategories = [...prev.transactionTicketCategories];
+        const category = updatedCategories[editingTicket.categoryIndex];
+        if (category && category.tickets[editingTicket.ticketIndex]) {
+          const updatedTickets = [...category.tickets];
+          updatedTickets[editingTicket.ticketIndex] = {
+            ...updatedTickets[editingTicket.ticketIndex],
+            holderTitle: editingHolderInfo.title,
+            holderName: editingHolderInfo.name,
+            // holderEmail cannot be changed
+            holderPhone: e164Phone || updatedTickets[editingTicket.ticketIndex].holderPhone,
+            holderAvatar: avatarUrl || editingHolderInfo.avatar || updatedTickets[editingTicket.ticketIndex].holderAvatar,
           };
-        });
+          updatedCategories[editingTicket.categoryIndex] = {
+            ...category,
+            tickets: updatedTickets,
+          };
+        }
         return { ...prev, transactionTicketCategories: updatedCategories };
       });
 
       notificationCtx.success(tt('Cập nhật thông tin vé thành công!', 'Ticket information updated successfully!'));
-      setEditCategoryModalOpen(false);
-      setPendingHolderAvatarFiles({});
+      setEditTicketModalOpen(false);
+      setPendingHolderAvatarFile(null);
+      setEditingTicket(null);
+      setEditingHolderInfo(null);
     } catch (error) {
       notificationCtx.error(error);
     } finally {
@@ -1663,11 +1658,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
               <Card>
                 <CardHeader
                   title={tt(`Danh sách vé: ${transaction.ticketQuantity} vé`, `Ticket List: ${transaction.ticketQuantity} tickets`)}
-                  action={
-                    transaction.qrOption === 'shared' && requireGuestAvatar && (
-                      <Avatar src={transaction.avatar || ''} sx={{ width: 36, height: 36 }} />
-                    )
-                  }
                 />
                 <Divider />
                 <CardContent>
@@ -1679,7 +1669,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                             <TicketIcon fontSize="var(--icon-fontSize-md)" />
                             <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name} - {transactionTicketCategory.ticketCategory.name}</Typography>
-                            <IconButton size="small" sx={{ ml: 1, alignSelf: 'flex-start' }} onClick={() => openEditCategoryModal(transactionTicketCategory)}><Pencil /></IconButton>
                           </Stack>
                           <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
                             <Typography variant="body2">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography>
@@ -1690,48 +1679,154 @@ export default function Page({ params }: { params: { event_id: number; transacti
                         {transactionTicketCategory.tickets.length > 0 && (
                           <Stack spacing={2}>
                             {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
-                              <Stack direction="row" spacing={0} alignItems="center">
-                                {requireGuestAvatar && transaction.qrOption === 'separate' && <Avatar src={ticket.holderAvatar || ''} sx={{ width: 32, height: 32 }} />}
-                                <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
-                                  <>
-                                    <Stack direction="row" spacing={1} alignItems="center">
-                                      <div>
-                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
-                                          {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : tt('Chưa có thông tin', 'No information')}
-                                        </Typography>
-                                        {transaction.qrOption === 'separate' && (
-                                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                            {(() => {
-                                              const email = ticket.holderEmail || tt('Chưa có email', 'No email');
-                                              if (!ticket.holderPhone) {
-                                                return `${email} - ${tt('Chưa có SĐT', 'No phone number')}`;
-                                              }
-                                              // Parse E.164 phone to get country code and national number
-                                              const parsedPhone = parseE164Phone(ticket.holderPhone);
-                                              if (parsedPhone) {
-                                                const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
-                                                return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
-                                              }
-                                              return `${email} - ${ticket.holderPhone}`;
-                                            })()}
-                                          </Typography>
+                              <Card
+                                key={ticketIndex}
+                                variant="outlined"
+                                sx={{
+                                  borderRadius: 1.5,
+                                  borderColor: 'divider',
+                                  boxShadow: 'none',
+                                }}
+                              >
+                                  <Box sx={{ p: 1.5, position: 'relative' }}>
+                                  {/* TID và Check-in icon ở góc phải trên */}
+                                  <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                                    {/* Check-in icon */}
+                                    <Tooltip
+                                      title={
+                                        ticket.checkInAt
+                                          ? tt(`Đã check-in lúc ${dayjs(ticket.checkInAt).format('HH:mm:ss DD/MM/YYYY')}`, `Checked in at ${dayjs(ticket.checkInAt).format('HH:mm:ss DD/MM/YYYY')}`)
+                                          : tt('Chưa check-in', 'Not checked in')
+                                      }
+                                    >
+                                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                        {ticket.checkInAt ? (
+                                          <CheckCircle size={16} style={{ color: 'var(--mui-palette-success-main)' }} />
+                                        ) : (
+                                          <Clock size={16} style={{ color: 'var(--mui-palette-warning-main)' }} />
                                         )}
-                                      </div>
-                                    </Stack>
-                                  </>
-                                  <div>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                      TID-{ticket.id} {ticket.checkInAt ? tt(`Check-in lúc ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}`, `Checked in at ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}`) : tt('Chưa check-in', 'Not checked in')}
-                                      {ticket.status && ticket.status !== 'normal' && (
-                                        <> - <Chip size="small" label={getRowStatusDetails(ticket.status, tt).label} color={getRowStatusDetails(ticket.status, tt).color} sx={{ height: 18, fontSize: '0.7rem' }} /></>
+                                      </Box>
+                                    </Tooltip>
+                                    
+                                    {/* TID */}
+                                    <Tooltip title={tt('Mã vé', 'Ticket ID')}>
+                                      <Chip
+                                        size="small"
+                                        variant="outlined"
+                                        label={`TID-${ticket.id}`}
+                                        sx={{ fontSize: '0.65rem', height: 18 }}
+                                      />
+                                    </Tooltip>
+                                  </Box>
+
+                                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                                    <Avatar
+                                      src={ticket.holderAvatar || undefined}
+                                      sx={{ width: 32, height: 32, mt: 0.5 }}
+                                    >
+                                      {!ticket.holderAvatar && <UserIcon size={20} />}
+                                    </Avatar>
+
+                                    <Stack spacing={0.5} flex={1}>
+                                      {/* Holder name + index */}
+                                      <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
+                                        {ticketIndex + 1}.{' '}
+                                        {ticket.holderName
+                                          ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim()
+                                          : tt('Chưa có thông tin', 'No information')}
+                                      </Typography>
+
+                                      {/* Contact info */}
+                                      {transaction.qrOption === 'separate' && (
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          {(() => {
+                                            const email = ticket.holderEmail || tt('Chưa có email', 'No email');
+                                            if (!ticket.holderPhone) {
+                                              return `${email} - ${tt('Chưa có SĐT', 'No phone number')}`;
+                                            }
+                                            const parsedPhone = parseE164Phone(ticket.holderPhone);
+                                            if (parsedPhone) {
+                                              const country =
+                                                PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) ||
+                                                DEFAULT_PHONE_COUNTRY;
+                                              return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
+                                            }
+                                            return `${email} - ${ticket.holderPhone}`;
+                                          })()}
+                                        </Typography>
                                       )}
-                                    </Typography>
-                                    <IconButton size="small" sx={{ ml: 2 }} onClick={(e) => handleOpenTicketMenu(e.currentTarget, categoryIndex, ticketIndex)}>
-                                      <DotsThreeOutline />
-                                    </IconButton>
-                                  </div>
+
+                                      {/* Suất diễn, hạng vé, tên ghế */}
+                                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                        {/* Show */}
+                                        <Tooltip title={tt('Suất diễn', 'Show')}>
+                                          <Stack direction="row" spacing={0.5} alignItems="center">
+                                            <CalendarBlank size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                              {transactionTicketCategory.ticketCategory.show.name}
+                                            </Typography>
+                                          </Stack>
+                                        </Tooltip>
+
+                                        {/* Ticket Category */}
+                                        <Tooltip title={tt('Hạng vé', 'Ticket Category')}>
+                                          <Stack direction="row" spacing={0.5} alignItems="center">
+                                            <TagIcon size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                              {transactionTicketCategory.ticketCategory.name}
+                                            </Typography>
+                                          </Stack>
+                                        </Tooltip>
+
+                                        {/* Seat (icon + tên ghế, không text Ghế/Hàng/Số) */}
+                                        {ticket.showSeat && (
+                                          <Tooltip
+                                            title={tt(
+                                              `Ghế: ${ticket.showSeat.rowLabel || ''}${
+                                                ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : ''
+                                              }${ticket.showSeat.seatNumber || ''} (ID: ${ticket.showSeat.id})`,
+                                              `Seat: ${ticket.showSeat.rowLabel || ''}${
+                                                ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : ''
+                                              }${ticket.showSeat.seatNumber || ''} (ID: ${ticket.showSeat.id})`,
+                                            )}
+                                          >
+                                            <Stack direction="row" spacing={0.5} alignItems="center">
+                                              <Chair size={14} style={{ color: 'var(--mui-palette-primary-main)' }} />
+                                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                {(ticket.showSeat.rowLabel || '') +
+                                                  (ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : '') +
+                                                  (ticket.showSeat.seatNumber || '') ||
+                                                  `#${ticket.showSeat.id}`}
+                                              </Typography>
+                                            </Stack>
+                                          </Tooltip>
+                                        )}
+                                      </Stack>
+
+                                      {/* Status + menu */}
+                                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mt: 0.5 }}>
+
+                                        {ticket.status && ticket.status !== 'normal' && (
+                                          <Chip
+                                            size="small"
+                                            label={getRowStatusDetails(ticket.status, tt).label}
+                                            color={getRowStatusDetails(ticket.status, tt).color}
+                                            sx={{ height: 20, fontSize: '0.7rem' }}
+                                          />
+                                        )}
+
+                                        <IconButton
+                                          size="small"
+                                          onClick={e => handleOpenTicketMenu(e.currentTarget, categoryIndex, ticketIndex)}
+                                          sx={{ ml: 'auto' }}
+                                        >
+                                          <DotsThreeOutline size={16} />
+                                        </IconButton>
+                                      </Stack>
+                                    </Stack>
+                                  </Stack>
                                 </Box>
-                              </Stack>
+                              </Card>
                             ))}
                           </Stack>
                         )}
@@ -1767,6 +1862,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
                             return !latestCheckIn || latestCheckIn.type !== 'check-in';
                           })())} onClick={handleCheckOutSpecificTicket} sx={{ fontSize: '14px', color: 'primary' }}>
                             <SignOut style={{ marginRight: 8 }} /> Check-out
+                          </MenuItem>
+                          <MenuItem onClick={handleOpenEditTicketModal} sx={{ fontSize: '14px', color: 'primary' }}>
+                            <Pencil style={{ marginRight: 8 }} /> Sửa thông tin vé
                           </MenuItem>
                         </Menu>
                       </div>
@@ -1807,31 +1905,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader title={tt('Tùy chọn bổ sung', 'Additional Options')} />
-                <Divider />
-                <CardContent>
-                  <Stack spacing={2}>
-                    <Grid container spacing={1} alignItems="center">
-                      <Grid xs>
-                        <Typography variant="body2">{tt('Ảnh đại diện cho khách mời', 'Guest Avatar')}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {tt('Bạn cần tải lên ảnh đại diện cho khách mời.', 'You need to upload an avatar for guests.')}
-                        </Typography>
-                      </Grid>
-                      <Grid>
-                        <Checkbox
-                          checked={requireGuestAvatar}
-                          onChange={(_e, checked) => {
-                            setRequireGuestAvatar(checked);
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-                  </Stack>
-
-                </CardContent>
-              </Card>
+              
               <Card>
                 <CardHeader title={tt('Lịch sử gửi', 'Sending History')} subheader={tt('Lịch sử gửi email và gửi Zalo đến khách hàng', 'History of sending emails and Zalo messages to customers')} />
                 <Divider />
@@ -1986,157 +2060,156 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   </Table>
                 </CardContent>
               </Card>
-              <Modal open={editCategoryModalOpen} onClose={() => setEditCategoryModalOpen(false)} aria-labelledby="edit-ticket-category-modal-title" aria-describedby="edit-ticket-category-modal-description">
-                <Container maxWidth="xl">
-                  <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { md: '700px', xs: '95%' }, maxHeight: '90vh', bgcolor: 'background.paper', boxShadow: 24 }}>
-                    <CardHeader title={`${editingCategory?.ticketCategory.show.name} - ${editingCategory?.ticketCategory.name}`} action={<IconButton onClick={() => setEditCategoryModalOpen(false)}><X /></IconButton>} />
+              <Modal open={editTicketModalOpen} onClose={() => {
+                setEditTicketModalOpen(false);
+                setEditingTicket(null);
+                setEditingHolderInfo(null);
+                setPendingHolderAvatarFile(null);
+              }} aria-labelledby="edit-ticket-modal-title" aria-describedby="edit-ticket-modal-description">
+                <Container maxWidth="sm">
+                  <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { md: '500px', xs: '95%' }, maxHeight: '90vh', bgcolor: 'background.paper', boxShadow: 24 }}>
+                    <CardHeader 
+                      title={editingTicket && transaction ? (() => {
+                        const ticket = transaction.transactionTicketCategories[editingTicket.categoryIndex]?.tickets[editingTicket.ticketIndex];
+                        const category = transaction.transactionTicketCategories[editingTicket.categoryIndex]?.ticketCategory;
+                        return category ? `${category.show.name} - ${category.name}` : tt('Sửa thông tin vé', 'Edit Ticket Information');
+                      })() : tt('Sửa thông tin vé', 'Edit Ticket Information')} 
+                      action={<IconButton onClick={() => {
+                        setEditTicketModalOpen(false);
+                        setEditingTicket(null);
+                        setEditingHolderInfo(null);
+                        setPendingHolderAvatarFile(null);
+                      }}><X /></IconButton>} 
+                    />
                     <CardContent sx={{ pt: 0, maxHeight: '70vh', overflowY: 'auto' }}>
-                      <Stack spacing={2}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt('Thông tin người tham dự', 'Participant Information')}</Typography>
-                        <Grid container spacing={2}>
-                          {editingHolderInfos.map((holder, index) => (
-                            <React.Fragment key={`holder-${index}`}>
-                              <Grid md={6} xs={12}>
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                  <Box sx={{ position: 'relative', width: 40, height: 40, flexShrink: 0, '&:hover .avatarUploadBtn': { opacity: 1, visibility: 'visible' } }}>
-                                    <Avatar src={holder.avatar || ''} sx={{ width: 40, height: 40 }} />
-                                    <IconButton
-                                      className="avatarUploadBtn"
-                                      sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '50%', opacity: 0, visibility: 'hidden', backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.35)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
-                                      onClick={() => {
-                                        const input = document.getElementById(`upload-holder-avatar-${editingCategory?.tickets[index]?.id}`) as HTMLInputElement | null;
-                                        input?.click();
-                                      }}
-                                    >
-                                      <Plus size={14} />
-                                    </IconButton>
-                                    <input
-                                      id={`upload-holder-avatar-${editingCategory?.tickets[index]?.id}`}
-                                      type="file"
-                                      accept="image/*"
-                                      hidden
-                                      onChange={(e) => {
-                                        const f = e.target.files?.[0];
-                                        if (editingCategory?.tickets[index]?.id) {
-                                          handleHolderAvatarFile(editingCategory.tickets[index].id, f);
-                                        }
-                                        e.currentTarget.value = '';
-                                      }}
-                                    />
-                                  </Box>
-                                  <FormControl fullWidth size="small" required>
-                                    <InputLabel>{tt('Danh xưng* &emsp; Họ và tên vé', 'Title* Full Name Ticket')} {index + 1}</InputLabel>
-                                    <OutlinedInput
-                                      label={`${tt('Danh xưng* &emsp; Họ và tên vé', 'Title* Full Name Ticket')} ${index + 1}`}
-                                      value={holder.name}
-                                      onChange={(e) => {
-                                        setEditingHolderInfos((prev) => {
-                                          const next = [...prev];
-                                          next[index] = { ...next[index], name: e.target.value };
-                                          return next;
-                                        });
-                                      }}
-                                      startAdornment={<InputAdornment position="start">
-                                        <Select
-                                          variant="standard"
-                                          disableUnderline
-                                          value={holder.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
-                                          onChange={(e) => {
-                                            setEditingHolderInfos((prev) => {
-                                              const next = [...prev];
-                                              next[index] = { ...next[index], title: e.target.value as string };
-                                              return next;
-                                            });
-                                          }}
-                                          sx={{ minWidth: 65 }}
-                                        >
-                                          {locale === 'en' ? (
-                                            ['Mr.', 'Ms.', 'Mx.'].map((title) => (
-                                              <MenuItem key={title} value={title}>{title}</MenuItem>
-                                            ))
-                                          ) : (
-                                            <>
-                                              <MenuItem value="Anh">Anh</MenuItem>
-                                              <MenuItem value="Chị">Chị</MenuItem>
-                                              <MenuItem value="Bạn">Bạn</MenuItem>
-                                              <MenuItem value="Em">Em</MenuItem>
-                                              <MenuItem value="Ông">Ông</MenuItem>
-                                              <MenuItem value="Bà">Bà</MenuItem>
-                                              <MenuItem value="Cô">Cô</MenuItem>
-                                              <MenuItem value="Thầy">Thầy</MenuItem>
-                                              <MenuItem value="Mr.">Mr.</MenuItem>
-                                              <MenuItem value="Ms.">Ms.</MenuItem>
-                                              <MenuItem value="Mx.">Mx.</MenuItem>
-                                            </>
-                                          )}
-                                        </Select>
-                                      </InputAdornment>}
-                                    />
-                                  </FormControl>
-                                </Stack>
-                              </Grid>
-                              <Grid md={3} xs={12}>
-                                <FormControl fullWidth size="small">
-                                  <InputLabel>{tt('Email vé', 'Email Ticket')} {index + 1}</InputLabel>
-                                  <OutlinedInput
-                                    label={`${tt('Email vé', 'Email Ticket')} ${index + 1}`}
-                                    type="email"
-                                    value={holder.email}
-                                    disabled
-                                  />
-                                </FormControl>
-                              </Grid>
-                              <Grid md={3} xs={12}>
-                                <FormControl fullWidth size="small">
-                                  <InputLabel>{tt('SĐT vé', 'Phone Ticket')} {index + 1}</InputLabel>
-                                  <OutlinedInput
-                                    label={`${tt('SĐT vé', 'Phone Ticket')} ${index + 1}`}
-                                    type="tel"
-                                    value={holder.phone}
-                                    onChange={(e) => {
-                                      setEditingHolderInfos((prev) => {
-                                        const next = [...prev];
-                                        next[index] = { ...next[index], phone: e.target.value };
-                                        return next;
-                                      });
+                      {editingHolderInfo && (
+                        <Stack spacing={2}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{tt('Thông tin người tham dự', 'Participant Information')}</Typography>
+                          <Grid container spacing={2}>
+                            <Grid xs={12}>
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <Box sx={{ position: 'relative', width: 40, height: 40, flexShrink: 0, '&:hover .avatarUploadBtn': { opacity: 1, visibility: 'visible' } }}>
+                                  <Avatar src={editingHolderInfo.avatar || undefined} sx={{ width: 40, height: 40 }}>
+                                    {!editingHolderInfo.avatar && <UserIcon size={24} />}
+                                  </Avatar>
+                                  <IconButton
+                                    className="avatarUploadBtn"
+                                    sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '50%', opacity: 0, visibility: 'hidden', backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.35)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+                                    onClick={() => {
+                                      const input = document.getElementById('upload-holder-avatar') as HTMLInputElement | null;
+                                      input?.click();
                                     }}
-                                    startAdornment={
-                                      <InputAdornment position="start">
-                                        <Select
-                                          variant="standard"
-                                          disableUnderline
-                                          value={holder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
-                                          onChange={(event) => {
-                                            setEditingHolderInfos((prev) => {
-                                              const next = [...prev];
-                                              next[index] = { ...next[index], phoneCountryIso2: event.target.value };
-                                              return next;
-                                            });
-                                          }}
-                                          sx={{ minWidth: 50 }}
-                                          renderValue={(value) => {
-                                            const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
-                                            return country.dialCode;
-                                          }}
-                                        >
-                                          {PHONE_COUNTRIES.map((country) => (
-                                            <MenuItem key={country.iso2} value={country.iso2}>
-                                              {country.nameVi} ({country.dialCode})
-                                            </MenuItem>
-                                          ))}
-                                        </Select>
-                                      </InputAdornment>
-                                    }
+                                  >
+                                    <Plus size={14} />
+                                  </IconButton>
+                                  <input
+                                    id="upload-holder-avatar"
+                                    type="file"
+                                    accept="image/*"
+                                    hidden
+                                    onChange={(e) => {
+                                      const f = e.target.files?.[0];
+                                      handleHolderAvatarFile(f);
+                                      e.currentTarget.value = '';
+                                    }}
+                                  />
+                                </Box>
+                                <FormControl fullWidth size="small" required>
+                                  <InputLabel>{tt('Danh xưng* & Họ và tên', 'Title* Full Name')}</InputLabel>
+                                  <OutlinedInput
+                                    label={tt('Danh xưng* & Họ và tên', 'Title* Full Name')}
+                                    value={editingHolderInfo.name}
+                                    onChange={(e) => {
+                                      setEditingHolderInfo(prev => prev ? { ...prev, name: e.target.value } : null);
+                                    }}
+                                    startAdornment={<InputAdornment position="start">
+                                      <Select
+                                        variant="standard"
+                                        disableUnderline
+                                        value={editingHolderInfo.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
+                                        onChange={(e) => {
+                                          setEditingHolderInfo(prev => prev ? { ...prev, title: e.target.value as string } : null);
+                                        }}
+                                        sx={{ minWidth: 65 }}
+                                      >
+                                        {locale === 'en' ? (
+                                          ['Mr.', 'Ms.', 'Mx.'].map((title) => (
+                                            <MenuItem key={title} value={title}>{title}</MenuItem>
+                                          ))
+                                        ) : (
+                                          <>
+                                            <MenuItem value="Anh">Anh</MenuItem>
+                                            <MenuItem value="Chị">Chị</MenuItem>
+                                            <MenuItem value="Bạn">Bạn</MenuItem>
+                                            <MenuItem value="Em">Em</MenuItem>
+                                            <MenuItem value="Ông">Ông</MenuItem>
+                                            <MenuItem value="Bà">Bà</MenuItem>
+                                            <MenuItem value="Cô">Cô</MenuItem>
+                                            <MenuItem value="Thầy">Thầy</MenuItem>
+                                            <MenuItem value="Mr.">Mr.</MenuItem>
+                                            <MenuItem value="Ms.">Ms.</MenuItem>
+                                            <MenuItem value="Mx.">Mx.</MenuItem>
+                                          </>
+                                        )}
+                                      </Select>
+                                    </InputAdornment>}
                                   />
                                 </FormControl>
-                              </Grid>
-                            </React.Fragment>
-                          ))}
-                        </Grid>
-                      </Stack>
+                              </Stack>
+                            </Grid>
+                            <Grid xs={12}>
+                              <FormControl fullWidth size="small">
+                                <InputLabel>{tt('Email', 'Email')}</InputLabel>
+                                <OutlinedInput
+                                  label={tt('Email', 'Email')}
+                                  type="email"
+                                  value={editingHolderInfo.email}
+                                  disabled
+                                />
+                              </FormControl>
+                            </Grid>
+                            <Grid xs={12}>
+                              <FormControl fullWidth size="small">
+                                <InputLabel>{tt('Số điện thoại', 'Phone Number')}</InputLabel>
+                                <OutlinedInput
+                                  label={tt('Số điện thoại', 'Phone Number')}
+                                  type="tel"
+                                  value={editingHolderInfo.phone}
+                                  onChange={(e) => {
+                                    setEditingHolderInfo(prev => prev ? { ...prev, phone: e.target.value } : null);
+                                  }}
+                                  startAdornment={
+                                    <InputAdornment position="start">
+                                      <Select
+                                        variant="standard"
+                                        disableUnderline
+                                        value={editingHolderInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
+                                        onChange={(event) => {
+                                          setEditingHolderInfo(prev => prev ? { ...prev, phoneCountryIso2: event.target.value } : null);
+                                        }}
+                                        sx={{ minWidth: 50 }}
+                                        renderValue={(value) => {
+                                          const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                          return country.dialCode;
+                                        }}
+                                      >
+                                        {PHONE_COUNTRIES.map((country) => (
+                                          <MenuItem key={country.iso2} value={country.iso2}>
+                                            {country.nameVi} ({country.dialCode})
+                                          </MenuItem>
+                                        ))}
+                                      </Select>
+                                    </InputAdornment>
+                                  }
+                                />
+                              </FormControl>
+                            </Grid>
+                          </Grid>
+                        </Stack>
+                      )}
                     </CardContent>
                     <CardActions sx={{ justifyContent: 'flex-end' }}>
-                      <Button size="small" variant="contained" onClick={handleSaveTicketHolders}>{tt('Lưu', 'Save')}</Button>
+                      <Button size="small" variant="contained" onClick={handleSaveTicket}>{tt('Lưu', 'Save')}</Button>
                     </CardActions>
                   </Card>
                 </Container>
