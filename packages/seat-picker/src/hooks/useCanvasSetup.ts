@@ -5,7 +5,7 @@ import { createSeat } from '../components/createObject';
 const useCanvasSetup = (
   canvasRef: React.RefObject<HTMLCanvasElement>,
   canvasParent: React.RefObject<HTMLDivElement>,
-  setCanvas: (c: fabric.Canvas) => void,
+  setCanvas: (c: fabric.Canvas | null) => void,
   width: number = 800,
   height: number = 600,
   backgroundColor: string = '#f8fafc',
@@ -107,6 +107,7 @@ const useCanvasSetup = (
         window.removeEventListener('resize', resizeCanvas);
       }
       c.dispose();
+      setCanvas(null);
     };
   }, [canvasRef, canvasParent, setCanvas, width, height, responsive]);
 };

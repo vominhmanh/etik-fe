@@ -171,6 +171,9 @@ export interface TicketInfo {
   showId: number;
   ticketCategoryId: number; // Optional if seatId present? User said optional but practically needed for pricing. Sticking to user req but usually category is known.
   seatId?: string;
+  seatRow?: string | undefined; // Row label for seat (e.g., "B")
+  seatNumber?: string | undefined; // Seat number (e.g., "8")
+  seatLabel?: string | undefined; // Full seat label (e.g., "B-8")
   holder?: HolderInfo;
   price?: number; // Helper for frontend calculation
 }
@@ -202,7 +205,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   );
   // Always-on options (was previously toggleable via "Additional options" card)
   const qrOption: 'shared' | 'separate' = 'separate';
-  const requireTicketHolderInfo: boolean = true;
+
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const router = useRouter(); // Use useRouter from next/navigation
 
@@ -707,7 +710,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
 
     // Validate ticket holders
-    if (requireTicketHolderInfo || order.qrOption === 'separate') {
+    if (true) {
       for (let i = 0; i < order.tickets.length; i++) {
         const t = order.tickets[i];
         const holder = t.holder;
@@ -809,7 +812,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         customer: apiCustomer,
         tickets: tickets,
         qrOption: order.qrOption,
-        requireTicketHolderInfo: requireTicketHolderInfo, // Legacy constant
+
         paymentMethod: order.paymentMethod,
         extraFee: order.extraFee,
         formAnswers: checkoutCustomAnswers,
@@ -881,7 +884,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             onOpenCart={() => setCartOpen(true)}
             activeSchedule={activeSchedule}
             qrOption={order.qrOption}
-            requireTicketHolderInfo={requireTicketHolderInfo}
+
             requestedCategoryModalId={requestedCategoryModalId}
             onModalRequestHandled={() => setRequestedCategoryModalId(null)}
             order={order}
@@ -910,7 +913,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             builtinInternalNames={builtinInternalNames}
             checkoutCustomAnswers={checkoutCustomAnswers}
             setCheckoutCustomAnswers={setCheckoutCustomAnswers}
-            requireTicketHolderInfo={requireTicketHolderInfo}
+
             shows={event?.shows || []}
             handleCustomerAvatarFile={handleCustomerAvatarFile}
             handleTicketHolderAvatarFile={handleTicketHolderAvatarFile}
@@ -963,7 +966,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             checkoutFormFields={checkoutFormFields}
             builtinInternalNames={builtinInternalNames}
             checkoutCustomAnswers={checkoutCustomAnswers}
-            requireTicketHolderInfo={requireTicketHolderInfo}
+
             paymentMethodLabel={paymentMethodLabel}
             extraFee={extraFee}
             subtotal={subtotal}
@@ -1121,7 +1124,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     checkoutFormFields={checkoutFormFields}
                     builtinInternalNames={builtinInternalNames}
                     checkoutCustomAnswers={checkoutCustomAnswers}
-                    requireTicketHolderInfo={requireTicketHolderInfo}
+
                     paymentMethodLabel={paymentMethodLabel}
                     extraFee={extraFee}
                     subtotal={subtotal}

@@ -38,7 +38,8 @@ import { useEffect, useState } from 'react';
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
 import { parseE164Phone, PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY } from '@/config/phone-countries';
-import Event from './page';
+import type { Event } from './page';
+
 // Reuse types from page.tsx or define locally
 export interface Ticket {
     id: number;

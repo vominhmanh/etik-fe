@@ -139,7 +139,7 @@ const getHistorySendingChannelDetails = (channel: SendingChannel, tt: (vi: strin
 };
 
 
-interface Event {
+export interface Event {
   id: number;
   name: string;
   organizer: string;

@@ -96,14 +96,46 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
   });
 
   // Pre-process lookups for efficient rendering
-  const { getCategory, getRowLabel, displayCategories } = useSeatMetadata(layout || {}, ticketCategories);
+  const { getCategory, getRowLabel, displayCategories } = useSeatMetadata(layout, ticketCategories);
+
+  // Memoize selectedSeats from selectedSeatIds - reuse enriched rowLabel from fabric object
+  const selectedSeats: SeatData[] = useMemo(() => {
+    if (!selectedSeatIds || !canvas || selectedSeatIds.length === 0) return [];
+
+    return selectedSeatIds
+      .map(seatId => {
+        const obj = canvas.getObjects().find((o: any) => o.id === seatId && o.customType === 'seat') as any;
+        if (!obj) return null;
+
+        // Use toJSON to safely extract properties
+        const raw = obj.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']);
+        const attributes = obj.attributes || {};
+
+        // Reuse enriched rowLabel from fabric object (already enriched in useCustomerCanvasLoaderSynced)
+        const rowLabel = obj.rowLabel || attributes.rowLabel || raw.rowLabel || '-';
+
+        const catId = String(raw.category || attributes.category || '').trim();
+        const categoryInfo = getCategory(catId);
+        const seatNum = raw.seatNumber || attributes.number || raw.number || '?';
+        const price = raw.price !== undefined && raw.price !== "" ? Number(raw.price) : categoryInfo.price;
+
+        return {
+          id: String(obj.id ?? ''),
+          number: seatNum,
+          rowLabel: rowLabel,
+          price: price,
+          category: catId,
+          status: raw.status || attributes.status || '',
+          // Additional fields for display
+          categoryInfo,
+        };
+      })
+      .filter((s) => s !== null) as Array<SeatData>;
+  }, [selectedSeatIds, canvas, getCategory]);
 
   useEffect(() => {
     if (openTicketModal && canvas) {
       const stats: Record<number, CategoryStats> = {};
-
-
-
 
       // Initialize stats for all categories
       categories?.forEach(cat => {
@@ -152,11 +184,6 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
     },
   }), [style]);
 
-  // Merge default labels with custom labels
-  const mergedLabels = useMemo(() => ({
-    ...defaultLabels,
-    ...labels,
-  }), [labels]);
 
   // Handle Ctrl+Scroll Zoom
   useEffect(() => {
@@ -240,7 +267,7 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
     layout,
     readOnly,
     existingSeats,
-    categories: ticketCategories || categories,
+    categories: ticketCategories || categories || [],
     mergedStyle,
     onSeatClick,
     setHasBgImage, // Pass the setter from useCanvasBackground
@@ -313,22 +340,13 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
   }, [layout, canvas]);
 
   const handleRemoveSeat = (seatIdToRemove: string) => {
-    if (!selectedSeatIds || !onSelectionChange || !canvas) return;
+    if (!selectedSeatIds || !onSelectionChange) return;
 
-    const newIds = selectedSeatIds.filter(id => id !== seatIdToRemove);
+    // Filter selectedSeats to remove the seat
+    const newSelectedSeats = selectedSeats.filter(seat => seat.id !== seatIdToRemove);
 
-    // Construct new SeatData list for callback consistency
-    const newSelectedSeats = newIds.map(id => {
-      const obj = canvas.getObjects().find((o: any) => o.id === id && o.customType === 'seat') as any;
-      if (!obj) return null;
-      return {
-        id: String(obj.id ?? ''),
-        number: obj.attributes?.number ?? obj.seatNumber ?? '',
-        price: obj.attributes?.price ?? obj.price ?? '',
-        category: obj.attributes?.category ?? obj.category ?? '',
-        status: obj.attributes?.status ?? obj.status ?? '',
-      };
-    }).filter((s) => s !== null) as SeatData[];
+    // Extract ids from filtered selectedSeats
+    const newIds = newSelectedSeats.map((seat: SeatData) => seat.id || '').filter(Boolean);
 
     onSelectionChange(newIds, newSelectedSeats);
   };
@@ -467,37 +485,15 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
             <div className="flex-1 overflow-y-auto p-3">
               <h3 className="text-xs font-bold text-gray-500 mb-2 flex items-center justify-between uppercase tracking-wider">
                 Ordered Tickets
-                <span className="bg-blue-100 text-blue-700 py-0.5 px-1.5 rounded-full text-[10px]">{selectedSeatIds?.length || 0}</span>
+                <span className="bg-blue-100 text-blue-700 py-0.5 px-1.5 rounded-full text-[10px]">{selectedSeats.length}</span>
               </h3>
 
               <div className="space-y-1.5">
-                {selectedSeatIds?.map(seatId => {
-                  // Resolve seat details from canvas
-                  const canvasSeat = canvas?.getObjects().find((o: any) => o.id === seatId && o.customType === 'seat') as any;
-                  if (!canvasSeat) return null;
-
-                  // Use toJSON to safely extract properties that might be on the prototype or mixed in
-                  const raw = canvasSeat.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']);
-                  const attributes = canvasSeat.attributes || {};
-
-                  const catId = String(raw.category || attributes.category || '').trim();
-
-                  // Optimized Lookup using Hook
-                  const categoryInfo = getCategory(catId);
-
-                  // Row Lookup using Hook
-                  let rowLabel = raw.rowLabel || attributes.rowLabel;
-                  if (!rowLabel || rowLabel === '-') {
-                    const rowId = String(raw.rowId || attributes.rowId || '');
-                    rowLabel = getRowLabel(rowId);
-                  }
-                  rowLabel = rowLabel || '-';
-
-                  const seatNum = raw.seatNumber || attributes.number || raw.number || '?';
-                  const price = raw.price !== undefined && raw.price !== "" ? Number(raw.price) : categoryInfo.price;
+                {selectedSeats.map((seat: SeatData) => {
+                  const categoryInfo = (seat as any).categoryInfo || getCategory(seat.category);
 
                   return (
-                    <div key={seatId} className="flex items-center p-2 bg-gray-50 rounded border border-gray-100 items-stretch group relative">
+                    <div key={seat.id} className="flex items-center p-2 bg-gray-50 rounded border border-gray-100 items-stretch group relative">
                       <div className="flex items-center justify-center mr-2">
                         <span
                           className="w-3 h-3 rounded-full shadow-sm border border-black/10"
@@ -506,19 +502,19 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <div className="text-xs font-medium text-gray-800">
-                          <span className="font-bold text-gray-900">Row {rowLabel}</span>, Seat {seatNum}
+                          <span className="font-bold text-gray-900">{seat.rowLabel}</span>-{seat.number}
                         </div>
                         <div className="text-[10px] text-gray-500 truncate">
                           {categoryInfo.name}
                         </div>
                       </div>
                       <div className="flex items-center text-xs font-semibold text-gray-700 ml-2">
-                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(price))}
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(seat.price))}
                       </div>
 
                       {/* Delete Button */}
                       <button
-                        onClick={() => handleRemoveSeat(seatId)}
+                        onClick={() => handleRemoveSeat(seat.id || '')}
                         className="ml-1 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         title="Remove ticket"
                       >
@@ -527,7 +523,7 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
                     </div>
                   );
                 })}
-                {(!selectedSeatIds || selectedSeatIds.length === 0) && (
+                {selectedSeats.length === 0 && (
                   <div className="text-center py-6 text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-200">
                     <span className="block mb-1 opacity-50 text-xl">🎫</span>
                     <span className="text-[10px]">No tickets selected</span>
@@ -535,8 +531,6 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
                 )}
               </div>
             </div>
-
-
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { SeatPicker, CustomerSeatPicker as BaseCustomerSeatPicker } from "seat-picker";
+import type { SeatData } from "seat-picker";
 import NotificationBar from "@/app/notification";
 
 export default function SeatPickerEditor(props: any) {
@@ -20,3 +21,5 @@ export function CustomerSeatPicker(props: any) {
         />
     );
 }
+
+export type { SeatData };

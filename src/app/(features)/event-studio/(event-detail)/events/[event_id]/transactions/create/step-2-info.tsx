@@ -31,7 +31,7 @@ import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
 import Grid from '@mui/material/Unstable_Grid2';
 import { alpha } from '@mui/material/styles';
-import { CaretDown, DotsThreeOutlineVertical, Pencil, Plus, Copy, User, EnvelopeSimple, Phone, MapPin, IdentificationCard, CalendarBlank } from '@phosphor-icons/react/dist/ssr';
+import { CaretDown, DotsThreeOutlineVertical, Pencil, Plus, Copy, User, EnvelopeSimple, Phone, MapPin, IdentificationCard, CalendarBlank, Armchair } from '@phosphor-icons/react/dist/ssr';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 
 import { LocalizedLink } from '@/components/homepage/localized-link';
@@ -58,7 +58,7 @@ export type Step2InfoProps = {
   checkoutCustomAnswers: Record<string, any>;
   setCheckoutCustomAnswers: React.Dispatch<React.SetStateAction<Record<string, any>>>;
 
-  requireTicketHolderInfo: boolean;
+
   shows: Show[];
 
   handleCustomerAvatarFile: (file?: File) => void;
@@ -87,7 +87,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     builtinInternalNames,
     checkoutCustomAnswers,
     setCheckoutCustomAnswers,
-    requireTicketHolderInfo,
+
     shows,
     handleCustomerAvatarFile,
     handleTicketHolderAvatarFile,
@@ -120,6 +120,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     });
   }, [order.tickets.length]);
 
+
   const handleAccordionChange = (index: number) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpandedAccordions(prev => ({ ...prev, [index]: isExpanded }));
   };
@@ -131,16 +132,17 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
 
   // Group tickets for summary
   const ticketSummary = React.useMemo(() => {
-    const groups: Record<string, { show: Show, category: any, quantity: number, total: number }> = {};
-    order.tickets.forEach(t => {
+    const groups: Record<string, { show: Show, category: any, quantity: number, total: number, indices: number[] }> = {};
+    order.tickets.forEach((t, index) => {
       const key = `${t.showId}-${t.ticketCategoryId}`;
       if (!groups[key]) {
         const show = shows.find(s => s.id === t.showId);
         const cat = show?.ticketCategories.find(c => c.id === t.ticketCategoryId);
-        groups[key] = { show: show!, category: cat, quantity: 0, total: 0 };
+        groups[key] = { show: show!, category: cat, quantity: 0, total: 0, indices: [] };
       }
       groups[key].quantity += 1;
       groups[key].total += (t.price || groups[key].category?.price || 0);
+      groups[key].indices.push(index);
     });
     return Object.values(groups);
   }, [order.tickets, shows]);
@@ -506,16 +508,18 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                 <CardHeader
                   title={tt(
                     `Thông tin người sở hữu vé: ${order.tickets.length} vé`,
-                    `Ticket List`
+                    `Ticket List: ${order.tickets.length} tickets`
                   )}
                 />
                 <Divider />
                 <CardContent>
                   <Stack spacing={3}>
                     {/* Summary of categories */}
-                    {ticketSummary.map((group, idx) => (
-                      <Stack spacing={2} key={`summary-${idx}`}>
-                        <Stack direction={{ xs: 'column', md: 'row' }} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    {/* Summary and Ticket Holders Combined */}
+                    {ticketSummary.map((group, groupIdx) => (
+                      <Stack spacing={2} key={`group-${groupIdx}`}>
+                        {/* Group Header */}
+                        <Stack direction={{ xs: 'column', md: 'row' }} sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: 'rgba(0,0,0,0.03)', p: 1.5, borderRadius: 1 }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                             <TicketIcon fontSize="var(--icon-fontSize-md)" />
                             <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
@@ -538,110 +542,87 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                             <Typography variant="caption">= {formatPrice(group.total)}</Typography>
                           </Stack>
                         </Stack>
-                      </Stack>
-                    ))}
 
-                    {requireTicketHolderInfo && (
-                      <Stack spacing={2}>
-                        {order.tickets.map((ticket, index) => {
-                          const holderInfo = ticket.holder || {
-                            title: locale === 'en' ? 'Mx.' : 'Bạn',
-                            name: '',
-                            email: '',
-                            phone: '',
-                            nationalPhone: '',
-                            phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
-                            avatar: '',
-                          };
+                        {/* Valid Tickets in this Group */}
+                        <Stack spacing={2} sx={{ pl: { md: 2 } }}>
+                          {group.indices.map((ticketIndex, i) => {
+                            const ticket = order.tickets[ticketIndex];
+                            const holderInfo = ticket.holder || {
+                              title: locale === 'en' ? 'Mx.' : 'Bạn',
+                              name: '',
+                              email: '',
+                              phone: '',
+                              nationalPhone: '',
+                              phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
+                              avatar: '',
+                            };
 
-                          const setHolderInfo = (patch: Partial<HolderInfo>) => {
-                            setOrder(prev => {
-                              const newTickets = [...prev.tickets];
-                              newTickets[index] = {
-                                ...newTickets[index],
-                                holder: { ...holderInfo, ...patch } as HolderInfo
-                              };
-                              return { ...prev, tickets: newTickets };
-                            });
-                          };
+                            const setHolderInfo = (patch: Partial<HolderInfo>) => {
+                              setOrder(prev => {
+                                const newTickets = [...prev.tickets];
+                                newTickets[ticketIndex] = {
+                                  ...newTickets[ticketIndex],
+                                  holder: { ...holderInfo, ...patch } as HolderInfo
+                                };
+                                return { ...prev, tickets: newTickets };
+                              });
+                            };
 
-                          return (
-                            <Accordion
-                              key={`ticket-${index}`}
-                              expanded={expandedAccordions[index] ?? true}
-                              onChange={handleAccordionChange(index)}
-                              disableGutters
-                              elevation={0}
-                              sx={{
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                borderRadius: 1,
-                                backgroundColor: 'background.paper',
-                                backgroundImage: (theme) =>
-                                  `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.06)}, ${alpha(theme.palette.secondary.main, 0.04)})`,
-                                '&:before': { display: 'none' },
-                              }}
-                            >
-                              <AccordionSummary
-                                expandIcon={<CaretDown />}
+                            return (
+                              <Accordion
+                                key={`ticket-${ticketIndex}`}
+                                expanded={expandedAccordions[ticketIndex] ?? true}
+                                onChange={handleAccordionChange(ticketIndex)}
+                                disableGutters
+                                elevation={0}
                                 sx={{
-                                  minHeight: 44,
-                                  '& .MuiAccordionSummary-content': { my: 0.5, alignItems: 'center' },
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                  borderRadius: 1,
+                                  backgroundColor: 'background.paper',
+                                  backgroundImage: (theme) =>
+                                    `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.06)}, ${alpha(theme.palette.secondary.main, 0.04)})`,
+                                  '&:before': { display: 'none' },
                                 }}
                               >
-                                <Stack
-                                  direction={{ xs: 'column', md: 'row' }}
-                                  spacing={1}
-                                  alignItems={{ xs: 'flex-start', md: 'center' }}
-                                  sx={{ width: '100%', minWidth: 0, flex: 1 }}
+                                <AccordionSummary
+                                  expandIcon={<CaretDown />}
+                                  sx={{
+                                    minHeight: 44,
+                                    '& .MuiAccordionSummary-content': { my: 0.5, alignItems: 'center' },
+                                  }}
                                 >
-                                  <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                                      {tt(`Vé ${index + 1}`, `Ticket ${index + 1}`)}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-                                      {holderInfo.name ? `${holderInfo.title ? `${holderInfo.title} ` : ''}${holderInfo.name}` : tt('Chưa có thông tin', 'No information')}
-                                    </Typography>
-                                  </Stack>
-                                  <Box sx={{ flex: 1, display: { xs: 'none', md: 'block' } }} />
                                   <Stack
-                                    direction="row"
-                                    spacing={0.5}
-                                    sx={{
-                                      ml: { xs: 0, md: 'auto' },
-                                      mt: { xs: 0.5, md: 0 }
-                                    }}
+                                    direction={{ xs: 'column', md: 'row' }}
+                                    spacing={1}
+                                    alignItems={{ xs: 'flex-start', md: 'center' }}
+                                    sx={{ width: '100%', minWidth: 0, flex: 1 }}
                                   >
-                                    <Button
-                                      size="small"
-                                      variant="text"
-                                      startIcon={<Copy size={12} />}
+                                    <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                        {tt(`Vé ${ticketIndex + 1}`, `Ticket ${ticketIndex + 1}`)}
+                                      </Typography>
+                                      {ticket.seatLabel && (
+                                        <Stack direction="row" spacing={0.5} alignItems="center">
+                                          <Armchair size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                            {ticket.seatLabel}
+                                          </Typography>
+                                        </Stack>
+                                      )}
+                                      <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+                                        {holderInfo.name ? `${holderInfo.title ? `${holderInfo.title} ` : ''}${holderInfo.name}` : tt('Chưa có thông tin', 'No information')}
+                                      </Typography>
+                                    </Stack>
+                                    <Box sx={{ flex: 1, display: { xs: 'none', md: 'block' } }} />
+                                    <Stack
+                                      direction="row"
+                                      spacing={0.5}
                                       sx={{
-                                        minWidth: 'auto',
-                                        px: 1,
-                                        py: 0.25,
-                                        fontSize: '0.75rem',
-                                        textTransform: 'none',
-                                        '&:hover': { backgroundColor: 'action.hover' }
-                                      }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        // Always expand accordion
-                                        setExpandedAccordions(prev => ({ ...prev, [index]: true }));
-                                        // Copy from customer - copy nationalPhone and phoneCountryIso2
-                                        setHolderInfo({
-                                          title: order.customer.title,
-                                          name: order.customer.name,
-                                          email: order.customer.email,
-                                          nationalPhone: order.customer.nationalPhone || '',
-                                          phoneCountryIso2: order.customer.phoneCountryIso2,
-                                          avatar: order.customer.avatar || undefined,
-                                        });
+                                        ml: { xs: 0, md: 'auto' },
+                                        mt: { xs: 0.5, md: 0 }
                                       }}
                                     >
-                                      {tt('Copy từ người mua', 'Copy from buyer')}
-                                    </Button>
-                                    {index > 0 && (
                                       <Button
                                         size="small"
                                         variant="text"
@@ -657,177 +638,208 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           // Always expand accordion
-                                          setExpandedAccordions(prev => ({ ...prev, [index]: true }));
-                                          // Copy from ticket 1 (index 0)
-                                          const firstTicket = order.tickets[0];
-                                          const firstHolder = firstTicket.holder || {
-                                            title: locale === 'en' ? 'Mx.' : 'Bạn',
-                                            name: '',
-                                            email: '',
-                                            phone: '',
-                                            nationalPhone: '',
-                                            phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
-                                            avatar: '',
-                                          };
-
-                                          // Copy from ticket 1 - copy nationalPhone and phoneCountryIso2
+                                          setExpandedAccordions(prev => ({ ...prev, [ticketIndex]: true }));
+                                          // Copy from customer - copy nationalPhone and phoneCountryIso2
                                           setHolderInfo({
-                                            title: firstHolder.title,
-                                            name: firstHolder.name,
-                                            email: firstHolder.email,
-                                            nationalPhone: firstHolder.nationalPhone || '',
-                                            phoneCountryIso2: firstHolder.phoneCountryIso2,
-                                            avatar: firstHolder.avatar,
+                                            title: order.customer.title,
+                                            name: order.customer.name,
+                                            email: order.customer.email,
+                                            nationalPhone: order.customer.nationalPhone || '',
+                                            phoneCountryIso2: order.customer.phoneCountryIso2,
+                                            avatar: order.customer.avatar || undefined,
                                           });
                                         }}
                                       >
-                                        {tt('Copy từ vé 1', 'Copy from ticket 1')}
+                                        {tt('Copy từ người mua', 'Copy from buyer')}
                                       </Button>
-                                    )}
-                                  </Stack>
-                                </Stack>
-                              </AccordionSummary>
-                              <AccordionDetails sx={{ pt: 0, pb: 2 }}>
-                                <Grid container spacing={2} alignItems="center">
-                                  <Grid xs={12} md={2}>
-                                    <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'center' }, width: 48 }}>
-                                      <Box sx={{ position: 'relative', width: 48, height: 48, '&:hover .avatarUploadBtn': { opacity: 1, visibility: 'visible' } }}>
-                                        <Avatar src={holderInfo.avatar || ''} sx={{ width: 48, height: 48 }} />
-                                        <IconButton
-                                          className="avatarUploadBtn"
+                                      {ticketIndex > 0 && (
+                                        <Button
                                           size="small"
+                                          variant="text"
+                                          startIcon={<Copy size={12} />}
                                           sx={{
-                                            position: 'absolute',
-                                            top: 0,
-                                            left: 0,
-                                            width: '100%',
-                                            height: '100%',
-                                            borderRadius: '50%',
-                                            opacity: 0,
-                                            visibility: 'hidden',
-                                            backdropFilter: 'blur(6px)',
-                                            backgroundColor: 'rgba(0,0,0,0.35)',
-                                            color: 'white',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            zIndex: 1,
+                                            minWidth: 'auto',
+                                            px: 1,
+                                            py: 0.25,
+                                            fontSize: '0.75rem',
+                                            textTransform: 'none',
+                                            '&:hover': { backgroundColor: 'action.hover' }
                                           }}
-                                          onClick={() => {
-                                            const input = document.getElementById(`upload-holder-${index}`) as HTMLInputElement | null;
-                                            input?.click();
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            // Always expand accordion
+                                            setExpandedAccordions(prev => ({ ...prev, [ticketIndex]: true }));
+                                            // Copy from ticket 1 (index 0)
+                                            const firstTicket = order.tickets[0];
+                                            const firstHolder = firstTicket.holder || {
+                                              title: locale === 'en' ? 'Mx.' : 'Bạn',
+                                              name: '',
+                                              email: '',
+                                              phone: '',
+                                              nationalPhone: '',
+                                              phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
+                                              avatar: '',
+                                            };
+
+                                            // Copy from ticket 1 - copy nationalPhone and phoneCountryIso2
+                                            setHolderInfo({
+                                              title: firstHolder.title,
+                                              name: firstHolder.name,
+                                              email: firstHolder.email,
+                                              nationalPhone: firstHolder.nationalPhone || '',
+                                              phoneCountryIso2: firstHolder.phoneCountryIso2,
+                                              avatar: firstHolder.avatar,
+                                            });
                                           }}
-                                          aria-label={tt('Tải ảnh đại diện', 'Upload avatar')}
                                         >
-                                          <Plus size={14} />
-                                        </IconButton>
-                                        <input
-                                          id={`upload-holder-${index}`}
-                                          type="file"
-                                          accept="image/*"
-                                          hidden
-                                          onChange={(e) => {
-                                            const f = e.target.files?.[0];
-                                            handleTicketHolderAvatarFile(index, f);
-                                            e.currentTarget.value = '';
-                                          }}
-                                        />
+                                          {tt('Copy từ vé 1', 'Copy from ticket 1')}
+                                        </Button>
+                                      )}
+                                    </Stack>
+                                  </Stack>
+                                </AccordionSummary>
+                                <AccordionDetails sx={{ pt: 0, pb: 2 }}>
+                                  <Grid container spacing={2} alignItems="center">
+                                    <Grid xs={12} md={2}>
+                                      <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'center' }, width: 48 }}>
+                                        <Box sx={{ position: 'relative', width: 48, height: 48, '&:hover .avatarUploadBtn': { opacity: 1, visibility: 'visible' } }}>
+                                          <Avatar src={holderInfo.avatar || ''} sx={{ width: 48, height: 48 }} />
+                                          <IconButton
+                                            className="avatarUploadBtn"
+                                            size="small"
+                                            sx={{
+                                              position: 'absolute',
+                                              top: 0,
+                                              left: 0,
+                                              width: '100%',
+                                              height: '100%',
+                                              borderRadius: '50%',
+                                              opacity: 0,
+                                              visibility: 'hidden',
+                                              backdropFilter: 'blur(6px)',
+                                              backgroundColor: 'rgba(0,0,0,0.35)',
+                                              color: 'white',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              zIndex: 1,
+                                            }}
+                                            onClick={() => {
+                                              const input = document.getElementById(`upload-holder-${ticketIndex}`) as HTMLInputElement | null;
+                                              input?.click();
+                                            }}
+                                            aria-label={tt('Tải ảnh đại diện', 'Upload avatar')}
+                                          >
+                                            <Plus size={14} />
+                                          </IconButton>
+                                          <input
+                                            id={`upload-holder-${ticketIndex}`}
+                                            type="file"
+                                            accept="image/*"
+                                            hidden
+                                            onChange={(e) => {
+                                              const f = e.target.files?.[0];
+                                              handleTicketHolderAvatarFile(ticketIndex, f);
+                                              e.currentTarget.value = '';
+                                            }}
+                                          />
+                                        </Box>
                                       </Box>
-                                    </Box>
-                                  </Grid>
+                                    </Grid>
 
-                                  <Grid xs={12} md={4}>
-                                    <FormControl fullWidth size="small" required>
-                                      <InputLabel>
-                                        {tt(`Danh xưng*    Họ và tên`, `Title*    Full Name`)}
-                                      </InputLabel>
-                                      <OutlinedInput
-                                        label={tt(`Danh xưng*    Họ và tên`, `Title*    Full Name`)}
-                                        size="small"
-                                        value={holderInfo.name}
-                                        onChange={(e) => setHolderInfo({ name: e.target.value })}
-                                        startAdornment={
-                                          <InputAdornment position="start">
-                                            <Select
-                                              variant="standard"
-                                              disableUnderline
-                                              value={holderInfo.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
-                                              onChange={(e) => setHolderInfo({ title: e.target.value })}
-                                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
-                                            >
-                                              <MenuItem value="Anh">Anh</MenuItem>
-                                              <MenuItem value="Chị">Chị</MenuItem>
-                                              <MenuItem value="Bạn">Bạn</MenuItem>
-                                              <MenuItem value="Em">Em</MenuItem>
-                                              <MenuItem value="Ông">Ông</MenuItem>
-                                              <MenuItem value="Bà">Bà</MenuItem>
-                                              <MenuItem value="Cô">Cô</MenuItem>
-                                              <MenuItem value="Mr.">Mr.</MenuItem>
-                                              <MenuItem value="Ms.">Ms.</MenuItem>
-                                              <MenuItem value="Mx.">Mx.</MenuItem>
-                                              <MenuItem value="Miss">Miss</MenuItem>
-                                              <MenuItem value="Thầy">Thầy</MenuItem>
-                                            </Select>
-                                          </InputAdornment>
-                                        }
-                                      />
-                                    </FormControl>
-                                  </Grid>
+                                    <Grid xs={12} md={4}>
+                                      <FormControl fullWidth size="small" required>
+                                        <InputLabel>
+                                          {tt(`Danh xưng*    Họ và tên`, `Title*    Full Name`)}
+                                        </InputLabel>
+                                        <OutlinedInput
+                                          label={tt(`Danh xưng*    Họ và tên`, `Title*    Full Name`)}
+                                          size="small"
+                                          value={holderInfo.name}
+                                          onChange={(e) => setHolderInfo({ name: e.target.value })}
+                                          startAdornment={
+                                            <InputAdornment position="start">
+                                              <Select
+                                                variant="standard"
+                                                disableUnderline
+                                                value={holderInfo.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
+                                                onChange={(e) => setHolderInfo({ title: e.target.value })}
+                                                sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                                              >
+                                                <MenuItem value="Anh">Anh</MenuItem>
+                                                <MenuItem value="Chị">Chị</MenuItem>
+                                                <MenuItem value="Bạn">Bạn</MenuItem>
+                                                <MenuItem value="Em">Em</MenuItem>
+                                                <MenuItem value="Ông">Ông</MenuItem>
+                                                <MenuItem value="Bà">Bà</MenuItem>
+                                                <MenuItem value="Cô">Cô</MenuItem>
+                                                <MenuItem value="Mr.">Mr.</MenuItem>
+                                                <MenuItem value="Ms.">Ms.</MenuItem>
+                                                <MenuItem value="Mx.">Mx.</MenuItem>
+                                                <MenuItem value="Miss">Miss</MenuItem>
+                                                <MenuItem value="Thầy">Thầy</MenuItem>
+                                              </Select>
+                                            </InputAdornment>
+                                          }
+                                        />
+                                      </FormControl>
+                                    </Grid>
 
-                                  <Grid xs={12} md={3}>
-                                    <FormControl fullWidth size="small">
-                                      <InputLabel>{tt(`Email vé ${index + 1}`, `Email ticket ${index + 1}`)}</InputLabel>
-                                      <OutlinedInput
-                                        label={tt(`Email vé ${index + 1}`, `Email ticket ${index + 1}`)}
-                                        size="small"
-                                        type="email"
-                                        value={holderInfo.email || ''}
-                                        onChange={(e) => setHolderInfo({ email: e.target.value })}
+                                    <Grid xs={12} md={3}>
+                                      <FormControl fullWidth size="small">
+                                        <InputLabel>{tt(`Email vé ${ticketIndex + 1}`, `Email ticket ${ticketIndex + 1}`)}</InputLabel>
+                                        <OutlinedInput
+                                          label={tt(`Email vé ${ticketIndex + 1}`, `Email ticket ${ticketIndex + 1}`)}
+                                          size="small"
+                                          type="email"
+                                          value={holderInfo.email || ''}
+                                          onChange={(e) => setHolderInfo({ email: e.target.value })}
 
-                                      />
-                                    </FormControl>
-                                  </Grid>
+                                        />
+                                      </FormControl>
+                                    </Grid>
 
-                                  <Grid xs={12} md={3}>
-                                    <FormControl fullWidth size="small">
-                                      <InputLabel>{tt(`SĐT vé ${index + 1}`, `Phone ticket ${index + 1}`)}</InputLabel>
-                                      <OutlinedInput
-                                        label={tt(`SĐT vé ${index + 1}`, `Phone ticket ${index + 1}`)}
-                                        size="small"
-                                        type="tel"
-                                        value={holderInfo.nationalPhone || ''}
-                                        onChange={(e) => setHolderInfo({ nationalPhone: e.target.value })}
-                                        startAdornment={
-                                          <InputAdornment position="start">
-                                            <Select
-                                              variant="standard"
-                                              disableUnderline
-                                              value={holderInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
-                                              onChange={(event) => setHolderInfo({ phoneCountryIso2: event.target.value })}
-                                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
-                                              renderValue={(value) => {
-                                                const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
-                                                return country.dialCode;
-                                              }}
-                                            >
-                                              {PHONE_COUNTRIES.map((country) => (
-                                                <MenuItem key={country.iso2} value={country.iso2}>
-                                                  {country.nameVi} ({country.dialCode})
-                                                </MenuItem>
-                                              ))}
-                                            </Select>
-                                          </InputAdornment>
-                                        }
-                                      />
-                                    </FormControl>
+                                    <Grid xs={12} md={3}>
+                                      <FormControl fullWidth size="small">
+                                        <InputLabel>{tt(`SĐT vé ${ticketIndex + 1}`, `Phone ticket ${ticketIndex + 1}`)}</InputLabel>
+                                        <OutlinedInput
+                                          label={tt(`SĐT vé ${ticketIndex + 1}`, `Phone ticket ${ticketIndex + 1}`)}
+                                          size="small"
+                                          type="tel"
+                                          value={holderInfo.nationalPhone || ''}
+                                          onChange={(e) => setHolderInfo({ nationalPhone: e.target.value })}
+                                          startAdornment={
+                                            <InputAdornment position="start">
+                                              <Select
+                                                variant="standard"
+                                                disableUnderline
+                                                value={holderInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
+                                                onChange={(event) => setHolderInfo({ phoneCountryIso2: event.target.value })}
+                                                sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                                                renderValue={(value) => {
+                                                  const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                                  return country.dialCode;
+                                                }}
+                                              >
+                                                {PHONE_COUNTRIES.map((country) => (
+                                                  <MenuItem key={country.iso2} value={country.iso2}>
+                                                    {country.nameVi} ({country.dialCode})
+                                                  </MenuItem>
+                                                ))}
+                                              </Select>
+                                            </InputAdornment>
+                                          }
+                                        />
+                                      </FormControl>
+                                    </Grid>
                                   </Grid>
-                                </Grid>
-                              </AccordionDetails>
-                            </Accordion>
-                          );
-                        })}
+                                </AccordionDetails>
+                              </Accordion>
+                            );
+                          })}
+                        </Stack>
                       </Stack>
-                    )}
+                    ))}
                   </Stack>
                 </CardContent>
               </Card>

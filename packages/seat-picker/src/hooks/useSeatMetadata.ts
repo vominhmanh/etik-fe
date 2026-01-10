@@ -1,12 +1,5 @@
 import { useMemo } from 'react';
-import { TicketCategory, CanvasObject } from '../types/data.types';
-
-export interface CategoryInfo {
-    id: string;
-    name: string;
-    color: string;
-    price: number;
-}
+import { TicketCategory, CanvasObject, CategoryInfo } from '../types/data.types';
 
 export interface UseSeatMetadataResult {
     /**

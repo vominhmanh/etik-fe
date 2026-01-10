@@ -2,14 +2,15 @@
 import React, { useEffect } from 'react';
 import { fabric } from 'fabric';
 import { useEventGuiStore } from '@/zustand';
-import { CanvasObject, SeatData, TicketCategory } from '@/types/data.types';
+import { CanvasObject, SeatData, TicketCategory, CategoryInfo } from '@/types/data.types';
+import { useSeatMetadata } from './useSeatMetadata';
 
 interface UseCanvasLoaderProps {
     canvas: fabric.Canvas | null;
-    layout?: CanvasObject | null;
+    layout: CanvasObject;
     readOnly: boolean;
     existingSeats?: any[];
-    categories?: TicketCategory[];
+    categories: TicketCategory[];
     mergedStyle: any;
     onSeatClick?: (seat: SeatData) => void;
     setHasBgImage: (has: boolean) => void;
@@ -30,10 +31,15 @@ export const useCustomerCanvasLoaderSynced = ({
     onSelectionChange,
 }: UseCanvasLoaderProps & { selectedSeatIds?: string[]; onSelectionChange?: (ids: string[], seats: SeatData[]) => void }) => {
     const { setRows } = useEventGuiStore();
+    // Use seat metadata hook to get rowLabel lookup function
+    const { getCategory, getRowLabel, displayCategories } = useSeatMetadata(layout, categories);
 
     // Store props in refs to access latest values in event handlers without re-running effects
     const selectedSeatIdsRef = React.useRef(selectedSeatIds);
     const onSelectionChangeRef = React.useRef(onSelectionChange);
+    const getRowLabelRef = React.useRef(getRowLabel);
+    const getCategoryRef = React.useRef(getCategory);
+    const displayCategoriesRef = React.useRef(displayCategories);
 
     useEffect(() => {
         selectedSeatIdsRef.current = selectedSeatIds;
@@ -42,6 +48,38 @@ export const useCustomerCanvasLoaderSynced = ({
     useEffect(() => {
         onSelectionChangeRef.current = onSelectionChange;
     }, [onSelectionChange]);
+
+    useEffect(() => {
+        getRowLabelRef.current = getRowLabel;
+        getCategoryRef.current = getCategory;
+        displayCategoriesRef.current = displayCategories;
+    }, [getRowLabel, getCategory, displayCategories]);
+
+    // Helper function to enrich rowLabel for a seat object once
+    const enrichSeatRowLabel = (obj: any) => {
+        if (!obj || obj.customType !== 'seat') return;
+
+        // Initialize attributes if not exists
+        if (!obj.attributes) {
+            obj.attributes = {};
+        }
+
+        // Only enrich if not already set
+        if (!obj.attributes.rowLabel || obj.attributes.rowLabel === '-') {
+            const raw = obj.toJSON ? obj.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']) : {};
+            let rowLabel = raw.rowLabel || obj.attributes.rowLabel;
+
+            if (!rowLabel || rowLabel === '-') {
+                const rowId = String(raw.rowId || obj.attributes.rowId || '');
+                rowLabel = getRowLabelRef.current(rowId);
+            }
+            rowLabel = rowLabel || '-';
+
+            // Store enriched rowLabel in object for reuse
+            obj.attributes.rowLabel = rowLabel;
+            obj.rowLabel = rowLabel;
+        }
+    };
 
     // Helper to create checkmark icon
     const createCheckmark = (left: number, top: number) => {
@@ -194,14 +232,6 @@ export const useCustomerCanvasLoaderSynced = ({
                         ? new Map(existingSeats.map((s) => [s.canvasSeatId, s]))
                         : null;
 
-                // Create set of valid category IDs from the source of truth (API)
-                const validCategoryIds = new Set(
-                    (categories || []).map((c) => c.id.toString())
-                );
-                const categoryMap = new Map(
-                    (categories || []).map((c) => [c.id.toString(), c])
-                );
-
                 canvas.getObjects().forEach((obj: any) => {
                     // Ensure ID exists for ALL objects
                     if (!obj.id) {
@@ -210,6 +240,9 @@ export const useCustomerCanvasLoaderSynced = ({
 
                     const isSeat = obj.customType === 'seat';
                     if (isSeat) {
+                        // Enrich rowLabel when loading canvas
+                        enrichSeatRowLabel(obj);
+
                         let isInteractable = true;
                         let categoryId = obj.category;
 
@@ -227,6 +260,9 @@ export const useCustomerCanvasLoaderSynced = ({
                             obj.attributes.status = obj.status;
                             obj.attributes.category = categoryId;
 
+                            // Enrich rowLabel again after syncing with DB (in case rowId changed)
+                            enrichSeatRowLabel(obj);
+
                         } else if (existingSeats && existingSeats.length > 0) {
                             // If existingSeats are provided (meaning we are in booking mode), 
                             // but this seat is NOT in the map -> It is invalid/orphaned or not configured.
@@ -241,13 +277,17 @@ export const useCustomerCanvasLoaderSynced = ({
                             isInteractable = false;
                         }
 
-                        // 3. Validate Category against API List (Source of Truth)
-                        if (categoryId && !validCategoryIds.has(categoryId.toString())) {
-                            // Invalid category -> treat as unavailable/disabled
-                            categoryId = null;
-                            if (isInteractable) {
-                                obj.status = 'unavailable';
-                                isInteractable = false;
+                        // 3. Validate Category using getCategory - if returns 'Unknown Category', it's invalid
+                        if (categoryId) {
+                            const categoryStr = String(categoryId);
+                            const categoryInfo = getCategoryRef.current(categoryStr);
+                            if (categoryInfo.name === 'Unknown Category') {
+                                // Invalid category -> treat as unavailable/disabled
+                                categoryId = null;
+                                if (isInteractable) {
+                                    obj.status = 'unavailable';
+                                    isInteractable = false;
+                                }
                             }
                         }
 
@@ -323,12 +363,15 @@ export const useCustomerCanvasLoaderSynced = ({
                             }
                             obj._originalStroke = strokeColor;
                         }
-                        // Priority 2: Category Color (Available Seats)
-                        else if (categoryId && categoryMap.has(categoryId.toString())) {
-                            const cat = categoryMap.get(categoryId.toString());
-                            if (cat) {
-                                obj.set('fill', cat.color);
-                                obj.set('stroke', cat.color);
+                        // Priority 2: Category Color (Available Seats) - using getCategory from useSeatMetadata
+                        else if (categoryId) {
+                            const categoryStr = String(categoryId);
+                            const categoryInfo = getCategoryRef.current(categoryStr);
+
+                            // Only apply if category is valid (not unknown)
+                            if (categoryInfo.name !== 'Unknown Category') {
+                                obj.set('fill', categoryInfo.color);
+                                obj.set('stroke', categoryInfo.color);
 
                                 // Clean up any status icons that might be there from a previous state/toggle
                                 if (obj.type === 'group') {
@@ -336,7 +379,7 @@ export const useCustomerCanvasLoaderSynced = ({
                                     const existingIcons = group.getObjects().filter((o: any) => o.name === 'status_icon');
                                     existingIcons.forEach((icon: any) => group.remove(icon));
                                 }
-                                obj._originalStroke = cat.color;
+                                obj._originalStroke = categoryInfo.color;
                             }
                         }
                         // Priority 3: Default/Disabled (No Category, No Status)
@@ -450,10 +493,12 @@ export const useCustomerCanvasLoaderSynced = ({
                 });
 
                 // Initial Application of Selected Seat IDs (if any provided on mount)
+                // Enrich rowLabel for all selected seats when canvas loads
                 if (selectedSeatIds && selectedSeatIds.length > 0) {
                     const idsSet = new Set(selectedSeatIds);
                     canvas.getObjects().forEach((obj: any) => {
                         if (obj.customType === 'seat' && obj.id && idsSet.has(obj.id) && obj.evented) {
+                            enrichSeatRowLabel(obj);
                             selectSeat(obj, canvas);
                         }
                     });
@@ -507,16 +552,28 @@ export const useCustomerCanvasLoaderSynced = ({
                             newIds = currentIds.filter(id => id !== target.id);
                         }
 
-                        // Also gather full seat data
+                        // Enrich rowLabel once and store in fabric object, then gather full seat data
                         const selectedSeatsData = canvas.getObjects()
                             .filter((o: any) => newIds.includes(o.id) && o.customType === 'seat')
-                            .map((o: any) => ({
-                                id: String(o.id ?? ''),
-                                number: o.attributes?.number ?? o.seatNumber ?? '',
-                                price: o.attributes?.price ?? o.price ?? '',
-                                category: o.attributes?.category ?? o.category ?? '',
-                                status: o.attributes?.status ?? o.status ?? '',
-                            }));
+                            .map((o: any) => {
+                                // Enrich rowLabel once using helper function
+                                enrichSeatRowLabel(o);
+
+                                // Extract data from enriched object
+                                const raw = o.toJSON ? o.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']) : {};
+                                const attributes = o.attributes || {};
+                                const category = attributes.category ?? o.category ?? raw.category ?? '';
+
+                                return {
+                                    id: String(o.id ?? ''),
+                                    number: attributes.number ?? o.seatNumber ?? raw.number ?? raw.seatNumber ?? '',
+                                    price: attributes.price ?? o.price ?? raw.price ?? '',
+                                    rowLabel: o.rowLabel || attributes.rowLabel || raw.rowLabel || '-',
+                                    category: category,
+                                    status: attributes.status ?? o.status ?? raw.status ?? '',
+                                    categoryInfo: getCategory(category),
+                                };
+                            });
 
                         onSelectionChangeProp(newIds, selectedSeatsData);
                     }

@@ -24,7 +24,7 @@ import { useTranslation } from "@/contexts/locale-context";
 interface TicketCategoriesProps {
   show: Show;
   qrOption?: string;
-  requireTicketHolderInfo?: boolean;
+
   cartQuantities?: Record<number, number>;
   requestedCategoryModalId?: number;
   onModalRequestHandled?: () => void;

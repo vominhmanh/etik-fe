@@ -1,5 +1,13 @@
 // src/types/data.types.ts
 
+
+export interface CategoryInfo {
+  id: string;
+  name: string;
+  color: string;
+  price: number;
+}
+
 // Base type for all canvas objects
 export interface CanvasObject {
   type: string;
@@ -107,7 +115,7 @@ export interface SeatCanvasProps {
   className?: string;
   onChange?: CanvasJsonCallback;
   onSave?: (json: CanvasObject) => void;
-  layout?: CanvasObject;
+  layout: CanvasObject;
   readOnly?: boolean;
   style?: {
     width?: number;
@@ -164,9 +172,11 @@ export interface SeatData {
   // UUID of seat in layout_json (fabric object id / canvasSeatId)
   id?: string;
   number: string | number;
+  rowLabel?: string;
   price: string | number;
   category: string;
   status: string;
+  categoryInfo: CategoryInfo;
 }
 
 export interface ZoneData {

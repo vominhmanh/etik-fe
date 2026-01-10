@@ -263,6 +263,7 @@ export const useCanvasLoader = ({
                         const seatData: SeatData = {
                             id: String(seat.id ?? ''),
                             number: seat.attributes?.number ?? seat.seatNumber ?? '',
+                            rowLabel: seat.attributes?.rowLabel ?? seat.rowLabel ?? '',
                             price: seat.attributes?.price ?? seat.price ?? '',
                             category: seat.attributes?.category ?? seat.category ?? '',
                             status: seat.attributes?.status ?? seat.status ?? '',

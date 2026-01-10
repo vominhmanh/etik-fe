@@ -323,18 +323,6 @@ export const useCustomerCanvasLoader = ({
 
                     canvas.requestRenderAll();
 
-                    // Optional callback if needed, but we removed setSelectedSeat call for modal
-                    const seatData: SeatData = {
-                        id: String(target.id ?? ''),
-                        number: target.attributes?.number ?? target.seatNumber ?? '',
-                        price: target.attributes?.price ?? target.price ?? '',
-                        category: target.attributes?.category ?? target.category ?? '',
-                        status: target.attributes?.status ?? target.status ?? '',
-                    };
-
-                    if (onSeatClick) {
-                        onSeatClick(seatData);
-                    }
                 };
                 canvas.on('mouse:down', readOnlyMouseDownHandler);
                 canvas.renderAll();

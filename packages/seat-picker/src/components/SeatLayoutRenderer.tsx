@@ -9,7 +9,6 @@ interface SeatDetails {
   price: string | number;
   category: string;
   status: string;
-
 }
 
 interface SeatLayoutRendererProps {

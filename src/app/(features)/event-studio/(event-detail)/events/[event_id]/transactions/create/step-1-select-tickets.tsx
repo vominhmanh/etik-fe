@@ -14,6 +14,8 @@ import dynamic from "next/dynamic";
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { useParams } from 'next/navigation';
+import type { SeatData } from '@/components/seat-map/SeatPickerEditor';
+
 const CustomerSeatPicker = dynamic(
   () => import('@/components/seat-map/SeatPickerEditor').then((mod) => mod.CustomerSeatPicker),
   { ssr: false }
@@ -31,7 +33,7 @@ export type Step1SelectTicketsProps = {
 
   activeSchedule: Show | null;
   qrOption: 'shared' | 'separate';
-  requireTicketHolderInfo: boolean;
+
 
   requestedCategoryModalId: number | null;
   onModalRequestHandled: () => void;
@@ -57,7 +59,6 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
     onOpenCart,
     activeSchedule,
     qrOption,
-    requireTicketHolderInfo,
     requestedCategoryModalId,
     onModalRequestHandled,
     order,
@@ -136,7 +137,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
   }, [activeSchedule?.id, params.event_id]);
 
 
-  const handleSelectionChange = (newIds: string[], newSelectedSeats: any[]) => {
+  const handleSelectionChange = (newIds: string[], newSelectedSeats: SeatData[]) => {
     // Check limits
     if (activeSchedule?.ticketCategories) {
       const countsByCat: Record<string, number> = {};
@@ -161,8 +162,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
       }
     }
 
-    // console.log('Selection Changed:', newIds, newSelectedSeats);
-
+    // newSelectedSeats now already has rowLabel from CustomerSeatPicker wrapper
     // Update order.tickets based on selection
     setOrder(prev => {
       const currentTickets = [...prev.tickets];
@@ -175,12 +175,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
         return newIdSet.has(t.seatId);
       });
 
-      // 2. Add new tickets
-      // Find IDs that are present in newIds but not in (filtered) currentTickets
-      // But simpler: just iterate newSelectedSeats and ensure they exist.
-      // Wait, newSelectedSeats contains ALL currently selected seats.
-
-      // We need to know which ones are ALREADY in 'filtered'.
+      // 2. Add new tickets using rowLabel and number from newSelectedSeats
       const existingSeatIds = new Set(filtered.filter(t => t.showId === activeSchedule?.id && t.seatId).map(t => t.seatId));
 
       const ticketsToAdd: TicketInfo[] = [];
@@ -188,16 +183,22 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
         if (!seat.id) return;
         if (existingSeatIds.has(seat.id)) return;
 
-        // It's a new seat. Create ticket.
-        // seat object has: id, category (id), label, etc.
-        // We need price. Active Schedule ticketCategories has price.
+        // It's a new seat. Create ticket using number and rowLabel from seat.
         const catId = Number(seat.category);
         const catConfig = activeSchedule?.ticketCategories.find(tc => tc.id === catId);
+
+        // Use rowLabel and number to create seatLabel
+        const seatNumber = seat.number ? String(seat.number) : undefined;
+        const seatRow = seat.rowLabel || undefined;
+        const seatLabel = (seatRow && seatNumber) ? `${seatRow}-${seatNumber}` : undefined;
 
         ticketsToAdd.push({
           showId: activeSchedule!.id,
           ticketCategoryId: catId,
           seatId: seat.id,
+          seatRow: seatRow,
+          seatNumber: seatNumber,
+          seatLabel: seatLabel,
           price: catConfig?.price || 0,
           holder: undefined
         });
@@ -300,7 +301,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
                 key={activeSchedule.id}
                 show={activeSchedule}
                 qrOption={qrOption}
-                requireTicketHolderInfo={requireTicketHolderInfo}
+
                 requestedCategoryModalId={requestedCategoryModalId || undefined}
                 onModalRequestHandled={onModalRequestHandled}
                 onCategorySelect={(categoryId: number) => { }} // Unused or implement if needed
