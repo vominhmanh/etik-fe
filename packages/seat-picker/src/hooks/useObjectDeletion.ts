@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { fabric } from 'fabric';
+import { Action } from '@/zustand/store/eventGuiStore';
 
 const useObjectDeletion = (
   canvas: fabric.Canvas | null,
-  toolAction: string | null
+  toolAction: Action
 ) => {
   useEffect(() => {
     if (!canvas) return;

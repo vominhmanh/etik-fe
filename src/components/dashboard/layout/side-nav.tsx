@@ -221,7 +221,7 @@ export function SideNav(): React.JSX.Element {
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="configuration-shows-ticket-categories"
-                title={tt("Hạng mục vé", "Ticket Categories")}
+                title={tt("Thiết lập hạng vé", "Ticket Categories")}
                 href={`/event-studio/events/${dynamicId}/shows`}
                 icon={TicketIcon}
               />

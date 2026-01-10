@@ -4,19 +4,19 @@ import * as React from 'react';
 import { LuSave } from 'react-icons/lu';
 import Modal from './Modal';
 
-import { TicketCategory, CategoryStats } from '../../types/data.types';
+import { CategoryInfo, CategoryStats } from '../../types/data.types';
 
 interface TicketCategoryModalProps {
     open: boolean;
     onClose: () => void;
-    categories: TicketCategory[];
-    onSave: (categories: TicketCategory[]) => void;
+    categories: CategoryInfo[];
+    onSave: (categories: CategoryInfo[]) => void;
     stats?: Record<number, CategoryStats>;
     createCategoryUrl?: string;
 }
 
 export function TicketCategoryModal({ open, onClose, categories: initialCategories, onSave, stats, createCategoryUrl }: TicketCategoryModalProps) {
-    const [categories, setCategories] = React.useState<TicketCategory[]>(initialCategories);
+    const [categories, setCategories] = React.useState<CategoryInfo[]>(initialCategories);
 
     React.useEffect(() => {
         setCategories(initialCategories);
@@ -55,7 +55,7 @@ export function TicketCategoryModal({ open, onClose, categories: initialCategori
         <Modal
             open={open}
             onClose={onClose}
-            title="Hạng mục vé"
+            title="Thiết lập hạng vé"
             footer={categories.length > 0 ? footer : undefined}
         >
             <div className="border-t border-gray-200 pt-0">

@@ -14,7 +14,7 @@ import { useSmartSnap } from '@/hooks/useSmartSnap';
 import useRowLabelRenderer from '@/hooks/useRowLabelRenderer';
 import '@/index.css';
 import '../fabricCustomRegistration';
-import { CanvasObject, SeatCanvasProps, SeatData, CategoryStats } from '@/types/data.types';
+import { SeatCanvasProps, SeatData, CategoryStats, Layout } from '@/types/data.types';
 import Modal, { DefaultSeatModal } from './ui/Modal';
 import { TicketCategoryModal } from './ui/TicketCategoryModal';
 import { IconButton, Stack, Tooltip } from '@mui/material';
@@ -65,9 +65,9 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   onSeatClick,
   onSeatAction,
   labels = EMPTY_OBJECT,
-  categories,
+  categories = [],
   onSaveCategories,
-  existingSeats,
+  existingSeats = [],
   createCategoryUrl,
   onUploadBackground,
   renderOverlay,
@@ -249,7 +249,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   };
 
   // Save handler
-  const handleSave = (json?: CanvasObject) => {
+  const handleSave = (json?: Layout) => {
     if (!onSave) return;
 
     if (json) {
@@ -273,7 +273,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
         rows,
         categories,
         canvas: fabricJson,
-      } as unknown as CanvasObject;
+      } as unknown as Layout;
       onSave(canvasJson);
     }
   };
@@ -431,7 +431,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
       <TicketCategoryModal
         open={openTicketModal}
         onClose={() => setOpenTicketModal(false)}
-        categories={categories || []}
+        categories={categories}
         onSave={(newCategories) => onSaveCategories?.(newCategories)}
         stats={categoryStats}
         createCategoryUrl={createCategoryUrl}

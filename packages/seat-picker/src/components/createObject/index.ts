@@ -118,15 +118,6 @@ const createText = (left: number, top: number, text: string = 'Type here') => {
   return textObject;
 };
 
-// Helper to get the next available seat number from the canvas
-function getNextSeatNumber(canvas?: fabric.Canvas | null) {
-  if (!canvas) return 1;
-  const allSeats = canvas.getObjects('circle');
-  const numbers = allSeats
-    .map((obj) => parseInt((obj as any).seatNumber || '', 10))
-    .filter((n) => !isNaN(n));
-  return numbers.length ? Math.max(...numbers) + 1 : 1;
-}
 
 export {
   createRect,

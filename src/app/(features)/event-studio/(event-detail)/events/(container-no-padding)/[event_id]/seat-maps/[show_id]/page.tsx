@@ -10,7 +10,7 @@ const SeatPickerEditor = dynamic(() => import("@/components/seat-map/SeatPickerE
 });
 
 import { baseHttpServiceInstance } from "@/services/BaseHttp.service";
-import type { TicketCategory } from 'seat-picker';
+import type { CategoryInfo, ShowSeat } from 'seat-picker';
 import { useParams } from "next/navigation";
 import { AxiosResponse } from "axios";
 import NotificationContext from '@/contexts/notification-context';
@@ -19,9 +19,9 @@ export default function Page() {
   const params = useParams();
   const event_id = params?.event_id as string;
   const show_id = params?.show_id as string;
-  const [categories, setCategories] = React.useState<TicketCategory[]>([]);
+  const [categories, setCategories] = React.useState<CategoryInfo[]>([]);
   const [layoutJson, setLayoutJson] = React.useState<any>(null);
-  const [seats, setSeats] = React.useState<any[]>([]);
+  const [seats, setSeats] = React.useState<ShowSeat[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [showNotFound, setShowNotFound] = React.useState(false);
   const notificationCtx = React.useContext(NotificationContext);
@@ -37,21 +37,13 @@ export default function Page() {
             `/event-studio/events/${event_id}/seat-maps/shows/${show_id}/ticket-categories`,
             {},
             true
-          ) as Promise<AxiosResponse<TicketCategory[]>>,
+          ) as Promise<AxiosResponse<CategoryInfo[]>>,
           baseHttpServiceInstance.get(
             `/event-studio/events/${event_id}/seat-maps/shows/${show_id}/layout`,
             {},
             true
-          ) as Promise<AxiosResponse<{ layoutJson: any; seats: any[] }>>
+          ) as Promise<AxiosResponse<{ layoutJson: any; seats: ShowSeat[] }>>
         ]);
-
-        // Assign random colors
-        const colors = [
-          '#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5',
-          '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50',
-          '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800',
-          '#ff5722', '#795548', '#9e9e9e', '#607d8b'
-        ];
 
         let savedColorMap = new Map();
         if (layoutRes.data && layoutRes.data.layoutJson) {
@@ -65,9 +57,10 @@ export default function Page() {
           setSeats(layoutRes.data.seats);
         }
 
-        const categoriesWithColor = categoriesRes.data.map((cat: any, index: number) => ({
+        const categoriesWithColor = categoriesRes.data.map((cat: CategoryInfo) => ({
           ...cat,
-          color: savedColorMap.get(cat.id) || colors[index % colors.length]
+          // Use backend color, fallback to saved map (legacy), then default blue
+          color: cat.color || savedColorMap.get(cat.id) || '#2196f3'
         }));
 
         setCategories(categoriesWithColor);
@@ -88,8 +81,24 @@ export default function Page() {
     fetchData();
   }, [event_id, show_id]);
 
-  const handleSaveCategories = (newCategories: TicketCategory[]) => {
+  const handleSaveCategories = async (newCategories: CategoryInfo[]) => {
     setCategories(newCategories);
+
+    // Sync colors to backend
+    try {
+      const payload = newCategories.map(c => ({
+        id: c.id,
+        color: c.color
+      }));
+
+      await baseHttpServiceInstance.put(
+        `/event-studio/events/${event_id}/seat-maps/shows/${show_id}/ticket-categories`,
+        payload
+      );
+      notificationCtx.success("Cập nhật danh mục thành công!");
+    } catch (error) {
+      notificationCtx.error("Cập nhật danh mục thất bại", error);
+    }
   };
 
   const handleSaveLayout = async (json: any) => {

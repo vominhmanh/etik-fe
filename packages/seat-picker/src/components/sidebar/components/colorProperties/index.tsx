@@ -1,4 +1,4 @@
-import { Properties } from '../../hooks';
+import { Properties } from '@/hooks/useObjectProperties';
 import { useState, useEffect } from 'react';
 
 interface ColorPropertiesProps {
@@ -28,7 +28,7 @@ const ColorProperties: React.FC<ColorPropertiesProps> = ({
 
   return (
     <>
-      <div>
+      {/* <div>
         <label className="block text-sm font-medium text-gray-700">
           Fill Color
         </label>
@@ -51,7 +51,7 @@ const ColorProperties: React.FC<ColorPropertiesProps> = ({
             className="ml-2 w-full rounded-md text-sm border border-solid border-gray-200 px-2 py-1 shadow-sm"
           />
         </div>
-      </div>
+      </div> */}
 
       <div>
         <div className="flex items-center justify-between">
@@ -94,9 +94,8 @@ const ColorProperties: React.FC<ColorPropertiesProps> = ({
             }
             onChange={(e) => updateObject({ stroke: e.target.value })}
             disabled={syncColors}
-            className={`ml-2 w-full text-sm rounded-md border border-solid border-gray-200 px-2 py-1 shadow-sm ${
-              syncColors ? 'opacity-50' : ''
-            }`}
+            className={`ml-2 w-full text-sm rounded-md border border-solid border-gray-200 px-2 py-1 shadow-sm ${syncColors ? 'opacity-50' : ''
+              }`}
           />
         </div>
       </div>

@@ -124,7 +124,7 @@ const useClipboardActions = () => {
                     name: oldRowData.name,
                   });
                 } else {
-                  addRow({ id: newRowId, name: 'Row', type: 'normal' });
+                  addRow({ id: newRowId, name: 'Row' });
                 }
               }
               cloned.rowId = rowIdMap.get(oldRowId);

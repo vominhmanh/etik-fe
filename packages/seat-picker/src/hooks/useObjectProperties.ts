@@ -11,7 +11,7 @@ export interface Properties {
   fill: string | Pattern | Gradient | undefined;
   stroke: string | Pattern | Gradient | undefined;
   text: string;
-  fontSize: number;
+  fontSize: number | 'mixed';
   fontWeight: string;
   fontFamily: string;
   left: number;
@@ -23,6 +23,8 @@ export interface Properties {
   category?: string | 'mixed';
   price?: number | 'mixed';
   status?: 'available' | 'reserved' | 'sold' | 'blocked' | 'held' | 'mixed';
+  strokeWidth?: number;
+
 }
 
 export const useObjectProperties = (

@@ -1,13 +1,7 @@
 import { toFloat, PropertiesType } from '@/utils';
+import { Properties } from '@/hooks/useObjectProperties';
 // import { toFloat } from '../utils';
 
-interface Properties {
-  text: string;
-  fontSize: number;
-  fontWeight: string;
-  fontFamily: string;
-  strokeWidth?: number;
-}
 
 interface TextPropertiesProps {
   properties: Properties;

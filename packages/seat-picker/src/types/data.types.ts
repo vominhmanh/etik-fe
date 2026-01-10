@@ -1,27 +1,34 @@
 // src/types/data.types.ts
 
+import { Row } from "@/zustand/store/eventGuiStore";
+
 
 export interface CategoryInfo {
-  id: string;
+  id: number;
   name: string;
   color: string;
   price: number;
 }
 
-// Base type for all canvas objects
+export type SeatStatus = 'available' | 'held' | 'sold' | 'blocked';
+
 export interface CanvasObject {
-  type: string;
   version: string;
-  objects: CanvasObjectData[];
   background?: string;
-  width?: number;
-  height?: number;
-  categories?: TicketCategory[];
-  [key: string]: any;
+  objects: ObjectProperties[];
+}
+
+// Base type for all canvas objects
+export interface Layout {
+  type: string;
+  categories?: CategoryInfo[];
+  rows: Row[];
+  canvas: CanvasObject;
 }
 
 // Types for different object properties
 export interface ObjectProperties {
+  id: string;
   type: 'circle' | 'rect' | 'i-text' | 'path' | 'group';
   left: number;
   top: number;
@@ -44,14 +51,8 @@ export interface ObjectProperties {
   lockScalingX: boolean;
   lockScalingY: boolean;
   lockUniScaling: boolean;
+  objects?: ObjectProperties[];
   customType?: 'seat' | 'zone' | 'text';
-}
-
-export interface TicketCategory {
-  id: number;
-  name: string;
-  color: string;
-  price?: number;
 }
 
 export interface CategoryStats {
@@ -63,20 +64,20 @@ export interface CategoryStats {
 }
 
 // Circle specific properties (for seats)
-export interface CircleObject extends ObjectProperties {
+export interface SeatObject extends ObjectProperties {
   type: 'circle';
   radius: number;
   startAngle: number;
   endAngle: number;
   customType: 'seat';
-  seatData?: {
+  seatData: {
     id: string;
     number: string;
-    row: string;
-    section: string;
-    status: 'available' | 'reserved' | 'sold';
+    rowId: string;
+    categoryId: number | null;
+    seatNumber: string | null;
+    status: SeatStatus;
     price?: number;
-    category?: string;
   };
 }
 
@@ -105,17 +106,17 @@ export interface TextObject extends ObjectProperties {
 }
 
 // Union type for all possible object types
-export type CanvasObjectData = CircleObject | RectangleObject | TextObject;
+export type CanvasObjectData = SeatObject | RectangleObject | TextObject;
 
 // Type for the onChange and onSave callbacks
-export type CanvasJsonCallback = (json: CanvasObject) => void;
+export type CanvasJsonCallback = (json: Layout) => void;
 
 // Props type for SeatCanvas component
 export interface SeatCanvasProps {
   className?: string;
   onChange?: CanvasJsonCallback;
-  onSave?: (json: CanvasObject) => void;
-  layout: CanvasObject;
+  onSave: (json: Layout) => void;
+  layout: Layout;
   readOnly?: boolean;
   style?: {
     width?: number;
@@ -136,10 +137,10 @@ export interface SeatCanvasProps {
     };
   };
   renderToolbar?: (props: {
-    onSave?: (json: CanvasObject) => void;
+    onSave?: (json: Layout) => void;
     onBgLayout?: () => void;
-    categories?: TicketCategory[];
-    onSaveCategories?: (categories: TicketCategory[]) => void;
+    categories?: CategoryInfo[];
+    onSaveCategories?: (categories: CategoryInfo[]) => void;
   }) => React.ReactNode;
   renderSidebar?: () => React.ReactNode;
   renderSeatDetails?: (props: {
@@ -157,24 +158,23 @@ export interface SeatCanvasProps {
     price?: string;
     status?: string;
   };
-  categories?: TicketCategory[];
-  onSaveCategories?: (categories: TicketCategory[]) => void;
-  existingSeats?: ShowSeat[];
+  categories?: CategoryInfo[];
+  onSaveCategories?: (categories: CategoryInfo[]) => void;
+  existingSeats: ShowSeat[];
   createCategoryUrl?: string;
   onUploadBackground?: (file: File) => Promise<string | null>;
   renderOverlay?: (props: { isFullScreen: boolean }) => React.ReactNode;
   selectedSeatIds?: string[];
   onSelectionChange?: (selectedIds: string[], selectedSeats: SeatData[]) => void;
-  ticketCategories?: TicketCategory[];
 }
 
 export interface SeatData {
   // UUID of seat in layout_json (fabric object id / canvasSeatId)
-  id?: string;
-  number: string | number;
-  rowLabel?: string;
-  price: string | number;
-  category: string;
+  id: string;
+  number: string;
+  rowLabel: string;
+  price: number;
+  category: number;
   status: string;
   categoryInfo: CategoryInfo;
 }
@@ -182,14 +182,22 @@ export interface SeatData {
 export interface ZoneData {
   name?: string;
   description?: string;
-  [key: string]: any; // Allow custom properties
+  id: string;
+  number: string;
+  rowLabel: string;
+  price: number;
+  category: number;
+  status: string;
+  categoryInfo: CategoryInfo;
 }
 
 export interface ShowSeat {
   id: number;
   canvasSeatId: string;
+  salable: boolean;
+  note: string;
   rowLabel: string | null;
   seatNumber: string | null;
   ticketCategoryId: number | null;
-  status: 'available' | 'held' | 'sold' | 'blocked';
+  status: SeatStatus;
 }

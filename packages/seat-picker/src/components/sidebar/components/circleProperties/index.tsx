@@ -1,7 +1,7 @@
 import { toFloat, PropertiesType, formatPrice } from '@/utils';
 // import { toFloat } from '../utils';
 import React from 'react';
-import { Properties as SidebarProperties } from '../../hooks';
+import { Properties as SidebarProperties } from '@/hooks/useObjectProperties';
 
 interface CirclePropertiesProps {
   properties: SidebarProperties;

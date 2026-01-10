@@ -28,7 +28,7 @@ export function useSmartSnap(
     if (!canvas || !snapEnabled) return;
 
     function clearGuides() {
-      guideLines.current.forEach((line) => canvas.remove(line));
+      guideLines.current.forEach((line) => canvas?.remove(line));
       guideLines.current = [];
     }
 
@@ -59,7 +59,7 @@ export function useSmartSnap(
               strokeDashArray: [4, 4],
               excludeFromExport: true,
             });
-            canvas.add(line);
+            canvas?.add(line);
             guideLines.current.push(line);
           }
           if (Math.abs(movingPoints.centerX - x) < SNAP_THRESHOLD) {
@@ -72,7 +72,7 @@ export function useSmartSnap(
               strokeDashArray: [4, 4],
               excludeFromExport: true,
             });
-            canvas.add(line);
+            canvas?.add(line);
             guideLines.current.push(line);
           }
           if (Math.abs(movingPoints.right - x) < SNAP_THRESHOLD) {
@@ -85,7 +85,7 @@ export function useSmartSnap(
               strokeDashArray: [4, 4],
               excludeFromExport: true,
             });
-            canvas.add(line);
+            canvas?.add(line);
             guideLines.current.push(line);
           }
         });
@@ -101,7 +101,7 @@ export function useSmartSnap(
               strokeDashArray: [4, 4],
               excludeFromExport: true,
             });
-            canvas.add(line);
+            canvas?.add(line);
             guideLines.current.push(line);
           }
           if (Math.abs(movingPoints.centerY - y) < SNAP_THRESHOLD) {
@@ -114,7 +114,7 @@ export function useSmartSnap(
               strokeDashArray: [4, 4],
               excludeFromExport: true,
             });
-            canvas.add(line);
+            canvas?.add(line);
             guideLines.current.push(line);
           }
           if (Math.abs(movingPoints.bottom - y) < SNAP_THRESHOLD) {
@@ -127,7 +127,7 @@ export function useSmartSnap(
               strokeDashArray: [4, 4],
               excludeFromExport: true,
             });
-            canvas.add(line);
+            canvas?.add(line);
             guideLines.current.push(line);
           }
         });

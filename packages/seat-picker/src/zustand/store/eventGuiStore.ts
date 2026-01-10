@@ -15,7 +15,7 @@ interface Seat {
   textColor: string;
 }
 
-interface Row {
+export interface Row {
   id: string;
   name: string;
   color?: string; // Optional color for the row
@@ -23,7 +23,7 @@ interface Row {
   showLabelRight?: boolean;
   labelOffsetLeft?: { x: number; y: number };
   labelOffsetRight?: { x: number; y: number };
-  fontSize?: number;
+  fontSize: number;
 }
 
 interface Zone {
@@ -33,12 +33,14 @@ interface Zone {
 }
 
 export type Mode =
+  | 'one-seat'
   | 'select'
   | 'select-seat'
   | 'multiple-seat'
   | 'shape-square'
   | 'shape-polygon'
   | 'text';
+
 export type Action = null | 'delete' | 'copy' | 'cut' | 'paste';
 
 interface EventGuiState {

@@ -7,6 +7,8 @@ export interface CustomFabricObject extends FabricObject {
   isRowLabel?: boolean;
   radius?: number;
   fontSize?: number;
+  fontWeight?: string;
+  fontFamily?: string;
   text?: string;
 }
 

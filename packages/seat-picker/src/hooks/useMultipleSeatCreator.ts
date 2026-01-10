@@ -164,6 +164,7 @@ const useMultipleSeatCreator = (
           name: rowName,
           showLabelLeft: true,
           showLabelRight: true,
+          fontSize: 14,
         });
 
         for (let j = 0; j < colsCount; j++) {

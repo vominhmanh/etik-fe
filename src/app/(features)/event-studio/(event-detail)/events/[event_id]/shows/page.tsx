@@ -96,7 +96,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const typeMap = getTypeMap(tt);
 
   React.useEffect(() => {
-    document.title = tt("Hạng mục vé | ETIK - Vé điện tử & Quản lý sự kiện", "Ticket Categories | ETIK - E-tickets & Event Management");
+    document.title = tt("Thiết lập hạng vé | ETIK - Vé điện tử & Quản lý sự kiện", "Ticket Categories | ETIK - E-tickets & Event Management");
   }, [tt]);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -211,7 +211,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         <Stack spacing={4}>
           <Stack direction="row" spacing={3}>
             <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-              <Typography variant="h4">{tt("Hạng mục vé", "Ticket Categories")}</Typography>
+              <Typography variant="h4">{tt("Thiết lập hạng vé", "Ticket Categories")}</Typography>
             </Stack>
             <div>
               <Button

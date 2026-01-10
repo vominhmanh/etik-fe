@@ -1,10 +1,10 @@
 import React from "react";
 import SeatPicker from "@/components";
-import type { CanvasObject, SeatData } from "@/types/data.types";
+import type { Layout, SeatData } from "@/types/data.types";
 // import "seat-picker/dist/index.css";
 
 const CustomerSeatCanvas: React.FC = () => {
-  const [layout, setLayout] = React.useState<CanvasObject | null>(null);
+  const [layout, setLayout] = React.useState<Layout | null>(null);
   const [error, setError] = React.useState("");
   const [fileName, setFileName] = React.useState("");
   const [isDragging, setIsDragging] = React.useState(false);
@@ -60,9 +60,8 @@ const CustomerSeatCanvas: React.FC = () => {
       <h1 className="mb-4 text-2xl font-bold">Customer Seat Viewer</h1>
       <div className="mb-6">
         <div
-          className={`relative rounded-lg border-2 border-dashed ${
-            isDragging ? "border-gray-400 bg-gray-50" : "border-gray-300"
-          } p-6 transition-colors`}
+          className={`relative rounded-lg border-2 border-dashed ${isDragging ? "border-gray-400 bg-gray-50" : "border-gray-300"
+            } p-6 transition-colors`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -125,6 +124,8 @@ const CustomerSeatCanvas: React.FC = () => {
           }}
           onSeatAction={handleSeatAction}
           onChange={(json) => console.log("Layout changed:", json)}
+          onSave={(json) => console.log("Save layout:", json)}
+          existingSeats={[]}
         />
       ) : (
         <div className="rounded-lg border bg-white p-4 shadow">

@@ -8,7 +8,8 @@ import {
 import { useEventGuiStore } from '@/zustand';
 import { CustomFabricObject } from '@/types/fabric-types';
 import { Select } from '@/components/ui';
-import { useObjectProperties, useObjectUpdater } from './hooks';
+import { useObjectProperties } from '@/hooks/useObjectProperties';
+import { useObjectUpdater } from '@/hooks/useObjectUpdater';
 import CommonProperties from './components/commonProperties';
 import CircleProperties from './components/circleProperties';
 import RectangleProperties from './components/rectangleProperties';
@@ -25,10 +26,10 @@ export type Mode =
   | 'shape-square'
   | 'text';
 
-import { TicketCategory } from '@/types/data.types';
+import { CategoryInfo } from '@/types/data.types';
 
 interface SidebarProps {
-  categories?: TicketCategory[];
+  categories?: CategoryInfo[];
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ categories }) => {

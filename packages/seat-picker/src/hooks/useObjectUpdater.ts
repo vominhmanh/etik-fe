@@ -1,6 +1,7 @@
 import { fabric } from 'fabric';
 import { CustomFabricObject } from '@/types/fabric-types';
 import { Properties } from './useObjectProperties';
+import { updateSeatVisuals, SeatVisualUpdates } from '@/components/createObject/applyCustomStyles';
 import { useEventGuiStore } from '@/zustand/store/eventGuiStore';
 import { useEffect } from 'react';
 
@@ -191,102 +192,24 @@ export const useObjectUpdater = (
       if (selectedObject.type === 'group' && (selectedObject.rowId || selectedObject.seatNumber)) {
         const group = selectedObject as fabric.Group;
 
-        if ('radius' in updates && typeof updates.radius === 'number') {
-          const circle = group.getObjects().find(o => o.type === 'circle') as CustomFabricObject;
-          if (circle) {
-            const scale = group.scaleX || 1;
-            const newBaseRadius = updates.radius / scale;
+        // Use standard visual updater for all visual properties
+        const seatUpdates: SeatVisualUpdates = {};
+        if (typeof updates.radius === 'number') seatUpdates.radius = updates.radius;
+        if (typeof updates.fontSize === 'number') seatUpdates.fontSize = updates.fontSize;
+        if (updates.status && updates.status !== 'mixed') seatUpdates.status = updates.status;
+        if (updates.seatNumber && updates.seatNumber !== 'mixed') seatUpdates.seatNumber = String(updates.seatNumber);
+        if (updates.fill) seatUpdates.fill = updates.fill;
+        if (updates.stroke) seatUpdates.stroke = updates.stroke;
 
-            circle.set({
-              radius: newBaseRadius,
-              width: newBaseRadius * 2,
-              height: newBaseRadius * 2
-            });
-            // Trigger group recalc to fit new circle size
-            group.addWithUpdate();
-          }
-          delete updatedProperties.radius;
-        }
+        updateSeatVisuals(group, seatUpdates);
 
-        if ('fontSize' in updates && typeof updates.fontSize === 'number') {
-          const textObj = group.getObjects().find(o => o.type === 'text' || o.type === 'i-text');
-          if (textObj) {
-            (textObj as fabric.Text).set({ fontSize: updates.fontSize });
-            group.addWithUpdate();
-          }
-          delete updatedProperties.fontSize;
-        }
+        // Remove properties that are handled by updateSeatVisuals to prevent applying them to the group itself
+        if ('radius' in updates) delete updatedProperties.radius;
+        if ('fontSize' in updates) delete updatedProperties.fontSize;
+        if ('fill' in updates) delete updatedProperties.fill;
+        if ('stroke' in updates) delete updatedProperties.stroke;
 
-        if ('fill' in updates) {
-          const circle = group.getObjects().find(o => o.type === 'circle') as CustomFabricObject;
-          if (circle) {
-            circle.set({ fill: updates.fill });
-          }
-          // Remove fill from updatedProperties to prevent it from being set on the group itself if unexpected
-          delete updatedProperties.fill;
-          group.addWithUpdate();
-        }
-
-        if ('stroke' in updates) {
-          const circle = group.getObjects().find(o => o.type === 'circle') as CustomFabricObject;
-          if (circle) {
-            (circle as fabric.Object).set({ stroke: String(updates.stroke) });
-          }
-          delete updatedProperties.stroke;
-          group.addWithUpdate();
-        }
-
-        if ('status' in updates) {
-          const status = updates.status;
-
-          // Remove existing status icons
-          const existingIcons = group.getObjects().filter(o => o.name === 'status_icon');
-          existingIcons.forEach(icon => group.remove(icon)); // Use remove instead of removeWithUpdate inside loop
-
-          // Add new icon if needed
-          let iconPath = '';
-          if (status === 'blocked') {
-            // Lock icon
-            iconPath = 'M12 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm6-9h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zM9 6a3 3 0 1 1 6 0v2H9V6z';
-          } else if (status === 'held') {
-            // Hourglass icon
-            iconPath = 'M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6V22h12v-5.99h-.01L18 16l-4-4 4-3.99-.01-.01H18V2H6z';
-          } else if (status === 'sold') {
-            // User icon
-            iconPath = 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z';
-          }
-
-          if (iconPath) {
-            const path = new fabric.Path(iconPath, {
-              fill: '#ffffff',
-              scaleX: 0.5,
-              scaleY: 0.5,
-              originX: 'center',
-              originY: 'center',
-              name: 'status_icon',
-              opacity: 0.9,
-              shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.5)', blur: 2 })
-            });
-
-            const circle = group.getObjects().find(o => o.type === 'circle') as CustomFabricObject;
-            if (circle) {
-              const radius = (circle as any).radius || 10;
-              // Scale icon to be roughly 60% of diameter (approximate visual check)
-              // Path dimensions typically ~24x24 for these SVGs
-              const iconSize = Math.max(path.width || 0, path.height || 0);
-              if (iconSize > 0) {
-                const targetSize = radius * 1.2;
-                const scale = targetSize / iconSize;
-                path.set({ scaleX: scale, scaleY: scale });
-              }
-              // Center icon relative to circle (which is usually at 0,0 in group)
-              path.set({ left: circle.left, top: circle.top });
-            }
-
-            group.add(path);
-          }
-          group.addWithUpdate();
-        }
+        // Note: 'status' isn't deleted because we WANT 'status' property on the group data object itself
       }
 
       // Special handling for circle objects - only use radius
@@ -422,9 +345,10 @@ export const useObjectUpdater = (
     // This is crucial because useRowLabelRenderer relies on Store State (row.fontSize)
     // If we only update the visual object, the renderer will reset it to default on next sync.
     if ('fontSize' in updates && typeof updates.fontSize === 'number') {
+      const fontSizeMatches = updates.fontSize;
       activeObjects.forEach((obj) => {
         if (obj.isRowLabel && obj.rowId) {
-          updateRow(obj.rowId, { fontSize: updates.fontSize });
+          updateRow(obj.rowId, { fontSize: fontSizeMatches });
         }
       });
     }

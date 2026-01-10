@@ -2,20 +2,21 @@
 import React, { useEffect } from 'react';
 import { fabric } from 'fabric';
 import { useEventGuiStore } from '@/zustand';
-import { CanvasObject, SeatData, TicketCategory, CategoryInfo } from '@/types/data.types';
+import { CanvasObject, SeatData, CategoryInfo, Layout, SeatObject, SeatStatus, ObjectProperties, ShowSeat } from '@/types/data.types';
 import { useSeatMetadata } from './useSeatMetadata';
+import { applyEmptySeatStyle, applyDarkenStyle, updateSeatVisuals } from '../components/createObject/applyCustomStyles';
 
 interface UseCanvasLoaderProps {
     canvas: fabric.Canvas | null;
-    layout: CanvasObject;
+    layout: Layout;
     readOnly: boolean;
-    existingSeats?: any[];
-    categories: TicketCategory[];
+    existingSeats: ShowSeat[];
+    categories: CategoryInfo[];
     mergedStyle: any;
     onSeatClick?: (seat: SeatData) => void;
     setHasBgImage: (has: boolean) => void;
-    onChange?: (json: CanvasObject) => void;
-    onSave?: (json: CanvasObject) => void;
+    onChange?: (json: Layout) => void;
+    onSave?: (json: Layout) => void;
 }
 
 export const useCustomerCanvasLoaderSynced = ({
@@ -32,14 +33,12 @@ export const useCustomerCanvasLoaderSynced = ({
 }: UseCanvasLoaderProps & { selectedSeatIds?: string[]; onSelectionChange?: (ids: string[], seats: SeatData[]) => void }) => {
     const { setRows } = useEventGuiStore();
     // Use seat metadata hook to get rowLabel lookup function
-    const { getCategory, getRowLabel, displayCategories } = useSeatMetadata(layout, categories);
+    const { getRowLabel } = useSeatMetadata(layout);
 
     // Store props in refs to access latest values in event handlers without re-running effects
     const selectedSeatIdsRef = React.useRef(selectedSeatIds);
     const onSelectionChangeRef = React.useRef(onSelectionChange);
     const getRowLabelRef = React.useRef(getRowLabel);
-    const getCategoryRef = React.useRef(getCategory);
-    const displayCategoriesRef = React.useRef(displayCategories);
 
     useEffect(() => {
         selectedSeatIdsRef.current = selectedSeatIds;
@@ -51,9 +50,7 @@ export const useCustomerCanvasLoaderSynced = ({
 
     useEffect(() => {
         getRowLabelRef.current = getRowLabel;
-        getCategoryRef.current = getCategory;
-        displayCategoriesRef.current = displayCategories;
-    }, [getRowLabel, getCategory, displayCategories]);
+    }, [getRowLabel]);
 
     // Helper function to enrich rowLabel for a seat object once
     const enrichSeatRowLabel = (obj: any) => {
@@ -209,194 +206,58 @@ export const useCustomerCanvasLoaderSynced = ({
 
         // Store handler reference so we can remove it
         let readOnlyMouseDownHandler: ((options: any) => void) | null = null;
-        let canvasData = layout;
+        let layoutCanvas = layout.canvas;
 
         // Handle extended JSON with rows
         if ((layout as any).rows && Array.isArray((layout as any).rows)) {
             setRows((layout as any).rows);
-            if ((layout as any).canvas) canvasData = (layout as any).canvas;
-        }
-
-        // Ensure objects exists to prevent crash
-        if (!canvasData.objects) {
-            canvasData = { ...canvasData, objects: [] };
+            if ((layout as any).canvas) layoutCanvas = (layout as any).canvas;
         }
 
         canvas.loadFromJSON(
-            canvasData,
+            layoutCanvas,
             () => {
                 // Create map if existing seats are provided
+                const categoryMap = new Map(
+                    categories.map((c) => [c.id, c])
+                );
                 // Key: canvasSeatId (which MUST match obj.id in Fabric)
-                const seatMap =
-                    existingSeats && Array.isArray(existingSeats) && existingSeats.length > 0
-                        ? new Map(existingSeats.map((s) => [s.canvasSeatId, s]))
-                        : null;
-
                 canvas.getObjects().forEach((obj: any) => {
                     // Ensure ID exists for ALL objects
                     if (!obj.id) {
                         obj.id = Math.random().toString(36).substr(2, 9);
                     }
 
-                    const isSeat = obj.customType === 'seat';
-                    if (isSeat) {
-                        // Enrich rowLabel when loading canvas
-                        enrichSeatRowLabel(obj);
+                    if (obj.customType === 'seat') {
+                        // 1. Reset UI
+                        applyEmptySeatStyle(obj);
 
-                        let isInteractable = true;
-                        let categoryId = obj.category;
+                        let categoryId = null;
+                        let status: SeatStatus = 'available';
 
-                        // 1. Sync with DB Existing Seats (Priority 1: DB State)
-                        if (seatMap && seatMap.has(obj.id)) {
-                            const dbSeat = seatMap.get(obj.id);
+                        // Check DB Seat
+                        const dbSeat = existingSeats.find((s) => s.canvasSeatId === obj.id);
+                        if (dbSeat && dbSeat.ticketCategoryId && categories.map((c) => c.id).includes(dbSeat.ticketCategoryId)) {
+                            categoryId = dbSeat.ticketCategoryId;
+                            status = dbSeat.status || 'available';
+                            const color = categoryMap.get(categoryId)?.color || '#ffffff';
 
-                            // Hydrate from API
-                            categoryId = dbSeat?.ticketCategoryId;
-                            obj.status = dbSeat?.status || 'available';
-
-                            // Update attributes for consistency
-                            if (!obj.attributes) obj.attributes = {};
-                            obj.attributes.number = dbSeat.seatNumber;
-                            obj.attributes.status = obj.status;
-                            obj.attributes.category = categoryId;
-
-                            // Enrich rowLabel again after syncing with DB (in case rowId changed)
-                            enrichSeatRowLabel(obj);
-
-                        } else if (existingSeats && existingSeats.length > 0) {
-                            // If existingSeats are provided (meaning we are in booking mode), 
-                            // but this seat is NOT in the map -> It is invalid/orphaned or not configured.
-                            // Disable it.
-                            isInteractable = false;
-                            obj.status = 'disabled';
-                            categoryId = null; // Remove category visual so it doesn't look bookable
-                        }
-
-                        // 2. Further Validation: If status is not available, disable interaction
-                        if (obj.status !== 'available') {
-                            isInteractable = false;
-                        }
-
-                        // 3. Validate Category using getCategory - if returns 'Unknown Category', it's invalid
-                        if (categoryId) {
-                            const categoryStr = String(categoryId);
-                            const categoryInfo = getCategoryRef.current(categoryStr);
-                            if (categoryInfo.name === 'Unknown Category') {
-                                // Invalid category -> treat as unavailable/disabled
-                                categoryId = null;
-                                if (isInteractable) {
-                                    obj.status = 'unavailable';
-                                    isInteractable = false;
-                                }
-                            }
-                        }
-
-                        // Apply final interactable state properties
-                        obj.evented = isInteractable;
-                        obj.selectable = false; // Always false for fabric selection, we use custom click
-                        obj.hoverCursor = isInteractable ? 'pointer' : 'default';
-
-
-                        // 4. Apply Visuals (Color)
-
-                        // Priority 1: Status Overrides (Sold/Held/Booked)
-                        if (obj.status === 'booked' || obj.status === 'sold' || obj.status === 'held') {
-                            // Define styles
-                            let fillColor = '#e0e0e0';
-                            let strokeColor = '#bdbdbd';
-                            let iconPath = '';
-
-                            if (obj.status === 'booked' || obj.status === 'sold') {
-
-                                iconPath = 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'; // User
-                            } else if (obj.status === 'held') {
-                                iconPath = 'M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6V22h12v-5.99h-.01L18 16l-4-4 4-3.99-.01-.01H18V2H6z'; // Hourglass
-                            }
-
-                            // Apply styles
+                            // 2. Apply Visuals using shared function
                             if (obj.type === 'group') {
-                                const group = obj as fabric.Group;
-
-                                // 1. Apply Color to Inner Circle
-                                const circle = group.getObjects().find((o: any) => o.type === 'circle') as any;
-                                if (circle) {
-                                    circle.set('fill', fillColor);
-                                    circle.set('stroke', strokeColor);
-                                }
-                                // Ensure group itself doesn't have a fill that blocks visual
-                                group.set('fill', 'transparent');
-
-                                // 2. Handle Icon
-                                // Remove existing status icons first
-                                const existingIcons = group.getObjects().filter((o: any) => o.name === 'status_icon');
-                                existingIcons.forEach((icon: any) => group.remove(icon));
-
-                                if (iconPath) {
-                                    const path = new fabric.Path(iconPath, {
-                                        fill: '#9d9b9bff',
-                                        scaleX: 0.5,
-                                        scaleY: 0.5,
-                                        originX: 'center',
-                                        originY: 'center',
-                                        name: 'status_icon',
-                                        opacity: 0.5,
-                                        shadow: new fabric.Shadow({ color: 'rgba(255,255,255,0.2)', blur: 1 })
-                                    });
-
-                                    if (circle) {
-                                        const radius = circle.radius || 10;
-                                        const iconSize = Math.max(path.width || 0, path.height || 0);
-                                        if (iconSize > 0) {
-                                            const targetSize = radius * 1.2;
-                                            const scale = targetSize / iconSize;
-                                            path.set({ scaleX: scale, scaleY: scale });
-                                        }
-                                        path.set({ left: circle.left, top: circle.top });
-                                    }
-                                    group.add(path);
-                                    group.addWithUpdate();
-                                }
+                                updateSeatVisuals(obj as fabric.Group, {
+                                    fill: color,
+                                    status: status
+                                });
                             } else {
-                                // Simple Object (Circle)
-                                obj.set('fill', fillColor);
-                                obj.set('stroke', strokeColor);
-                            }
-                            obj._originalStroke = strokeColor;
-                        }
-                        // Priority 2: Category Color (Available Seats) - using getCategory from useSeatMetadata
-                        else if (categoryId) {
-                            const categoryStr = String(categoryId);
-                            const categoryInfo = getCategoryRef.current(categoryStr);
-
-                            // Only apply if category is valid (not unknown)
-                            if (categoryInfo.name !== 'Unknown Category') {
-                                obj.set('fill', categoryInfo.color);
-                                obj.set('stroke', categoryInfo.color);
-
-                                // Clean up any status icons that might be there from a previous state/toggle
-                                if (obj.type === 'group') {
-                                    const group = obj as fabric.Group;
-                                    const existingIcons = group.getObjects().filter((o: any) => o.name === 'status_icon');
-                                    existingIcons.forEach((icon: any) => group.remove(icon));
+                                // Fallback for single objects (though we mostly use groups now)
+                                obj.set('fill', color);
+                                // applyDarkenStyle if needed for single obj?
+                                if (status === 'blocked' || status === 'sold' || status === 'held') {
+                                    applyDarkenStyle(obj, color);
                                 }
-                                obj._originalStroke = categoryInfo.color;
                             }
-                        }
-                        // Priority 3: Default/Disabled (No Category, No Status)
-                        else {
-                            // Default disabled/unmapped
-                            if (obj.type === 'group') {
-                                const group = obj as fabric.Group;
-                                const circle = group.getObjects().find((o: any) => o.type === 'circle') as any;
-                                if (circle) {
-                                    circle.set('fill', '#e0e0e0');
-                                    circle.set('stroke', '#bdbdbd');
-                                }
-                            } else {
-                                obj.set('fill', '#e0e0e0');
-                                obj.set('stroke', '#bdbdbd');
-                            }
-                            obj._originalStroke = obj.stroke;
+                        } else {
+                            applyEmptySeatStyle(obj);
                         }
                     }
                 });
@@ -571,7 +432,12 @@ export const useCustomerCanvasLoaderSynced = ({
                                     rowLabel: o.rowLabel || attributes.rowLabel || raw.rowLabel || '-',
                                     category: category,
                                     status: attributes.status ?? o.status ?? raw.status ?? '',
-                                    categoryInfo: getCategory(category),
+                                    categoryInfo: categories.find((c: any) => c.id === category) || {
+                                        id: category,
+                                        name: 'Unknown Category',
+                                        price: 0,
+                                        color: '#999999'
+                                    },
                                 };
                             });
 

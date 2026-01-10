@@ -19,7 +19,6 @@ import { CanvasObject, SeatCanvasProps, SeatData, CategoryStats } from '@/types/
 import { EMPTY_OBJECT, SERIALIZABLE_PROPERTIES } from '@/utils/constants';
 import { useCanvasBackground } from '@/hooks/useCanvasBackground';
 import { useSeatAppearance } from '@/hooks/useSeatAppearance';
-import { useCanvasLoader } from '@/hooks/useCanvasLoader';
 
 const defaultStyle = {
   width: 800,
@@ -62,13 +61,12 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
   onSeatClick,
   onSeatAction,
   labels = EMPTY_OBJECT,
-  categories,
+  categories = [],
   onSaveCategories,
-  existingSeats,
+  existingSeats = [],
   createCategoryUrl,
   onUploadBackground,
   renderOverlay,
-  ticketCategories,
   selectedSeatIds,
   onSelectionChange,
 }) => {
@@ -96,7 +94,7 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
   });
 
   // Pre-process lookups for efficient rendering
-  const { getCategory, getRowLabel, displayCategories } = useSeatMetadata(layout, ticketCategories);
+  const { getRowLabel } = useSeatMetadata(layout);
 
   // Memoize selectedSeats from selectedSeatIds - reuse enriched rowLabel from fabric object
   const selectedSeats: SeatData[] = useMemo(() => {
@@ -114,13 +112,18 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
         // Reuse enriched rowLabel from fabric object (already enriched in useCustomerCanvasLoaderSynced)
         const rowLabel = obj.rowLabel || attributes.rowLabel || raw.rowLabel || '-';
 
-        const catId = String(raw.category || attributes.category || '').trim();
-        const categoryInfo = getCategory(catId);
+        const catId = raw.category || attributes.category || '';
+        const categoryInfo = categories.find((c: any) => c.id === catId) || {
+          id: catId,
+          name: 'Unknown Category',
+          price: 0,
+          color: '#999999'
+        };
         const seatNum = raw.seatNumber || attributes.number || raw.number || '?';
-        const price = raw.price !== undefined && raw.price !== "" ? Number(raw.price) : categoryInfo.price;
+        const price = categoryInfo.price;
 
         return {
-          id: String(obj.id ?? ''),
+          id: obj.id ?? '',
           number: seatNum,
           rowLabel: rowLabel,
           price: price,
@@ -131,7 +134,7 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
         };
       })
       .filter((s) => s !== null) as Array<SeatData>;
-  }, [selectedSeatIds, canvas, getCategory]);
+  }, [selectedSeatIds, canvas]);
 
   useEffect(() => {
     if (openTicketModal && canvas) {
@@ -267,7 +270,7 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
     layout,
     readOnly,
     existingSeats,
-    categories: ticketCategories || categories || [],
+    categories,
     mergedStyle,
     onSeatClick,
     setHasBgImage, // Pass the setter from useCanvasBackground
@@ -284,36 +287,6 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
     // Legacy action handler
     if (onSeatAction) {
       // We don't have single selectedSeat state anymore
-    }
-  };
-
-  // Save handler
-  const handleSave = (json?: CanvasObject) => {
-    if (!onSave) return;
-
-    if (json) {
-      onSave(json);
-      return;
-    }
-
-    if (canvas) {
-      // Ensure all objects have IDs before export
-      canvas.getObjects().forEach((obj: any) => {
-        if (!obj.id) {
-          obj.id = Math.random().toString(36).substr(2, 9);
-        }
-      });
-
-      // Fallback for shortcuts or external calls
-      const rows = useEventGuiStore.getState().rows;
-      const fabricJson = canvas.toJSON(SERIALIZABLE_PROPERTIES);
-      const canvasJson = {
-        type: 'canvas',
-        rows,
-        categories,
-        canvas: fabricJson,
-      } as unknown as CanvasObject;
-      onSave(canvasJson);
     }
   };
 
@@ -462,8 +435,8 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
 
             <div className="px-3 pb-3 border-b border-gray-100 flex-shrink-0">
               <div className="space-y-1">
-                {displayCategories.length > 0 ? (
-                  displayCategories.map(cat => (
+                {categories.length > 0 ? (
+                  categories.map(cat => (
                     <div key={cat.id} className="flex items-center text-xs py-0.5">
                       <div
                         className="w-3 h-3 rounded-full mr-2 shadow-sm border border-black/10 flex-shrink-0"
@@ -490,14 +463,14 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
 
               <div className="space-y-1.5">
                 {selectedSeats.map((seat: SeatData) => {
-                  const categoryInfo = (seat as any).categoryInfo || getCategory(seat.category);
+                  const categoryInfo = categories.find(cat => cat.id === seat.category);
 
                   return (
                     <div key={seat.id} className="flex items-center p-2 bg-gray-50 rounded border border-gray-100 items-stretch group relative">
                       <div className="flex items-center justify-center mr-2">
                         <span
                           className="w-3 h-3 rounded-full shadow-sm border border-black/10"
-                          style={{ backgroundColor: categoryInfo.color }}
+                          style={{ backgroundColor: categoryInfo?.color || '#ccc' }}
                         />
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
@@ -505,7 +478,7 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
                           <span className="font-bold text-gray-900">{seat.rowLabel}</span>-{seat.number}
                         </div>
                         <div className="text-[10px] text-gray-500 truncate">
-                          {categoryInfo.name}
+                          {categoryInfo?.name || 'Unknown Category'}
                         </div>
                       </div>
                       <div className="flex items-center text-xs font-semibold text-gray-700 ml-2">

@@ -1,11 +1,11 @@
 
 import { useEffect } from 'react';
 import { fabric } from 'fabric';
-import { TicketCategory } from '@/types/data.types';
+import { CategoryInfo } from '@/types/data.types';
 
 export const useSeatAppearance = (
     canvas: fabric.Canvas | null,
-    categories?: TicketCategory[]
+    categories?: CategoryInfo[]
 ) => {
     useEffect(() => {
         if (!canvas || !categories) return;

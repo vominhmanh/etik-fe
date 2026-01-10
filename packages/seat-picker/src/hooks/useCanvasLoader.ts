@@ -2,22 +2,22 @@
 import { useEffect, useState } from 'react';
 import { fabric } from 'fabric';
 import { useEventGuiStore } from '@/zustand';
-import { CanvasObject, SeatData, TicketCategory } from '@/types/data.types';
-import { applyCustomStyles } from '../components/createObject/applyCustomStyles';
+import { SeatData, CategoryInfo, ShowSeat, ObjectProperties, Layout, SeatObject, SeatStatus } from '@/types/data.types';
+import { applyCustomStyles, applyEmptySeatStyle, applyDarkenStyle, updateSeatVisuals } from '../components/createObject/applyCustomStyles';
 import { SERIALIZABLE_PROPERTIES } from '@/utils/constants';
 
 interface UseCanvasLoaderProps {
     canvas: fabric.Canvas | null;
-    layout?: CanvasObject | null;
+    layout: Layout;
     readOnly: boolean;
-    existingSeats?: any[];
-    categories?: TicketCategory[];
+    existingSeats: ShowSeat[];
+    categories: CategoryInfo[];
     mergedStyle: any;
     onSeatClick?: (seat: SeatData) => void;
     setSelectedSeat: (seat: SeatData | null) => void;
     setHasBgImage: (has: boolean) => void;
-    onChange?: (json: CanvasObject) => void;
-    onSave?: (json: CanvasObject) => void;
+    onChange?: (json: Layout) => void;
+    onSave?: (json: Layout) => void;
 }
 
 export const useCanvasLoader = ({
@@ -38,40 +38,26 @@ export const useCanvasLoader = ({
     // Load layout if provided
     useEffect(() => {
         if (!canvas || !layout) return;
+        const layoutCanvas = layout.canvas;
 
         // Clear canvas
         canvas.clear();
 
         // Store handler reference so we can remove it
         let readOnlyMouseDownHandler: ((options: any) => void) | null = null;
-        let canvasData = layout;
 
         // Handle extended JSON with rows
         if ((layout as any).rows && Array.isArray((layout as any).rows)) {
             setRows((layout as any).rows);
-            if ((layout as any).canvas) canvasData = (layout as any).canvas;
+            if ((layout as any).canvas) layout = (layout as any).canvas;
         }
 
-        // Ensure objects exists to prevent crash
-        if (!canvasData.objects) {
-            canvasData = { ...canvasData, objects: [] };
-        }
 
         canvas.loadFromJSON(
-            canvasData,
+            layoutCanvas,
             () => {
-                // Create map if existing seats are provided
-                const seatMap =
-                    existingSeats && Array.isArray(existingSeats) && existingSeats.length > 0
-                        ? new Map(existingSeats.map((s) => [s.canvasSeatId, s]))
-                        : null;
-
-                // Create set of valid category IDs from the source of truth (API)
-                const validCategoryIds = new Set(
-                    (categories || []).map((c) => c.id.toString())
-                );
                 const categoryMap = new Map(
-                    (categories || []).map((c) => [c.id.toString(), c])
+                    categories.map((c) => [c.id, c])
                 );
 
                 canvas.getObjects().forEach((obj: any) => {
@@ -80,115 +66,36 @@ export const useCanvasLoader = ({
                         obj.id = Math.random().toString(36).substr(2, 9);
                     }
 
-                    const isSeat = obj.customType === 'seat';
-                    if (isSeat) {
-                        let categoryId = obj.category;
+                    if (obj.customType === 'seat') {
+                        // 1. Reset UI
+                        applyEmptySeatStyle(obj);
 
-                        // 1. Sync with DB Existing Seats (Priority 1: DB State)
-                        if (seatMap && seatMap.has(obj.id)) {
-                            const dbSeat = seatMap.get(obj.id);
-                            categoryId = dbSeat?.ticketCategoryId;
-                            obj.status = dbSeat?.status || 'available';
-                        }
+                        let categoryId = null;
+                        let status: SeatStatus = 'available';
 
-                        // 2. Validate Category against API List (Source of Truth)
-                        // If the resulting categoryId (from DB or JSON) is not in valid list, clear it.
-                        if (categoryId && !validCategoryIds.has(categoryId.toString())) {
-                            categoryId = null;
-                            obj.status = 'available'; // Reset status if category is invalid
-                        }
+                        // Check DB Seat
+                        const dbSeat = existingSeats.find((s) => s.canvasSeatId === obj.id);
+                        if (dbSeat && dbSeat.ticketCategoryId && categories.map((c) => c.id).includes(dbSeat.ticketCategoryId)) {
+                            categoryId = dbSeat.ticketCategoryId;
+                            status = dbSeat.status || 'available';
+                            const color = categoryMap.get(categoryId)?.color || '#ffffff';
 
-                        // Apply validated properties
-                        obj.category = categoryId;
-                        if (obj.attributes) {
-                            obj.attributes.category = categoryId;
-                            obj.attributes.status = obj.status;
-                        }
-
-                        // 3. Apply Visuals (Color)
-
-                        // Priority 1: Status Overrides (Sold/Held/Booked)
-                        if (obj.status === 'booked' || obj.status === 'sold' || obj.status === 'held') {
-                            // Define styles
-                            let fillColor = '#e0e0e0';
-                            let strokeColor = '#bdbdbd';
-                            let iconPath = '';
-
-                            if (obj.status === 'booked' || obj.status === 'sold') {
-
-                                iconPath = 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'; // User
-                            } else if (obj.status === 'held') {
-                                iconPath = 'M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6V22h12v-5.99h-.01L18 16l-4-4 4-3.99-.01-.01H18V2H6z'; // Hourglass
-                            }
-
-                            // Apply styles
+                            // 2. Apply Visuals using shared function
                             if (obj.type === 'group') {
-                                const group = obj as fabric.Group;
-
-                                // 1. Apply Color to Inner Circle
-                                const circle = group.getObjects().find((o: any) => o.type === 'circle') as any;
-                                if (circle) {
-                                    circle.set('fill', fillColor);
-                                    circle.set('stroke', strokeColor);
-                                }
-                                // Ensure group itself doesn't have a fill that blocks visual
-                                group.set('fill', 'transparent');
-
-                                // 2. Handle Icon
-                                // Remove existing status icons first
-                                const existingIcons = group.getObjects().filter((o: any) => o.name === 'status_icon');
-                                existingIcons.forEach((icon: any) => group.remove(icon));
-
-                                if (iconPath) {
-                                    const path = new fabric.Path(iconPath, {
-                                        fill: '#9d9b9bff',
-                                        scaleX: 0.5,
-                                        scaleY: 0.5,
-                                        originX: 'center',
-                                        originY: 'center',
-                                        name: 'status_icon',
-                                        opacity: 0.5,
-                                        shadow: new fabric.Shadow({ color: 'rgba(255,255,255,0.2)', blur: 1 })
-                                    });
-
-                                    if (circle) {
-                                        const radius = circle.radius || 10;
-                                        const iconSize = Math.max(path.width || 0, path.height || 0);
-                                        if (iconSize > 0) {
-                                            const targetSize = radius * 1.2;
-                                            const scale = targetSize / iconSize;
-                                            path.set({ scaleX: scale, scaleY: scale });
-                                        }
-                                        path.set({ left: circle.left, top: circle.top });
-                                    }
-                                    group.add(path);
-                                    group.addWithUpdate();
-                                }
+                                updateSeatVisuals(obj as fabric.Group, {
+                                    fill: color,
+                                    status: status
+                                });
                             } else {
-                                // Simple Object (Circle)
-                                obj.set('fill', fillColor);
-                                obj.set('stroke', strokeColor);
-                            }
-                            obj._originalStroke = strokeColor;
-                        }
-                        // Priority 2: Category Color (Available Seats)
-                        else if (categoryId && categoryMap.has(categoryId.toString())) {
-                            const cat = categoryMap.get(categoryId.toString());
-                            if (cat) {
-                                obj.set('fill', cat.color);
-                                obj.set('stroke', cat.color); // Optional: sync stroke? Usually fill is enough.
-
-                                // Clean up any status icons that might be there from a previous state/toggle
-                                if (obj.type === 'group') {
-                                    const group = obj as fabric.Group;
-                                    const existingIcons = group.getObjects().filter((o: any) => o.name === 'status_icon');
-                                    existingIcons.forEach((icon: any) => group.remove(icon));
+                                // Fallback for single objects (though we mostly use groups now)
+                                obj.set('fill', color);
+                                // applyDarkenStyle if needed for single obj?
+                                if (status === 'blocked' || status === 'sold' || status === 'held') {
+                                    applyDarkenStyle(obj, color);
                                 }
-                                obj._originalStroke = cat.color;
                             }
                         } else {
-                            // No category or Invalid category -> Transparent/Default
-                            obj.set('fill', 'transparent');
+                            applyEmptySeatStyle(obj);
                         }
                     }
                 });
@@ -260,13 +167,26 @@ export const useCanvasLoader = ({
                         if (!options.target || options.target.type !== 'circle') return;
 
                         const seat = options.target as any;
+                        const catId = seat.attributes?.category ?? seat.category ?? '';
+                        const categoryInfo = categories.find((c: any) => c.id === catId) || {
+                            id: catId,
+                            name: 'Unknown Category',
+                            price: 0,
+                            color: '#999999'
+                        };
+                        const seatNum = seat.attributes?.number ?? seat.seatNumber ?? '';
+                        const price = categoryInfo.price;
+                        const status = seat.attributes?.status ?? seat.status ?? '';
+                        const rowLabel = seat.attributes?.rowLabel ?? seat.rowLabel ?? '';
+
                         const seatData: SeatData = {
-                            id: String(seat.id ?? ''),
-                            number: seat.attributes?.number ?? seat.seatNumber ?? '',
-                            rowLabel: seat.attributes?.rowLabel ?? seat.rowLabel ?? '',
-                            price: seat.attributes?.price ?? seat.price ?? '',
-                            category: seat.attributes?.category ?? seat.category ?? '',
-                            status: seat.attributes?.status ?? seat.status ?? '',
+                            id: seat.id ?? '',
+                            number: seatNum,
+                            rowLabel: rowLabel,
+                            price: price,
+                            category: catId,
+                            status: status,
+                            categoryInfo,
                         };
 
                         if (onSeatClick) {
@@ -328,7 +248,7 @@ export const useCanvasLoader = ({
                 const json = {
                     type: 'canvas',
                     ...canvas.toJSON(SERIALIZABLE_PROPERTIES),
-                } as unknown as CanvasObject;
+                } as unknown as Layout;
                 onChange(json);
             }
         };

@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Properties } from '../../hooks';
+import { Properties } from '@/hooks/useObjectProperties';
 import { toFloat, formatPrice } from '@/utils';
 import { fabric } from 'fabric';
 import { useEventGuiStore } from '@/zustand';
-import { useEventGuiStore } from '@/zustand';
-import { TicketCategory } from '@/types/data.types';
-import { TicketCategory } from '@/types/data.types';
+import { CategoryInfo } from '@/types/data.types';
 
 interface SeatAttributesProps {
   properties: Properties;
@@ -17,7 +15,7 @@ interface SeatAttributesProps {
     disabled?: boolean;
   }>;
   selectedObjects?: any[];
-  categories?: TicketCategory[];
+  categories?: CategoryInfo[];
 }
 
 const statusOptions = [
@@ -221,18 +219,8 @@ const SeatAttributes: React.FC<SeatAttributesProps> = ({
             const baseColor = category?.color || properties.fill;
 
             if (baseColor && typeof baseColor === 'string') {
-              if (newStatus === 'available') {
-                // Restore base color
-                updates.fill = baseColor;
-              } else {
-                // Darken inline
-                const c = new fabric.Color(baseColor);
-                const s = c.getSource();
-                const r = Math.max(0, Math.floor(s[0] * 0.5));
-                const g = Math.max(0, Math.floor(s[1] * 0.5));
-                const b = Math.max(0, Math.floor(s[2] * 0.5));
-                updates.fill = `rgb(${r},${g},${b})`;
-              }
+              // Always pass base color, updateSeatVisuals will darken it if status requires
+              updates.fill = baseColor;
             }
 
             updateObject(updates);
