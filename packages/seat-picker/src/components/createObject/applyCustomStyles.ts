@@ -50,7 +50,7 @@ export function applyEmptySeatStyle(obj: fabric.Object) {
       if (subObj.type === 'circle') {
         subObj.set(style);
       } else if (subObj.type === 'text' || subObj.type === 'i-text') {
-        subObj.set('fill', 'black');
+        subObj.set('fill', '#000000');
       } else {
         objectsToRemove.push(subObj);
       }

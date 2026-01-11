@@ -4,7 +4,7 @@ import { LuX } from 'react-icons/lu';
 interface ToastProps {
   open: boolean;
   message: string;
-  type?: 'success' | 'error' | 'info';
+  type?: 'success' | 'error' | 'info' | 'warning';
   onClose: () => void;
 }
 
@@ -12,6 +12,7 @@ const typeStyles = {
   success: 'bg-green-500/50 border-green-600',
   error: 'bg-red-600 text-white',
   info: 'bg-blue-600 text-white',
+  warning: 'bg-orange-500 text-white',
 };
 
 const Toast: React.FC<ToastProps> = ({

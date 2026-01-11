@@ -52,7 +52,6 @@ const SeatLayoutRenderer: React.FC<SeatLayoutRendererProps> = ({
           seat.labelObj = null;
         }
         const label = new fabric.Text(
-          seat.attributes?.number?.toString() ||
           seat.seatNumber?.toString() ||
           '',
           {
@@ -84,11 +83,11 @@ const SeatLayoutRenderer: React.FC<SeatLayoutRendererProps> = ({
         if (!options.target || (options.target as any).customType !== 'seat') return;
         const seat = options.target as any;
         setSelectedSeat({
-          id: String(seat.id ?? ''),
-          number: seat.attributes?.number ?? seat.seatNumber ?? '',
-          price: seat.attributes?.price ?? seat.price ?? '',
-          category: seat.attributes?.category ?? seat.category ?? '',
-          status: seat.attributes?.status ?? seat.status ?? '',
+          id: seat.id,
+          number: seat.seatNumber,
+          price: seat.price,
+          category: seat.category,
+          status: seat.status,
         });
       });
 

@@ -45,6 +45,7 @@ interface ToolbarProps {
   isFullScreen?: boolean;
   categories?: any[];
   onSaveCategories?: (categories: any[]) => void;
+  notify?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -54,6 +55,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   isFullScreen,
   categories,
   onSaveCategories,
+  notify,
 }) => {
   const {
     toolMode,
@@ -82,11 +84,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [showOpenModal, setShowOpenModal] = useState(false);
   const [openFile, setOpenFile] = useState<File | null>(null);
   const [openFileError, setOpenFileError] = useState('');
-  const [showToast, setShowToast] = useState(false);
-  const [toastMsg, setToastMsg] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>(
-    'info'
-  );
 
   // Export handler
   const handleExport = (e: React.FormEvent) => {
@@ -225,13 +222,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
             } else {
               // Invalid OR Missing Category -> Clear & Transparent
               // This strips "zombie colors" from seats that have no valid category.
-              obj.category = null;
-              obj.status = 'available';
-              if (obj.attributes) {
-                obj.attributes.category = null;
-                obj.attributes.status = 'available';
-              }
-              obj.set('fill', 'transparent');
+              obj.set({
+                category: null,
+                status: 'available',
+                fill: 'transparent',
+              });
 
               // Keep stroke consistent (e.g. black or dark gray for available seats) if needed, 
               // or just leave it if it's already correct. 
@@ -260,17 +255,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
         canvas.renderAll();
         setShowOpenModal(false);
         setOpenFile(null);
-        setToastMsg('Seating arrangement loaded!');
-        setToastType('success');
-        setShowToast(true);
+        if (notify) notify('Seating arrangement loaded!', 'success');
       });
     } catch (err) {
       setOpenFileError(
         'Invalid JSON file. Please select a valid seating arrangement file.'
       );
-      setToastMsg('Invalid JSON file.');
-      setToastType('error');
-      setShowToast(true);
+      if (notify) notify('Invalid JSON file.', 'error');
     }
   };
 
@@ -525,14 +516,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onSubmit={handleOpenFile}
-      />
-
-      {/* Toast */}
-      <Toast
-        open={showToast}
-        message={toastMsg}
-        type={toastType}
-        onClose={() => setShowToast(false)}
       />
     </div>
   );

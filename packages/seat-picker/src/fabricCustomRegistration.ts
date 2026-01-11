@@ -25,11 +25,11 @@ fabric.Circle.prototype.toObject = (function (toObject) {
     return {
       ...toObject.call(this, propertiesToInclude),
       attributes: {
-        number: this.attributes?.number ?? this.seatNumber ?? '',
-        rowLabel: this.attributes?.rowLabel ?? this.rowLabel ?? '',
-        price: this.attributes?.price ?? this.price ?? '',
-        category: this.attributes?.category ?? this.category ?? '',
-        status: this.attributes?.status ?? this.status ?? '',
+        number: this.seatNumber ?? '',
+        rowLabel: this.rowLabel ?? '',
+        price: this.price ?? 0,
+        category: this.category ?? 0,
+        status: this.status ?? '',
       },
     };
   };
@@ -42,13 +42,12 @@ fabric.Circle.prototype.initialize = function (
   options: any
 ) {
   origInitialize.call(this, options);
-  if (options && options.attributes) {
-    this.attributes = { ...options.attributes };
-    this.seatNumber = options.attributes.number;
-    this.rowLabel = options.attributes.rowLabel;
-    this.price = options.attributes.price;
-    this.category = options.attributes.category;
-    this.status = options.attributes.status;
+  if (options) {
+    this.seatNumber = options.number;
+    this.rowLabel = options.rowLabel;
+    this.price = options.price;
+    this.category = options.category;
+    this.status = options.status;
   }
   return this;
 };

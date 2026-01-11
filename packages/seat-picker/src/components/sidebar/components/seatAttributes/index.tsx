@@ -216,25 +216,14 @@ const SeatAttributes: React.FC<SeatAttributesProps> = ({
           onChange={(value) => {
             const newStatus = value as Properties['status'];
             const updates: Partial<Properties> = { status: newStatus };
-
-            // Find current category color to use as base
-            // Use properties.category (ID) to find in categories list
-            const currentCatId = properties.category;
-            const category = categories.find(c => c.id.toString() === String(currentCatId));
-            const baseColor = category?.color || properties.fill;
-
-            if (baseColor && typeof baseColor === 'string') {
-              // Always pass base color, updateSeatVisuals will darken it if status requires
-              updates.fill = baseColor;
-            }
-
+            // Do NOT send fill here. updateSeatVisuals will use the existing fill of each seat to calculate darken color.
             updateObject(updates);
           }}
           disabled={properties.status === 'sold' || properties.status === 'held'}
         />
         {(properties.status === 'sold' || properties.status === 'held') && (
           <div className="mt-1 text-xs text-gray-500 italic">
-            You can not change configuration of this seat.
+            You can not change the configuration of this seat.
           </div>
         )}
       </div>

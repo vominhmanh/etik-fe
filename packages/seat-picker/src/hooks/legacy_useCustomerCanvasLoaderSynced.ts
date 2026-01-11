@@ -71,24 +71,18 @@ export const useCustomerCanvasLoaderSynced = ({
     const enrichSeatRowLabel = (obj: any) => {
         if (!obj || obj.customType !== 'seat') return;
 
-        // Initialize attributes if not exists
-        if (!obj.attributes) {
-            obj.attributes = {};
-        }
-
         // Only enrich if not already set
-        if (!obj.attributes.rowLabel || obj.attributes.rowLabel === '-') {
+        if (!obj.rowLabel || obj.rowLabel === '-') {
             const raw = obj.toJSON ? obj.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']) : {};
-            let rowLabel = raw.rowLabel || obj.attributes.rowLabel;
+            let rowLabel = raw.rowLabel || obj.rowLabel;
 
             if (!rowLabel || rowLabel === '-') {
-                const rowId = String(raw.rowId || obj.attributes.rowId || '');
+                const rowId = raw.rowId || obj.rowId || '';
                 rowLabel = getRowLabelRef.current(rowId);
             }
             rowLabel = rowLabel || '-';
 
             // Store enriched rowLabel in object for reuse
-            obj.attributes.rowLabel = rowLabel;
             obj.rowLabel = rowLabel;
         }
     };
@@ -340,7 +334,6 @@ export const useCustomerCanvasLoaderSynced = ({
                             seat.labelObj = null;
                         }
                         const label = new fabric.Text(
-                            seat.attributes?.number?.toString() ||
                             seat.seatNumber?.toString() ||
                             '',
                             {
@@ -471,16 +464,15 @@ export const useCustomerCanvasLoaderSynced = ({
 
                                 // Extract data from enriched object
                                 const raw = o.toJSON ? o.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']) : {};
-                                const attributes = o.attributes || {};
-                                const category = attributes.category ?? o.category ?? raw.category ?? '';
+                                const category = o.category ?? raw.category ?? '';
 
                                 return {
                                     id: String(o.id ?? ''),
-                                    number: attributes.number ?? o.seatNumber ?? raw.number ?? raw.seatNumber ?? '',
-                                    price: attributes.price ?? o.price ?? raw.price ?? '',
-                                    rowLabel: o.rowLabel || attributes.rowLabel || raw.rowLabel || '-',
+                                    number: o.seatNumber ?? raw.seatNumber ?? '',
+                                    price: o.price ?? raw.price ?? '',
+                                    rowLabel: o.rowLabel || raw.rowLabel || '-',
                                     category: category,
-                                    status: attributes.status ?? o.status ?? raw.status ?? '',
+                                    status: o.status ?? raw.status ?? '',
                                     // Use currentCategories from closure/ref
                                     categoryInfo: currentCategories.find((c: any) => c.id === category) || {
                                         id: category,

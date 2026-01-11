@@ -107,28 +107,24 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
 
         // Use toJSON to safely extract properties
         const raw = obj.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']);
-        const attributes = obj.attributes || {};
 
-        // Reuse enriched rowLabel from fabric object (already enriched in useCustomerCanvasLoaderSynced)
-        const rowLabel = obj.rowLabel || attributes.rowLabel || raw.rowLabel || '-';
-
-        const catId = raw.category || attributes.category || '';
+        const catId = raw.category || '';
         const categoryInfo = categories.find((c: any) => c.id === catId) || {
           id: catId,
           name: 'Unknown Category',
           price: 0,
           color: '#999999'
         };
-        const seatNum = raw.seatNumber || attributes.number || raw.number || '?';
+        const seatNum = raw.seatNumber || raw.number || '?';
         const price = categoryInfo.price;
 
         return {
           id: obj.id ?? '',
           number: seatNum,
-          rowLabel: rowLabel,
+          rowLabel: raw.rowLabel || '-',
           price: price,
           category: catId,
-          status: raw.status || attributes.status || '',
+          status: raw.status || '',
           // Additional fields for display
           categoryInfo,
         };

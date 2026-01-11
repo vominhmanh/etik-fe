@@ -15,6 +15,7 @@ import useRowLabelRenderer from '@/hooks/useRowLabelRenderer';
 import '@/index.css';
 import '../fabricCustomRegistration';
 import { SeatCanvasProps, CategoryStats, Layout, SeatData } from '@/types/data.types';
+import Toast from '@/components/ui/Toast';
 import { TicketCategoryModal } from './ui/TicketCategoryModal';
 import { IconButton, Stack, Tooltip } from '@mui/material';
 import { LuArmchair, LuTicket } from 'react-icons/lu';
@@ -181,6 +182,17 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     }
   }, [canvas, zoomLevel, mergedStyle.width, mergedStyle.height]);
 
+  // Toast State (Lifted from Toolbar)
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info' | 'warning'>('info');
+
+  const notify = (msg: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setToastMsg(msg);
+    setToastType(type);
+    setShowToast(true);
+  };
+
   useCanvasSetup(
     canvasRef,
     canvasParent,
@@ -194,7 +206,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   useSelectionHandler(canvas);
   useMultipleSeatCreator(canvas, toolMode, setToolMode);
   useRowLabelRenderer(canvas);
-  useObjectDeletion(canvas, toolAction);
+  useObjectDeletion(canvas, toolAction, notify);
   useObjectCreator(canvas, toolMode, setToolMode);
   if (!readOnly) {
     useUndoRedo();
@@ -352,6 +364,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
           isFullScreen={isFullScreen}
           categories={categories}
           onSaveCategories={onSaveCategories}
+          notify={notify}
         />
 
         <div className="flex h-0 min-h-0 w-full flex-1 overflow-hidden relative">
@@ -382,6 +395,15 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
         onSave={(newCategories) => onSaveCategories?.(newCategories)}
         stats={categoryStats}
         createCategoryUrl={createCategoryUrl}
+      />
+
+      {/* Global Toast */}
+      {/* Assuming Toast is exported from somewhere, need to import it */}
+      <Toast
+        open={showToast}
+        message={toastMsg}
+        type={toastType}
+        onClose={() => setShowToast(false)}
       />
     </div>
   );

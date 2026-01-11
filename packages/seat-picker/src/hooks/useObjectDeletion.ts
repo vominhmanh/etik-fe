@@ -4,7 +4,8 @@ import { Action } from '@/zustand/store/eventGuiStore';
 
 const useObjectDeletion = (
   canvas: fabric.Canvas | null,
-  toolAction: Action
+  toolAction: Action,
+  notify?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void
 ) => {
   useEffect(() => {
     if (!canvas) return;
@@ -22,27 +23,37 @@ const useObjectDeletion = (
         objectsToDelete.push(activeObject);
       }
 
-      // Check for protected seats
-      const protectedSeats = objectsToDelete.filter((obj: any) => {
-        if (obj.type === 'circle' && obj.customType === 'seat') {
-          const status = obj.status || 'available';
-          return status === 'sold' || status === 'hold' || status === 'booked';
+      // Check for protected seats (sold/held)
+      const protectedSeats: fabric.Object[] = [];
+      const deletableObjects: fabric.Object[] = [];
+
+      objectsToDelete.forEach((obj: any) => {
+        // Check if object is a seat with protected status
+        const isSeat = obj.rowLabel || obj.seatNumber || (obj.customType === 'seat') || (obj.type === 'group' && obj.getObjects().some((o: any) => o.type === 'circle'));
+
+        if (isSeat) {
+          const status = obj.status || obj.attributes?.status;
+          if (['sold', 'held'].includes(status)) {
+            protectedSeats.push(obj);
+            return;
+          }
         }
-        return false;
+        deletableObjects.push(obj);
       });
 
       if (protectedSeats.length > 0) {
-        const firstSeat = protectedSeats[0] as any;
-        const seatLabel = firstSeat.seatNumber || (firstSeat.attributes?.number) || 'Ghế';
-        const rowLabel = firstSeat.rowId || (firstSeat.attributes?.row) || '?';
-        alert(`Không thể xóa: ${seatLabel} hàng ${rowLabel} có trạng thái ${firstSeat.status || 'đã đặt'}.`);
-        return;
+        if (notify) {
+          notify(`${protectedSeats.length} seat(s) are 'sold' or 'held' and cannot be deleted.`, 'warning');
+        } else {
+          alert(`${protectedSeats.length} seat(s) are 'sold' or 'held' and cannot be deleted.`);
+        }
       }
 
-      objectsToDelete.forEach((obj) => canvas.remove(obj));
-
-      canvas.discardActiveObject();
-      canvas.renderAll();
+      if (deletableObjects.length > 0) {
+        deletableObjects.forEach((obj) => canvas.remove(obj));
+        canvas.discardActiveObject();
+        canvas.renderAll();
+      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
