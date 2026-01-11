@@ -37,7 +37,7 @@ import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { LocalizedLink } from '@/components/homepage/localized-link';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone } from '@/config/phone-countries';
 
-import { Order, TicketInfo, HolderInfo, CheckoutRuntimeField, Show } from './page';
+import { Order, TicketInfo, HolderInfo, CheckoutRuntimeField, Show } from './types';
 
 export type Step2InfoProps = {
   tt: (vi: string, en: string) => string;

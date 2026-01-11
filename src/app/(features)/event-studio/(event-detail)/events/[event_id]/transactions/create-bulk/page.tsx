@@ -32,6 +32,7 @@ import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
 import { useTranslation } from '@/contexts/locale-context';
 import { calculateVoucherDiscount } from '@/utils/voucher-discount';
+import { getPaymentMethodLabel } from '@/utils/payment';
 import dayjs from 'dayjs';
 
 export type TicketCategory = {
@@ -107,14 +108,7 @@ type TicketHolderInfo = { title: string; name: string; email: string; phone: str
 
 
 // Helper function to get payment method label (will be converted with tt in component)
-const getPaymentMethodLabel = (method: string, tt: (vi: string, en: string) => string): string => {
-  const map: Record<string, { vi: string; en: string }> = {
-    cash: { vi: 'Tiền mặt', en: 'Cash' },
-    transfer: { vi: 'Chuyển khoản', en: 'Bank Transfer' },
-    napas247: { vi: 'Napas 247', en: 'Napas 247' },
-  };
-  return map[method] ? tt(map[method].vi, map[method].en) : method;
-};
+
 // customerFieldLabelMap will be built dynamically from form fields
 const getCustomerFieldLabelMap = (fields: FormFieldConfig[], tt: (vi: string, en: string) => string): Record<string, string> => {
   const map: Record<string, string> = {};

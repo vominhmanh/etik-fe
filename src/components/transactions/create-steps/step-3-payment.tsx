@@ -12,13 +12,15 @@ import FormControl from '@mui/material/FormControl';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import { X, Money, Bank, CreditCard, Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr';
+import { VoucherDetailModal } from './voucher-detail-modal';
+import { Order, Show } from './types';
 
 export type Step3PaymentProps = {
   tt: (vi: string, en: string) => string;
   paramsEventId: number;
 
-  order: any; // Using any to avoid circular dependency or import type if possible, or import Order type
-  shows: any[]; // Using any[] for now, or import Show type
+  order: Order;
+  shows: Show[];
 
   extraFee: number;
   handleExtraFeeChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -44,6 +46,13 @@ export type Step3PaymentProps = {
 
   onBack: () => void;
   onNext: () => void;
+
+  // Voucher Modal props
+  isVoucherModalOpen: boolean;
+  onCloseVoucherModal: () => void;
+  selectedVoucherForDetail: any | null;
+
+  showExtraFeeInput?: boolean;
 };
 
 export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
@@ -71,6 +80,7 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
     onPaymentMethodChange,
     onBack,
     onNext,
+    showExtraFeeInput = true, // Default to true
   } = props;
 
   return (
@@ -200,27 +210,29 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
           <Stack spacing={3}>
 
             {/* Extra Fee */}
-            <Card>
-              <CardHeader
-                title={tt("Phụ phí", "Extra Fee")}
-                subheader={tt("(nếu có)", "(if any)")}
-                action={
-                  <OutlinedInput
-                    size="small"
-                    name="extraFee"
-                    value={extraFee.toLocaleString()}
-                    onChange={handleExtraFeeChange}
-                    sx={{ maxWidth: 180 }}
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <Money size={18} weight="duotone" style={{ opacity: 0.7 }} />
-                      </InputAdornment>
-                    }
-                    endAdornment={<InputAdornment position="end">đ</InputAdornment>}
-                  />
-                }
-              />
-            </Card>
+            {showExtraFeeInput && (
+              <Card>
+                <CardHeader
+                  title={tt("Phụ phí", "Extra Fee")}
+                  subheader={tt("(nếu có)", "(if any)")}
+                  action={
+                    <OutlinedInput
+                      size="small"
+                      name="extraFee"
+                      value={extraFee.toLocaleString()}
+                      onChange={handleExtraFeeChange}
+                      sx={{ maxWidth: 180 }}
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <Money size={18} weight="duotone" style={{ opacity: 0.7 }} />
+                        </InputAdornment>
+                      }
+                      endAdornment={<InputAdornment position="end">đ</InputAdornment>}
+                    />
+                  }
+                />
+              </Card>
+            )}
 
             {/* Discount */}
             <Card>
@@ -455,8 +467,13 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
           {tt('Tiếp tục', 'Next')}
         </Button>
       </Stack>
-    </Stack>
+
+      <VoucherDetailModal
+        open={props.isVoucherModalOpen}
+        onClose={props.onCloseVoucherModal}
+        voucher={props.selectedVoucherForDetail}
+        tt={tt}
+      />
+    </Stack >
   );
 }
-
-

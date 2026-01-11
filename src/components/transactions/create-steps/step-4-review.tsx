@@ -11,10 +11,9 @@ import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { Armchair, User } from '@phosphor-icons/react/dist/ssr';
+import ReCAPTCHA from "react-google-recaptcha";
 
-import type { CheckoutRuntimeField, Show, TicketHolderInfo } from './page';
-
-import { Order, TicketInfo, HolderInfo } from './page';
+import type { CheckoutRuntimeField, Show, TicketHolderInfo, Order, TicketInfo, HolderInfo } from './types';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from '@/config/phone-countries';
 
 export type Step4ReviewProps = {
@@ -40,6 +39,11 @@ export type Step4ReviewProps = {
   onBack: () => void;
   onConfirm: () => void;
   confirmDisabled?: boolean;
+
+  // Captcha props
+  enableCaptcha?: boolean;
+  captchaRef?: any; // Avoiding explicit ReCAPTCHA type import issues in interface for now, or use React.RefObject<any>
+  captchaLang?: string;
 };
 
 export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
@@ -205,11 +209,11 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
 
                     {/* Tickets in this Group */}
                     <Stack spacing={2} sx={{ pl: { md: 2 } }}>
-                          {group.items.map((item: any, i: number) => {
-                            const holderInfo = item.holder;
-                            const ticket = order.tickets[item.index];
+                      {group.items.map((item: any, i: number) => {
+                        const holderInfo = item.holder;
+                        const ticket = order.tickets[item.index];
                         const ticketIndex = item.index;
-                        
+
                         return (
                           <Box
                             key={`${group.key}-${i}`}
@@ -264,7 +268,7 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                                   </Box>
                                 </Grid>
 
-                                <Grid xs={12} md={4}>
+                                <Grid xs={12} md={3}>
                                   <Box>
                                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                       {tt('Họ và tên', 'Full Name')}
@@ -275,7 +279,7 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                                   </Box>
                                 </Grid>
 
-                                <Grid xs={12} md={3}>
+                                <Grid xs={12} md={4}>
                                   <Box>
                                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                       {tt('Email', 'Email')}
@@ -362,6 +366,18 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
           </CardContent>
         </Card>
       </Box>
+
+      {/* ReCAPTCHA */}
+      {props.enableCaptcha && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <ReCAPTCHA
+            sitekey="6LdRnq4aAAAAAFT6htBYNthM-ksGymg70CsoYqHR"
+            ref={props.captchaRef}
+            hl={props.captchaLang}
+          />
+        </Box>
+      )}
+
       <Stack direction="row" justifyContent="space-between">
         <Button variant="outlined" onClick={onBack}>
           {tt('Quay lại', 'Back')}

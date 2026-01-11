@@ -1,19 +1,19 @@
 "use client";
 
-import * as React from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Unstable_Grid2';
 import { ShoppingCart as ShoppingCartIcon } from '@phosphor-icons/react/dist/ssr/ShoppingCart';
+import * as React from 'react';
 
-import { Schedules } from './schedules';
-import { TicketCategories } from './ticket-categories';
-import { Order, TicketInfo, Show } from './page';
+
 import NotificationContext from '@/contexts/notification-context';
 import dynamic from "next/dynamic";
+import { CartModal } from './cart-modal';
+import { Schedules } from './schedules';
+import { TicketCategories } from './ticket-categories';
+import { Order, Show, TicketInfo } from './types';
 
-import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { useParams } from 'next/navigation';
 import type { SeatData } from '@/components/seat-map/SeatPickerEditor';
 
 const CustomerSeatPicker = dynamic(
@@ -46,6 +46,15 @@ export type Step1SelectTicketsProps = {
 
   tt: (vi: string, en: string) => string;
   onNext: () => void;
+  existingSeats?: any[];
+
+  // Cart props
+  isCartOpen: boolean;
+  onCloseCart: () => void;
+  formatPrice: (price: number) => string;
+  subtotal: number;
+  onEditCartItem: (showId: number, categoryId: number) => void;
+  onRemoveCartItem: (showId: number, categoryId: number) => void;
 };
 
 export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.Element {
@@ -66,6 +75,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
     cartQuantitiesForActiveSchedule,
     tt,
     onNext,
+    existingSeats,
   } = props;
 
   const notificationCtx = React.useContext(NotificationContext);
@@ -99,42 +109,6 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
     });
     return s;
   }, [order.tickets, activeSchedule]);
-
-  // Track existing seats (sold/blocked/etc.)
-  const [existingSeats, setExistingSeats] = React.useState<any[]>([]);
-
-  const params = useParams();
-
-  // Fetch seat status when opening a schedule
-  React.useEffect(() => {
-    if (!activeSchedule?.id) {
-      setExistingSeats([]);
-      return;
-    }
-
-    // Only fetch if show has seatmap
-    const hasSeatmap =
-      activeSchedule.seatmapMode === 'seatings_selection' ||
-      activeSchedule.seatmapMode === 'ticket_categories_selection';
-
-    if (!hasSeatmap) return;
-
-    const fetchSeats = async () => {
-      try {
-        const eventId = params.event_id;
-        if (!eventId) return;
-
-        const response = await baseHttpServiceInstance.get(
-          `/event-studio/events/${eventId}/transactions/shows/${activeSchedule.id}/seats`
-        );
-        setExistingSeats(response.data || []);
-      } catch (err) {
-        console.error("Failed to fetch seat statuses", err);
-      }
-    };
-
-    fetchSeats();
-  }, [activeSchedule?.id, params.event_id]);
 
 
   const handleSelectionChange = (newIds: string[], newSelectedSeats: SeatData[]) => {
@@ -289,7 +263,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
                 layout={(seatmapVisible ? activeSchedule?.layoutJson : stickySeatmapLayout) || {}}
                 categories={activeSchedule?.ticketCategories || []}
                 selectedSeatIds={Array.from(selectedSeats)}
-                existingSeats={existingSeats} // Pass the fetched seats
+                existingSeats={existingSeats || []}
                 onSelectionChange={handleSelectionChange}
               />
             </Box>
@@ -301,7 +275,6 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
                 key={activeSchedule.id}
                 show={activeSchedule}
                 qrOption={qrOption}
-
                 requestedCategoryModalId={requestedCategoryModalId || undefined}
                 onModalRequestHandled={onModalRequestHandled}
                 onCategorySelect={(categoryId: number) => { }} // Unused or implement if needed
@@ -322,6 +295,18 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
           {tt('Tiếp tục', 'Continue')}
         </Button>
       </Stack>
+
+      <CartModal
+        open={props.isCartOpen}
+        onClose={props.onCloseCart}
+        order={order}
+        event={{ shows }} // CartModal expects event.shows
+        tt={tt}
+        formatPrice={props.formatPrice}
+        subtotal={props.subtotal}
+        onEditItem={props.onEditCartItem}
+        onRemoveItem={props.onRemoveCartItem}
+      />
     </Stack>
   );
 }
