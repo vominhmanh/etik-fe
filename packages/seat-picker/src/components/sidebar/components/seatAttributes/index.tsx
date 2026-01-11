@@ -1,27 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Properties } from '@/hooks/useObjectProperties';
+import { Properties, useObjectProperties } from '@/hooks/useObjectProperties';
 import { toFloat, formatPrice } from '@/utils';
-import { fabric } from 'fabric';
 import { useEventGuiStore } from '@/zustand';
 import { CategoryInfo } from '@/types/data.types';
+import { useObjectUpdater } from '@/hooks/useObjectUpdater';
+import { CustomFabricObject } from '@/types/fabric-types';
+import Select from '@/components/ui/select';
 
 interface SeatAttributesProps {
-  properties: Properties;
-  updateObject: (updates: Partial<Properties>) => void;
-  Select: React.FC<{
-    options: { value: string; label: string | React.ReactNode }[];
-    value: string;
-    onChange: (value: string) => void;
-    disabled?: boolean;
-  }>;
-  selectedObjects?: any[];
+  selectedObjects: CustomFabricObject[];
   categories?: CategoryInfo[];
 }
 
 const statusOptions = [
   { value: 'available', label: 'Available' },
   { value: 'blocked', label: 'Blocked' },
-  { value: 'reserved', label: 'Reserved' },
+  { value: 'held', label: 'Held' },
   { value: 'sold', label: 'Sold' },
 ];
 
@@ -31,14 +25,18 @@ const selectableStatusOptions = [
 ];
 
 const SeatAttributes: React.FC<SeatAttributesProps> = ({
-  properties,
-  updateObject,
-  Select,
+  selectedObjects,
   categories = [],
 }) => {
   const { canvas, rows } = useEventGuiStore();
   const [inputValue, setInputValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const { properties, setProperties } = useObjectProperties(
+    canvas,
+    selectedObjects
+  );
+  const [lockAspect, setLockAspect] = useState(true);
+  const { updateObject } = useObjectUpdater(canvas, setProperties, lockAspect);
 
   const currentRow = rows.find((r: any) => r.id === properties.rowId);
   const rowLabel = currentRow
@@ -136,10 +134,11 @@ const SeatAttributes: React.FC<SeatAttributesProps> = ({
           onFocus={handleFocus}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
+          disabled={properties.status === 'sold' || properties.status === 'held'}
           className={`mt-1 w-full rounded-md border border-solid px-2 py-1 ${isDuplicate && !isFocused
             ? 'border-orange-500 focus:ring-orange-500'
             : 'border-gray-300'
-            }`}
+            } ${properties.status === 'sold' || properties.status === 'held' ? 'cursor-not-allowed bg-gray-100 text-gray-500' : ''}`}
         />
         {isDuplicate && !isFocused && (
           <div className="mt-1 text-xs text-orange-500">
@@ -153,7 +152,7 @@ const SeatAttributes: React.FC<SeatAttributesProps> = ({
         </label>
         <Select
           options={categories.map((cat) => ({
-            value: cat.id.toString(),
+            value: String(cat.id),
             label: (
               <div className="flex items-center gap-2">
                 <div
@@ -167,11 +166,12 @@ const SeatAttributes: React.FC<SeatAttributesProps> = ({
           value={
             properties.category === 'mixed'
               ? ''
-              : properties.category || ''
+              : String(properties.category || '')
           }
           onChange={(value) => {
-            const selectedCategory = categories.find(c => c.id.toString() === value);
-            const updates: any = { category: value };
+            const numericValue = parseInt(value, 10);
+            const selectedCategory = categories.find(c => c.id === numericValue);
+            const updates: any = { category: numericValue };
             if (selectedCategory) {
               if (selectedCategory.color) {
                 updates.fill = selectedCategory.color;
@@ -182,6 +182,7 @@ const SeatAttributes: React.FC<SeatAttributesProps> = ({
             }
             updateObject(updates);
           }}
+          disabled={properties.status === 'sold' || properties.status === 'held'}
         />
       </div>
       <div>
@@ -202,7 +203,11 @@ const SeatAttributes: React.FC<SeatAttributesProps> = ({
           Status
         </label>
         <Select
-          options={selectableStatusOptions}
+          options={
+            ['sold', 'held'].includes(properties.status as string)
+              ? statusOptions
+              : selectableStatusOptions
+          }
           value={
             properties.status === 'mixed'
               ? ''
@@ -229,7 +234,7 @@ const SeatAttributes: React.FC<SeatAttributesProps> = ({
         />
         {(properties.status === 'sold' || properties.status === 'held') && (
           <div className="mt-1 text-xs text-gray-500 italic">
-            Status is read-only: {properties.status}
+            You can not change configuration of this seat.
           </div>
         )}
       </div>

@@ -10,6 +10,7 @@ interface SelectProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -17,6 +18,7 @@ const Select: React.FC<SelectProps> = ({
   value,
   onChange,
   placeholder = 'Select an option',
+  disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
@@ -24,7 +26,11 @@ const Select: React.FC<SelectProps> = ({
     'bottom'
   );
 
-  const handleToggle = () => setIsOpen(!isOpen);
+  const handleToggle = () => {
+    if (!disabled) {
+      setIsOpen(!isOpen);
+    }
+  };
 
   const handleOptionClick = (optionValue: string) => {
     onChange(optionValue);
@@ -73,7 +79,7 @@ const Select: React.FC<SelectProps> = ({
   return (
     <div ref={selectRef} className="relative">
       <div
-        className="flex w-full cursor-pointer items-center justify-between rounded-md border border-solid border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500"
+        className={`flex w-full items-center justify-between rounded-md border border-solid border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 ${disabled ? 'cursor-not-allowed bg-gray-100 text-gray-400' : 'cursor-pointer bg-white'}`}
         onClick={handleToggle}
       >
         <span className="block truncate">

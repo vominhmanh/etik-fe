@@ -173,6 +173,12 @@ export const useObjectUpdater = (
     let shouldRender = false;
 
     activeObjects.forEach((selectedObject) => {
+      // Logic: Skip update if seat is sold/held
+      const currentStatus = selectedObject.status;
+      if (['sold', 'held'].includes(currentStatus)) {
+        return;
+      }
+
       const updatedProperties: Partial<CustomFabricObject> = {};
       for (const [key, value] of Object.entries(updates)) {
         if (selectedObject[key as keyof CustomFabricObject] !== value) {

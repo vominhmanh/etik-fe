@@ -75,18 +75,25 @@ export const useCanvasLoader = ({
 
                         // Check DB Seat
                         const dbSeat = existingSeats.find((s) => s.canvasSeatId === obj.id);
-                        if (dbSeat && dbSeat.ticketCategoryId && categories.map((c) => c.id).includes(dbSeat.ticketCategoryId)) {
+                        if (dbSeat && dbSeat.ticketCategoryId && categoryMap.has(dbSeat.ticketCategoryId)) {
                             categoryId = dbSeat.ticketCategoryId;
                             status = dbSeat.status || 'available';
+
                             const categoryData = categoryMap.get(categoryId);
                             const color = categoryData?.color || 'rgba(209, 193, 193, 0.7)';
 
                             // Update Object Data with authoritative DB info
+                            // Update Object Data with authoritative DB info
+                            obj.set({
+                                category: categoryId,
+                                price: categoryData?.price || 0,
+                                status: status
+                            });
+
+                            // Also set property on object instance directly for safety
                             obj.category = categoryId;
                             obj.price = categoryData?.price || 0;
-                            if (!obj.attributes) obj.attributes = {};
-                            obj.attributes.category = categoryId;
-                            obj.attributes.price = obj.price;
+                            obj.status = status;
 
                             // 2. Apply Visuals using shared function
                             if (obj.type === 'group') {
@@ -107,6 +114,7 @@ export const useCanvasLoader = ({
                         }
                     }
                 });
+                console.log('canvas.getObjects()', canvas.getObjects());
 
                 canvas.renderAll();
 
@@ -140,8 +148,7 @@ export const useCanvasLoader = ({
                                 seat.labelObj = null;
                             }
                             const label = new fabric.Text(
-                                seat.attributes?.number?.toString() ||
-                                seat.seatNumber?.toString() ||
+                                seat.seatNumber ||
                                 '',
                                 {
                                     left:
@@ -175,17 +182,17 @@ export const useCanvasLoader = ({
                         if (!options.target || options.target.type !== 'circle') return;
 
                         const seat = options.target as any;
-                        const catId = seat.attributes?.category ?? seat.category ?? '';
+                        const catId = seat.category ?? 0;
                         const categoryInfo = categories.find((c: any) => c.id === catId) || {
                             id: catId,
                             name: 'Unknown Category',
                             price: 0,
                             color: '#999999'
                         };
-                        const seatNum = seat.attributes?.number ?? seat.seatNumber ?? '';
+                        const seatNum = seat.seatNumber ?? '';
                         const price = categoryInfo.price;
-                        const status = seat.attributes?.status ?? seat.status ?? '';
-                        const rowLabel = seat.attributes?.rowLabel ?? seat.rowLabel ?? '';
+                        const status = seat.status ?? '';
+                        const rowLabel = seat.rowLabel ?? '';
 
                         const seatData: SeatData = {
                             id: seat.id ?? '',

@@ -7,7 +7,7 @@ import {
 } from 'react-icons/lu';
 import { useEventGuiStore } from '@/zustand';
 import { CustomFabricObject } from '@/types/fabric-types';
-import { Select } from '@/components/ui';
+import Select from '@/components/ui/select';
 import { useObjectProperties } from '@/hooks/useObjectProperties';
 import { useObjectUpdater } from '@/hooks/useObjectUpdater';
 import CommonProperties from './components/commonProperties';
@@ -296,9 +296,6 @@ const Sidebar: React.FC<SidebarProps> = ({ categories }) => {
             objectTypes[0] === 'circle' &&
             activeTab === 'attributes' ? (
             <SeatAttributes
-              properties={properties}
-              updateObject={updateObject}
-              Select={Select}
               selectedObjects={selectedObjects}
               categories={categories}
             />

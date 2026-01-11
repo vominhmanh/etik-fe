@@ -35,6 +35,10 @@ const createRect = (left: number, top: number) => {
   return rect;
 };
 
+import { SEAT_STYLE_CONFIG } from './applyCustomStyles';
+
+// ... (existing imports)
+
 // ::::::::::::::: Create seat object
 const createSeat = (
   left: number,
@@ -44,11 +48,13 @@ const createSeat = (
   canvas?: fabric.Canvas | null,
   options: { radius?: number; fontSize?: number } = {}
 ) => {
+  const { fill, stroke, strokeWidth } = SEAT_STYLE_CONFIG.empty;
+
   const circle = new fabric.Circle({
     radius: options.radius ?? 10,
-    fill: 'rgba(255,255,255,0.8)',
-    stroke: 'black',
-    strokeWidth: 1,
+    fill: fill,
+    stroke: stroke,
+    strokeWidth: strokeWidth,
     originX: 'center',
     originY: 'center',
   });

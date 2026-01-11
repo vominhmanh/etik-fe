@@ -1,4 +1,3 @@
-import { SeatData } from '@/types/data.types';
 import React from 'react';
 
 interface ModalProps {
@@ -28,70 +27,6 @@ const Modal: React.FC<ModalProps> = ({ open, onClose, title, footer, children })
         )}
       </div>
     </div>
-  );
-};
-
-export const DefaultSeatModal = ({
-  selectedSeat,
-  setSelectedSeat,
-  mergedLabels,
-  handleSeatAction,
-}: {
-  selectedSeat: SeatData | null;
-  setSelectedSeat: (seat: SeatData | null) => void;
-  mergedLabels: any;
-  handleSeatAction: (action: string) => void;
-}) => {
-  return (
-    <Modal
-      open={!!selectedSeat}
-      onClose={() => setSelectedSeat(null)}
-      title="Seat Details"
-    >
-      {selectedSeat && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-600">
-                {mergedLabels.seatNumber}
-              </label>
-              <p className="text-lg font-semibold">{selectedSeat.number}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600">
-                {mergedLabels.category}
-              </label>
-              <p className="text-lg font-semibold">{selectedSeat.category}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600">
-                {mergedLabels.price}
-              </label>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600">
-                {mergedLabels.status}
-              </label>
-              <p className="text-lg font-semibold">{selectedSeat.status}</p>
-            </div>
-          </div>
-          <div className="mt-6 flex gap-3">
-            <button
-              onClick={() => handleSeatAction('buy')}
-              className="flex-1 rounded-md bg-gray-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400"
-            >
-              {mergedLabels.buyButton}
-            </button>
-            <button
-              onClick={() => setSelectedSeat(null)}
-              className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400"
-            >
-              {mergedLabels.cancelButton}
-            </button>
-          </div>
-        </div>
-      )}
-    </Modal>
   );
 };
 

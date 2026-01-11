@@ -63,24 +63,16 @@ export const useCustomerCanvasLoaderSynced = ({
     const enrichSeatRowLabel = (obj: any) => {
         if (!obj || obj.customType !== 'seat') return;
 
-        // Initialize attributes if not exists
-        if (!obj.attributes) {
-            obj.attributes = {};
-        }
-
-        // Only enrich if not already set
-        if (!obj.attributes.rowLabel || obj.attributes.rowLabel === '-') {
+        if (!obj.rowLabel || obj.rowLabel === '-') {
             const raw = obj.toJSON ? obj.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']) : {};
-            let rowLabel = raw.rowLabel || obj.attributes.rowLabel;
+            let rowLabel = raw.rowLabel || obj.rowLabel;
 
             if (!rowLabel || rowLabel === '-') {
-                const rowId = String(raw.rowId || obj.attributes.rowId || '');
+                const rowId = String(raw.rowId || obj.rowId || '');
                 rowLabel = getRowLabelRef.current(rowId);
             }
             rowLabel = rowLabel || '-';
 
-            // Store enriched rowLabel in object for reuse
-            obj.attributes.rowLabel = rowLabel;
             obj.rowLabel = rowLabel;
         }
     };
@@ -244,37 +236,35 @@ export const useCustomerCanvasLoaderSynced = ({
 
                         // Check DB Seat
                         const dbSeat = existingSeats.find((s) => s.canvasSeatId === obj.id);
-                        if (dbSeat && dbSeat.ticketCategoryId && categories.map((c) => c.id).includes(dbSeat.ticketCategoryId)) {
+                        if (dbSeat && dbSeat.ticketCategoryId && categoryMap.has(dbSeat.ticketCategoryId)) {
                             categoryId = dbSeat.ticketCategoryId;
                             status = dbSeat.status || 'available';
                             const categoryData = categoryMap.get(categoryId);
                             const color = categoryData?.color || 'rgba(209, 193, 193, 0.7)';
 
                             // Update Object Data with authoritative DB info
-                            obj.category = categoryId;
-                            obj.price = categoryData?.price || 0;
-                            if (!obj.attributes) obj.attributes = {};
-                            obj.attributes.category = categoryId;
-                            obj.attributes.price = obj.price;
+                            obj.set({
+                                category: categoryId,
+                                price: categoryData?.price || 0,
+                                status: status
+                            });
 
                             obj._hasValidCategory = true;
-                            // Only allow selection if status is available
                             obj._isAvailable = status === 'available';
 
                             // 2. Apply Visuals using shared function
-                            let visualColor = color;
-                            if (['blocked', 'sold', 'held'].includes(status)) {
-                                visualColor = getDarkenColor(color);
-                            }
-
                             if (obj.type === 'group') {
                                 updateSeatVisuals(obj as fabric.Group, {
-                                    fill: visualColor,
+                                    fill: color,
                                     status: status
                                 });
                             } else {
                                 // Fallback for single objects (though we mostly use groups now)
-                                obj.set('fill', visualColor);
+                                obj.set('fill', color);
+                                // Ensure single objects are also darkened if needed
+                                if (['blocked', 'sold', 'held'].includes(status)) {
+                                    applyDarkenStyle(obj, color);
+                                }
                             }
                         } else {
                             obj._hasValidCategory = false;
@@ -315,8 +305,7 @@ export const useCustomerCanvasLoaderSynced = ({
                                 seat.labelObj = null;
                             }
                             const label = new fabric.Text(
-                                seat.attributes?.number?.toString() ||
-                                seat.seatNumber?.toString() ||
+                                seat.seatNumber ||
                                 '',
                                 {
                                     left:
@@ -423,16 +412,15 @@ export const useCustomerCanvasLoaderSynced = ({
                                     enrichSeatRowLabel(o);
 
                                     const raw = o.toJSON ? o.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']) : {};
-                                    const attributes = o.attributes || {};
-                                    const category = attributes.category ?? o.category ?? raw.category ?? '';
+                                    const category = o.category ?? raw.category ?? '';
 
                                     return {
                                         id: String(o.id ?? ''),
-                                        number: attributes.number ?? o.seatNumber ?? raw.number ?? raw.seatNumber ?? '',
-                                        price: attributes.price ?? o.price ?? raw.price ?? '',
-                                        rowLabel: o.rowLabel || attributes.rowLabel || raw.rowLabel || '-',
+                                        number: o.seatNumber ?? raw.seatNumber ?? '',
+                                        price: o.price ?? raw.price ?? '',
+                                        rowLabel: o.rowLabel || raw.rowLabel || '-',
                                         category: category,
-                                        status: attributes.status ?? o.status ?? raw.status ?? '',
+                                        status: o.status ?? raw.status ?? '',
                                         categoryInfo: currentCategories.find((c: any) => c.id === category) || {
                                             id: category,
                                             name: 'Unknown Category',

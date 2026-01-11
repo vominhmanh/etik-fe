@@ -14,8 +14,7 @@ import { useSmartSnap } from '@/hooks/useSmartSnap';
 import useRowLabelRenderer from '@/hooks/useRowLabelRenderer';
 import '@/index.css';
 import '../fabricCustomRegistration';
-import { SeatCanvasProps, SeatData, CategoryStats, Layout } from '@/types/data.types';
-import Modal, { DefaultSeatModal } from './ui/Modal';
+import { SeatCanvasProps, CategoryStats, Layout, SeatData } from '@/types/data.types';
 import { TicketCategoryModal } from './ui/TicketCategoryModal';
 import { IconButton, Stack, Tooltip } from '@mui/material';
 import { LuArmchair, LuTicket } from 'react-icons/lu';
@@ -43,15 +42,6 @@ const defaultStyle = {
   },
 };
 
-const defaultLabels = {
-  buyButton: 'Buy Seat',
-  cancelButton: 'Cancel',
-  seatNumber: 'Seat Number',
-  category: 'Category',
-  price: 'Price',
-  status: 'Status',
-};
-
 const SeatPicker: React.FC<SeatCanvasProps> = ({
   className = '',
   onChange,
@@ -59,12 +49,8 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   layout,
   readOnly = false,
   style = EMPTY_OBJECT,
-  renderToolbar,
-  renderSidebar,
-  renderSeatDetails,
   onSeatClick,
   onSeatAction,
-  labels = EMPTY_OBJECT,
   categories = [],
   onSaveCategories,
   existingSeats = [],
@@ -111,8 +97,8 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
             stats[catId].total++;
             const status = obj.status || 'available';
             if (status === 'sold') stats[catId].booked++;
-            else if (status === 'reserved') stats[catId].pending++;
-            else if (status === 'hold') stats[catId].locked++;
+            else if (status === 'held') stats[catId].pending++;
+            else if (status === 'blocked') stats[catId].locked++;
           }
         }
       });
@@ -134,11 +120,6 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     },
   }), [style]);
 
-  // Merge default labels with custom labels
-  const mergedLabels = useMemo(() => ({
-    ...defaultLabels,
-    ...labels,
-  }), [labels]);
 
   // Handle Ctrl+Scroll Zoom
   useEffect(() => {
@@ -278,16 +259,6 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     }
   };
 
-  // Default seat details modal
-  const defaultSeatDetails = (
-    <DefaultSeatModal
-      selectedSeat={selectedSeat}
-      setSelectedSeat={setSelectedSeat}
-      mergedLabels={mergedLabels}
-      handleSeatAction={handleSeatAction}
-    />
-  );
-
   // Full screen handler
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -368,36 +339,20 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
 
       {/* Main Content Area (Toolbar + Canvas) */}
       <div className="flex flex-col flex-1 h-full min-w-0 overflow-hidden">
-        {!readOnly &&
-          (renderToolbar ? (
-            renderToolbar({
-              onSave: handleSave,
-              onBgLayout: () => {
-                if (hasBgImage) {
-                  handleRemoveBgImage();
-                } else {
-                  bgInputRef.current?.click();
-                }
-              },
-              categories,
-              onSaveCategories,
-            })
-          ) : (
-            <Toolbar
-              onSave={handleSave}
-              onBgLayout={() => {
-                if (hasBgImage) {
-                  handleRemoveBgImage();
-                } else {
-                  bgInputRef.current?.click();
-                }
-              }}
-              onToggleFullScreen={handleToggleFullScreen}
-              isFullScreen={isFullScreen}
-              categories={categories}
-              onSaveCategories={onSaveCategories}
-            />
-          ))}
+        <Toolbar
+          onSave={handleSave}
+          onBgLayout={() => {
+            if (hasBgImage) {
+              handleRemoveBgImage();
+            } else {
+              bgInputRef.current?.click();
+            }
+          }}
+          onToggleFullScreen={handleToggleFullScreen}
+          isFullScreen={isFullScreen}
+          categories={categories}
+          onSaveCategories={onSaveCategories}
+        />
 
         <div className="flex h-0 min-h-0 w-full flex-1 overflow-hidden relative">
           {/* Canvas Area */}
@@ -416,17 +371,9 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
               <canvas ref={canvasRef} />
             </div>
           </div>
-          {!readOnly && (renderSidebar ? renderSidebar() : <Sidebar categories={categories} />)}
+          <Sidebar categories={categories} />
         </div>
       </div>
-      {/* Only show the default modal if renderSeatDetails is not provided */}
-      {renderSeatDetails
-        ? renderSeatDetails({
-          seat: selectedSeat!,
-          onClose: () => setSelectedSeat(null),
-          onAction: handleSeatAction,
-        })
-        : defaultSeatDetails}
 
       <TicketCategoryModal
         open={openTicketModal}
