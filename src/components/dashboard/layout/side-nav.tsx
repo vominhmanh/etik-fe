@@ -263,7 +263,7 @@ export function SideNav(): React.JSX.Element {
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="seat-maps"
-                title={tt("Sơ đồ ghế", "Seat Maps")}
+                title={tt("Hóa đơn thuế", "Tax Invoice")}
                 href={`/event-studio/events/${dynamicId}/seat-maps`}
                 icon={Armchair}
               />

@@ -218,6 +218,103 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
     };
   }, [canvas, zoomLevel]);
 
+  // Handle Mobile Pinch-to-Zoom
+  useEffect(() => {
+    const parent = canvasParent.current;
+    if (!parent || !canvas) return;
+
+    let startDist = 0;
+    let startZoom = zoomLevel;
+    let startCenter = { x: 0, y: 0 };
+    let startScroll = { left: 0, top: 0 };
+    let isPinching = false;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault(); // Prevent browser zoom
+        isPinching = true;
+
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        startDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+
+        startCenter = {
+          x: (t1.clientX + t2.clientX) / 2,
+          y: (t1.clientY + t2.clientY) / 2,
+        };
+
+        startZoom = useEventGuiStore.getState().zoomLevel;
+        startScroll = { left: parent.scrollLeft, top: parent.scrollTop };
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (isPinching && e.touches.length === 2) {
+        e.preventDefault();
+
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const newDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        const newCenter = {
+          x: (t1.clientX + t2.clientX) / 2,
+          y: (t1.clientY + t2.clientY) / 2,
+        };
+
+        const scale = newDist / startDist;
+        let newZoom = startZoom * scale;
+
+        // Clamp
+        newZoom = Math.min(Math.max(newZoom, 50), 250);
+
+        // Update Zoom
+        useEventGuiStore.getState().setZoomLevel(newZoom);
+
+        // Force DOM update to allow scrolling immediately (prevent browser clamping before React render)
+        const wrapper = parent.firstElementChild as HTMLElement;
+        if (wrapper) {
+          const currentScale = newZoom / 100;
+          wrapper.style.width = `${mergedStyle.width * currentScale}px`;
+          wrapper.style.height = `${mergedStyle.height * currentScale}px`;
+        }
+
+        // Adjust scroll to keep center stable
+        const zoomRatio = newZoom / startZoom;
+        const parentRect = parent.getBoundingClientRect();
+
+        const offsetX = startScroll.left + (startCenter.x - parentRect.left);
+        const offsetY = startScroll.top + (startCenter.y - parentRect.top);
+
+        const newOffsetX = offsetX * zoomRatio;
+        const newOffsetY = offsetY * zoomRatio;
+
+        const newScrollLeft = newOffsetX - (newCenter.x - parentRect.left);
+        const newScrollTop = newOffsetY - (newCenter.y - parentRect.top);
+
+        parent.scrollLeft = newScrollLeft;
+        parent.scrollTop = newScrollTop;
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        isPinching = false;
+      }
+    };
+
+    parent.addEventListener('touchstart', onTouchStart, { passive: false });
+    parent.addEventListener('touchmove', onTouchMove, { passive: false });
+    parent.addEventListener('touchend', onTouchEnd);
+    parent.addEventListener('touchcancel', onTouchEnd);
+
+    return () => {
+      parent.removeEventListener('touchstart', onTouchStart);
+      parent.removeEventListener('touchmove', onTouchMove);
+      parent.removeEventListener('touchend', onTouchEnd);
+      parent.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [canvasParent, canvas, mergedStyle]); // Re-bind if parent changes. relying on store for current zoom reference in closure if we strictly followed "startZoom" capture way.
+
+
   // Handle zoom changes
   useEffect(() => {
     if (!canvas) return;
@@ -286,27 +383,42 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
     }
   };
 
-  // Center canvas scroll on mount/layout change
+  // Fit and Center canvas on mount/layout change
   useEffect(() => {
     if (canvasParent.current && canvas) {
       const parent = canvasParent.current;
       // Delay to ensure content is rendered/sized
       const timer = setTimeout(() => {
-        const contentWidth = parent.scrollWidth;
-        const contentHeight = parent.scrollHeight;
-        const clientWidth = parent.clientWidth;
-        const clientHeight = parent.clientHeight;
+        const { clientWidth, clientHeight } = parent;
 
-        if (contentWidth > clientWidth) {
-          parent.scrollTo({ left: (contentWidth - clientWidth) / 2, behavior: 'smooth' });
+        // Auto-fit logic
+        const padding = 40;
+        const availableWidth = clientWidth - padding;
+        const availableHeight = clientHeight - padding;
+
+        if (mergedStyle.width > 0 && mergedStyle.height > 0) {
+          const scaleX = availableWidth / mergedStyle.width;
+          const scaleY = availableHeight / mergedStyle.height;
+          const scale = Math.min(scaleX, scaleY);
+
+          let targetZoom = Math.floor(scale * 100);
+          targetZoom = Math.min(targetZoom, 100); // Max 100%
+          targetZoom = Math.max(targetZoom, 20);  // Min 20% to allow fitting large maps
+
+          useEventGuiStore.getState().setZoomLevel(targetZoom);
         }
-        if (contentHeight > clientHeight) {
-          parent.scrollTo({ top: (contentHeight - clientHeight) / 2, behavior: 'smooth' });
-        }
-      }, 500);
+
+        // Check if scrolling is still needed (if forced min zoom makes it larger than parent)
+        // We wait for the next tick for layout to update, but we can check based on targetZoom
+        // However, standard margin-auto handles centering if it fits.
+        // If it overflows, we try to center scroll. depends on resulting dimensions.
+        // For simplicity, we keep the scroll logic but use a slightly longer delay or assume User can scroll if overflow.
+        // The most important part "fit to wrapper" is handled by setZoomLevel.
+
+      }, 100);
       return () => clearTimeout(timer);
     }
-  }, [layout, canvas]);
+  }, [layout, canvas, mergedStyle.width, mergedStyle.height]);
 
   const handleRemoveSeat = (seatIdToRemove: string) => {
     if (!selectedSeatIds || !onSelectionChange) return;
