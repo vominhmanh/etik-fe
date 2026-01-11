@@ -905,6 +905,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         'waiting_for_payment': tt('Chờ thanh toán', 'Waiting for Payment'),
                         'paid': tt('Đã thanh toán', 'Paid'),
                         'refund': tt('Đã hoàn tiền', 'Refunded'),
+                        'failed': tt('Thất bại', 'Failed'),
                       };
                       return paymentStatusLabels[selectedArray[0]] || selectedArray[0];
                     }
@@ -929,6 +930,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <MenuItem value="refund">
                     <Checkbox checked={filters.paymentStatus.includes('refund')} />
                     <ListItemText primary={tt('Đã hoàn tiền', 'Refunded')} />
+                  </MenuItem>
+                  <MenuItem value="failed">
+                    <Checkbox checked={filters.paymentStatus.includes('failed')} />
+                    <ListItemText primary={tt('Thất bại', 'Failed')} />
                   </MenuItem>
                 </Select>
               </FormControl>

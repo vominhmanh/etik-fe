@@ -19,7 +19,7 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
       : [...selectedShows, show];
 
     // Combine all conditions to check if the ticket is valid
-    const isValidSelection = show.status === 'on_sale' && !show.disabled;
+    const isValidSelection = show.status === 'on_sale' && !show.disabled && show.seatmapMode === 'no_seatmap';
 
     // Only proceed if all conditions are met
     if (isValidSelection) {
@@ -48,7 +48,8 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
                 onChange={() => handleItemClick(show)}
                 disabled={
                   show.status !== "on_sale" ||
-                  show.disabled
+                  show.disabled ||
+                  show.seatmapMode !== 'no_seatmap'
                 }
               />
             </Box>
@@ -60,15 +61,17 @@ export function Schedules({ shows = [], onSelectionChange }: LatestProductsProps
               primaryTypographyProps={{ variant: 'subtitle2' }}
               secondary={(show.startDateTime && show.endDateTime
                 ? `${dayjs(show.startDateTime).format('HH:mm')} - ${dayjs(show.endDateTime).format('HH:mm | DD/MM/YYYY')}` : "")
-                + (show.disabled
-                  ? ` | ${tt("Đang khóa bởi hệ thống", "Locked by system")}`
-                  : show.status !== "on_sale"
-                    ? show.status === "not_opened_for_sale"
-                      ? ` | ${tt("Chưa mở bán", "Not yet on sale")}`
-                      : show.status === "temporarily_locked"
-                        ? ` | ${tt("Đang tạm khóa", "Temporarily locked")}`
-                        : ""
-                    : "")
+                + (show.seatmapMode !== 'no_seatmap'
+                  ? ` | ${tt("Không hỗ trợ tạo vé lô cho show có sơ đồ ghế", "Bulk creation not supported for seatmap shows")}`
+                  : show.disabled
+                    ? ` | ${tt("Đang khóa bởi hệ thống", "Locked by system")}`
+                    : show.status !== "on_sale"
+                      ? show.status === "not_opened_for_sale"
+                        ? ` | ${tt("Chưa mở bán", "Not yet on sale")}`
+                        : show.status === "temporarily_locked"
+                          ? ` | ${tt("Đang tạm khóa", "Temporarily locked")}`
+                          : ""
+                      : "")
               }
               secondaryTypographyProps={{ variant: 'caption' }}
             />

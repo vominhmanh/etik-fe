@@ -52,6 +52,8 @@ const getPaymentStatusDetails = (paymentStatus: string, tt: (vi: string, en: str
       return { label: tt('Đã thanh toán', 'Paid'), color: 'success' };
     case 'refund':
       return { label: tt('Đã hoàn tiền', 'Refunded'), color: 'secondary' };
+    case 'failed':
+      return { label: tt('Thất bại', 'Failed'), color: 'error' };
     default:
       return { label: tt('Không xác định', 'Unknown'), color: 'default' };
   }

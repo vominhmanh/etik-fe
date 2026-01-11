@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/contexts/locale-context";
+import NotificationContext from "@/contexts/notification-context";
 import { Avatar, Button, CardActions, CardContent, Container, Grid, Modal, OutlinedInput, Stack, Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -11,14 +13,10 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemAvatar from "@mui/material/ListItemAvatar";
 import ListItemText from "@mui/material/ListItemText";
-import Radio from "@mui/material/Radio";
-import { ArrowCounterClockwise as ArrowCounterClockwiseIcon } from "@phosphor-icons/react/dist/ssr/ArrowCounterClockwise";
-import { DotsThreeVertical as DotsThreeVerticalIcon } from "@phosphor-icons/react/dist/ssr/DotsThreeVertical";
-import React, { useState } from "react";
-import { Show } from "../../../app/(features)/event-studio/(event-detail)/events/[event_id]/transactions/create/page";
 import { Plus, Ticket, X } from "@phosphor-icons/react/dist/ssr";
-import NotificationContext from "@/contexts/notification-context";
-import { useTranslation } from "@/contexts/locale-context";
+import { ArrowCounterClockwise as ArrowCounterClockwiseIcon } from "@phosphor-icons/react/dist/ssr/ArrowCounterClockwise";
+import React, { useState } from "react";
+import { Show } from "./types";
 
 
 interface TicketCategoriesProps {

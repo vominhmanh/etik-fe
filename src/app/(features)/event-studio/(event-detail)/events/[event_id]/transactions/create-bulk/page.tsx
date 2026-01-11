@@ -53,6 +53,7 @@ export type Show = {
   name: string;
   avatar: string;
   status: string;
+  seatmapMode: 'no_seatmap' | 'seatings_selection' | 'ticket_categories_selection';
   type: string;
   disabled: boolean;
   startDateTime: string; // backend response provides date as string

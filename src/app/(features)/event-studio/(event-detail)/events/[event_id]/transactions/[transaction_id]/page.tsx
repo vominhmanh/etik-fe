@@ -79,6 +79,8 @@ const getPaymentStatusDetails = (status: string, tt: (vi: string, en: string) =>
       return { label: tt('Đã thanh toán', 'Paid'), color: 'success' };
     case 'refund':
       return { label: tt('Đã hoàn tiền', 'Refunded'), color: 'secondary' };
+    case 'failed':
+      return { label: tt('Thất bại', 'Failed'), color: 'error' };
     default:
       return { label: tt('Không xác định', 'Unknown'), color: 'default' };
   }
@@ -775,12 +777,12 @@ export default function Page({ params }: { params: { event_id: number; transacti
     if (!activeMenuTicket || !transaction) return;
     const ticket = transaction.transactionTicketCategories[activeMenuTicket.categoryIndex]?.tickets[activeMenuTicket.ticketIndex];
     if (!ticket) return;
-    
+
     // Parse phone number
     const parsedPhone = ticket.holderPhone ? parseE164Phone(ticket.holderPhone) : null;
     const phoneCountryIso2 = parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2;
     const phoneNumber = parsedPhone?.nationalNumber || ticket.holderPhone || '';
-    
+
     setEditingTicket(activeMenuTicket);
     setEditingHolderInfo({
       title: ticket.holderTitle || (locale === 'en' ? 'Mx.' : 'Bạn'),
@@ -796,12 +798,12 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
   const handleSaveTicket = async () => {
     if (!editingTicket || !editingHolderInfo || !transaction) return;
-    
+
     if (!editingHolderInfo.title || !editingHolderInfo.name) {
       notificationCtx.warning(tt('Vui lòng điền đủ Danh xưng và Họ tên.', 'Please fill in Title and Full Name.'));
       return;
     }
-    
+
     try {
       setIsLoading(true);
 
@@ -1688,7 +1690,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                   boxShadow: 'none',
                                 }}
                               >
-                                  <Box sx={{ p: 1.5, position: 'relative' }}>
+                                <Box sx={{ p: 1.5, position: 'relative' }}>
                                   {/* TID và Check-in icon ở góc phải trên */}
                                   <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 0.5, alignItems: 'center' }}>
                                     {/* Check-in icon */}
@@ -1707,7 +1709,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                         )}
                                       </Box>
                                     </Tooltip>
-                                    
+
                                     {/* TID */}
                                     <Tooltip title={tt('Mã vé', 'Ticket ID')}>
                                       <Chip
@@ -1782,11 +1784,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                         {ticket.showSeat && (
                                           <Tooltip
                                             title={tt(
-                                              `Ghế: ${ticket.showSeat.rowLabel || ''}${
-                                                ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : ''
+                                              `Ghế: ${ticket.showSeat.rowLabel || ''}${ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : ''
                                               }${ticket.showSeat.seatNumber || ''} (ID: ${ticket.showSeat.id})`,
-                                              `Seat: ${ticket.showSeat.rowLabel || ''}${
-                                                ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : ''
+                                              `Seat: ${ticket.showSeat.rowLabel || ''}${ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : ''
                                               }${ticket.showSeat.seatNumber || ''} (ID: ${ticket.showSeat.id})`,
                                             )}
                                           >
@@ -1905,7 +1905,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                 </CardContent>
               </Card>
 
-              
+
               <Card>
                 <CardHeader title={tt('Lịch sử gửi', 'Sending History')} subheader={tt('Lịch sử gửi email và gửi Zalo đến khách hàng', 'History of sending emails and Zalo messages to customers')} />
                 <Divider />
@@ -2068,18 +2068,18 @@ export default function Page({ params }: { params: { event_id: number; transacti
               }} aria-labelledby="edit-ticket-modal-title" aria-describedby="edit-ticket-modal-description">
                 <Container maxWidth="sm">
                   <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { md: '500px', xs: '95%' }, maxHeight: '90vh', bgcolor: 'background.paper', boxShadow: 24 }}>
-                    <CardHeader 
+                    <CardHeader
                       title={editingTicket && transaction ? (() => {
                         const ticket = transaction.transactionTicketCategories[editingTicket.categoryIndex]?.tickets[editingTicket.ticketIndex];
                         const category = transaction.transactionTicketCategories[editingTicket.categoryIndex]?.ticketCategory;
                         return category ? `${category.show.name} - ${category.name}` : tt('Sửa thông tin vé', 'Edit Ticket Information');
-                      })() : tt('Sửa thông tin vé', 'Edit Ticket Information')} 
+                      })() : tt('Sửa thông tin vé', 'Edit Ticket Information')}
                       action={<IconButton onClick={() => {
                         setEditTicketModalOpen(false);
                         setEditingTicket(null);
                         setEditingHolderInfo(null);
                         setPendingHolderAvatarFile(null);
-                      }}><X /></IconButton>} 
+                      }}><X /></IconButton>}
                     />
                     <CardContent sx={{ pt: 0, maxHeight: '70vh', overflowY: 'auto' }}>
                       {editingHolderInfo && (

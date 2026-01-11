@@ -190,17 +190,40 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
     const catConfig = activeSchedule.ticketCategories.find(tc => tc.id === categoryId);
     if (!catConfig) return;
 
-    const newTickets: TicketInfo[] = Array.from({ length: quantity }).map(() => ({
-      showId: activeSchedule.id,
-      ticketCategoryId: categoryId,
-      price: catConfig.price,
-      holder: undefined
-    }));
+    setOrder(prev => {
+      const currentTickets = prev.tickets;
+      // Filter tickets for this specific category in this show
+      const categoryTickets = currentTickets.filter(
+        t => t.showId === activeSchedule.id && t.ticketCategoryId === categoryId
+      );
+      const otherTickets = currentTickets.filter(
+        t => !(t.showId === activeSchedule.id && t.ticketCategoryId === categoryId)
+      );
 
-    setOrder(prev => ({
-      ...prev,
-      tickets: [...prev.tickets, ...newTickets]
-    }));
+      const currentQty = categoryTickets.length;
+      let newCategoryTickets = [...categoryTickets];
+
+      if (quantity > currentQty) {
+        // Add more
+        const toAdd = quantity - currentQty;
+        const newTickets: TicketInfo[] = Array.from({ length: toAdd }).map(() => ({
+          showId: activeSchedule.id,
+          ticketCategoryId: categoryId,
+          price: catConfig.price,
+          holder: undefined
+        }));
+        newCategoryTickets = [...newCategoryTickets, ...newTickets];
+      } else if (quantity < currentQty) {
+        // Remove some (from end to preserve oldest/filled ones if applicable, or just pop)
+        // Taking first 'quantity' items preserves the ones at the start.
+        newCategoryTickets = newCategoryTickets.slice(0, quantity);
+      }
+
+      return {
+        ...prev,
+        tickets: [...otherTickets, ...newCategoryTickets]
+      };
+    });
   };
 
   return (

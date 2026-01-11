@@ -78,6 +78,12 @@ const getPaymentStatusDetails = (
         color: 'text.secondary',
         icon: <ArrowUUpLeft size={18} weight="fill" />,
       };
+    case 'failed':
+      return {
+        label: tt('Thất bại', 'Failed'),
+        color: 'error.main',
+        icon: <XCircle size={18} weight="fill" />,
+      };
     default:
       return {
         label: 'Unknown',

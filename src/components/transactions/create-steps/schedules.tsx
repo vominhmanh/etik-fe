@@ -2,7 +2,7 @@ import { Box, Card, CardHeader, Divider, IconButton, List, ListItem, ListItemAva
 import { CaretRight as CaretRightIcon } from '@phosphor-icons/react/dist/ssr/CaretRight';
 import dayjs from 'dayjs';
 import React from 'react';
-import { Show } from '../../../app/(features)/event-studio/(event-detail)/events/[event_id]/transactions/create/page';
+import { Show } from './types';
 import { useTranslation } from '@/contexts/locale-context';
 
 export interface LatestProductsProps {

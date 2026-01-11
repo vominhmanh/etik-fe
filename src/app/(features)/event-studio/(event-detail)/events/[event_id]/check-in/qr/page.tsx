@@ -199,6 +199,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         return { label: tt('Đã thanh toán', 'Paid'), color: 'success' };
       case 'refund':
         return { label: tt('Đã hoàn tiền', 'Refunded'), color: 'secondary' };
+      case 'failed':
+        return { label: tt('Thất bại', 'Failed'), color: 'error' };
       default:
         return { label: 'Unknown', color: 'default' };
     }
@@ -272,18 +274,18 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     timeBetweenDecodingAttempts: 50,
     constraints: {
       video: selectedDeviceId
-        ? { 
-            deviceId: { ideal: selectedDeviceId }, // Use 'ideal' instead of 'exact' for better iOS compatibility
-            facingMode: 'environment', // iOS Safari requires this
-            width: { ideal: 480 },
-            height: { ideal: 480 },
-          }
+        ? {
+          deviceId: { ideal: selectedDeviceId }, // Use 'ideal' instead of 'exact' for better iOS compatibility
+          facingMode: 'environment', // iOS Safari requires this
+          width: { ideal: 480 },
+          height: { ideal: 480 },
+        }
         : {
-            facingMode: 'environment', // iOS Safari requires this for back camera
-            width: { ideal: 480 },
-            height: { ideal: 480 },
-            aspectRatio: { ideal: 1 },
-          },
+          facingMode: 'environment', // iOS Safari requires this for back camera
+          width: { ideal: 480 },
+          height: { ideal: 480 },
+          aspectRatio: { ideal: 1 },
+        },
     },
   });
 
@@ -303,7 +305,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         // On iOS Safari, we need camera permission to get device labels
         // Check if we already have an active stream (permission granted)
         const videoEl = ref.current;
-        const hasActiveStream = videoEl?.srcObject instanceof MediaStream && 
+        const hasActiveStream = videoEl?.srcObject instanceof MediaStream &&
           videoEl.srcObject.getVideoTracks().length > 0;
 
         // If no active stream, try to enumerate anyway (might work on some browsers)
@@ -313,10 +315,10 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           return;
         }
         const videoInputs = devices.filter((device) => device.kind === 'videoinput');
-        
+
         // Check if we have devices with labels (permission granted)
         const hasLabels = videoInputs.some(d => d.label);
-        
+
         // Only update if we have devices with labels (permission granted) or if it's the first load
         if (videoInputs.length > 0 && (hasActiveStream || hasLabels || !hasLoadedWithPermission)) {
           setVideoDevices(videoInputs);
@@ -343,7 +345,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
     // Initial load
     loadDevices();
-    
+
     // Reload devices when video stream becomes active (permission granted)
     // Only check for a limited time to avoid infinite loops
     let checkCount = 0;
@@ -354,7 +356,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         clearInterval(checkStream);
         return;
       }
-      
+
       const videoEl = ref.current;
       if (videoEl?.srcObject instanceof MediaStream && !hasLoadedWithPermission) {
         loadDevices();
@@ -484,17 +486,17 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       dataTrxn.transactionTicketCategories.forEach(transactionTicketCategory => {
         transactionTicketCategory.tickets.forEach((ticket) => {
           const ticketKey = `${ticket.id}-${transactionTicketCategory.ticketCategory.show.id}-${transactionTicketCategory.ticketCategory.id}`
-          
+
           // Check latest HistoryCheckIn to determine if ticket is checked in
           const historyCheckIns = ticket.historyCheckIns || [];
           const latestCheckIn = historyCheckIns.length > 0
             ? historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
             : null;
-          
+
           const isCheckedIn = latestCheckIn?.type === 'check-in';
           const isCheckedOut = latestCheckIn?.type === 'check-out';
           const isInSelectedSchedule = transactionTicketCategory.ticketCategory.show.id === selectedSchedule?.id && selectedCategories.includes(transactionTicketCategory.ticketCategory.id);
-          
+
           // For check-in: only enable tickets that are not checked in (checked out or never checked in)
           // Also disable tickets with status != 'normal'
           if (ticket.status !== 'normal') {
@@ -845,11 +847,11 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       address: tt('Địa chỉ', 'Address'),
                       idcard_number: tt('Số CMND/CCCD', 'ID number'),
                     };
-                    
+
                     return builtinOrder.map(builtinKey => {
                       const field = builtinFieldsMap.get(builtinKey);
                       if (!field) return null;
-                      
+
                       return (
                         <Grid container justifyContent="space-between" key={builtinKey}>
                           <Typography variant="body1">{builtinLabelMap[builtinKey] || field.label}:</Typography>
@@ -923,7 +925,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                         const latestCheckIn = historyCheckIns.length > 0
                                           ? historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
                                           : null;
-                                        
+
                                         if (latestCheckIn?.type === 'check-in') {
                                           return (
                                             <Typography variant="caption" color="success.main">

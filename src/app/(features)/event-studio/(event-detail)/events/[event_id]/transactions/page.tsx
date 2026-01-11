@@ -1006,6 +1006,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Checkbox checked={filters.paymentStatus.includes('refund')} />
                     <ListItemText primary={tt("Đã hoàn tiền", "Refunded")} />
                   </MenuItem>
+                  <MenuItem value="failed">
+                    <Checkbox checked={filters.paymentStatus.includes('failed')} />
+                    <ListItemText primary={tt('Thất bại', 'Failed')} />
+                  </MenuItem>
                 </Select>
               </FormControl>
               <FormControl sx={{ minWidth: '200px' }}>
