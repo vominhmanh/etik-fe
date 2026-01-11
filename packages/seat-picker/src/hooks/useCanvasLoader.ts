@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { fabric } from 'fabric';
 import { useEventGuiStore } from '@/zustand';
 import { SeatData, CategoryInfo, ShowSeat, ObjectProperties, Layout, SeatObject, SeatStatus } from '@/types/data.types';
-import { applyCustomStyles, applyEmptySeatStyle, applyDarkenStyle, updateSeatVisuals } from '../components/createObject/applyCustomStyles';
+import { applyCustomStyles, applyEmptySeatStyle, applyDarkenStyle, updateSeatVisuals, getDarkenColor } from '../components/createObject/applyCustomStyles';
 import { SERIALIZABLE_PROPERTIES } from '@/utils/constants';
 
 interface UseCanvasLoaderProps {
@@ -78,7 +78,15 @@ export const useCanvasLoader = ({
                         if (dbSeat && dbSeat.ticketCategoryId && categories.map((c) => c.id).includes(dbSeat.ticketCategoryId)) {
                             categoryId = dbSeat.ticketCategoryId;
                             status = dbSeat.status || 'available';
-                            const color = categoryMap.get(categoryId)?.color || '#ffffff';
+                            const categoryData = categoryMap.get(categoryId);
+                            const color = categoryData?.color || 'rgba(209, 193, 193, 0.7)';
+
+                            // Update Object Data with authoritative DB info
+                            obj.category = categoryId;
+                            obj.price = categoryData?.price || 0;
+                            if (!obj.attributes) obj.attributes = {};
+                            obj.attributes.category = categoryId;
+                            obj.attributes.price = obj.price;
 
                             // 2. Apply Visuals using shared function
                             if (obj.type === 'group') {
@@ -89,8 +97,8 @@ export const useCanvasLoader = ({
                             } else {
                                 // Fallback for single objects (though we mostly use groups now)
                                 obj.set('fill', color);
-                                // applyDarkenStyle if needed for single obj?
-                                if (status === 'blocked' || status === 'sold' || status === 'held') {
+                                // Ensure single objects are also darkened if needed
+                                if (['blocked', 'sold', 'held'].includes(status)) {
                                     applyDarkenStyle(obj, color);
                                 }
                             }

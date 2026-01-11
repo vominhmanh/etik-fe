@@ -9,12 +9,12 @@ import useCanvasSetup from '@/hooks/useCanvasSetup';
 // import useObjectCreator from '@/hooks/useObjectCreator';
 // import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 // import useUndoRedo from '@/hooks/useUndoRedo';
-import { useCustomerCanvasLoaderSynced } from '../hooks/useCustomerCanvasLoaderSynced';
+import { useCustomerCanvasLoaderSynced } from '@/hooks/useCustomerCanvasLoaderSynced';
 import useRowLabelRenderer from '@/hooks/useRowLabelRenderer';
 import { LuX, LuList, LuMenu } from 'react-icons/lu';
-import { useSeatMetadata } from '../hooks/useSeatMetadata';
+import { useSeatMetadata } from '@/hooks/useSeatMetadata';
 import '@/index.css';
-import '../fabricCustomRegistration';
+import '@/fabricCustomRegistration';
 import { CanvasObject, SeatCanvasProps, SeatData, CategoryStats } from '@/types/data.types';
 import { EMPTY_OBJECT, SERIALIZABLE_PROPERTIES } from '@/utils/constants';
 import { useCanvasBackground } from '@/hooks/useCanvasBackground';
@@ -73,9 +73,9 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasParent = useRef<HTMLDivElement>(null);
 
-  const { canvas, setCanvas, zoomLevel } =
-    useEventGuiStore();
-  useEventGuiStore();
+  const canvas = useEventGuiStore((state) => state.canvas);
+  const setCanvas = useEventGuiStore((state) => state.setCanvas);
+  const zoomLevel = useEventGuiStore((state) => state.zoomLevel);
   // Removed selectedSeat state for modal - Logic moved to multi-select via canvas
   const [openTicketModal, setOpenTicketModal] = useState(false);
   const [categoryStats, setCategoryStats] = useState<Record<number, CategoryStats>>({});

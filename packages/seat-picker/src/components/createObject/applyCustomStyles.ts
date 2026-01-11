@@ -3,9 +3,9 @@ import { fabric } from 'fabric';
 
 export const SEAT_STYLE_CONFIG = {
   empty: {
-    fill: 'rgba(255,255,255,0.8)',
+    fill: 'rgba(209, 193, 193, 0.7)',
     stroke: 'black',
-    strokeWidth: 1,
+    strokeWidth: 0,
   },
   icons: {
     blocked: 'M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10z',
@@ -75,6 +75,7 @@ export function applyDarkenStyle(obj: fabric.Object, baseColor: string) {
     (obj as fabric.Group).getObjects().forEach((subObj: any) => {
       if (subObj.type === 'circle') subObj.set('fill', darkenColor);
     });
+    (obj as fabric.Group).addWithUpdate();
   } else {
     obj.set('fill', darkenColor);
   }
@@ -119,12 +120,14 @@ export function updateSeatVisuals(group: fabric.Group, updates: SeatVisualUpdate
   const currentStatus = updates.status || (group as any).status || 'available';
   const baseFill = updates.fill ?? circle.fill; // Use new fill or existing
 
-  if (baseFill && baseFill !== 'transparent') {
-    const isUnavailable = ['blocked', 'sold', 'held'].includes(currentStatus);
-    // If unavailable, darken. If available, use base.
-    circleUpdates.fill = isUnavailable
-      ? getDarkenColor(baseFill as string)
-      : baseFill;
+  const isUnavailable = ['blocked', 'sold', 'held'].includes(currentStatus);
+
+  if (isUnavailable) {
+    // Always darken unavailable seats, even if base is transparent
+    circleUpdates.fill = getDarkenColor(baseFill as string);
+  } else if (baseFill && baseFill !== 'transparent') {
+    // Apply base fill for available seats
+    circleUpdates.fill = baseFill;
   }
 
   if (Object.keys(circleUpdates).length > 0) {

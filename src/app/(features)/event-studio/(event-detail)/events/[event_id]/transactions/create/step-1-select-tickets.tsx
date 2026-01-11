@@ -287,7 +287,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
             <Box sx={{ display: seatmapVisible ? 'block' : 'none' }}>
               <CustomerSeatPicker
                 layout={(seatmapVisible ? activeSchedule?.layoutJson : stickySeatmapLayout) || {}}
-                ticketCategories={activeSchedule?.ticketCategories || []}
+                categories={activeSchedule?.ticketCategories || []}
                 selectedSeatIds={Array.from(selectedSeats)}
                 existingSeats={existingSeats} // Pass the fetched seats
                 onSelectionChange={handleSelectionChange}

@@ -1,10 +1,11 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { fabric } from 'fabric';
 import { useEventGuiStore } from '@/zustand';
-import { CanvasObject, SeatData, CategoryInfo, Layout, SeatObject, SeatStatus, ObjectProperties, ShowSeat } from '@/types/data.types';
+import { SeatData, CategoryInfo, ShowSeat, ObjectProperties, Layout, SeatObject, SeatStatus } from '@/types/data.types';
+import { applyEmptySeatStyle, applyDarkenStyle, updateSeatVisuals, getDarkenColor } from '../components/createObject/applyCustomStyles';
 import { useSeatMetadata } from './useSeatMetadata';
-import { applyEmptySeatStyle, applyDarkenStyle, updateSeatVisuals } from '../components/createObject/applyCustomStyles';
+import { SERIALIZABLE_PROPERTIES } from '@/utils/constants';
 
 interface UseCanvasLoaderProps {
     canvas: fabric.Canvas | null;
@@ -22,35 +23,41 @@ interface UseCanvasLoaderProps {
 export const useCustomerCanvasLoaderSynced = ({
     canvas,
     layout,
-    readOnly,
     existingSeats,
     categories,
     mergedStyle,
-    onSeatClick,
     setHasBgImage,
     selectedSeatIds,
     onSelectionChange,
 }: UseCanvasLoaderProps & { selectedSeatIds?: string[]; onSelectionChange?: (ids: string[], seats: SeatData[]) => void }) => {
-    const { setRows } = useEventGuiStore();
+    const setRows = useEventGuiStore((state) => state.setRows);
+
     // Use seat metadata hook to get rowLabel lookup function
     const { getRowLabel } = useSeatMetadata(layout);
 
     // Store props in refs to access latest values in event handlers without re-running effects
-    const selectedSeatIdsRef = React.useRef(selectedSeatIds);
-    const onSelectionChangeRef = React.useRef(onSelectionChange);
-    const getRowLabelRef = React.useRef(getRowLabel);
+    // This is crucial for the event handler to see the latest selectedSeatIds without recreating the handler
+    const onSelectionChangeRef = useRef(onSelectionChange);
+    const selectedSeatIdsRef = useRef(selectedSeatIds);
+    const categoriesRef = useRef(categories);
+    const getRowLabelRef = useRef(getRowLabel);
 
     useEffect(() => {
-        selectedSeatIdsRef.current = selectedSeatIds;
-    }, [selectedSeatIds]);
+        getRowLabelRef.current = getRowLabel;
+    }, [getRowLabel]);
 
     useEffect(() => {
         onSelectionChangeRef.current = onSelectionChange;
     }, [onSelectionChange]);
 
     useEffect(() => {
-        getRowLabelRef.current = getRowLabel;
-    }, [getRowLabel]);
+        selectedSeatIdsRef.current = selectedSeatIds;
+    }, [selectedSeatIds]);
+
+    useEffect(() => {
+        categoriesRef.current = categories;
+    }, [categories]);
+
 
     // Helper function to enrich rowLabel for a seat object once
     const enrichSeatRowLabel = (obj: any) => {
@@ -86,7 +93,7 @@ export const useCustomerCanvasLoaderSynced = ({
             originX: 'center',
             originY: 'center',
             stroke: 'white',
-            strokeWidth: 1
+            strokeWidth: 0
         });
         const text = new fabric.Text('✓', {
             fontSize: 12,
@@ -158,7 +165,7 @@ export const useCustomerCanvasLoaderSynced = ({
         // Restore Stroke on Inner Circle
         targetCircle.set({
             stroke: target._originalStroke || '#000000',
-            strokeWidth: 1
+            strokeWidth: 0
         });
 
         // Remove Checkmark
@@ -200,13 +207,13 @@ export const useCustomerCanvasLoaderSynced = ({
     // Load layout if provided
     useEffect(() => {
         if (!canvas || !layout) return;
+        let layoutCanvas = layout.canvas;
 
         // Clear canvas
         canvas.clear();
 
         // Store handler reference so we can remove it
         let readOnlyMouseDownHandler: ((options: any) => void) | null = null;
-        let layoutCanvas = layout.canvas;
 
         // Handle extended JSON with rows
         if ((layout as any).rows && Array.isArray((layout as any).rows)) {
@@ -214,14 +221,14 @@ export const useCustomerCanvasLoaderSynced = ({
             if ((layout as any).canvas) layoutCanvas = (layout as any).canvas;
         }
 
+
         canvas.loadFromJSON(
             layoutCanvas,
             () => {
-                // Create map if existing seats are provided
                 const categoryMap = new Map(
                     categories.map((c) => [c.id, c])
                 );
-                // Key: canvasSeatId (which MUST match obj.id in Fabric)
+
                 canvas.getObjects().forEach((obj: any) => {
                     // Ensure ID exists for ALL objects
                     if (!obj.id) {
@@ -240,219 +247,215 @@ export const useCustomerCanvasLoaderSynced = ({
                         if (dbSeat && dbSeat.ticketCategoryId && categories.map((c) => c.id).includes(dbSeat.ticketCategoryId)) {
                             categoryId = dbSeat.ticketCategoryId;
                             status = dbSeat.status || 'available';
-                            const color = categoryMap.get(categoryId)?.color || '#ffffff';
+                            const categoryData = categoryMap.get(categoryId);
+                            const color = categoryData?.color || 'rgba(209, 193, 193, 0.7)';
+
+                            // Update Object Data with authoritative DB info
+                            obj.category = categoryId;
+                            obj.price = categoryData?.price || 0;
+                            if (!obj.attributes) obj.attributes = {};
+                            obj.attributes.category = categoryId;
+                            obj.attributes.price = obj.price;
+
+                            obj._hasValidCategory = true;
+                            // Only allow selection if status is available
+                            obj._isAvailable = status === 'available';
 
                             // 2. Apply Visuals using shared function
+                            let visualColor = color;
+                            if (['blocked', 'sold', 'held'].includes(status)) {
+                                visualColor = getDarkenColor(color);
+                            }
+
                             if (obj.type === 'group') {
                                 updateSeatVisuals(obj as fabric.Group, {
-                                    fill: color,
+                                    fill: visualColor,
                                     status: status
                                 });
                             } else {
                                 // Fallback for single objects (though we mostly use groups now)
-                                obj.set('fill', color);
-                                // applyDarkenStyle if needed for single obj?
-                                if (status === 'blocked' || status === 'sold' || status === 'held') {
-                                    applyDarkenStyle(obj, color);
-                                }
+                                obj.set('fill', visualColor);
                             }
                         } else {
+                            obj._hasValidCategory = false;
+                            obj._isAvailable = false;
                             applyEmptySeatStyle(obj);
                         }
                     }
                 });
 
-                // Customer View Specific Logic
-                // 1. Check for background image object and send to back
-                const bgObj = canvas
-                    .getObjects()
-                    .find((obj: any) => obj.customType === 'layout-background');
-                if (bgObj) {
-                    setHasBgImage(true);
-                    bgObj.sendToBack();
-                    bgObj.set({
-                        selectable: false,
-                        evented: false, // Background not evented for customer to avoid interference
-                        hasControls: false,
-                        lockRotation: true,
-                        lockMovementX: true,
-                        lockMovementY: true,
-                        lockScalingX: true,
-                        lockScalingY: true,
-                        lockSkewingX: true,
-                        lockSkewingY: true,
-                        hoverCursor: 'default',
-                    });
-                } else {
-                    setHasBgImage(false);
-                }
 
-                // 2. Label each seat by number if enabled
-                if (mergedStyle.showSeatNumbers) {
-                    canvas.getObjects('circle').forEach((seat: any) => {
-                        // Remove any previous label
-                        if (seat.labelObj) {
-                            canvas.remove(seat.labelObj);
-                            seat.labelObj = null;
-                        }
-                        const label = new fabric.Text(
-                            seat.attributes?.number?.toString() ||
-                            seat.seatNumber?.toString() ||
-                            '',
-                            {
-                                left:
-                                    (seat.left ?? 0) +
-                                    (seat.radius ?? mergedStyle.seatStyle.radius),
-                                top:
-                                    (seat.top ?? 0) +
-                                    (seat.radius ?? mergedStyle.seatStyle.radius),
-                                ...mergedStyle.seatNumberStyle,
-                                originX: 'center',
-                                originY: 'center',
-                                selectable: false,
-                                evented: false,
-                                excludeFromExport: true,
-                            }
-                        );
-                        seat.labelObj = label;
-                        canvas.add(label);
-                        canvas.bringToFront(label);
-                    });
-                }
-
-                // 3. STRICT CUSTOMER INTERACTION SETUP (V2)
-                canvas.getObjects().forEach((obj: any) => {
-                    const isSeat = obj.customType === 'seat';
-
-                    if (isSeat && obj.type === 'group') {
-                        // Find inner circle for visual handling
-                        const objects = (obj as fabric.Group).getObjects();
-                        const circle = objects.find((o) => o.type === 'circle');
-                        if (circle) {
-                            // Initialize original stroke from circle if not present
-                            if (!obj._originalStroke) {
-                                obj._originalStroke = circle.stroke || '#000000';
-                            }
-                            // Ensure circle stroke behavior is uniform
-                            circle.set({ strokeUniform: true });
-                        }
+                if (true) { // Always enforce strict customer view (only selection, no moving)
+                    // Check for background image object and send to back
+                    const bgObj = canvas
+                        .getObjects()
+                        .find((obj: any) => obj.customType === 'layout-background');
+                    if (bgObj) {
+                        setHasBgImage(true);
+                        bgObj.sendToBack();
+                        bgObj.set({
+                            selectable: false,
+                            evented: false, // Background not evented for customer to avoid interference
+                            hasControls: false,
+                            lockRotation: true,
+                            lockMovementX: true,
+                            lockMovementY: true,
+                            hoverCursor: 'default',
+                        });
+                    } else {
+                        setHasBgImage(false);
                     }
 
-                    // Properties are generally set in the hydration loop above, but ensure locks here
-                    obj.set({
-                        hasControls: false,
-                        hasBorders: false,
-                        lockMovementX: true,
-                        lockMovementY: true,
-                        lockRotation: true,
-                        lockScalingX: true,
-                        lockScalingY: true,
-                        lockSkewingX: true,
-                        lockSkewingY: true,
-                        permanentlyLocked: true,
-                    });
-                });
+                    // Label each seat by number if enabled
+                    if (mergedStyle.showSeatNumbers) {
+                        canvas.getObjects('circle').forEach((seat: any) => {
+                            // Remove any previous label
+                            if (seat.labelObj) {
+                                canvas.remove(seat.labelObj);
+                                seat.labelObj = null;
+                            }
+                            const label = new fabric.Text(
+                                seat.attributes?.number?.toString() ||
+                                seat.seatNumber?.toString() ||
+                                '',
+                                {
+                                    left:
+                                        (seat.left ?? 0) +
+                                        (seat.radius ?? mergedStyle.seatStyle.radius),
+                                    top:
+                                        (seat.top ?? 0) +
+                                        (seat.radius ?? mergedStyle.seatStyle.radius),
+                                    ...mergedStyle.seatNumberStyle,
+                                    originX: 'center',
+                                    originY: 'center',
+                                    selectable: false,
+                                    evented: false,
+                                    excludeFromExport: true
+                                }
+                            );
+                            seat.labelObj = label;
+                            canvas.add(label);
+                            canvas.bringToFront(label);
+                        });
+                    }
 
-                // Initial Application of Selected Seat IDs (if any provided on mount)
-                // Enrich rowLabel for all selected seats when canvas loads
-                if (selectedSeatIds && selectedSeatIds.length > 0) {
-                    const idsSet = new Set(selectedSeatIds);
+                    // Make all objects not selectable/editable, only seats (circles) are clickable
+                    // STRICT CUSTOMER INTERACTION SETUP
                     canvas.getObjects().forEach((obj: any) => {
-                        if (obj.customType === 'seat' && obj.id && idsSet.has(obj.id) && obj.evented) {
-                            enrichSeatRowLabel(obj);
-                            selectSeat(obj, canvas);
-                        }
+                        const isSeat = obj.customType === 'seat';
+
+                        // Disable controls and locking for everything
+                        obj.set({
+                            selectable: false, // Explicitly disable native selection box
+                            hasControls: false,
+                            hasBorders: false,
+                            lockMovementX: true,
+                            lockMovementY: true,
+                            lockRotation: true,
+                            lockScalingX: true,
+                            lockScalingY: true,
+                        });
+
+                        // Only seats with valid category AND available status are evented (clickable)
+                        obj.evented = isSeat && !!obj._hasValidCategory && !!obj._isAvailable;
                     });
-                }
 
-                canvas.selection = false; // Disable global drag selection
-                canvas.hoverCursor = 'default';
+                    canvas.selection = false; // Disable global drag selection
+                    canvas.hoverCursor = 'default';
 
-                // Custom Click Handler for Toggle Selection V2
-                if (readOnlyMouseDownHandler) {
-                    canvas.off('mouse:down', readOnlyMouseDownHandler);
-                }
-
-                readOnlyMouseDownHandler = (options) => {
-                    if (!options.target) return;
-                    const target = options.target as any;
-
-                    // STRICT CHECK: Only allow click if seat is evented (interactable)
-                    if (target.customType !== 'seat' || !target.evented) return;
-
-                    // OUTWARD SYNC: Notify parent
-                    const currentSelectedIdsProp = selectedSeatIdsRef.current;
-                    const onSelectionChangeProp = onSelectionChangeRef.current;
-
-                    const isControlled = currentSelectedIdsProp !== undefined;
-                    const willBeSelected = !target._customSelected;
-
-                    // Update Local Visuals ONLY if uncontrolled
-                    if (!isControlled) {
-                        if (willBeSelected) {
-                            selectSeat(target, canvas);
-                        } else {
-                            deselectSeat(target, canvas);
-                        }
-                        canvas.requestRenderAll();
+                    // Initial Application of Selected Seat IDs (if any provided on mount)
+                    if (selectedSeatIdsRef.current && selectedSeatIdsRef.current.length > 0) {
+                        const idsSet = new Set(selectedSeatIdsRef.current);
+                        canvas.getObjects().forEach((obj: any) => {
+                            if (obj.customType === 'seat' && obj.id && idsSet.has(obj.id) && obj.evented) {
+                                enrichSeatRowLabel(obj);
+                                selectSeat(obj, canvas);
+                            }
+                        });
                     }
 
-                    // Always notify parent of the INTENT
-                    if (onSelectionChangeProp) {
-                        let currentIds = currentSelectedIdsProp || [];
+
+                    // Custom Click Handler for Toggle Selection (Multi-select)
+                    readOnlyMouseDownHandler = (options) => {
+                        if (!options.target) return;
+                        const target = options.target as any;
+
+                        // STRICT CHECK: Only allow click if seat is evented (interactable)
+                        if (target.customType !== 'seat' || !target.evented) return;
+
+                        const currentSelectedIdsProp = selectedSeatIdsRef.current;
+                        const onSelectionChangeProp = onSelectionChangeRef.current;
+                        const currentCategories = categoriesRef.current;
+
+                        const isControlled = currentSelectedIdsProp !== undefined;
+                        const willBeSelected = !target._customSelected;
+
+                        // Update Local Visuals ONLY if uncontrolled
                         if (!isControlled) {
-                            currentIds = canvas.getObjects()
-                                .filter((o: any) => o.customType === 'seat' && o._customSelected)
-                                .map((o: any) => o.id);
+                            if (willBeSelected) {
+                                selectSeat(target, canvas);
+                            } else {
+                                deselectSeat(target, canvas);
+                            }
+                            canvas.requestRenderAll();
                         }
 
-                        let newIds: string[] = [];
-                        if (willBeSelected) {
-                            newIds = [...new Set([...currentIds, target.id])];
-                        } else {
-                            newIds = currentIds.filter(id => id !== target.id);
+                        // Always notify parent
+                        if (onSelectionChangeProp) {
+                            let currentIds = currentSelectedIdsProp || [];
+                            if (!isControlled) {
+                                currentIds = canvas.getObjects()
+                                    .filter((o: any) => o.customType === 'seat' && o._customSelected)
+                                    .map((o: any) => o.id);
+                            }
+
+                            let newIds: string[] = [];
+                            if (willBeSelected) {
+                                newIds = [...new Set([...currentIds, target.id])];
+                            } else {
+                                newIds = currentIds.filter(id => id !== target.id);
+                            }
+
+                            // Construct seat data
+                            const selectedSeatsData = canvas.getObjects()
+                                .filter((o: any) => newIds.includes(o.id) && o.customType === 'seat')
+                                .map((o: any) => {
+                                    enrichSeatRowLabel(o);
+
+                                    const raw = o.toJSON ? o.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']) : {};
+                                    const attributes = o.attributes || {};
+                                    const category = attributes.category ?? o.category ?? raw.category ?? '';
+
+                                    return {
+                                        id: String(o.id ?? ''),
+                                        number: attributes.number ?? o.seatNumber ?? raw.number ?? raw.seatNumber ?? '',
+                                        price: attributes.price ?? o.price ?? raw.price ?? '',
+                                        rowLabel: o.rowLabel || attributes.rowLabel || raw.rowLabel || '-',
+                                        category: category,
+                                        status: attributes.status ?? o.status ?? raw.status ?? '',
+                                        categoryInfo: currentCategories.find((c: any) => c.id === category) || {
+                                            id: category,
+                                            name: 'Unknown Category',
+                                            price: 0,
+                                            color: '#999999'
+                                        },
+                                    };
+                                });
+
+                            onSelectionChangeProp(newIds, selectedSeatsData);
                         }
-
-                        // Enrich rowLabel once and store in fabric object, then gather full seat data
-                        const selectedSeatsData = canvas.getObjects()
-                            .filter((o: any) => newIds.includes(o.id) && o.customType === 'seat')
-                            .map((o: any) => {
-                                // Enrich rowLabel once using helper function
-                                enrichSeatRowLabel(o);
-
-                                // Extract data from enriched object
-                                const raw = o.toJSON ? o.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']) : {};
-                                const attributes = o.attributes || {};
-                                const category = attributes.category ?? o.category ?? raw.category ?? '';
-
-                                return {
-                                    id: String(o.id ?? ''),
-                                    number: attributes.number ?? o.seatNumber ?? raw.number ?? raw.seatNumber ?? '',
-                                    price: attributes.price ?? o.price ?? raw.price ?? '',
-                                    rowLabel: o.rowLabel || attributes.rowLabel || raw.rowLabel || '-',
-                                    category: category,
-                                    status: attributes.status ?? o.status ?? raw.status ?? '',
-                                    categoryInfo: categories.find((c: any) => c.id === category) || {
-                                        id: category,
-                                        name: 'Unknown Category',
-                                        price: 0,
-                                        color: '#999999'
-                                    },
-                                };
-                            });
-
-                        onSelectionChangeProp(newIds, selectedSeatsData);
-                    }
-                };
-                canvas.on('mouse:down', readOnlyMouseDownHandler);
-                canvas.renderAll();
+                    };
+                    canvas.on('mouse:down', readOnlyMouseDownHandler);
+                    canvas.renderAll();
+                }
             }
         );
 
         return () => {
-            if (readOnlyMouseDownHandler) {
+            if (canvas && readOnlyMouseDownHandler) {
                 canvas.off('mouse:down', readOnlyMouseDownHandler);
             }
         };
-    }, [canvas, layout, mergedStyle, onSeatClick, categories, existingSeats, setRows, setHasBgImage]); // Logic for selectedSeatIds is in separate effect
+    }, [canvas, layout, mergedStyle, categories, existingSeats]);
+
 };
