@@ -646,9 +646,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         if (t.holder) {
           // Format phone to E.164
           let holderPhoneE164: string | undefined = undefined;
+          let phoneCountryIso2 = t.holder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2;
+          let phoneDigits = '';
+
           if (t.holder.nationalPhone) {
-            const phoneCountryIso2 = t.holder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2;
-            const phoneDigits = t.holder.nationalPhone.replace(/\D/g, '').replace(/^0+/, '');
+            phoneDigits = t.holder.nationalPhone.replace(/\D/g, '').replace(/^0+/, '');
             holderPhoneE164 = formatToE164(phoneCountryIso2, phoneDigits) || undefined;
           }
 

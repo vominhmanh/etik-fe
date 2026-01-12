@@ -513,7 +513,6 @@ export default function Page({ params }: { params: { transaction_id: number } })
                           <Typography variant="body1">{tt('Trang thanh toán:', 'Payment Page:')}</Typography>
                           <Typography variant="body1">
                             <Button
-                              component={LocalizedLink}
                               href={transaction.paymentCheckoutUrl || ''}
                               size="small"
                               startIcon={<LightningIcon />}

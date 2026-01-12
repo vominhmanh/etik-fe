@@ -1275,7 +1275,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
                             <Typography variant="body1">{tt('Trang thanh toán:', 'Payment Page:')}</Typography>
                             <Typography variant="body1">
                               <Button
-                                component={LocalizedLink}
                                 href={transaction.paymentCheckoutUrl || ''}
                                 size="small"
                                 startIcon={<LightningIcon />}

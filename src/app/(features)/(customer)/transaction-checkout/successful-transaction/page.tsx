@@ -416,7 +416,6 @@ export default function Page(): React.JSX.Element {
                               <Typography variant="body1">{tt('Trang thanh toán:', 'Payment page:')}</Typography>
                               <Typography variant="body1">
                                 <Button
-                                  component={LocalizedLink}
                                   href={transaction.paymentCheckoutUrl || ''}
                                   size="small"
                                   startIcon={<LightningIcon />}
