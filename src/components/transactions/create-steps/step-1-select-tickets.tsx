@@ -55,6 +55,8 @@ export type Step1SelectTicketsProps = {
   subtotal: number;
   onEditCartItem: (showId: number, categoryId: number) => void;
   onRemoveCartItem: (showId: number, categoryId: number) => void;
+  eventLimitPerTransaction?: number | null;
+  eventLimitPerCustomer?: number | null;
 };
 
 export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.Element {
@@ -113,6 +115,43 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
 
   const handleSelectionChange = (newIds: string[], newSelectedSeats: SeatData[]) => {
     // Check limits
+    // 1. Event Level Limit Check
+    if (props.eventLimitPerTransaction) {
+      // Calculate total tickets already selected for OTHER shows + new selection for THIS show
+      // Note: order.tickets contains ALL tickets for the order event.
+      // We need to count tickets that are NOT for the current activeSchedule, then add new selection count.
+
+      const otherShowsTicketsCount = order.tickets.filter(t => t.showId !== activeSchedule?.id).length;
+      const totalNewCount = otherShowsTicketsCount + newSelectedSeats.length;
+
+      if (totalNewCount > props.eventLimitPerTransaction) {
+        notificationCtx.error(
+          `Bạn chỉ được chọn tối đa ${props.eventLimitPerTransaction} vé cho toàn bộ sự kiện.`
+        );
+        return;
+      }
+    }
+
+    if (props.eventLimitPerCustomer) {
+      const otherShowsTicketsCount = order.tickets.filter(t => t.showId !== activeSchedule?.id).length;
+      const totalNewCount = otherShowsTicketsCount + newSelectedSeats.length;
+      if (totalNewCount > props.eventLimitPerCustomer) {
+        notificationCtx.error(
+          `Bạn chỉ được chọn tối đa ${props.eventLimitPerCustomer} vé cho toàn bộ sự kiện.`
+        );
+        return;
+      }
+    }
+
+    if (activeSchedule?.limitPerTransaction) {
+      if (newSelectedSeats.length > activeSchedule.limitPerTransaction) {
+        notificationCtx.error(
+          `Bạn chỉ được chọn tối đa ${activeSchedule.limitPerTransaction} vé cho suất diễn này.`
+        );
+        return;
+      }
+    }
+
     if (activeSchedule?.ticketCategories) {
       const countsByCat: Record<string, number> = {};
       newSelectedSeats.forEach((s) => {
@@ -189,6 +228,47 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
     if (!activeSchedule) return;
     const catConfig = activeSchedule.ticketCategories.find(tc => tc.id === categoryId);
     if (!catConfig) return;
+
+    if (activeSchedule.limitPerTransaction) {
+      const currentTickets = order.tickets;
+      const otherTicketsCount = currentTickets.filter(
+        t => t.showId === activeSchedule.id && t.ticketCategoryId !== categoryId
+      ).length;
+
+      if (otherTicketsCount + quantity > activeSchedule.limitPerTransaction) {
+        notificationCtx.error(
+          `Bạn chỉ được chọn tối đa ${activeSchedule.limitPerTransaction} vé cho suất diễn này.`
+        );
+        return;
+      }
+    }
+
+    if (props.eventLimitPerTransaction) {
+      const ticketsFromOtherShows = order.tickets.filter(t => t.showId !== activeSchedule.id).length;
+      const currentCategoryTickets = order.tickets.filter(t => t.showId === activeSchedule.id && t.ticketCategoryId === categoryId).length;
+      const otherTicketsTotal = ticketsFromOtherShows + (order.tickets.length - ticketsFromOtherShows - currentCategoryTickets); // effectively total - currentCat
+
+      // The logic: total tickets after update = (total - currCat) + newQty
+      // Or simply: (total - currCat) + newQty <= limit
+      const ticketsExceptCurrentCat = order.tickets.filter(t => !(t.showId === activeSchedule.id && t.ticketCategoryId === categoryId)).length;
+
+      if (ticketsExceptCurrentCat + quantity > props.eventLimitPerTransaction) {
+        notificationCtx.error(
+          `Bạn chỉ được chọn tối đa ${props.eventLimitPerTransaction} vé cho toàn bộ sự kiện.`
+        );
+        return;
+      }
+    }
+
+    if (props.eventLimitPerCustomer) {
+      const ticketsExceptCurrentCat = order.tickets.filter(t => !(t.showId === activeSchedule.id && t.ticketCategoryId === categoryId)).length;
+      if (ticketsExceptCurrentCat + quantity > props.eventLimitPerCustomer) {
+        notificationCtx.error(
+          `Bạn chỉ được chọn tối đa ${props.eventLimitPerCustomer} vé cho toàn bộ sự kiện.`
+        );
+        return;
+      }
+    }
 
     setOrder(prev => {
       const currentTickets = prev.tickets;
@@ -307,6 +387,9 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
                   holders?: { title: string; name: string; email: string; phone: string }[]
                 ) => handleAddToCart(categoryId, quantity)}
                 cartQuantities={cartQuantitiesForActiveSchedule}
+                eventLimitPerTransaction={props.eventLimitPerTransaction}
+                eventLimitPerCustomer={props.eventLimitPerCustomer}
+                totalTicketsInOrder={totalSelectedTickets}
               />
             ) : null}
           </Box>

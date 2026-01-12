@@ -6,7 +6,7 @@ import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Card, CardA
 import type { ChipProps } from '@mui/material/Chip';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import { grey } from '@mui/material/colors';
-import { ArrowClockwise, ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
+import { Armchair, ArrowClockwise, ArrowSquareIn, Bank, CaretDown, CheckCircle, Clock, Lightning, Money, XCircle } from '@phosphor-icons/react/dist/ssr';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
@@ -37,6 +37,11 @@ export interface CheckInHistory {
   };
 }
 
+interface ShowSeat {
+  rowLabel: string;
+  seatNumber: string;
+}
+
 export interface Ticket {
   id: number;
   holderName: string;
@@ -46,6 +51,7 @@ export interface Ticket {
   checkInAt: Date | null;
   status: string;
   historyCheckIns?: CheckInHistory[];
+  showSeat: ShowSeat
 }
 
 export type RecentScan = {
@@ -64,6 +70,7 @@ export type TicketCategory = {
   quantity: number;
   sold: number;
   disabled: boolean;
+  color: string;
   show: Show;
 };
 
@@ -915,11 +922,29 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                     />
                                   }
                                   label={
-                                    <Stack direction="column" alignItems="left">
-                                      <Typography variant="body2">TID-{ticket.id} {ticket.holderName || ticket.holderTitle}</Typography>
+                                    <Stack direction="column" alignItems="flex-start" spacing={0.5}>
+                                      <Stack direction="row" alignItems="center" spacing={1}>
+                                        <Chip label={`TID-${ticket.id}`} size="small" variant="outlined" color="default" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                        {/* Seat Info */}
+                                        {ticket.showSeat && (
+                                          <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary' }}>
+                                            <Armchair size={16} />
+                                            <Typography variant="body2">
+                                              {ticket.showSeat.rowLabel}-{ticket.showSeat.seatNumber}
+                                            </Typography>
+                                          </Stack>
+                                        )}
+                                        <Typography variant="body2" fontWeight="bold">
+                                          {ticket.holderName || ticket.holderTitle}
+                                        </Typography>
+                                      </Stack>
+
                                       {ticket.status && ticket.status !== 'normal' && (
-                                        <Chip size="small" label={getRowStatusDetails(ticket.status).label} color={getRowStatusDetails(ticket.status).color} sx={{ height: 18, fontSize: '0.7rem', mt: 0.5 }} />
+                                        <Chip size="small" label={getRowStatusDetails(ticket.status).label} color={getRowStatusDetails(ticket.status).color} sx={{ height: 18, fontSize: '0.7rem' }} />
                                       )}
+
+
+
                                       {(() => {
                                         const historyCheckIns = ticket.historyCheckIns || [];
                                         const latestCheckIn = historyCheckIns.length > 0
@@ -928,15 +953,21 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
                                         if (latestCheckIn?.type === 'check-in') {
                                           return (
-                                            <Typography variant="caption" color="success.main">
-                                              {tt('Đã check-in lúc', 'Checked in at')} {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
-                                            </Typography>
+                                            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'success.main' }}>
+                                              <CheckCircle size={16} weight="fill" />
+                                              <Typography variant="caption">
+                                                {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
+                                              </Typography>
+                                            </Stack>
                                           );
                                         } else if (latestCheckIn?.type === 'check-out') {
                                           return (
-                                            <Typography variant="caption" color="error.main">
-                                              {tt('Đã check-out lúc', 'Checked out at')} {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
-                                            </Typography>
+                                            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'error.main' }}>
+                                              <Clock size={16} />
+                                              <Typography variant="caption">
+                                                {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
+                                              </Typography>
+                                            </Stack>
                                           );
                                         }
                                         return null;

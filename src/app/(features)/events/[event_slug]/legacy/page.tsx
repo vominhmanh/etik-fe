@@ -68,6 +68,7 @@ export type TicketCategory = {
   quantity: number;
   sold: number;
   disabled: boolean;
+  color: string;
 };
 
 export type Show = {

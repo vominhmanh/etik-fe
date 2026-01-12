@@ -23,9 +23,9 @@ import { LocalizedLink } from '@/components/homepage/localized-link';
 import * as React from 'react';
 import InputAdornment from '@mui/material/InputAdornment';
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
-import NotificationContext from '@/contexts/notification-context';
+import NotificationContext from '@/contexts/notification-context'; // Ensure NotificationContext is imported correctly if needed, but previously it was imported from contexts/notification-context
 import { useTranslation } from '@/contexts/locale-context';
-import { Accordion, AccordionDetails, AccordionSummary, CardHeader, Container, FormControlLabel, IconButton, InputLabel, Modal, OutlinedInput, Switch, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, CardHeader, Container, FormControlLabel, IconButton, InputLabel, Modal, OutlinedInput, Switch, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Checkbox } from '@mui/material';
 import { ArrowRight, Calendar, Clock, Users } from '@phosphor-icons/react';
 import { Armchair, Pencil } from '@phosphor-icons/react/dist/ssr';
 import dayjs from 'dayjs';
@@ -38,6 +38,7 @@ interface TicketCategory {
   avatar?: string | null;
   description?: string | null;
   status: string; // or enum if `TicketCategoryStatus` is defined as such
+  color: string;
   createdAt: string; // ISO string format for datetime
   updatedAt: string; // ISO string format for datetime
   quantity: number;
@@ -76,27 +77,13 @@ const getTypeMap = (tt: (vi: string, en: string) => string) => ({
   public: { label: tt('Công khai', 'Public'), color: 'primary' as const },
 });
 
-type ColorMap = {
-  [key: number]: string
-}
-
-const colorMap: ColorMap = {
-  0: deepOrange[500],
-  1: deepPurple[500],
-  2: green[500],
-  3: cyan[500],
-  4: indigo[500],
-  5: pink[500],
-  6: yellow[500],
-  7: deepPurple[300],
-};
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   const { tt, locale } = useTranslation();
   const statusMap = getStatusMap(tt);
   const typeMap = getTypeMap(tt);
 
   React.useEffect(() => {
-    document.title = tt("Thiết lập hạng vé | ETIK - Vé điện tử & Quản lý sự kiện", "Ticket Categories | ETIK - E-tickets & Event Management");
+    document.title = tt("Thiết lập vé | ETIK - Vé điện tử & Quản lý sự kiện", "Ticket Categories | ETIK - E-tickets & Event Management");
   }, [tt]);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -106,6 +93,10 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [selectedTicketCategory, setSelectedTicketCategory] = React.useState<TicketCategory | null>(null);
   const [formDataQuantity, setFormDataQuantity] = React.useState(0);
   const [formDataDisabled, setFormDataDisabled] = React.useState(false);
+
+  const [eventData, setEventData] = React.useState<any | null>(null); // Use any or EventResponse interface
+  const [openLimitModal, setOpenLimitModal] = React.useState(false);
+  const [limitFormData, setLimitFormData] = React.useState<{ limitPerTransaction: number | null, limitPerCustomer: number | null }>({ limitPerTransaction: null, limitPerCustomer: null });
 
   // Confirmation Dialog State
   const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
@@ -192,8 +183,47 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       }
     };
 
+    const fetchEventData = async () => {
+      try {
+        const response = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}`);
+        setEventData(response.data);
+        setLimitFormData({
+          limitPerTransaction: response.data.limitPerTransaction,
+          limitPerCustomer: response.data.limitPerCustomer
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
     fetchShowsWithTicketCategories();
+    fetchEventData();
   }, [params.event_id]);
+
+
+  const handleSaveEventLimit = async () => {
+    if (!eventData) return;
+    try {
+      setIsLoading(true);
+      const payload = {
+        ...eventData,
+        limitPerTransaction: limitFormData.limitPerTransaction,
+        limitPerCustomer: limitFormData.limitPerCustomer,
+      };
+      // Pydantic expects specific fields, some might need transformation if response has extra fields?
+      // EventUpdateRequest usually matches EventResponse but let's hope extra fields are ignored or structure matches.
+      // EventUpdateRequest has camelCase alias generator? Yes.
+
+      await baseHttpServiceInstance.put(`/event-studio/events/${params.event_id}`, payload);
+      notificationCtx.success(tt("Cập nhật thành công", "Update successful"));
+      setEventData(payload); // Optimistic update
+      setOpenLimitModal(false);
+    } catch (error) {
+      notificationCtx.error(tt('Lỗi:', 'Error:'), error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
@@ -211,7 +241,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         <Stack spacing={4}>
           <Stack direction="row" spacing={3}>
             <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-              <Typography variant="h4">{tt("Thiết lập hạng vé", "Ticket Categories")}</Typography>
+              <Typography variant="h4">{tt("Thiết lập vé", "Ticket Categories")}</Typography>
             </Stack>
             <div>
               <Button
@@ -225,20 +255,32 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
             </div>
           </Stack>
           <Card sx={{ p: 2 }}>
-            <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-              <OutlinedInput
-                defaultValue=""
-                fullWidth
-                placeholder="Tìm"
-                startAdornment={
-                  <InputAdornment position="start">
-                    <MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />
-                  </InputAdornment>
-                }
-                sx={{ maxWidth: '500px' }}
-              />
-            </Stack>
+            <Stack direction={{ md: 'row', xs: 'column' }} spacing={1} sx={{ alignItems: { md: 'center', xs: 'flex-start' } }} >
+              <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                <OutlinedInput
+                  defaultValue=""
+                  fullWidth
+                  placeholder="Tìm"
+                  startAdornment={
+                    <InputAdornment position="start">
+                      <MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />
+                    </InputAdornment>
+                  }
+                  sx={{ maxWidth: '500px' }}
+                />
+              </Stack>
+              <Box>
+                <Button
+                  variant="text"
+                  size='small'
+                  fullWidth={false}
+                  onClick={() => setOpenLimitModal(true)}
+                >
+                  {tt("Đặt giới hạn vé", "Set ticket limit")}
+                </Button>
+              </Box>
 
+            </Stack>
           </Card>
           <Grid container spacing={3}>
             {shows.map((show) => (
@@ -403,7 +445,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                         height: 36,
                                         width: 36,
                                         borderRadius: 1,
-                                        bgcolor: colorMap[ticketCategory.id % 8],
+                                        bgcolor: ticketCategory.color,
                                         fontSize: '1rem',
                                         fontWeight: 600
                                       }}
@@ -604,6 +646,78 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           </Button>
           <Button onClick={confirmSeatmapChange} color="error" autoFocus>
             {tt("OK", "OK")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Event Limit Modal */}
+      <Dialog
+        open={openLimitModal}
+        onClose={() => setOpenLimitModal(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>{tt("Giới hạn vé toàn sự kiện", "Event Ticket Limits")}</DialogTitle>
+        <DialogContent>
+
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            {/* Limit Per Transaction */}
+            <Stack direction="row" spacing={2} alignItems="center">
+              <OutlinedInput
+                type="number"
+                size="small"
+                disabled={limitFormData.limitPerTransaction === null}
+                value={limitFormData.limitPerTransaction ?? ''}
+                onChange={(e) => setLimitFormData(prev => ({ ...prev, limitPerTransaction: Number(e.target.value) }))}
+                sx={{ width: 100 }}
+              />
+              <Typography>{tt("vé / đơn hàng", "tickets / order")}</Typography>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={limitFormData.limitPerTransaction === null}
+                    onChange={(e) => setLimitFormData(prev => ({ ...prev, limitPerTransaction: e.target.checked ? null : 10 }))}
+                  />
+                }
+                label={tt("Không giới hạn", "Unlimited")}
+              />
+            </Stack>
+
+            {/* Limit Per Customer */}
+            <Stack direction="row" spacing={2} alignItems="center">
+              <OutlinedInput
+                type="number"
+                size="small"
+                disabled={limitFormData.limitPerCustomer === null}
+                value={limitFormData.limitPerCustomer ?? ''}
+                onChange={(e) => setLimitFormData(prev => ({ ...prev, limitPerCustomer: Number(e.target.value) }))}
+                sx={{ width: 100 }}
+              />
+              <Typography>{tt("vé / khách hàng", "tickets / customer")}</Typography>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={limitFormData.limitPerCustomer === null}
+                    onChange={(e) => setLimitFormData(prev => ({ ...prev, limitPerCustomer: e.target.checked ? null : 10 }))}
+                  />
+                }
+                label={tt("Không giới hạn", "Unlimited")}
+              />
+            </Stack>
+          </Stack>
+          <DialogContentText sx={{ mb: 2 }}>
+            {tt(
+              "Nếu bạn muốn thiết lập giới hạn cho từng suất diễn hoặc hạng vé, hãy điều chỉnh trong phần chỉnh sửa chi tiết từng hạng mục.",
+              "If you want to set limits for each show or ticket category, please adjust in the detail edit section."
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenLimitModal(false)} color="inherit">
+            {tt("Hủy", "Cancel")}
+          </Button>
+          <Button onClick={handleSaveEventLimit} variant="contained">
+            {tt("Lưu", "Save")}
           </Button>
         </DialogActions>
       </Dialog>

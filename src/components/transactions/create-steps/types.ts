@@ -26,6 +26,8 @@ export type Show = {
     startDateTime: string;
     endDateTime: string;
     ticketCategories: TicketCategory[];
+    limitPerTransaction?: number | null;
+    limitPerCustomer?: number | null;
 };
 
 export type CheckoutRuntimeFieldOption = {
@@ -61,6 +63,8 @@ export type EventResponse = {
     checkoutFormFields: CheckoutRuntimeField[];
     displayOption?: string;
     timeInstruction?: string;
+    limitPerTransaction?: number | null;
+    limitPerCustomer?: number | null;
 };
 
 export type TicketHolderInfo = {

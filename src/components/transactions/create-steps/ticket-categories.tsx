@@ -6,7 +6,6 @@ import { Avatar, Button, CardActions, CardContent, Container, Grid, Modal, Outli
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardHeader from "@mui/material/CardHeader";
-import { cyan, deepOrange, deepPurple, green, indigo, pink, yellow } from "@mui/material/colors";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
@@ -28,24 +27,12 @@ interface TicketCategoriesProps {
   onModalRequestHandled?: () => void;
   onCategorySelect: (ticketCategoryId: number) => void;
   onAddToCart?: (ticketCategoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; phoneCountryIso2?: string; }[]) => void;
+  eventLimitPerTransaction?: number | null;
+  eventLimitPerCustomer?: number | null;
+  totalTicketsInOrder?: number;
 }
 
-type ColorMap = {
-  [key: number]: string
-}
-
-const colorMap: ColorMap = {
-  0: deepOrange[500],
-  1: deepPurple[500],
-  2: green[500],
-  3: cyan[500],
-  4: indigo[500],
-  5: pink[500],
-  6: yellow[500],
-  7: deepPurple[300],
-};
-
-export function TicketCategories({ show, cartQuantities = {}, requestedCategoryModalId, onModalRequestHandled, onCategorySelect, onAddToCart }: TicketCategoriesProps): React.JSX.Element {
+export function TicketCategories({ show, cartQuantities = {}, requestedCategoryModalId, onModalRequestHandled, onCategorySelect, onAddToCart, eventLimitPerTransaction, eventLimitPerCustomer, totalTicketsInOrder = 0 }: TicketCategoriesProps): React.JSX.Element {
   const { tt } = useTranslation();
   const ticketCategories = show.ticketCategories;
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
@@ -94,9 +81,47 @@ export function TicketCategories({ show, cartQuantities = {}, requestedCategoryM
 
   const getMaxAllowedForCategory = (ticketCategory: any) => {
     if (!ticketCategory) return 1;
-    const remaining = Math.max(0, (ticketCategory.quantity || 0) - (ticketCategory.sold || 0));
-    const perTransactionLimit = ticketCategory.limitPerTransaction || remaining || 1;
-    return Math.max(1, Math.min(remaining || 1, perTransactionLimit));
+    const remainingStock = Math.max(0, (ticketCategory.quantity || 0) - (ticketCategory.sold || 0));
+
+    // Limits
+    let limit = remainingStock;
+    if (ticketCategory.limitPerTransaction) {
+      limit = Math.min(limit, ticketCategory.limitPerTransaction);
+    }
+
+    const currentQtyInCart = cartQuantities[ticketCategory.id] || 0;
+
+    // Show limit
+    if (show.limitPerTransaction) {
+      const currentTotalInShow = Object.values(cartQuantities).reduce((a, b) => a + b, 0);
+      const otherInShow = currentTotalInShow - currentQtyInCart;
+      const remainingShowLimit = Math.max(0, show.limitPerTransaction - otherInShow);
+      limit = Math.min(limit, remainingShowLimit);
+    }
+
+    // Event limit
+    if (eventLimitPerTransaction) {
+      const otherInEvent = totalTicketsInOrder - currentQtyInCart;
+      const remainingEventLimit = Math.max(0, eventLimitPerTransaction - otherInEvent);
+      limit = Math.min(limit, remainingEventLimit);
+    }
+
+    // Customer limit (Show & Event) - usually per customer limit is handled by backend or strict check if user logged in. 
+    // Here we treat it similar to transaction limit for the current session/order if provided.
+    if (eventLimitPerCustomer) {
+      const otherInEvent = totalTicketsInOrder - currentQtyInCart;
+      const remainingEventLimit = Math.max(0, eventLimitPerCustomer - otherInEvent);
+      limit = Math.min(limit, remainingEventLimit);
+    }
+
+    if (show.limitPerCustomer) {
+      const currentTotalInShow = Object.values(cartQuantities).reduce((a, b) => a + b, 0);
+      const otherInShow = currentTotalInShow - currentQtyInCart;
+      const remainingShowLimit = Math.max(0, show.limitPerCustomer - otherInShow);
+      limit = Math.min(limit, remainingShowLimit);
+    }
+
+    return Math.max(1, limit);
   };
 
   const handleOpenDescriptionModal = (ticketCategory: any) => {
@@ -186,7 +211,7 @@ export function TicketCategories({ show, cartQuantities = {}, requestedCategoryM
                       width: "48px",
                       fontSize: "2rem",
                       borderRadius: "5px",
-                      bgcolor: colorMap[ticketCategory.id % 8],
+                      bgcolor: ticketCategory.color,
                     }}
                     variant="square"
                   >

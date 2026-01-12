@@ -53,6 +53,7 @@ export type Step3PaymentProps = {
   selectedVoucherForDetail: any | null;
 
   showExtraFeeInput?: boolean;
+  allowedPaymentMethods?: string[];
 };
 
 export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
@@ -81,7 +82,27 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
     onBack,
     onNext,
     showExtraFeeInput = true, // Default to true
+    allowedPaymentMethods,
   } = props;
+
+  const allPaymentMethods = [
+    { value: 'cash', label: tt("Tiền mặt", "Cash"), icon: <Money size={20} weight="duotone" /> },
+    { value: 'transfer', label: tt("Chuyển khoản", "Transfer"), icon: <Bank size={20} weight="duotone" /> },
+    { value: 'napas247', label: 'Napas 247', icon: <CreditCard size={20} weight="duotone" /> },
+  ];
+
+  const visiblePaymentMethods = React.useMemo(() => {
+    if (!allowedPaymentMethods || allowedPaymentMethods.length === 0) {
+      return allPaymentMethods;
+    }
+    return allPaymentMethods.filter(m => allowedPaymentMethods.includes(m.value));
+  }, [allowedPaymentMethods, tt]);
+
+  React.useEffect(() => {
+    if (visiblePaymentMethods.length === 1 && paymentMethod !== visiblePaymentMethods[0].value) {
+      onPaymentMethodChange(visiblePaymentMethods[0].value);
+    }
+  }, [visiblePaymentMethods, paymentMethod, onPaymentMethodChange]);
 
   return (
     <Stack spacing={3}>
@@ -415,10 +436,8 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
                       sx={{ fontSize: 16 }}
                       renderValue={(selected) => {
                         if (!selected) return <Typography variant="body2" color="text.secondary" sx={{ fontSize: 16 }}>{tt("Chọn phương thức", "Select method")}</Typography>;
-                        if (selected === 'cash') return tt("Tiền mặt", "Cash");
-                        if (selected === 'transfer') return tt("Chuyển khoản", "Transfer");
-                        if (selected === 'napas247') return 'Napas 247';
-                        return selected;
+                        const method = visiblePaymentMethods.find(m => m.value === selected);
+                        return method ? method.label : selected;
                       }}
                     >
                       <MenuItem value="" disabled>
@@ -426,24 +445,14 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
                           {tt("Chọn phương thức thanh toán", "Select payment method")}
                         </Typography>
                       </MenuItem>
-                      <MenuItem value="cash">
-                        <ListItemIcon>
-                          <Money size={20} weight="duotone" />
-                        </ListItemIcon>
-                        <ListItemText primary={tt("Tiền mặt", "Cash")} />
-                      </MenuItem>
-                      <MenuItem value="transfer">
-                        <ListItemIcon>
-                          <Bank size={20} weight="duotone" />
-                        </ListItemIcon>
-                        <ListItemText primary={tt("Chuyển khoản", "Transfer")} />
-                      </MenuItem>
-                      <MenuItem value="napas247">
-                        <ListItemIcon>
-                          <CreditCard size={20} weight="duotone" />
-                        </ListItemIcon>
-                        <ListItemText primary="Napas 247" />
-                      </MenuItem>
+                      {visiblePaymentMethods.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          <ListItemIcon>
+                            {option.icon}
+                          </ListItemIcon>
+                          <ListItemText primary={option.label} />
+                        </MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                 }

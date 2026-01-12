@@ -30,20 +30,6 @@ interface TicketCategoriesProps {
   onAddToCart?: (ticketCategoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; }[]) => void;
 }
 
-type ColorMap = {
-  [key: number]: string
-}
-
-const colorMap: ColorMap = {
-  0: deepOrange[500],
-  1: deepPurple[500],
-  2: green[500],
-  3: cyan[500],
-  4: indigo[500],
-  5: pink[500],
-  6: yellow[500],
-  7: deepPurple[300],
-};
 
 export function TicketCategories({ show, qrOption, requestedCategoryModalId, onModalRequestHandled, onCategorySelect, onAddToCart }: TicketCategoriesProps): React.JSX.Element {
   const { tt, locale } = useTranslation();
@@ -55,7 +41,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
   const [cartQuantities, setCartQuantities] = useState<Record<number, number>>({});
   const [showMore, setShowMore] = useState(false);
   const notificationCtx = React.useContext(NotificationContext);
-  
+
   const getDefaultTitle = () => locale === 'en' ? 'Mx.' : 'Bạn';
   type TicketHolderInfo = { title: string; name: string; email: string; phone: string };
   const [ticketHolderInfos, setTicketHolderInfos] = useState<{ title: string; name: string; email: string; phone: string; }[]>([]);
@@ -146,7 +132,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
     if (!selectedTicketCategory) return;
     const id = selectedTicketCategory.id as number;
     const qty = ticketQuantities[id] ?? 0;
-    
+
     if (qty <= 0) {
       setCartQuantities((prev) => {
         const next = { ...prev };
@@ -220,7 +206,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                       width: "48px",
                       fontSize: "2rem",
                       borderRadius: "5px",
-                      bgcolor: colorMap[ticketCategory.id % 8],
+                      bgcolor: ticketCategory.color,
                     }}
                     variant="square"
                   >

@@ -802,6 +802,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               setActiveStep(0);
             }}
             onRemoveCartItem={(showId, categoryId) => handleAddToCartQuantity(showId, categoryId, 0)}
+            eventLimitPerTransaction={event?.limitPerTransaction}
+            eventLimitPerCustomer={event?.limitPerCustomer}
           />
         </Box>
 

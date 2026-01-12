@@ -32,7 +32,7 @@ import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
 
 import { getNavItems } from './config';
-import { Armchair, CurrencyCircleDollar, DiceSix, FileText, ImageSquare, Invoice, Mailbox, SealPercent, Sliders, SpinnerBall, SquaresFour, StackPlus, StarHalf, Tag, UserList } from '@phosphor-icons/react/dist/ssr';
+import { Armchair, CurrencyCircleDollar, DiceSix, FileText, ImageSquare, Invoice, Mailbox, SealPercent, Sliders, SpinnerBall, SquaresFour, StackPlus, StarHalf, Storefront, Tag, UserList } from '@phosphor-icons/react/dist/ssr';
 import NotificationContext from '@/contexts/notification-context';
 import { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
@@ -188,7 +188,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
               key="configuration-shows-ticket-categories"
-              title={tt("Thiết lập hạng vé", "Ticket Categories")}
+              title={tt("Thiết lập vé", "Ticket Categories")}
               href={`/event-studio/events/${dynamicId}/shows`}
               icon={TicketIcon}
               onClose={onClose}
@@ -264,7 +264,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
               key="transactions-create-bulk"
-              title={tt("Tạo đơn hàng theo lô (Admin)", "Create Bulk Orders (Admin)")}
+              title={tt("Tạo đơn hàng theo lô", "Create Bulk Orders (Admin)")}
               href={`/event-studio/events/${dynamicId}/transactions/create-bulk`}
               icon={StackPlus}
               onClose={onClose}
@@ -285,6 +285,15 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               icon={UserList}
               onClose={onClose}
             /> */}
+            <NavItemCollapseChildItem
+              pathname={normalizedPathname}
+              key="transactions-create"
+              title={tt("Trang marketplace", "Create Order")}
+              caption={tt("Trang khách hàng tự mua vé", "Customer Self Buy Page")}
+              href={`/event-studio/events/${dynamicId}/marketplace-settings`}
+              icon={Storefront}
+              onClose={onClose}
+            />
           </NavItemCollapse>
           <NavItemCollapse pathname={normalizedPathname} key="check-in" title={tt("Soát vé", "Check-in")} icon={DoorIcon} onClose={onClose}>
             <NavItemCollapseChildItem

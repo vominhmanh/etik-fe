@@ -12,7 +12,6 @@ import ListItem from '@mui/material/ListItem';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 import ListItemText from '@mui/material/ListItemText';
 import { ArrowCounterClockwise as ArrowCounterClockwiseIcon } from '@phosphor-icons/react/dist/ssr/ArrowCounterClockwise';
-import { DotsThreeVertical as DotsThreeVerticalIcon } from '@phosphor-icons/react/dist/ssr/DotsThreeVertical';
 import React, { useEffect, useState } from 'react';
 import { Show } from './page';
 import { Ticket } from '@phosphor-icons/react/dist/ssr';
@@ -23,21 +22,6 @@ interface TicketCategoriesProps {
   show: Show;
   onCategoriesSelect: (selectedIds: number[]) => void;
 }
-
-type ColorMap = {
-  [key: number]: string
-}
-
-const colorMap: ColorMap = {
-  0: deepOrange[500],
-  1: deepPurple[500],
-  2: green[500],
-  3: cyan[500],
-  4: indigo[500],
-  5: pink[500],
-  6: yellow[500],
-  7: deepPurple[300],
-};
 
 export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesProps): React.JSX.Element {
   const { tt } = useTranslation();
@@ -96,7 +80,7 @@ export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesP
                 <Box component="img" src={ticketCategory.avatar} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
               ) : (
                 <Avatar
-                  sx={{ height: '48px', width: '48px', fontSize: '2rem', borderRadius: '5px', bgcolor: colorMap[ticketCategory.id % 8] }}
+                  sx={{ height: '48px', width: '48px', fontSize: '2rem', borderRadius: '5px', bgcolor: ticketCategory.color }}
                   variant="square"
                 >
                   <Ticket size={32} weight="fill" />

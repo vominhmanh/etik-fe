@@ -27,6 +27,7 @@ import {
   SquaresFour,
   StackPlus,
   StarHalf,
+  Storefront,
   UserList,
 } from '@phosphor-icons/react/dist/ssr';
 import { Barcode as BarcodeIcon } from '@phosphor-icons/react/dist/ssr/Barcode';
@@ -222,7 +223,7 @@ export function SideNav(): React.JSX.Element {
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="configuration-shows-ticket-categories"
-                title={tt("Thiết lập hạng vé", "Ticket Categories")}
+                title={tt("Thiết lập vé", "Ticket Categories")}
                 href={`/event-studio/events/${dynamicId}/shows`}
                 icon={TicketIcon}
               />
@@ -306,6 +307,14 @@ export function SideNav(): React.JSX.Element {
                 href={`/event-studio/events/${dynamicId}/tickets`}
                 icon={UserList}
               /> */}
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="transactions-create"
+                title={tt("Trang marketplace", "Create Order")}
+                caption={tt("Trang khách hàng tự mua vé", "Customer Self Buy Page")}
+                href={`/event-studio/events/${dynamicId}/marketplace-settings`}
+                icon={Storefront}
+              />
             </NavItemCollapse>
             <NavItemCollapse pathname={pathname} key="check-in" title={tt("Soát vé", "Check-in")} icon={DoorIcon}>
               <NavItemCollapseChildItem

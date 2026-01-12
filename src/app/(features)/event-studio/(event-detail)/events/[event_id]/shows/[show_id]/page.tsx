@@ -12,6 +12,7 @@ import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
+import { Box, Checkbox, FormControlLabel } from '@mui/material';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
@@ -36,7 +37,11 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
     status: 'on_sale',
     endDateTime: '',
     startDateTime: '',
+    limitPerTransaction: null as number | null,
+    limitPerCustomer: null as number | null,
   });
+  const [isTransactionLimitUnlimited, setIsTransactionLimitUnlimited] = useState(false);
+  const [isCustomerLimitUnlimited, setIsCustomerLimitUnlimited] = useState(false);
   const router = useRouter();
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -53,7 +58,11 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
           status: response.data.status,
           startDateTime: response.data.startDateTime,
           endDateTime: response.data.endDateTime,
+          limitPerTransaction: response.data.limitPerTransaction,
+          limitPerCustomer: response.data.limitPerCustomer,
         });
+        setIsTransactionLimitUnlimited(response.data.limitPerTransaction === null);
+        setIsCustomerLimitUnlimited(response.data.limitPerCustomer === null);
       } catch (error) {
         notificationCtx.error(tt('Không thể tải thông tin suất diễn.', 'Unable to load show information.'), error);
       } finally {
@@ -70,6 +79,38 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
       ...prev,
       [name as string]: value,
     }));
+  };
+
+  const handleTransactionLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      limitPerTransaction: e.target.value ? parseFloat(e.target.value.replace(/\./g, '')) : 0
+    }));
+  };
+
+  const handleCustomerLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      limitPerCustomer: e.target.value ? parseFloat(e.target.value.replace(/\./g, '')) : 0
+    }));
+  };
+
+  const handleTransactionLimitCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsTransactionLimitUnlimited(e.target.checked);
+    if (e.target.checked) {
+      setFormData((prev) => ({ ...prev, limitPerTransaction: null }));
+    } else {
+      setFormData((prev) => ({ ...prev, limitPerTransaction: 2 })); // Reset to default value
+    }
+  };
+
+  const handleCustomerLimitCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsCustomerLimitUnlimited(e.target.checked);
+    if (e.target.checked) {
+      setFormData((prev) => ({ ...prev, limitPerCustomer: null }));
+    } else {
+      setFormData((prev) => ({ ...prev, limitPerCustomer: 4 })); // Reset to default value
+    }
   };
 
   const handleSubmit = async () => {
@@ -99,6 +140,8 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
           status: formData.status,
           startDateTime: formData.startDateTime,
           endDateTime: formData.endDateTime,
+          limitPerTransaction: formData.limitPerTransaction,
+          limitPerCustomer: formData.limitPerCustomer,
         }
       );
       notificationCtx.success(tt('Đã cập nhật suất diễn thành công.', 'Show updated successfully.'));
@@ -181,6 +224,54 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
                       />
                     </FormControl>
                   </Grid>
+
+
+                  <Grid md={6} xs={12}>
+                    <CardHeader
+                      title={tt("Số vé tối đa mỗi đơn hàng", "Maximum Tickets Per Order")}
+                      subheader={
+                        <Box display="flex" alignItems="center">
+                          <FormControlLabel
+                            control={<Checkbox checked={isTransactionLimitUnlimited} onChange={handleTransactionLimitCheckboxChange} />}
+                            label={<Typography variant="body2">{tt("Không giới hạn", "Unlimited")}</Typography>}
+                          />
+                        </Box>
+                      }
+                      action={
+                        <OutlinedInput
+                          sx={{ maxWidth: { xs: 70, sm: 180 } }}
+                          type="number"
+                          value={formData.limitPerTransaction !== null ? (formData.limitPerTransaction as number).toLocaleString('vi-VN') : ''}
+                          onChange={handleTransactionLimitChange}
+                          disabled={isTransactionLimitUnlimited}
+                        />
+                      }
+                      sx={{ p: 0 }}
+                    />
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <CardHeader
+                      title={tt("Số vé tối đa mỗi khách hàng", "Maximum Tickets Per Customer")}
+                      subheader={
+                        <Box display="flex" alignItems="center">
+                          <FormControlLabel
+                            control={<Checkbox checked={isCustomerLimitUnlimited} onChange={handleCustomerLimitCheckboxChange} />}
+                            label={<Typography variant="body2">{tt("Không giới hạn", "Unlimited")}</Typography>}
+                          />
+                        </Box>
+                      }
+                      action={
+                        <OutlinedInput
+                          sx={{ maxWidth: { xs: 70, sm: 180 } }}
+                          type="number"
+                          value={formData.limitPerCustomer !== null ? (formData.limitPerCustomer as number).toLocaleString('vi-VN') : ''}
+                          onChange={handleCustomerLimitChange}
+                          disabled={isCustomerLimitUnlimited}
+                        />
+                      }
+                      sx={{ p: 0 }}
+                    />
+                  </Grid>
                 </Grid>
               </CardContent>
             </Card>
@@ -213,6 +304,6 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
           </Stack>
         </Grid>
       </Grid>
-    </Stack>
+    </Stack >
   );
 }

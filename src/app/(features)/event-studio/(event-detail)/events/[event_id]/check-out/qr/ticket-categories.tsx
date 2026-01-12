@@ -11,32 +11,18 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 import ListItemText from '@mui/material/ListItemText';
-import { ArrowCounterClockwise as ArrowCounterClockwiseIcon } from '@phosphor-icons/react/dist/ssr/ArrowCounterClockwise';
+import Button from '@mui/material/Button';
 import { DotsThreeVertical as DotsThreeVerticalIcon } from '@phosphor-icons/react/dist/ssr/DotsThreeVertical';
 import React, { useEffect, useState } from 'react';
 import { Show } from './page';
 import { useTranslation } from '@/contexts/locale-context';
+import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
 
 
 interface TicketCategoriesProps {
   show: Show;
   onCategoriesSelect: (selectedIds: number[]) => void;
 }
-
-type ColorMap = {
-  [key: number]: string
-}
-
-const colorMap: ColorMap = {
-  0: deepOrange[500],
-  1: deepPurple[500],
-  2: green[500],
-  3: cyan[500],
-  4: indigo[500],
-  5: pink[500],
-  6: yellow[500],
-  7: deepPurple[300],
-};
 
 export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesProps): React.JSX.Element {
   const { tt } = useTranslation();
@@ -64,11 +50,21 @@ export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesP
   return (
     <Card>
       <CardHeader
-        title={tt(`Chọn Bàn để check-in cho ${show.name}`, `Select Table to check-in for ${show.name}`)}
+        subheader={tt(`Chọn hạng vé để check-out cho ${show.name}`, `Select ticket categories to check-out for ${show.name}`)}
+        title={tt(`Chọn hạng vé`, `Select ticket categories`)}
         action={
-          <IconButton>
-            <ArrowCounterClockwiseIcon fontSize="var(--icon-fontSize-md)" />
-          </IconButton>
+          <Button
+            size="small"
+            onClick={() => {
+              if (selectedCategories.length === ticketCategories.length) {
+                setSelectedCategories([]);
+              } else {
+                setSelectedCategories(ticketCategories.map(tc => tc.id));
+              }
+            }}
+          >
+            {selectedCategories.length === ticketCategories.length ? tt("Bỏ chọn tất cả", "Deselect All") : tt("Chọn tất cả", "Select All")}
+          </Button>
         }
       />
       <Divider />
@@ -95,10 +91,10 @@ export function TicketCategories({ show, onCategoriesSelect }: TicketCategoriesP
                 <Box component="img" src={ticketCategory.avatar} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
               ) : (
                 <Avatar
-                  sx={{ height: '48px', width: '48px', fontSize: '2rem', borderRadius: '5px', bgcolor: colorMap[ticketCategory.id % 8] }}
+                  sx={{ height: '48px', width: '48px', fontSize: '2rem', borderRadius: '5px', bgcolor: ticketCategory.color }}
                   variant="square"
                 >
-                  {ticketCategory.name[ticketCategory.name.length - 1]}
+                  <TicketIcon />
                 </Avatar>
               )}
             </ListItemAvatar>

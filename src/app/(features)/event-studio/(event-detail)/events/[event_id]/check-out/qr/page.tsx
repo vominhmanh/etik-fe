@@ -6,7 +6,7 @@ import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Card, CardA
 import type { ChipProps } from '@mui/material/Chip';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import { grey } from '@mui/material/colors';
-import { ArrowClockwise, ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
+import { Armchair, ArrowClockwise, ArrowSquareIn, Bank, CaretDown, CheckCircle, Clock, Lightning, Money, XCircle } from '@phosphor-icons/react/dist/ssr';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
@@ -45,6 +45,7 @@ export interface Ticket {
   holderPhone: string | null;
   checkInAt: Date | null;
   status: string;
+  showSeat: ShowSeat;
   historyCheckIns?: CheckInHistory[];
 }
 
@@ -53,6 +54,12 @@ export type RecentScan = {
   scannedAt: string;
   type: 'check_in' | 'check_out';
 };
+
+interface ShowSeat {
+  rowLabel: string;
+  seatNumber: string;
+}
+
 
 export type TicketCategory = {
   id: number;
@@ -65,6 +72,7 @@ export type TicketCategory = {
   sold: number;
   disabled: boolean;
   show: Show;
+  color: string;
 };
 
 // transactionTicketCategory.ts
@@ -272,18 +280,18 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     timeBetweenDecodingAttempts: 50,
     constraints: {
       video: selectedDeviceId
-        ? { 
-            deviceId: { ideal: selectedDeviceId }, // Use 'ideal' instead of 'exact' for better iOS compatibility
-            facingMode: 'environment', // iOS Safari requires this
-            width: { ideal: 480 },
-            height: { ideal: 480 },
-          }
+        ? {
+          deviceId: { ideal: selectedDeviceId }, // Use 'ideal' instead of 'exact' for better iOS compatibility
+          facingMode: 'environment', // iOS Safari requires this
+          width: { ideal: 480 },
+          height: { ideal: 480 },
+        }
         : {
-            facingMode: 'environment', // iOS Safari requires this for back camera
-            width: { ideal: 480 },
-            height: { ideal: 480 },
-            aspectRatio: { ideal: 1 },
-          },
+          facingMode: 'environment', // iOS Safari requires this for back camera
+          width: { ideal: 480 },
+          height: { ideal: 480 },
+          aspectRatio: { ideal: 1 },
+        },
     },
   });
 
@@ -303,7 +311,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         // On iOS Safari, we need camera permission to get device labels
         // Check if we already have an active stream (permission granted)
         const videoEl = ref.current;
-        const hasActiveStream = videoEl?.srcObject instanceof MediaStream && 
+        const hasActiveStream = videoEl?.srcObject instanceof MediaStream &&
           videoEl.srcObject.getVideoTracks().length > 0;
 
         // If no active stream, try to enumerate anyway (might work on some browsers)
@@ -313,10 +321,10 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           return;
         }
         const videoInputs = devices.filter((device) => device.kind === 'videoinput');
-        
+
         // Check if we have devices with labels (permission granted)
         const hasLabels = videoInputs.some(d => d.label);
-        
+
         // Only update if we have devices with labels (permission granted) or if it's the first load
         if (videoInputs.length > 0 && (hasActiveStream || hasLabels || !hasLoadedWithPermission)) {
           setVideoDevices(videoInputs);
@@ -343,7 +351,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
     // Initial load
     loadDevices();
-    
+
     // Reload devices when video stream becomes active (permission granted)
     // Only check for a limited time to avoid infinite loops
     let checkCount = 0;
@@ -354,7 +362,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         clearInterval(checkStream);
         return;
       }
-      
+
       const videoEl = ref.current;
       if (videoEl?.srcObject instanceof MediaStream && !hasLoadedWithPermission) {
         loadDevices();
@@ -484,17 +492,17 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       dataTrxn.transactionTicketCategories.forEach(transactionTicketCategory => {
         transactionTicketCategory.tickets.forEach((ticket) => {
           const ticketKey = `${ticket.id}-${transactionTicketCategory.ticketCategory.show.id}-${transactionTicketCategory.ticketCategory.id}`
-          
+
           // Check latest HistoryCheckIn to determine if ticket is checked in
           const historyCheckIns = ticket.historyCheckIns || [];
           const latestCheckIn = historyCheckIns.length > 0
             ? historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
             : null;
-          
+
           const isCheckedIn = latestCheckIn?.type === 'check-in';
           const isCheckedOut = latestCheckIn?.type === 'check-out';
           const isInSelectedSchedule = transactionTicketCategory.ticketCategory.show.id === selectedSchedule?.id && selectedCategories.includes(transactionTicketCategory.ticketCategory.id);
-          
+
           // For check-out: only enable tickets that are checked in (not checked out)
           // Also disable tickets with status != 'normal'
           if (ticket.status !== 'normal') {
@@ -701,7 +709,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 </CardActions>
               </Card>
 
-              
+
               <Card>
                 <CardHeader subheader={tt("Vui lòng nhập mã để check-out thủ công nếu không quét được mã QR.", "Please enter the code to manually check-out if QR code scanning is not possible.")} title={tt("check-out thủ công", "Manual check-out")} />
                 <Divider />
@@ -842,11 +850,11 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       address: tt('Địa chỉ', 'Address'),
                       idcard_number: tt('Số CMND/CCCD', 'ID number'),
                     };
-                    
+
                     return builtinOrder.map(builtinKey => {
                       const field = builtinFieldsMap.get(builtinKey);
                       if (!field) return null;
-                      
+
                       return (
                         <Grid container justifyContent="space-between" key={builtinKey}>
                           <Typography variant="body1">{builtinLabelMap[builtinKey] || field.label}:</Typography>
@@ -910,28 +918,52 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                     />
                                   }
                                   label={
-                                    <Stack direction="column" alignItems="left">
-                                      <Typography variant="body2">TID-{ticket.id} {ticket.holderName || ticket.holderTitle}</Typography>
-                                      {ticket.status && ticket.status !== 'normal' && (
-                                        <Chip size="small" label={getRowStatusDetails(ticket.status).label} color={getRowStatusDetails(ticket.status).color} sx={{ height: 18, fontSize: '0.7rem', mt: 0.5 }} />
+                                    <Stack direction="column" alignItems="flex-start" spacing={0.5}>
+                                      <Stack direction="row" alignItems="center" spacing={1}>
+                                        <Chip label={`TID-${ticket.id}`} size="small" variant="outlined" color="default" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                         {/* Seat Info */}
+                                      {ticket.showSeat && (
+                                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary' }}>
+                                          <Armchair size={16} />
+                                          <Typography variant="body2">
+                                            {ticket.showSeat.rowLabel}-{ticket.showSeat.seatNumber}
+                                          </Typography>
+                                        </Stack>
                                       )}
+
+                                        <Typography variant="body2" fontWeight="bold">
+                                          {ticket.holderName || ticket.holderTitle}
+                                        </Typography>
+                                      </Stack>
+
+                                      {ticket.status && ticket.status !== 'normal' && (
+                                        <Chip size="small" label={getRowStatusDetails(ticket.status).label} color={getRowStatusDetails(ticket.status).color} sx={{ height: 18, fontSize: '0.7rem' }} />
+                                      )}
+
+                                     
                                       {(() => {
                                         const historyCheckIns = ticket.historyCheckIns || [];
                                         const latestCheckIn = historyCheckIns.length > 0
                                           ? historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
                                           : null;
-                                        
+
                                         if (latestCheckIn?.type === 'check-in') {
                                           return (
-                                            <Typography variant="caption" color="success.main">
-                                              {tt('Đã check-in lúc', 'Checked in at')} {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
-                                            </Typography>
+                                            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'success.main' }}>
+                                              <CheckCircle size={16} weight="fill" />
+                                              <Typography variant="caption">
+                                                {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
+                                              </Typography>
+                                            </Stack>
                                           );
                                         } else if (latestCheckIn?.type === 'check-out') {
                                           return (
-                                            <Typography variant="caption" color="error.main">
-                                              {tt('Đã check-out lúc', 'Checked out at')} {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
-                                            </Typography>
+                                            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'error.main' }}>
+                                              <Clock size={16} />
+                                              <Typography variant="caption">
+                                                {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
+                                              </Typography>
+                                            </Stack>
                                           );
                                         }
                                         return null;

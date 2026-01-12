@@ -10,6 +10,7 @@ import CardHeader from '@mui/material/CardHeader';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
+import { Box, Checkbox, FormControlLabel } from '@mui/material';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import OutlinedInput from '@mui/material/OutlinedInput';
@@ -39,7 +40,11 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
     type: 'public',
     endDateTime: '',
     startDateTime: '',
+    limitPerTransaction: 2 as number | null,
+    limitPerCustomer: 4 as number | null,
   });
+  const [isTransactionLimitUnlimited, setIsTransactionLimitUnlimited] = useState(false);
+  const [isCustomerLimitUnlimited, setIsCustomerLimitUnlimited] = useState(false);
   const router = useRouter();
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -57,6 +62,38 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
       ...prev,
       description: value, // Update description state
     }));
+  };
+
+  const handleTransactionLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      limitPerTransaction: e.target.value ? parseFloat(e.target.value.replace(/\./g, '')) : 0
+    }));
+  };
+
+  const handleCustomerLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      limitPerCustomer: e.target.value ? parseFloat(e.target.value.replace(/\./g, '')) : 0
+    }));
+  };
+
+  const handleTransactionLimitCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsTransactionLimitUnlimited(e.target.checked);
+    if (e.target.checked) {
+      setFormData((prev) => ({ ...prev, limitPerTransaction: null }));
+    } else {
+      setFormData((prev) => ({ ...prev, limitPerTransaction: 2 })); // Reset to default value
+    }
+  };
+
+  const handleCustomerLimitCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsCustomerLimitUnlimited(e.target.checked);
+    if (e.target.checked) {
+      setFormData((prev) => ({ ...prev, limitPerCustomer: null }));
+    } else {
+      setFormData((prev) => ({ ...prev, limitPerCustomer: 4 })); // Reset to default value
+    }
   };
 
   const handleSubmit = async () => {
@@ -85,6 +122,8 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
           type: formData.type,
           startDateTime: formData.startDateTime,
           endDateTime: formData.endDateTime,
+          limitPerTransaction: formData.limitPerTransaction,
+          limitPerCustomer: formData.limitPerCustomer,
         }
       );
       notificationCtx.success(tt('Thêm suất diễn thành công', 'Show added successfully'));
@@ -166,6 +205,53 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
                         InputLabelProps={{ shrink: true }}
                       />
                     </FormControl>
+                  </Grid>
+
+                  <Grid md={6} xs={12}>
+                    <CardHeader
+                      title={tt("Số vé tối đa mỗi đơn hàng", "Maximum Tickets Per Order")}
+                      subheader={
+                        <Box display="flex" alignItems="center">
+                          <FormControlLabel
+                            control={<Checkbox checked={isTransactionLimitUnlimited} onChange={handleTransactionLimitCheckboxChange} />}
+                            label={<Typography variant="body2">{tt("Không giới hạn", "Unlimited")}</Typography>}
+                          />
+                        </Box>
+                      }
+                      action={
+                        <OutlinedInput
+                          sx={{ maxWidth: { xs: 70, sm: 180 } }}
+                          type="number"
+                          value={formData.limitPerTransaction !== null ? formData.limitPerTransaction.toLocaleString('vi-VN') : ''}
+                          onChange={handleTransactionLimitChange}
+                          disabled={isTransactionLimitUnlimited}
+                        />
+                      }
+                      sx={{ p: 0 }}
+                    />
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <CardHeader
+                      title={tt("Số vé tối đa mỗi khách hàng", "Maximum Tickets Per Customer")}
+                      subheader={
+                        <Box display="flex" alignItems="center">
+                          <FormControlLabel
+                            control={<Checkbox checked={isCustomerLimitUnlimited} onChange={handleCustomerLimitCheckboxChange} />}
+                            label={<Typography variant="body2">{tt("Không giới hạn", "Unlimited")}</Typography>}
+                          />
+                        </Box>
+                      }
+                      action={
+                        <OutlinedInput
+                          sx={{ maxWidth: { xs: 70, sm: 180 } }}
+                          type="number"
+                          value={formData.limitPerCustomer !== null ? formData.limitPerCustomer.toLocaleString('vi-VN') : ''}
+                          onChange={handleCustomerLimitChange}
+                          disabled={isCustomerLimitUnlimited}
+                        />
+                      }
+                      sx={{ p: 0 }}
+                    />
                   </Grid>
                 </Grid>
               </CardContent>

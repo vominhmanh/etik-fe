@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import * as React from 'react';
 
 import SendRequestEventAgencyAndEventApproval from '@/components/events/event/send-request-event-agency-and-event-approval';
+import ConfirmSubmitEventApprovalModal from '@/components/events/event/confirm-submit-event-approval-modal';
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { Avatar, Box, Container, Modal, Stack, Table, TableBody, TableCell, TableHead, TableRow, Paper } from '@mui/material';
@@ -82,6 +83,7 @@ export type TicketCategory = {
   quantity: number;
   sold: number;
   show: Show;
+  color: string;
 };
 
 export type Show = {
@@ -279,30 +281,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   };
 
-  const handleSendRequestEventApproval = async () => {
-    try {
-      setIsLoading(true);
-
-      const response: AxiosResponse = await baseHttpServiceInstance.post(
-        `/event-studio/events/${params.event_id}/approval-requests/event-approval-request`
-      );
-
-      // Handle success response
-      if (response.status === 200) {
-        notificationCtx.success(tt("Yêu cầu nâng cấp thành Sự kiện Được xác thực đã được gửi thành công!", "The request to upgrade to a Verified Event has been sent successfully!"));
-        setEventAgencyRegistrationAndEventApprovalRequest(eventAgencyRegistrationAndEventApprovalRequest ? ({
-          ...eventAgencyRegistrationAndEventApprovalRequest,
-          eventApprovalRequest: 'waiting_for_acceptance'
-        }) : eventAgencyRegistrationAndEventApprovalRequest)
-        setOpenConfirmSubmitEventApprovalModal(false)
-
-      }
-    } catch (error: any) {
-      notificationCtx.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const handleSuccessSendRequestEventApproval = () => {
+    setEventAgencyRegistrationAndEventApprovalRequest(eventAgencyRegistrationAndEventApprovalRequest ? ({
+      ...eventAgencyRegistrationAndEventApprovalRequest,
+      eventApprovalRequest: 'waiting_for_acceptance'
+    }) : eventAgencyRegistrationAndEventApprovalRequest)
+  }
 
   const handleOnCloseEventAgencyRegistrationModal = () => {
     setOpenEventAgencyRegistrationModal(false)
@@ -493,7 +477,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Storefront fontSize="var(--icon-fontSize-sm)" />
                     <Typography color="text.secondary" display="inline" variant="body2">
                       {event?.displayOnMarketplace ? tt("Có thể truy cập từ Marketplace", "Accessible from Marketplace") : tt('Chỉ có thể truy cập bằng link', 'Only accessible via link')}
-                      <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> {tt("Thay đổi", "Change")}</a>
+                      <Box component={LocalizedLink} href={`/event-studio/events/${event?.id}/marketplace-settings#generalSettings`} sx={{ textDecoration: 'none' }}>
+                        {tt("Thay đổi", "Change")}
+                      </Box>
                     </Typography>
                   </Stack>
 
@@ -503,29 +489,20 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     {event?.displayOption !== 'display_with_everyone' ?
                       <Typography display="inline" variant="body2" sx={{ color: 'warning.main' }}>
                         {tt("Sự kiện không hiển thị công khai", "Event not publicly visible")}
-                        <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> {tt("Thay đổi", "Change")}</a>
+                        <Box component={LocalizedLink} href={`/event-studio/events/${params.event_id}/marketplace-settings#generalSettings`} sx={{ textDecoration: 'none' }}>
+                          {tt("Thay đổi", "Change")}
+                        </Box>
                       </Typography>
                       :
                       <Typography display="inline" variant="body2" color="text.secondary">
                         {tt("Đang hiển thị công khai", "Publicly visible")}
-                        <a href={`/event-studio/events/${eventId}/event-detail#otherSettings`} style={{ textDecoration: 'none' }}> {tt("Thay đổi", "Change")}</a>
+                        <Box component={LocalizedLink} href={`/event-studio/events/${params.event_id}/marketplace-settings#generalSettings`} sx={{ textDecoration: 'none' }}>
+                          {tt("Thay đổi", "Change")}
+                        </Box>
                       </Typography>
                     }
                   </Stack>
                 </Stack>
-                <Box sx={{ mt: 2.5 }}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    target="_blank"
-                    component={LocalizedLink}
-                    href={`/events/${event?.slug}`}
-                    size="small"
-                    endIcon={<ArrowSquareIn />}
-                  >
-                    {tt("Đến trang khách hàng tự đăng ký vé", "Go to Customer Registration Page")}
-                  </Button>
-                </Box>
                 <Box sx={{ mt: 2.5 }}>
                   {eventAgencyRegistrationAndEventApprovalRequest &&
                     (
@@ -1449,59 +1426,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Container>
       </Modal>
       <SendRequestEventAgencyAndEventApproval open={openEventAgencyRegistrationModal} onClose={handleOnCloseEventAgencyRegistrationModal} eventId={params.event_id} />
-      <Modal
+      <ConfirmSubmitEventApprovalModal
         open={openConfirmSubmitEventApprovalModal}
         onClose={() => setOpenConfirmSubmitEventApprovalModal(false)}
-        aria-labelledby="ticket-category-description-modal-title"
-        aria-describedby="ticket-category-description-modal-description"
-      >
-        <Container maxWidth="xl">
-          <Card
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: { sm: "500px", xs: "90%" },
-              bgcolor: "background.paper",
-              boxShadow: 24,
-            }}
-          >
-            <CardHeader title={tt('Quy định chung', 'General Regulations')} />
-            <Divider />
-            <CardContent>
-              <Stack spacing={1} textAlign={'justify'}>
-                <Typography variant="body2">
-                  <b>{tt("Để sự kiện được nâng cấp thành Sự kiện Được xác thực, Nhà tổ chức sự kiện vui lòng tuân thủ các quy định dưới đây trước khi gửi yêu cầu:", "To upgrade your event to a Verified Event, the event organizer must comply with the following regulations before submitting the request:")}</b>
-                </Typography>
-                <Typography variant="body2">
-                  {tt("- Sự kiện có đầy đủ thông tin về tên, mô tả, đơn vị tổ chức, ảnh bìa, ảnh đại diện.", "- The event must have complete information including name, description, organizer, banner image, and avatar.")}
-                </Typography>
-                <Typography variant="body2">
-                  {tt("- Thời gian và địa điểm rõ ràng, chính xác. Hạn chế thay đổi thông tin về thời gian, địa điểm và phải thông báo cho ETIK trước khi thay đổi.", "- Clear and accurate time and location. Minimize changes to time and location information and must notify ETIK before making changes.")}
-                </Typography>
-                <Typography variant="body2">
-                  {tt("- Chính sách Giá vé, chính sách hoàn trả, hủy vé rõ ràng, minh bạch.", "- Clear and transparent ticket pricing, refund policy, and cancellation policy.")}
-                </Typography>
-                <Typography variant="body2">
-                  {tt("- Sự kiện tuân thủ quy định của pháp luật Việt Nam, phù hợp chuẩn mực đạo đức, thuần phong mỹ tục.", "- The event must comply with Vietnamese law and be consistent with ethical standards and good customs.")}
-                </Typography>
-                <Typography variant="body2">
-                  {tt("- Cung cấp cho ETIK các thông tin, giấy tờ để xác minh khi được yêu cầu.", "- Provide ETIK with information and documents for verification when requested.")}
-                </Typography>
-                <Typography variant="body2">
-                  {tt("Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH 0333.247.242 hoặc email tienphongsmart@gmail.com", "If you need support, please contact Customer Service Hotline 0333.247.242 or email tienphongsmart@gmail.com")}
-                </Typography>
-              </Stack>
-              <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-                <Button variant="contained" color="primary" onClick={handleSendRequestEventApproval} disabled={isLoading}>
-                  {tt("Gửi yêu cầu", "Submit Request")}
-                </Button>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Container>
-      </Modal>
+        eventId={params.event_id}
+        onSuccess={handleSuccessSendRequestEventApproval}
+      />
     </>
   );
 }

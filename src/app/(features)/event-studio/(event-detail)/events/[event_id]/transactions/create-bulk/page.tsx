@@ -46,6 +46,7 @@ export type TicketCategory = {
   quantity: number;
   sold: number;
   disabled: boolean;
+  color: string;
 };
 
 export type Show = {
@@ -68,10 +69,9 @@ export type EventResponse = {
   startDateTime: string | null;
   endDateTime: string | null;
   place: string | null;
-  locationUrl: string | null;
-  bannerUrl: string;
-  slug: string;
   locationInstruction: string | null;
+  limitPerTransaction: number | null;
+  limitPerCustomer: number | null;
   shows: Show[];
 };
 
@@ -439,6 +439,40 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     setSelectedCategories(prev => {
       const forShow = prev[showId] || {};
       const updatedForShow = { ...forShow } as Record<number, number>;
+
+      const newQuantity = quantity;
+
+      // Limit checks
+      if (newQuantity > 0) {
+        // Event Level Limits
+        const totalTicketsInOrder = Object.values(prev).reduce((sum, catMap) => {
+          return sum + Object.values(catMap || {}).reduce((s, q) => s + (q || 0), 0);
+        }, 0);
+        const currentQtyForThisCat = updatedForShow[categoryId] || 0;
+        const totalOther = totalTicketsInOrder - currentQtyForThisCat;
+
+        if (event?.limitPerTransaction && (totalOther + newQuantity > event.limitPerTransaction)) {
+          notificationCtx.error(tt('Đã đạt giới hạn số vé mỗi đơn hàng cho sự kiện', 'Event transaction limit reached'));
+          return prev;
+        }
+        if (event?.limitPerCustomer && (totalOther + newQuantity > event.limitPerCustomer)) {
+          notificationCtx.error(tt('Đã đạt giới hạn số vé mỗi khách hàng cho sự kiện', 'Event customer limit reached'));
+          return prev;
+        }
+
+        // Show Level Limits implementation - need show data.
+        // Assuming we rely on TicketCategories component to block input, but manual check here is safer.
+        const show = event?.shows.find(s => s.id === showId);
+        if (show?.ticketCategories) {
+          const cat = show.ticketCategories.find(c => c.id === categoryId);
+          // Category limit
+          if (cat?.limitPerTransaction && newQuantity > cat.limitPerTransaction) {
+            // notification handled by input usually, but here...
+            return prev;
+          }
+        }
+      }
+
       if (quantity <= 0) {
         delete updatedForShow[categoryId];
       } else {
@@ -1585,6 +1619,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 onModalRequestHandled={() => setRequestedCategoryModalId(null)}
                 onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
                 onAddToCart={(categoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; }[]) => handleAddToCartQuantity(show.id, categoryId, quantity, holders)}
+                eventLimitPerTransaction={event?.limitPerTransaction}
+                eventLimitPerCustomer={event?.limitPerCustomer}
+                totalTicketsInOrder={totalSelectedTickets}
               />
             ))}
           </Stack>
