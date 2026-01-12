@@ -1,5 +1,7 @@
 'use client';
 
+import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import { Box, Checkbox, FormControlLabel, FormHelperText, InputAdornment } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
@@ -15,12 +17,6 @@ import MenuItem from '@mui/material/MenuItem';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { AxiosResponse } from 'axios';
@@ -28,12 +24,15 @@ import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import ReactQuill from 'react-quill'; // Import ReactQuill
-
-import NotificationContext from '@/contexts/notification-context';
-import { useTranslation } from '@/contexts/locale-context';
 import 'react-quill/dist/quill.snow.css'; // Import Quill styles
 import IconButton from '@mui/material/IconButton';
 import { CaretLeft } from '@phosphor-icons/react/dist/ssr';
+
+type Show = {
+  id: number;
+  name: string;
+  seatmapMode: 'no_seatmap' | 'seatings_selection' | 'ticket_categories_selection';
+}
 
 type TicketcategoryFormData = {
   name: string;
@@ -45,6 +44,7 @@ type TicketcategoryFormData = {
   status: string;
   description: string;
 }
+
 export default function Page({
   params,
 }: {
@@ -59,7 +59,9 @@ export default function Page({
   const ticketCategoryId = params.ticket_category_id;
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [showName, setShowName] = useState<string>('');
+
+  /* State */
+  const [show, setShow] = useState<Show | null>(null);
   const [isTransactionLimitUnlimited, setIsTransactionLimitUnlimited] = useState(false);
   const [isCustomerLimitUnlimited, setIsCustomerLimitUnlimited] = useState(false);
   const [openNotifModal, setOpenNotifModal] = useState<boolean>(false);
@@ -70,7 +72,7 @@ export default function Page({
     quantity: 100,
     limitPerTransaction: 2,
     limitPerCustomer: 4,
-    description: '', // Ensure this is part of the state
+    description: '',
     status: 'on_sale',
   });
   const router = useRouter();
@@ -80,6 +82,10 @@ export default function Page({
     const fetchTicketCategory = async () => {
       try {
         setIsLoading(true);
+        // Fetch show details separately to get seatmapMode
+        const showResponse = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/shows/${showId}`);
+        setShow(showResponse.data);
+
         const response: AxiosResponse = await baseHttpServiceInstance.get(
           `/event-studio/events/${eventId}/shows/${showId}/ticket-categories/${ticketCategoryId}`
         );
@@ -94,7 +100,6 @@ export default function Page({
           limitPerTransaction: ticketCategory.limitPerTransaction || null,
           limitPerCustomer: ticketCategory.limitPerCustomer || null,
         });
-        setShowName(ticketCategory.show.name)
         // Set the checkbox states based on the fetched values
         setIsTransactionLimitUnlimited(ticketCategory.limitPerTransaction === undefined || ticketCategory.limitPerTransaction === null);
         setIsCustomerLimitUnlimited(ticketCategory.limitPerCustomer === undefined || ticketCategory.limitPerCustomer === null);
@@ -105,16 +110,15 @@ export default function Page({
       }
     };
     fetchTicketCategory();
-  }, [eventId, ticketCategoryId]);
+  }, [eventId, ticketCategoryId, showId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent<string>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name as string]: value,
     }));
   };
-
 
   const handleTransactionLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -174,7 +178,7 @@ export default function Page({
     }
     try {
       setIsLoading(true);
-      const response: AxiosResponse = await baseHttpServiceInstance.put(
+      const response: AxiosResponse<TicketcategoryFormData> = await baseHttpServiceInstance.put(
         `/event-studio/events/${eventId}/shows/${showId}/ticket-categories/${ticketCategoryId}`,
         {
           name: formData.name,
@@ -187,7 +191,7 @@ export default function Page({
           status: formData.status,
         }
       );
-      notificationCtx.success(response.data.message);
+      notificationCtx.success(response.data);
       if (formData.price > 0) {
         setOpenNotifModal(true)
       } else {
@@ -200,7 +204,6 @@ export default function Page({
       setIsLoading(false);
     }
   };
-
 
   return (
     <>
@@ -217,14 +220,14 @@ export default function Page({
         </Backdrop>
         <Stack direction="row" spacing={3} alignItems="center">
           <IconButton onClick={() => {
-            const path = `/event-studio/events/${eventId}/shows/${showId}/ticket-categories`;
+            const path = `/event-studio/events/${eventId}/shows`;
             router.push(locale === 'en' ? `/en${path}` : path);
           }}>
             <CaretLeft />
           </IconButton>
           <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
             <Typography variant="h4">{tt('Xem chi tiết loại vé', 'View Ticket Category Details')} "{formData.name}"</Typography>
-            <Typography variant="body2">{tt('Suất diễn', 'Show')} "{showName}"</Typography>
+            {show && <Typography variant="body2">{tt('Suất diễn', 'Show')} "{show.name}"</Typography>}
           </Stack>
         </Stack>
         <Grid container spacing={3}>
@@ -238,7 +241,7 @@ export default function Page({
                     <Grid md={4} xs={12}>
                       <FormControl fullWidth required>
                         <InputLabel>{tt("Tên loại vé", "Ticket Category Name")}</InputLabel>
-                        <OutlinedInput label={tt("Tên loại vé", "Ticket Category Name")} name="name" value={formData.name} onChange={handleChange} />
+                        <OutlinedInput label={tt("Tên loại vé", "Ticket Category Name")} name="name" value={formData.name} onChange={handleChange as any} />
                       </FormControl>
                     </Grid>
                     <Grid md={4} xs={12}>
@@ -248,7 +251,7 @@ export default function Page({
                           label={tt("Phân loại", "Category")}
                           name="type"
                           value={formData.type}
-                          onChange={(event: any) => handleChange(event)}
+                          onChange={handleChange}
                         >
                           <MenuItem value="private">{tt("Nội bộ", "Private")}</MenuItem>
                           <MenuItem value="public">{tt("Công khai", "Public")}</MenuItem>
@@ -263,7 +266,7 @@ export default function Page({
                           label={tt("Trạng thái", "Status")}
                           name="status"
                           value={formData.status}
-                          onChange={handleChange as (event: SelectChangeEvent<string>, child: React.ReactNode) => void}
+                          onChange={handleChange}
                         >
                           <MenuItem value="on_sale">{tt("Đang mở bán", "On Sale")}</MenuItem>
                           <MenuItem value="not_opened_for_sale">{tt("Chưa mở bán", "Not Open for Sale")}</MenuItem>
@@ -286,18 +289,24 @@ export default function Page({
               <Card>
                 <CardHeader
                   title={tt("Số lượng vé", "Ticket Quantity")}
+                  subheader={show?.seatmapMode !== 'no_seatmap' ?
+                    <Typography variant="caption" color="text.secondary">
+                      {tt("Suất diễn này sử dụng sơ đồ ghế, số lượng được đếm tự động theo sơ đồ.", "This show uses a seat map, quantity is counted automatically based on the map.")}
+                    </Typography> : null
+                  }
                   action={
                     <OutlinedInput
                       sx={{ maxWidth: { xs: 70, sm: 180 } }}
-                      type="text" // Change type to text to allow flexible input handling
+                      type="text"
                       value={formData.quantity.toLocaleString('vi-VN')}
                       onChange={(e) => {
-                        let rawValue = e.target.value.replace(/\./g, ''); // Remove formatting
-                        if (!/^\d*$/.test(rawValue)) return; // Allow only numeric input
+                        let rawValue = e.target.value.replace(/\./g, '');
+                        if (!/^\d*$/.test(rawValue)) return;
 
-                        const numericValue = parseFloat(rawValue) || 0; // Convert to number
+                        const numericValue = parseFloat(rawValue) || 0;
                         setFormData((prev) => ({ ...prev, quantity: numericValue }));
                       }}
+                      disabled={show?.seatmapMode !== 'no_seatmap'}
                     />
                   }
                 />
@@ -306,13 +315,13 @@ export default function Page({
                   action={
                     <OutlinedInput
                       sx={{ maxWidth: { xs: 70, sm: 180 } }}
-                      type="text" // Change type to text to allow flexible input handling
+                      type="text"
                       value={formData.price.toLocaleString('vi-VN')}
                       onChange={(e) => {
-                        let rawValue = e.target.value.replace(/\./g, ''); // Remove formatting
-                        if (!/^\d*$/.test(rawValue)) return; // Allow only numeric input
+                        let rawValue = e.target.value.replace(/\./g, '');
+                        if (!/^\d*$/.test(rawValue)) return;
 
-                        const numericValue = parseFloat(rawValue) || 0; // Convert to number
+                        const numericValue = parseFloat(rawValue) || 0;
                         setFormData((prev) => ({ ...prev, price: numericValue }));
                       }}
                       name="price"

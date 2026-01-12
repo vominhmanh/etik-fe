@@ -38,6 +38,12 @@ type TicketcategoryFormData = {
   description: string;
 }
 
+type Show = {
+  id: number;
+  name: string;
+  seatmapMode: 'no_seatmap' | 'seatings_selection' | 'ticket_categories_selection';
+}
+
 
 export default function Page({ params }: { params: { event_id: number; show_id: number } }): React.JSX.Element {
   const { tt, locale } = useTranslation();
@@ -60,6 +66,26 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isTransactionLimitUnlimited, setIsTransactionLimitUnlimited] = useState(false);
   const [isCustomerLimitUnlimited, setIsCustomerLimitUnlimited] = useState(false);
+  const [show, setShow] = useState<Show | null>(null);
+
+  /* Fetch show info */
+  React.useEffect(() => {
+    const fetchShow = async () => {
+      try {
+        const response = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/shows/${showId}`);
+        setShow(response.data);
+
+        if (response.data.seatmapMode !== 'no_seatmap') {
+          setFormData(prev => ({ ...prev, quantity: 0 }));
+        } else {
+          setFormData(prev => ({ ...prev, quantity: 100 }));
+        }
+      } catch (error) {
+        console.error("Failed to fetch show", error);
+      }
+    };
+    fetchShow();
+  }, [eventId, showId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value } = e.target;
@@ -172,13 +198,14 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
         </Backdrop>
         <Stack direction="row" spacing={3} alignItems="center">
           <IconButton onClick={() => {
-            const path = `/event-studio/events/${eventId}/shows/${showId}/ticket-categories`;
+            const path = `/event-studio/events/${eventId}/shows`;
             router.push(locale === 'en' ? `/en${path}` : path);
           }}>
             <CaretLeft />
           </IconButton>
           <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
             <Typography variant="h4">{tt("Loại vé mới", "New Ticket Category")}</Typography>
+            {show && <Typography variant="body2">{tt('Suất diễn', 'Show')} "{show.name}"</Typography>}
           </Stack>
         </Stack>
         <Grid container spacing={3}>
@@ -217,6 +244,11 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
               <Card>
                 <CardHeader
                   title={tt("Số lượng vé", "Ticket Quantity")}
+                  subheader={show?.seatmapMode !== 'no_seatmap' ?
+                    <Typography variant="caption" color="text.secondary">
+                      {tt("Suất diễn này sử dụng sơ đồ ghế, số lượng được đếm tự động theo sơ đồ.", "This show uses a seat map, quantity is counted automatically based on the map.")}
+                    </Typography> : null
+                  }
                   action={
                     <OutlinedInput
                       sx={{ maxWidth: { xs: 70, sm: 180 } }}
@@ -229,6 +261,7 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
                         const numericValue = parseFloat(rawValue) || 0; // Convert to number
                         setFormData((prev) => ({ ...prev, quantity: numericValue }));
                       }}
+                      disabled={show?.seatmapMode !== 'no_seatmap'}
                     />
                   }
                 />
@@ -301,44 +334,6 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
           </Grid>
         </Grid>
       </Stack>
-      {/* <Modal
-        open={openNotifModal}
-        onClose={handleCloseNotifModal}
-        aria-labelledby="ticket-category-description-modal-title"
-        aria-describedby="ticket-category-description-modal-description"
-      >
-        <Container maxWidth="xl">
-          <Card
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: { sm: "500px", xs: "90%" },
-              bgcolor: "background.paper",
-              boxShadow: 24,
-            }}
-          >
-            <CardHeader title="Thông báo" />
-            <Divider />
-            <CardContent>
-              <Stack spacing={3}>
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  Loại vé này <b>đang tạm khóa</b> do sự kiện này chưa thể tạo loại vé với <b>giá tiền {'>'} 0đ</b>.
-                </Typography>
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  Quý khách vui lòng gửi email với tiêu đề <b>"Yêu cầu tạo loại vé có giá tiền {'>'} 0đ"</b> đến địa chỉ <b>tienphongsmart@gmail.com</b>. Chúng tôi sẽ hỗ trợ trong thời gian 24h kể từ khi nhận được yêu cầu. Xin cảm ơn!
-                </Typography>
-                <div style={{ marginTop: '20px', justifyContent: 'center' }}>
-                  <Button fullWidth variant='contained' size="small" onClick={handleCloseNotifModal} >
-                    Đã hiểu
-                  </Button>
-                </div>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Container>
-      </Modal> */}
     </>
   );
 }

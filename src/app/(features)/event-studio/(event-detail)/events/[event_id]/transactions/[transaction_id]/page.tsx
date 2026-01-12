@@ -12,7 +12,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, CaretDoubleRight, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, Gift, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X, Chair, CalendarBlank, IdentificationCard, CheckCircle, User as UserIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, CaretDoubleRight, CaretLeft, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, Gift, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X, Chair, CalendarBlank, IdentificationCard, CheckCircle, User as UserIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import * as React from 'react';
@@ -958,9 +958,12 @@ export default function Page({ params }: { params: { event_id: number; transacti
         >
           <CircularProgress color="inherit" />
         </Backdrop>
-        <div>
+        <Stack direction="row" spacing={3} alignItems="center">
+          <IconButton component={LocalizedLink} href={`/event-studio/events/${event_id}/transactions`}>
+            <CaretLeft />
+          </IconButton>
           <Typography variant="h4">{tt('Chi tiết đơn hàng của', 'Order Details for')} {transaction.name}</Typography>
-        </div>
+        </Stack>
         <Grid container spacing={3}>
           <Grid lg={5} md={5} xs={12} spacing={3}>
             <Stack spacing={3}>

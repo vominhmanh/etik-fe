@@ -11,12 +11,13 @@ const SeatPickerEditor = dynamic(() => import("@/components/seat-map/SeatPickerE
 
 import { baseHttpServiceInstance } from "@/services/BaseHttp.service";
 import type { CategoryInfo, ShowSeat } from 'seat-picker';
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { AxiosResponse } from "axios";
 import NotificationContext from '@/contexts/notification-context';
 
 export default function Page() {
   const params = useParams();
+  const router = useRouter();
   const event_id = params?.event_id as string;
   const show_id = params?.show_id as string;
   const [categories, setCategories] = React.useState<CategoryInfo[]>([]);
@@ -205,6 +206,7 @@ export default function Page() {
           existingSeats={seats}
           createCategoryUrl={`/event-studio/events/${event_id}/shows/${show_id}/ticket-categories/create`}
           onUploadBackground={uploadImage}
+          onBack={() => router.push(`/event-studio/events/${event_id}/shows`)}
         />
       </div>
 

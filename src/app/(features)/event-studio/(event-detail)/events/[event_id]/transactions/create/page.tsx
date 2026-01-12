@@ -3,6 +3,7 @@
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import {
   Box,
+  IconButton,
   Step,
   StepButton,
   Stepper
@@ -12,6 +13,8 @@ import Typography from '@mui/material/Typography';
 import { AxiosResponse } from 'axios';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
+import { CaretLeft } from '@phosphor-icons/react/dist/ssr';
+import { LocalizedLink } from '@/components/homepage/localized-link';
 
 
 import { useTranslation } from '@/contexts/locale-context';
@@ -742,7 +745,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <CircularProgress color="inherit" />
       </Backdrop>
       <Stack spacing={4}>
-        <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
+        <Stack direction="row" spacing={3} alignItems="center" sx={{ flex: '1 1 auto' }}>
+          <IconButton component={LocalizedLink} href={`/event-studio/events/${params.event_id}/transactions`}>
+            <CaretLeft />
+          </IconButton>
           <Typography variant="h4">{tt("Tạo đơn hàng mới", "Create New Order")}</Typography>
         </Stack>
 

@@ -166,6 +166,7 @@ export interface SeatCanvasProps {
   renderOverlay?: (props: { isFullScreen: boolean }) => React.ReactNode;
   selectedSeatIds?: string[];
   onSelectionChange?: (selectedIds: string[], selectedSeats: SeatData[]) => void;
+  onBack?: () => void;
 }
 
 export interface SeatData {
