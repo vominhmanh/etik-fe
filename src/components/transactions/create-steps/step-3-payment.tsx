@@ -217,11 +217,10 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
                   subheader={tt("(nếu có)", "(if any)")}
                   action={
                     <OutlinedInput
-                      size="small"
                       name="extraFee"
                       value={extraFee.toLocaleString()}
                       onChange={handleExtraFeeChange}
-                      sx={{ maxWidth: 180 }}
+                      sx={{ maxWidth: 180, fontSize: 16 }}
                       startAdornment={
                         <InputAdornment position="start">
                           <Money size={18} weight="duotone" style={{ opacity: 0.7 }} />
@@ -242,12 +241,11 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
                   !appliedVoucher && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <OutlinedInput
-                        size="small"
                         name="discountCode"
                         placeholder={tt("Nhập mã khuyến mãi", "Enter discount code")}
                         value={manualDiscountCode}
                         onChange={(e) => setManualDiscountCode(e.target.value)}
-                        sx={{ maxWidth: 180 }}
+                        sx={{ maxWidth: 180, fontSize: 16 }}
                         startAdornment={
                           <InputAdornment position="start">
                             <TicketIcon size={18} weight="duotone" style={{ opacity: 0.7 }} />
@@ -256,7 +254,6 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
                       />
                       <Button
                         variant="outlined"
-                        size="small"
                         onClick={async () => {
                           const code = manualDiscountCode.trim();
                           if (!code) return;
@@ -409,14 +406,15 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
               <CardHeader
                 title={tt("Phương thức thanh toán", "Payment Method")}
                 action={
-                  <FormControl size="small" sx={{ maxWidth: 180, minWidth: 180 }}>
+                  <FormControl sx={{ maxWidth: 180, minWidth: 180 }}>
                     <Select
                       name="payment_method"
                       value={paymentMethod}
-                      onChange={(e) => onPaymentMethodChange(e.target.value)}
+                      onChange={(e) => onPaymentMethodChange(e.target.value as string)}
                       displayEmpty
+                      sx={{ fontSize: 16 }}
                       renderValue={(selected) => {
-                        if (!selected) return <Typography variant="body2" color="text.secondary">{tt("Chọn phương thức", "Select method")}</Typography>;
+                        if (!selected) return <Typography variant="body2" color="text.secondary" sx={{ fontSize: 16 }}>{tt("Chọn phương thức", "Select method")}</Typography>;
                         if (selected === 'cash') return tt("Tiền mặt", "Cash");
                         if (selected === 'transfer') return tt("Chuyển khoản", "Transfer");
                         if (selected === 'napas247') return 'Napas 247';

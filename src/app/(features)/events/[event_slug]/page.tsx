@@ -801,6 +801,11 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       setResponseTransaction(response.data);
       setOpenSuccessModal(true);
 
+      // Redirect to the payment checkout URL
+      if (response.data.paymentCheckoutUrl) {
+        window.location.href = response.data.paymentCheckoutUrl;
+      }
+
     } catch (error: any) {
       notificationCtx.error(error);
     } finally {
