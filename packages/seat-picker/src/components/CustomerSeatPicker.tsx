@@ -227,17 +227,19 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
     let startZoom = 100; // percent
     let rafId: number | null = null;
     let pending = false;
-    let targetScale = 1;
+    let relativeScale = 1; // Used for visual transform
+    let finalTargetZoom = 100; // Used for committing state
     let isPinching = false;
     let startWrapperOffset = { x: 0, y: 0 };
+    let startClientCenter = { x: 0, y: 0 };
 
     const wrapper = parent.firstElementChild as HTMLElement | null;
     if (wrapper) {
-      // performance hints
       wrapper.style.willChange = 'transform';
-      wrapper.style.transformOrigin = '0 0'; // default; will set per-pinch
+      wrapper.style.transformOrigin = '0 0';
     }
-    parent.style.touchAction = 'none'; // helps prevent browser gestures
+    // Allow panning (scrolling) but we will preventDefault on multi-touch to handle pinch
+    parent.style.touchAction = 'pan-x pan-y';
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 2) return;
@@ -248,9 +250,12 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
       startDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
       const centerX = (t1.clientX + t2.clientX) / 2;
       const centerY = (t1.clientY + t2.clientY) / 2;
+      startClientCenter = { x: centerX, y: centerY };
 
       // record starting zoom from store (percent)
       startZoom = useEventGuiStore.getState().zoomLevel ?? startZoom;
+      finalTargetZoom = startZoom;
+      relativeScale = 1;
 
       // Compute center relative to wrapper (so transform-origin is correct)
       if (wrapper) {
@@ -260,15 +265,13 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
         wrapper.style.transformOrigin = `${startWrapperOffset.x}px ${startWrapperOffset.y}px`;
       }
 
-      // disable parent scrolling while pinching (we'll use transform to simulate zoom)
+      // disable parent scrolling while pinching
       parent.style.overflow = 'hidden';
     };
 
     const applyTransform = () => {
       if (!wrapper) return;
-      // targetScale is absolute scale relative to 1 (1 = 100%)
-      // compute scale factor as targetZoom / 100
-      wrapper.style.transform = `scale(${targetScale}) translateZ(0)`; // translateZ to encourage GPU
+      wrapper.style.transform = `scale(${relativeScale}) translateZ(0)`;
       pending = false;
       rafId = null;
     };
@@ -286,47 +289,67 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
 
       const [t1, t2] = [e.touches[0], e.touches[1]];
       const newDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-      const scale = newDist / startDist;
-      let newZoom = startZoom * scale; // percent
+      const scaleChange = newDist / startDist;
+
+      let newZoom = startZoom * scaleChange; // percent
       newZoom = Math.min(Math.max(newZoom, 20), 400); // clamp percent
 
-      // set targetScale = newZoom / 100
-      targetScale = newZoom / 100;
+      // Update state vars
+      finalTargetZoom = newZoom;
+      relativeScale = newZoom / startZoom; // Visual scale factor
 
-      // schedule rAF update (throttled)
       scheduleUpdate();
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      // if fewer than 2 touches => pinch finished
       if (e.touches.length < 2 && isPinching) {
         isPinching = false;
 
-        // finalize: compute final zoom from current transform (targetScale)
-        const finalZoom = Math.round((targetScale * 100) * 100) / 100; // two decimals
-        // write the final zoom to your store
+        const finalZoom = Math.round(finalTargetZoom * 100) / 100;
+
+        // Calculate new scroll position to keep focus
+        // Logic: The point under the fingers (startWrapperOffset) moves away from the viewport origin
+        // We need to scroll to compensate.
+        // NewOffset = OldOffset * Ratio
+        // ScrollShift = NewOffset - OldOffset = OldOffset * (Ratio - 1)
+        // Adjust for viewport: We want ScreenPoint to stay at ScreenPoint.
+        // NewScrollLeft = (startWrapperOffset.x * Ratio) - (startClientCenter.x - parentRect.left)
+
+        const ratio = finalZoom / startZoom;
+        const parentRect = parent.getBoundingClientRect();
+
         useEventGuiStore.getState().setZoomLevel(finalZoom);
 
-        // Important: remove transform and set layout to match final zoom so subsequent interactions read natural sizes
         if (wrapper) {
-          // Option A: if you want to keep transform approach, you can clear transform and update width/height
-          // (here we compute desired width/height from mergedStyle and finalScale)
-          const finalScale = targetScale;
-          wrapper.style.transform = ''; // remove transform
-          wrapper.style.transformOrigin = ''; // reset
-          wrapper.style.willChange = ''; // cleanup if you want
+          wrapper.style.transform = '';
+          wrapper.style.transformOrigin = '';
+          wrapper.style.willChange = '';
 
-          // update layout to match the final zoom (so future layout-based math is correct)
-          // If mergedStyle.width/height are the unzoomed pixel sizes:
-          if (typeof mergedStyle?.width === 'number' && typeof mergedStyle?.height === 'number') {
-            wrapper.style.width = `${mergedStyle.width * finalScale}px`;
-            wrapper.style.height = `${mergedStyle.height * finalScale}px`;
-          }
+          // Update wrapper size manually effectively immediately to avoid flicker before React updates?
+          // Actually updating style.width/height is handled by the other useEffect, 
+          // but we can try to compensate scroll immediately or after render.
+          // Since SetZoomLevel triggers React render, we should wait for it or anticipate it.
+          // The container scroll adjustment works best if content size is already updated.
+
+          // Let's set scroll immediately assuming the size WILL update.
+          // Note: if content is not yet resized, setting scroll might be clamped.
+          // So we might need a small timeout or force style update here (optional but risky if React overrides).
+          // We'll rely on setTimeout to ensure React/Effect has likely fired or DOM updated.
+
+          setTimeout(() => {
+            const newScrollLeft = (startWrapperOffset.x * ratio) - (startClientCenter.x - parentRect.left);
+            const newScrollTop = (startWrapperOffset.y * ratio) - (startClientCenter.y - parentRect.top);
+
+            // ScrollTo with behavior instant
+            parent.scrollTo({
+              left: Math.max(0, newScrollLeft),
+              top: Math.max(0, newScrollTop),
+              behavior: 'auto'
+            });
+          }, 0);
         }
 
-        // restore parent scrolling
         parent.style.overflow = '';
-        // Cancel any pending rAF
         if (rafId) {
           cancelAnimationFrame(rafId);
           rafId = null;
