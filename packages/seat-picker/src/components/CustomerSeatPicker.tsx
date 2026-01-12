@@ -232,6 +232,7 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
     let isPinching = false;
     let startWrapperOffset = { x: 0, y: 0 };
     let startClientCenter = { x: 0, y: 0 };
+    let lastDelta = { x: 0, y: 0 };
 
     const wrapper = parent.firstElementChild as HTMLElement | null;
     if (wrapper) {
@@ -251,6 +252,7 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
       const centerX = (t1.clientX + t2.clientX) / 2;
       const centerY = (t1.clientY + t2.clientY) / 2;
       startClientCenter = { x: centerX, y: centerY };
+      lastDelta = { x: 0, y: 0 };
 
       // record starting zoom from store (percent)
       startZoom = useEventGuiStore.getState().zoomLevel ?? startZoom;
@@ -271,7 +273,7 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
 
     const applyTransform = () => {
       if (!wrapper) return;
-      wrapper.style.transform = `scale(${relativeScale}) translateZ(0)`;
+      wrapper.style.transform = `translate(${lastDelta.x}px, ${lastDelta.y}px) scale(${relativeScale}) translateZ(0)`;
       pending = false;
       rafId = null;
     };
@@ -291,6 +293,10 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
       const newDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
       const scaleChange = newDist / startDist;
 
+      const centerX = (t1.clientX + t2.clientX) / 2;
+      const centerY = (t1.clientY + t2.clientY) / 2;
+      lastDelta = { x: centerX - startClientCenter.x, y: centerY - startClientCenter.y };
+
       let newZoom = startZoom * scaleChange; // percent
       newZoom = Math.min(Math.max(newZoom, 20), 400); // clamp percent
 
@@ -305,12 +311,7 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
       if (e.touches.length < 2 && isPinching) {
         isPinching = false;
 
-        // stop the rAF loop immediately so it doesn't overwrite our style changes
-        if (rafId) {
-          cancelAnimationFrame(rafId);
-          rafId = null;
-          pending = false;
-        }
+
 
         const finalZoom = Math.round(finalTargetZoom * 100) / 100;
 
@@ -322,28 +323,40 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
         useEventGuiStore.getState().setZoomLevel(finalZoom);
 
         if (wrapper) {
-          // Manually update w/h to match the upcoming React render
-          // This prevents visual flickering (jumping back to old size then new size)
-          const scale = finalZoom / 100;
-          wrapper.style.width = `${mergedStyle.width * scale}px`;
-          wrapper.style.height = `${mergedStyle.height * scale}px`;
-
           wrapper.style.transform = '';
           wrapper.style.transformOrigin = '';
           wrapper.style.willChange = '';
 
-          const newScrollLeft = (startWrapperOffset.x * ratio) - (startClientCenter.x - parentRect.left);
-          const newScrollTop = (startWrapperOffset.y * ratio) - (startClientCenter.y - parentRect.top);
+          // Update wrapper size manually effectively immediately to avoid flicker before React updates?
+          // Actually updating style.width/height is handled by the other useEffect, 
+          // but we can try to compensate scroll immediately or after render.
+          // Since SetZoomLevel triggers React render, we should wait for it or anticipate it.
+          // The container scroll adjustment works best if content size is already updated.
 
-          // ScrollTo with behavior instant
-          parent.scrollTo({
-            left: Math.max(0, newScrollLeft),
-            top: Math.max(0, newScrollTop),
-            behavior: 'auto'
-          });
+          // Let's set scroll immediately assuming the size WILL update.
+          // Note: if content is not yet resized, setting scroll might be clamped.
+          // So we might need a small timeout or force style update here (optional but risky if React overrides).
+          // We'll rely on setTimeout to ensure React/Effect has likely fired or DOM updated.
+
+          setTimeout(() => {
+            const newScrollLeft = (startWrapperOffset.x * ratio) - (startClientCenter.x + lastDelta.x - parentRect.left);
+            const newScrollTop = (startWrapperOffset.y * ratio) - (startClientCenter.y + lastDelta.y - parentRect.top);
+
+            // ScrollTo with behavior instant
+            parent.scrollTo({
+              left: Math.max(0, newScrollLeft),
+              top: Math.max(0, newScrollTop),
+              behavior: 'auto'
+            });
+          }, 0);
         }
 
         parent.style.overflow = '';
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+          pending = false;
+        }
       }
     };
 
