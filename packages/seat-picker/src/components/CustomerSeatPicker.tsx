@@ -305,56 +305,45 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
       if (e.touches.length < 2 && isPinching) {
         isPinching = false;
 
-        const finalZoom = Math.round(finalTargetZoom * 100) / 100;
-
-        // Calculate new scroll position to keep focus
-        // Logic: The point under the fingers (startWrapperOffset) moves away from the viewport origin
-        // We need to scroll to compensate.
-        // NewOffset = OldOffset * Ratio
-        // ScrollShift = NewOffset - OldOffset = OldOffset * (Ratio - 1)
-        // Adjust for viewport: We want ScreenPoint to stay at ScreenPoint.
-        // NewScrollLeft = (startWrapperOffset.x * Ratio) - (startClientCenter.x - parentRect.left)
-
-        const ratio = finalZoom / startZoom;
-        const parentRect = parent.getBoundingClientRect();
-
-        useEventGuiStore.getState().setZoomLevel(finalZoom);
-
-        if (wrapper) {
-          wrapper.style.transform = '';
-          wrapper.style.transformOrigin = '';
-          wrapper.style.willChange = '';
-
-          // Update wrapper size manually effectively immediately to avoid flicker before React updates?
-          // Actually updating style.width/height is handled by the other useEffect, 
-          // but we can try to compensate scroll immediately or after render.
-          // Since SetZoomLevel triggers React render, we should wait for it or anticipate it.
-          // The container scroll adjustment works best if content size is already updated.
-
-          // Let's set scroll immediately assuming the size WILL update.
-          // Note: if content is not yet resized, setting scroll might be clamped.
-          // So we might need a small timeout or force style update here (optional but risky if React overrides).
-          // We'll rely on setTimeout to ensure React/Effect has likely fired or DOM updated.
-
-          setTimeout(() => {
-            const newScrollLeft = (startWrapperOffset.x * ratio) - (startClientCenter.x - parentRect.left);
-            const newScrollTop = (startWrapperOffset.y * ratio) - (startClientCenter.y - parentRect.top);
-
-            // ScrollTo with behavior instant
-            parent.scrollTo({
-              left: Math.max(0, newScrollLeft),
-              top: Math.max(0, newScrollTop),
-              behavior: 'auto'
-            });
-          }, 0);
-        }
-
-        parent.style.overflow = '';
+        // stop the rAF loop immediately so it doesn't overwrite our style changes
         if (rafId) {
           cancelAnimationFrame(rafId);
           rafId = null;
           pending = false;
         }
+
+        const finalZoom = Math.round(finalTargetZoom * 100) / 100;
+
+        // Calculate new scroll position
+        const ratio = finalZoom / startZoom;
+        const parentRect = parent.getBoundingClientRect();
+
+        // Update global state which eventually prompts a re-render
+        useEventGuiStore.getState().setZoomLevel(finalZoom);
+
+        if (wrapper) {
+          // Manually update w/h to match the upcoming React render
+          // This prevents visual flickering (jumping back to old size then new size)
+          const scale = finalZoom / 100;
+          wrapper.style.width = `${mergedStyle.width * scale}px`;
+          wrapper.style.height = `${mergedStyle.height * scale}px`;
+
+          wrapper.style.transform = '';
+          wrapper.style.transformOrigin = '';
+          wrapper.style.willChange = '';
+
+          const newScrollLeft = (startWrapperOffset.x * ratio) - (startClientCenter.x - parentRect.left);
+          const newScrollTop = (startWrapperOffset.y * ratio) - (startClientCenter.y - parentRect.top);
+
+          // ScrollTo with behavior instant
+          parent.scrollTo({
+            left: Math.max(0, newScrollLeft),
+            top: Math.max(0, newScrollTop),
+            behavior: 'auto'
+          });
+        }
+
+        parent.style.overflow = '';
       }
     };
 
