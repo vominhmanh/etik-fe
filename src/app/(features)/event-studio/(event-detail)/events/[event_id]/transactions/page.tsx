@@ -738,6 +738,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             >
               {tt("Khách hàng & vé", "Customers & Tickets")}
             </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              component={LocalizedLink}
+              href={`/event-studio/events/${params.event_id}/seat-maps`}
+            >
+              {tt("Sơ đồ vé", "Seat Maps")}
+            </Button>
           </Stack>
         </Stack>
         <div>

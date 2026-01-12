@@ -129,6 +129,10 @@ const getDefaultComponents = (tt: (vi: string, en: string) => string): { label: 
   { label: tt('Text tùy chọn', 'Custom Text'), key: 'customText' },
   { label: tt('ID đơn hàng', 'Transaction ID'), key: 'transactionId' },
   { label: tt('TID vé', 'Ticket TID'), key: 'ticketTid' },
+  // Seat Info
+  { label: tt('Hàng ghế', 'Row Label'), key: 'rowLabel' },
+  { label: tt('Số ghế', 'Seat Number'), key: 'seatNumber' },
+  { label: tt('Hàng ghế - Số ghế', 'Row - Seat'), key: 'rowSeat' },
 ];
 
 const PX_PER_MM = 96 / 25.4; // ~3.7795 px/mm
@@ -1197,7 +1201,7 @@ export default function Page({ params }: { params: { event_id: number; tag_desig
                   </Typography>
                 </ListItem>
                 {componentList
-                  .filter(({ key }) => ['ticketTid', 'showName', 'ticketCategory', 'titleTicketHolder', 'ticketHolderName', 'ticketHolderEmail', 'ticketHolderPhone'].includes(key))
+                  .filter(({ key }) => ['ticketTid', 'showName', 'ticketCategory', 'titleTicketHolder', 'ticketHolderName', 'ticketHolderEmail', 'ticketHolderPhone', 'rowLabel', 'seatNumber', 'rowSeat'].includes(key))
                   .map(({ label, key, fieldId }, idx) => (
                     <ListItem
                       key={`${key}-${idx}`}

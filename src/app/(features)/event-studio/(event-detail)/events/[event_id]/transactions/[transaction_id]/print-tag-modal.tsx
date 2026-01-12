@@ -40,6 +40,8 @@ interface TicketRow {
   showName: string;
   categoryName: string;
   eCode?: string;
+  rowLabel?: string | null;
+  seatNumber?: string | null;
 }
 
 // New Ticket Tag design schema (multi-design per event)
@@ -120,6 +122,8 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
           showName: category.ticketCategory.show.name,
           categoryName: category.ticketCategory.name,
           eCode: sharedCode ?? ticket.eCode ?? transaction.eCode,
+          rowLabel: ticket.showSeat?.rowLabel,
+          seatNumber: ticket.showSeat?.seatNumber,
         };
       })
     );
@@ -303,6 +307,15 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
           return transaction.event?.timeInstruction || '';
         case 'locationUrl':
           return transaction.event?.locationUrl || '';
+        case 'rowLabel':
+          return ticket.rowLabel || '';
+        case 'seatNumber':
+          return ticket.seatNumber || '';
+        case 'rowSeat':
+          if (ticket.rowLabel && ticket.seatNumber) {
+            return `${ticket.rowLabel} - ${ticket.seatNumber}`;
+          }
+          return ticket.seatNumber || ticket.rowLabel || '';
         default:
           // Unknown key - return empty
           return '';
@@ -315,19 +328,19 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
   const resolveCustomFieldValue = React.useCallback(
     (comp: ComponentData): string => {
       if (!transaction?.formAnswers || !Array.isArray(transaction.formAnswers)) return '';
-      
+
       // fieldId is required for custom fields - direct lookup
       if (!comp.fieldId) {
         console.warn('[resolveCustomFieldValue] Missing fieldId for component:', comp.key, comp.label);
         return '';
       }
-      
+
       const answerItem = transaction.formAnswers.find((item: any) => item.id === comp.fieldId);
       if (!answerItem) {
         console.warn('[resolveCustomFieldValue] No answer found for fieldId:', comp.fieldId);
         return '';
       }
-      
+
       const value = answerItem.value;
       if (Array.isArray(value)) return value.join(', ');
       return String(value ?? '');
