@@ -20,6 +20,7 @@ import {
   CurrencyCircleDollar,
   DiceSix,
   ImageSquare,
+  Invoice,
   Mailbox,
   Plus,
   Sliders,
@@ -265,7 +266,7 @@ export function SideNav(): React.JSX.Element {
                 key="seat-maps"
                 title={tt("Hóa đơn thuế", "Tax Invoice")}
                 href={`/event-studio/events/${dynamicId}/seat-maps`}
-                icon={Armchair}
+                icon={Invoice}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}

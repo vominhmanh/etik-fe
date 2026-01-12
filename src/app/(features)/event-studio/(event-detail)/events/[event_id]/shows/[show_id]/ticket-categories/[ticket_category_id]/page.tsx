@@ -32,6 +32,8 @@ import ReactQuill from 'react-quill'; // Import ReactQuill
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
 import 'react-quill/dist/quill.snow.css'; // Import Quill styles
+import IconButton from '@mui/material/IconButton';
+import { CaretLeft } from '@phosphor-icons/react/dist/ssr';
 
 type TicketcategoryFormData = {
   name: string;
@@ -213,7 +215,13 @@ export default function Page({
         >
           <CircularProgress color="inherit" />
         </Backdrop>
-        <Stack direction="row" spacing={3}>
+        <Stack direction="row" spacing={3} alignItems="center">
+          <IconButton onClick={() => {
+            const path = `/event-studio/events/${eventId}/shows/${showId}/ticket-categories`;
+            router.push(locale === 'en' ? `/en${path}` : path);
+          }}>
+            <CaretLeft />
+          </IconButton>
           <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
             <Typography variant="h4">{tt('Xem chi tiết loại vé', 'View Ticket Category Details')} "{formData.name}"</Typography>
             <Typography variant="body2">{tt('Suất diễn', 'Show')} "{showName}"</Typography>

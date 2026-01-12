@@ -188,7 +188,8 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                       <InputLabel htmlFor="customer-name">{tt("Danh xưng*   Họ và tên", "Title*   Full Name")}</InputLabel>
                       <OutlinedInput
                         id="customer-name"
-                        size="small"
+                        sx={{ '& .MuiInputBase-input': { fontSize: 16 } }}
+                        autoComplete="name"
                         label={tt("Danh xưng*    Họ và tên", "Title*    Full Name")}
                         name="customer_name"
                         value={customer.name}
@@ -250,7 +251,8 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                       <InputLabel>{tt("Địa chỉ Email", "Email Address")}</InputLabel>
                       <OutlinedInput
                         label={tt("Địa chỉ Email", "Email Address")}
-                        size="small"
+                        sx={{ '& .MuiInputBase-input': { fontSize: 16 } }}
+                        autoComplete="email"
                         name="customer_email"
                         type="email"
                         value={customer.email}
@@ -264,7 +266,8 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                       <InputLabel>{tt("Số điện thoại", "Phone Number")}</InputLabel>
                       <OutlinedInput
                         label={tt("Số điện thoại", "Phone Number")}
-                        size="small"
+                        sx={{ '& .MuiInputBase-input': { fontSize: 16 } }}
+                        autoComplete="tel-national"
                         name="customer_national_phone"
                         type="tel"
                         value={customer.nationalPhone}
@@ -304,7 +307,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                         <Grid lg={6} xs={12}>
                           <TextField
                             fullWidth
-                            size="small"
+                            sx={{ '& .MuiInputBase-input': { fontSize: 16 } }}
                             label={tt("Ngày tháng năm sinh", "Date of Birth")}
                             name="customer_dob"
                             type="date"
@@ -337,7 +340,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                             <InputLabel>{tt("Số Căn cước công dân", "ID Card Number")}</InputLabel>
                             <OutlinedInput
                               label={tt("Số Căn cước công dân", "ID Card Number")}
-                              size="small"
+                              sx={{ '& .MuiInputBase-input': { fontSize: 16 } }}
                               name="customer_idcard_number"
                               value={customer.idcard_number}
                               onChange={(e) => setCustomer({ ...customer, idcard_number: e.target.value })}
@@ -364,7 +367,8 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                             <InputLabel>{tt("Địa chỉ", "Address")}</InputLabel>
                             <OutlinedInput
                               label={tt("Địa chỉ", "Address")}
-                              size="small"
+                              sx={{ '& .MuiInputBase-input': { fontSize: 16 } }}
+                              autoComplete="street-address"
                               name="customer_address"
                               value={customer.address}
                               onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
@@ -397,7 +401,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                         {['text', 'number'].includes(field.fieldType) && (
                           <TextField
                             fullWidth
-                            size="small"
+                            sx={{ '& .MuiInputBase-input': { fontSize: 16 } }}
                             type={field.fieldType === 'number' ? 'number' : 'text'}
                             value={checkoutCustomAnswers[field.internalName] ?? ''}
                             onChange={(e) =>
@@ -412,7 +416,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                         {['date', 'time', 'datetime'].includes(field.fieldType) && (
                           <TextField
                             fullWidth
-                            size="small"
+                            sx={{ '& .MuiInputBase-input': { fontSize: 16 } }}
                             type={
                               field.fieldType === 'date'
                                 ? 'date'
@@ -748,13 +752,14 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                     </Grid>
 
                                     <Grid xs={12} md={4}>
-                                      <FormControl fullWidth size="small" required>
+                                      <FormControl fullWidth required>
                                         <InputLabel>
                                           {tt(`Danh xưng*    Họ và tên`, `Title*    Full Name`)}
                                         </InputLabel>
                                         <OutlinedInput
                                           label={tt(`Danh xưng*    Họ và tên`, `Title*    Full Name`)}
-                                          size="small"
+                                          sx={{ '& .MuiInputBase-input': { fontSize: 16 } }}
+                                          autoComplete="name"
                                           value={holderInfo.name}
                                           onChange={(e) => setHolderInfo({ name: e.target.value })}
                                           startAdornment={
@@ -786,11 +791,12 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                     </Grid>
 
                                     <Grid xs={12} md={3}>
-                                      <FormControl fullWidth size="small">
+                                      <FormControl fullWidth>
                                         <InputLabel>{tt(`Email vé ${ticketIndex + 1}`, `Email ticket ${ticketIndex + 1}`)}</InputLabel>
                                         <OutlinedInput
                                           label={tt(`Email vé ${ticketIndex + 1}`, `Email ticket ${ticketIndex + 1}`)}
-                                          size="small"
+                                          sx={{ '& .MuiInputBase-input': { fontSize: 16 } }}
+                                          autoComplete="email"
                                           type="email"
                                           value={holderInfo.email || ''}
                                           onChange={(e) => setHolderInfo({ email: e.target.value })}
@@ -800,11 +806,12 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                     </Grid>
 
                                     <Grid xs={12} md={3}>
-                                      <FormControl fullWidth size="small">
+                                      <FormControl fullWidth>
                                         <InputLabel>{tt(`SĐT vé ${ticketIndex + 1}`, `Phone ticket ${ticketIndex + 1}`)}</InputLabel>
                                         <OutlinedInput
                                           label={tt(`SĐT vé ${ticketIndex + 1}`, `Phone ticket ${ticketIndex + 1}`)}
-                                          size="small"
+                                          sx={{ '& .MuiInputBase-input': { fontSize: 16 } }}
+                                          autoComplete="tel-national"
                                           type="tel"
                                           value={holderInfo.nationalPhone || ''}
                                           onChange={(e) => setHolderInfo({ nationalPhone: e.target.value })}

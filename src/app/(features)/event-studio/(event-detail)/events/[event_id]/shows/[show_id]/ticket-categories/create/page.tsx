@@ -25,6 +25,8 @@ import * as React from 'react';
 import { useState } from 'react';
 import ReactQuill from 'react-quill'; // Import ReactQuill
 import 'react-quill/dist/quill.snow.css'; // Import styles for ReactQuill
+import IconButton from '@mui/material/IconButton';
+import { CaretLeft } from '@phosphor-icons/react/dist/ssr';
 
 type TicketcategoryFormData = {
   name: string;
@@ -58,7 +60,6 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isTransactionLimitUnlimited, setIsTransactionLimitUnlimited] = useState(false);
   const [isCustomerLimitUnlimited, setIsCustomerLimitUnlimited] = useState(false);
-  const [openNotifModal, setOpenNotifModal] = useState<boolean>(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value } = e.target;
@@ -146,12 +147,8 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
         }
       );
       notificationCtx.success(response.data.message);
-      if (formData.price > 0) {
-        setOpenNotifModal(true)
-      } else {
-        const path = `/event-studio/events/${eventId}/shows`;
-        router.push(locale === 'en' ? `/en${path}` : path);
-      }
+      const path = `/event-studio/events/${eventId}/shows`;
+      router.push(locale === 'en' ? `/en${path}` : path);
     } catch (error) {
       notificationCtx.error(tt('Lỗi:', 'Error:'), error);
     } finally {
@@ -173,7 +170,13 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
         >
           <CircularProgress color="inherit" />
         </Backdrop>
-        <Stack direction="row" spacing={3}>
+        <Stack direction="row" spacing={3} alignItems="center">
+          <IconButton onClick={() => {
+            const path = `/event-studio/events/${eventId}/shows/${showId}/ticket-categories`;
+            router.push(locale === 'en' ? `/en${path}` : path);
+          }}>
+            <CaretLeft />
+          </IconButton>
           <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
             <Typography variant="h4">{tt("Loại vé mới", "New Ticket Category")}</Typography>
           </Stack>

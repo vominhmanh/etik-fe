@@ -218,86 +218,120 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
     };
   }, [canvas, zoomLevel]);
 
-  // Handle Mobile Pinch-to-Zoom
+  // Hook: mobile pinch-to-zoom (transform-based, rAF-throttled)
   useEffect(() => {
     const parent = canvasParent.current;
-    if (!parent || !canvas) return;
+    if (!parent) return;
 
     let startDist = 0;
-    let startZoom = zoomLevel;
-    let startCenter = { x: 0, y: 0 };
-    let startScroll = { left: 0, top: 0 };
+    let startZoom = 100; // percent
+    let rafId: number | null = null;
+    let pending = false;
+    let targetScale = 1;
     let isPinching = false;
+    let startWrapperOffset = { x: 0, y: 0 };
+
+    const wrapper = parent.firstElementChild as HTMLElement | null;
+    if (wrapper) {
+      // performance hints
+      wrapper.style.willChange = 'transform';
+      wrapper.style.transformOrigin = '0 0'; // default; will set per-pinch
+    }
+    parent.style.touchAction = 'none'; // helps prevent browser gestures
 
     const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        e.preventDefault(); // Prevent browser zoom
-        isPinching = true;
+      if (e.touches.length !== 2) return;
+      e.preventDefault();
+      isPinching = true;
 
-        const t1 = e.touches[0];
-        const t2 = e.touches[1];
-        startDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const [t1, t2] = [e.touches[0], e.touches[1]];
+      startDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const centerX = (t1.clientX + t2.clientX) / 2;
+      const centerY = (t1.clientY + t2.clientY) / 2;
 
-        startCenter = {
-          x: (t1.clientX + t2.clientX) / 2,
-          y: (t1.clientY + t2.clientY) / 2,
-        };
+      // record starting zoom from store (percent)
+      startZoom = useEventGuiStore.getState().zoomLevel ?? startZoom;
 
-        startZoom = useEventGuiStore.getState().zoomLevel;
-        startScroll = { left: parent.scrollLeft, top: parent.scrollTop };
+      // Compute center relative to wrapper (so transform-origin is correct)
+      if (wrapper) {
+        const rect = wrapper.getBoundingClientRect();
+        startWrapperOffset = { x: centerX - rect.left, y: centerY - rect.top };
+        // set transform origin in px so scaling is around touch center
+        wrapper.style.transformOrigin = `${startWrapperOffset.x}px ${startWrapperOffset.y}px`;
+      }
+
+      // disable parent scrolling while pinching (we'll use transform to simulate zoom)
+      parent.style.overflow = 'hidden';
+    };
+
+    const applyTransform = () => {
+      if (!wrapper) return;
+      // targetScale is absolute scale relative to 1 (1 = 100%)
+      // compute scale factor as targetZoom / 100
+      wrapper.style.transform = `scale(${targetScale}) translateZ(0)`; // translateZ to encourage GPU
+      pending = false;
+      rafId = null;
+    };
+
+    const scheduleUpdate = () => {
+      if (!pending) {
+        pending = true;
+        rafId = requestAnimationFrame(applyTransform);
       }
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (isPinching && e.touches.length === 2) {
-        e.preventDefault();
+      if (!isPinching || e.touches.length !== 2) return;
+      e.preventDefault();
 
-        const t1 = e.touches[0];
-        const t2 = e.touches[1];
-        const newDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-        const newCenter = {
-          x: (t1.clientX + t2.clientX) / 2,
-          y: (t1.clientY + t2.clientY) / 2,
-        };
+      const [t1, t2] = [e.touches[0], e.touches[1]];
+      const newDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const scale = newDist / startDist;
+      let newZoom = startZoom * scale; // percent
+      newZoom = Math.min(Math.max(newZoom, 20), 400); // clamp percent
 
-        const scale = newDist / startDist;
-        let newZoom = startZoom * scale;
+      // set targetScale = newZoom / 100
+      targetScale = newZoom / 100;
 
-        // Clamp
-        newZoom = Math.min(Math.max(newZoom, 50), 250);
-
-        // Update Zoom
-        useEventGuiStore.getState().setZoomLevel(newZoom);
-
-        // Force DOM update to allow scrolling immediately (prevent browser clamping before React render)
-        const wrapper = parent.firstElementChild as HTMLElement;
-        if (wrapper) {
-          const currentScale = newZoom / 100;
-          wrapper.style.width = `${mergedStyle.width * currentScale}px`;
-          wrapper.style.height = `${mergedStyle.height * currentScale}px`;
-        }
-
-        // Adjust scroll to keep center stable
-        const zoomRatio = newZoom / startZoom;
-        const parentRect = parent.getBoundingClientRect();
-
-        const offsetX = startScroll.left + (startCenter.x - parentRect.left);
-        const offsetY = startScroll.top + (startCenter.y - parentRect.top);
-
-        const newOffsetX = offsetX * zoomRatio;
-        const newOffsetY = offsetY * zoomRatio;
-
-        const newScrollLeft = newOffsetX - (newCenter.x - parentRect.left);
-        const newScrollTop = newOffsetY - (newCenter.y - parentRect.top);
-
-        parent.scrollLeft = newScrollLeft;
-        parent.scrollTop = newScrollTop;
-      }
+      // schedule rAF update (throttled)
+      scheduleUpdate();
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length < 2) {
+      // if fewer than 2 touches => pinch finished
+      if (e.touches.length < 2 && isPinching) {
         isPinching = false;
+
+        // finalize: compute final zoom from current transform (targetScale)
+        const finalZoom = Math.round((targetScale * 100) * 100) / 100; // two decimals
+        // write the final zoom to your store
+        useEventGuiStore.getState().setZoomLevel(finalZoom);
+
+        // Important: remove transform and set layout to match final zoom so subsequent interactions read natural sizes
+        if (wrapper) {
+          // Option A: if you want to keep transform approach, you can clear transform and update width/height
+          // (here we compute desired width/height from mergedStyle and finalScale)
+          const finalScale = targetScale;
+          wrapper.style.transform = ''; // remove transform
+          wrapper.style.transformOrigin = ''; // reset
+          wrapper.style.willChange = ''; // cleanup if you want
+
+          // update layout to match the final zoom (so future layout-based math is correct)
+          // If mergedStyle.width/height are the unzoomed pixel sizes:
+          if (typeof mergedStyle?.width === 'number' && typeof mergedStyle?.height === 'number') {
+            wrapper.style.width = `${mergedStyle.width * finalScale}px`;
+            wrapper.style.height = `${mergedStyle.height * finalScale}px`;
+          }
+        }
+
+        // restore parent scrolling
+        parent.style.overflow = '';
+        // Cancel any pending rAF
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+          pending = false;
+        }
       }
     };
 
@@ -311,9 +345,16 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
       parent.removeEventListener('touchmove', onTouchMove);
       parent.removeEventListener('touchend', onTouchEnd);
       parent.removeEventListener('touchcancel', onTouchEnd);
+      if (rafId) cancelAnimationFrame(rafId);
+      if (wrapper) {
+        wrapper.style.transform = '';
+        wrapper.style.transformOrigin = '';
+        wrapper.style.willChange = '';
+      }
+      parent.style.touchAction = '';
+      parent.style.overflow = '';
     };
-  }, [canvasParent, canvas, mergedStyle]); // Re-bind if parent changes. relying on store for current zoom reference in closure if we strictly followed "startZoom" capture way.
-
+  }, [canvasParent, mergedStyle]); // note: avoid including zoomLevel so startZoom is read at pinch start
 
   // Handle zoom changes
   useEffect(() => {
