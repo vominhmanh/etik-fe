@@ -51,7 +51,9 @@ export interface Ticket {
   checkInAt: Date | null;
   status: string;
   historyCheckIns?: CheckInHistory[];
-  showSeat: ShowSeat
+  showSeat: ShowSeat;
+  audienceName: string | null;
+  audienceCode: string | null;
 }
 
 export type RecentScan = {
@@ -925,6 +927,11 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                     <Stack direction="column" alignItems="flex-start" spacing={0.5}>
                                       <Stack direction="row" alignItems="center" spacing={1}>
                                         <Chip label={`TID-${ticket.id}`} size="small" variant="outlined" color="default" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                        <Typography variant="body2" fontWeight="bold">
+                                          {ticket.holderName || ticket.holderTitle}
+                                        </Typography>
+                                      </Stack>
+                                      <Stack direction="row" alignItems="center" spacing={1}>
                                         {/* Seat Info */}
                                         {ticket.showSeat && (
                                           <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary' }}>
@@ -934,9 +941,15 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                             </Typography>
                                           </Stack>
                                         )}
-                                        <Typography variant="body2" fontWeight="bold">
-                                          {ticket.holderName || ticket.holderTitle}
-                                        </Typography>
+                                        {ticket.audienceName && (
+                                          <Chip 
+                                            label={ticket.audienceName} 
+                                            size="small" 
+                                            variant="outlined" 
+                                            color="primary" 
+                                            sx={{ height: 20, fontSize: '0.7rem' }} 
+                                          />
+                                        )}
                                       </Stack>
 
                                       {ticket.status && ticket.status !== 'normal' && (

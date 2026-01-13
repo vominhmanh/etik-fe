@@ -541,7 +541,6 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                             </IconButton>
                           </Stack>
                           <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                            <Typography variant="caption">{formatPrice(group.total / group.quantity)}</Typography>
                             <Typography variant="caption">x {group.quantity}</Typography>
                             <Typography variant="caption">= {formatPrice(group.total)}</Typography>
                           </Stack>
