@@ -547,6 +547,21 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
               </Accordion>
             ))}
           </Grid>
+          <Stack direction="row" spacing={3}>
+            <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
+              <Typography variant="h4">{tt("Đối tượng mua vé", "Audience")}</Typography>
+            </Stack>
+            <div>
+              <Button
+                component={LocalizedLink}
+                startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
+                variant="contained"
+                href="shows/create"
+              >
+                {tt("Thêm đối tượng", "Add Audience")}
+              </Button>
+            </div>
+          </Stack>
         </Stack >
       </Stack >
 

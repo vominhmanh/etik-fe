@@ -28,7 +28,7 @@ const ColorProperties: React.FC<ColorPropertiesProps> = ({
 
   return (
     <>
-      {/* <div>
+      <div>
         <label className="block text-sm font-medium text-gray-700">
           Fill Color
         </label>
@@ -37,7 +37,7 @@ const ColorProperties: React.FC<ColorPropertiesProps> = ({
             type="color"
             value={
               typeof properties.fill === 'string' &&
-              /^#([0-9A-Fa-f]{6})$/.test(properties.fill)
+                /^#([0-9A-Fa-f]{6})$/.test(properties.fill)
                 ? properties.fill
                 : '#ffffff'
             }
@@ -51,7 +51,7 @@ const ColorProperties: React.FC<ColorPropertiesProps> = ({
             className="ml-2 w-full rounded-md text-sm border border-solid border-gray-200 px-2 py-1 shadow-sm"
           />
         </div>
-      </div> */}
+      </div>
 
       <div>
         <div className="flex items-center justify-between">
