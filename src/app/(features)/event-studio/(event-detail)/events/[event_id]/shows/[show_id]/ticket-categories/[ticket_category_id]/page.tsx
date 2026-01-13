@@ -71,7 +71,6 @@ export default function Page({
   const [show, setShow] = useState<Show | null>(null);
   const [isTransactionLimitUnlimited, setIsTransactionLimitUnlimited] = useState(false);
   const [isCustomerLimitUnlimited, setIsCustomerLimitUnlimited] = useState(false);
-  const [openNotifModal, setOpenNotifModal] = useState<boolean>(false);
   const [formData, setFormData] = useState<TicketcategoryFormData>({
     name: '',
     type: 'public',
@@ -273,13 +272,10 @@ export default function Page({
           }))
         }
       );
-      notificationCtx.success(response.data);
-      if (formData.price > 0) {
-        setOpenNotifModal(true)
-      } else {
-        const path = `/event-studio/events/${eventId}/shows`;
-        router.push(locale === 'en' ? `/en${path}` : path);
-      }
+      notificationCtx.success(tt("Cập nhật thành công", "Update successfully"));
+      const path = `/event-studio/events/${eventId}/shows`;
+      router.push(locale === 'en' ? `/en${path}` : path);
+
     } catch (error) {
       notificationCtx.error(tt('Lỗi:', 'Error:'), error);
     } finally {

@@ -23,6 +23,7 @@ import {
   Invoice,
   Mailbox,
   Plus,
+  Popcorn,
   Sliders,
   SquaresFour,
   StackPlus,
@@ -229,6 +230,13 @@ export function SideNav(): React.JSX.Element {
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
+                key="configuration-shows-consessions"
+                title={tt("Thiết lập bỏng nước", "Consessions setup")}
+                href={`/event-studio/events/${dynamicId}/consessions`}
+                icon={Popcorn}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
                 key="advanced-settings"
                 title={tt("Cài đặt nâng cao", "Advanced Settings")}
                 href={`/event-studio/events/${dynamicId}/advanced-settings`}
@@ -264,18 +272,26 @@ export function SideNav(): React.JSX.Element {
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
-                key="seat-maps"
-                title={tt("Hóa đơn thuế", "Tax Invoice")}
-                href={`/event-studio/events/${dynamicId}/seat-maps`}
-                icon={Invoice}
-              />
-              <NavItemCollapseChildItem
-                pathname={pathname}
                 key="vouchers"
                 title={tt("Khuyến mãi", "Vouchers")}
                 href={`/event-studio/events/${dynamicId}/vouchers`}
                 icon={SealPercent}
               />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="seat-maps"
+                title={tt("Sơ đồ ghế", "Seat Maps")}
+                href={`/event-studio/events/${dynamicId}/seat-maps`}
+                icon={Invoice}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="seat-maps"
+                title={tt("Hóa đơn thuế", "Tax Invoice")}
+                href={`/event-studio/events/${dynamicId}/tax-invoices`}
+                icon={Invoice}
+              />
+
             </NavItemCollapse>
             <NavItemCollapse pathname={pathname} key="transactions" title={tt("Bán vé & Khách hàng", "Ticket Sales & Customers")} icon={TicketIcon}>
               <NavItemCollapseChildItem

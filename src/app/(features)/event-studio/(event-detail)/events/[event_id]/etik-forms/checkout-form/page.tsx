@@ -263,10 +263,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     fetchConfig();
   }, [params.event_id]);
 
-  const handleDeleteField = (id: number) => {
-    setFields((prev) => prev.filter((field) => field.id !== id));
-  };
-
   const handleOpenAddFieldModal = () => {
     setEditingFieldId(null);
     setNewField({

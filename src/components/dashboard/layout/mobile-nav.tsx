@@ -32,7 +32,7 @@ import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
 
 import { getNavItems } from './config';
-import { Armchair, CurrencyCircleDollar, DiceSix, FileText, ImageSquare, Invoice, Mailbox, SealPercent, Sliders, SpinnerBall, SquaresFour, StackPlus, StarHalf, Storefront, Tag, UserList } from '@phosphor-icons/react/dist/ssr';
+import { Armchair, CurrencyCircleDollar, DiceSix, FileText, ImageSquare, Invoice, Mailbox, Popcorn, SealPercent, Sliders, SpinnerBall, SquaresFour, StackPlus, StarHalf, Storefront, Tag, UserList } from '@phosphor-icons/react/dist/ssr';
 import NotificationContext from '@/contexts/notification-context';
 import { AxiosResponse } from 'axios';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
@@ -188,9 +188,17 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
               key="configuration-shows-ticket-categories"
-              title={tt("Thiết lập vé", "Ticket Categories")}
+              title={tt("Thiết lập vé", "Ticket Categories setup")}
               href={`/event-studio/events/${dynamicId}/shows`}
               icon={TicketIcon}
+              onClose={onClose}
+            />
+            <NavItemCollapseChildItem
+              pathname={normalizedPathname}
+              key="configuration-shows-consessions"
+              title={tt("Thiết lập bỏng nước", "Consessions setup")}
+              href={`/event-studio/events/${dynamicId}/consessions`}
+              icon={Popcorn}
               onClose={onClose}
             />
             <NavItemCollapseChildItem
@@ -245,8 +253,16 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
               key="seat-maps"
-              title={tt("Hóa đơn thuế", "Tax Invoice")}
+              title={tt("Sơ đồ ghế", "Seat Maps")}
               href={`/event-studio/events/${dynamicId}/seat-maps`}
+              icon={Invoice}
+              onClose={onClose}
+            />
+            <NavItemCollapseChildItem
+              pathname={normalizedPathname}
+              key="tax-invoice"
+              title={tt("Hóa đơn thuế", "Tax Invoice")}
+              href={`/event-studio/events/${dynamicId}/tax-invoices`}
               icon={Invoice}
               onClose={onClose}
             />
