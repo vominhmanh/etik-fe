@@ -12,7 +12,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, CaretDoubleRight, CaretLeft, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, Gift, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X, Chair, CalendarBlank, IdentificationCard, CheckCircle, User as UserIcon } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, CaretDoubleRight, CaretLeft, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, Gift, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X, Chair, CalendarBlank, IdentificationCard, CheckCircle, User as UserIcon, Users } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import * as React from 'react';
@@ -175,6 +175,9 @@ export interface Ticket {
   status: string;      // Ticket status
   historyCheckIns: CheckInHistory[]; // List of check-in history
   showSeat: ShowSeat | null; // Seat information if the ticket has an assigned seat
+  audienceId?: number;
+  audienceCode?: string;
+  price?: number;
 }
 
 export interface Show {
@@ -319,6 +322,12 @@ type CheckoutRuntimeField = {
 };
 
 
+interface Audience {
+  id: number;
+  name: string;
+  code: string;
+}
+
 export default function Page({ params }: { params: { event_id: number; transaction_id: number } }): React.JSX.Element {
   const { tt, locale } = useTranslation();
   React.useEffect(() => {
@@ -351,6 +360,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [giftTicketModalOpen, setGiftTicketModalOpen] = useState<boolean>(false);
   const [checkoutFormFields, setCheckoutFormFields] = useState<CheckoutRuntimeField[]>([]);
   const [checkoutCustomAnswers, setCheckoutCustomAnswers] = useState<Record<string, any>>({});
+  const [audiences, setAudiences] = useState<Audience[]>([]);
 
   const builtinInternalNames = React.useMemo(
     () => new Set(['title', 'name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
@@ -543,7 +553,19 @@ export default function Page({ params }: { params: { event_id: number; transacti
       }
     };
 
+    const fetchAudiences = async () => {
+      try {
+        const response = await baseHttpServiceInstance.get(
+          `/event-studio/events/${event_id}/audiences`
+        );
+        setAudiences(response.data);
+      } catch (error) {
+        console.error("Failed to fetch audiences", error);
+      }
+    };
+
     fetchTransactionDetails();
+    fetchAudiences();
   }, [event_id, transaction_id]);
 
 
@@ -1675,9 +1697,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
                             <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name} - {transactionTicketCategory.ticketCategory.name}</Typography>
                           </Stack>
                           <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                            <Typography variant="body2">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography>
+                            {/* <Typography variant="body2">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography> */}
                             <Typography variant="body2">x {transactionTicketCategory.tickets.length}</Typography>
-                            <Typography variant="body2">= {formatPrice((transactionTicketCategory.netPricePerOne || 0) * transactionTicketCategory.tickets.length)}</Typography>
+                            <Typography variant="body2">= {formatPrice(transactionTicketCategory.tickets.reduce((sum, ticket) => sum + (ticket.price ?? 0), 0))}</Typography>
                           </Stack>
                         </Stack>
                         {transactionTicketCategory.tickets.length > 0 && (
@@ -1799,6 +1821,39 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                                   (ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : '') +
                                                   (ticket.showSeat.seatNumber || '') ||
                                                   `#${ticket.showSeat.id}`}
+                                              </Typography>
+                                            </Stack>
+
+
+                                          </Tooltip>
+                                        )}
+                                      </Stack>
+
+                                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                        {/* Audience Name */}
+                                        {ticket.audienceId && (
+                                          (() => {
+                                            const audience = audiences.find(a => a.id === ticket.audienceId);
+                                            return audience ? (
+                                              <Tooltip title={tt('Đối tượng', 'Audience')}>
+                                                <Stack direction="row" spacing={0.5} alignItems="center">
+                                                  <Users size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                    {audience.name}
+                                                  </Typography>
+                                                </Stack>
+                                              </Tooltip>
+                                            ) : null;
+                                          })()
+                                        )}
+
+                                        {/* Individual Price */}
+                                        {ticket.price !== undefined && (
+                                          <Tooltip title={tt('Giá vé', 'Ticket Price')}>
+                                            <Stack direction="row" spacing={0.5} alignItems="center">
+                                              <MoneyIcon size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                {formatPrice(ticket.price)}
                                               </Typography>
                                             </Stack>
                                           </Tooltip>

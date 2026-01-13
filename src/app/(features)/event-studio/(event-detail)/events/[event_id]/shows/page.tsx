@@ -29,6 +29,7 @@ import { Accordion, AccordionDetails, AccordionSummary, CardHeader, Container, F
 import { ArrowRight, Calendar, Clock, Users } from '@phosphor-icons/react';
 import { Armchair, Pencil } from '@phosphor-icons/react/dist/ssr';
 import dayjs from 'dayjs';
+import { AudienceModal, AudienceCreate, AudienceUpdate, Audience } from "@/components/dialogs/AudienceModal";
 
 interface TicketCategory {
   id: number;
@@ -97,6 +98,12 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [eventData, setEventData] = React.useState<any | null>(null); // Use any or EventResponse interface
   const [openLimitModal, setOpenLimitModal] = React.useState(false);
   const [limitFormData, setLimitFormData] = React.useState<{ limitPerTransaction: number | null, limitPerCustomer: number | null }>({ limitPerTransaction: null, limitPerCustomer: null });
+
+  // Audience State
+  const [audiences, setAudiences] = React.useState<Audience[]>([]);
+  const [openAudienceModal, setOpenAudienceModal] = React.useState(false);
+  const [selectedAudience, setSelectedAudience] = React.useState<Audience | undefined>(undefined);
+  const [isEditAudience, setIsEditAudience] = React.useState(false);
 
   // Confirmation Dialog State
   const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
@@ -196,8 +203,18 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       }
     }
 
+    const fetchAudiences = async () => {
+      try {
+        const response = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/audiences`);
+        setAudiences(response.data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
     fetchShowsWithTicketCategories();
     fetchEventData();
+    fetchAudiences();
   }, [params.event_id]);
 
 
@@ -553,17 +570,146 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
             </Stack>
             <div>
               <Button
-                component={LocalizedLink}
                 startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
                 variant="contained"
-                href="shows/create"
+                onClick={() => {
+                  setSelectedAudience(undefined);
+                  setIsEditAudience(false);
+                  setOpenAudienceModal(true);
+                }}
               >
                 {tt("Thêm đối tượng", "Add Audience")}
               </Button>
             </div>
           </Stack>
+
+          <Grid container spacing={3}>
+            {audiences.map((audience) => (
+              <Grid key={audience.id} lg={4} md={6} xs={12}>
+                <Card sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  borderRadius: 2,
+                  transition: 'all 0.2s',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  '&:hover': {
+                    boxShadow: (theme) => theme.shadows[4],
+                    borderColor: 'primary.light',
+                  }
+                }}>
+                  <CardContent sx={{ flex: '1 1 auto', p: 2 }}>
+                    <Stack spacing={1.5}>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', overflow: 'hidden' }}>
+                          <Avatar
+                            sx={{
+                              height: 36,
+                              width: 36,
+                              borderRadius: 1,
+                              bgcolor: 'primary.light', // Dynamic color?
+                              fontSize: '1rem',
+                              fontWeight: 600
+                            }}
+                            variant="rounded"
+                          >
+                            {audience.name.charAt(0).toUpperCase()}
+                          </Avatar>
+                          <Stack spacing={0}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                              {audience.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Code: {audience.code}
+                            </Typography>
+                          </Stack>
+                        </Stack>
+                        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                          <Tooltip title={tt("Chỉnh sửa", "Edit")}>
+                            <IconButton
+                              size="small"
+                              sx={{ color: 'text.secondary', p: 0.5 }}
+                              onClick={() => {
+                                setSelectedAudience(audience);
+                                setIsEditAudience(true);
+                                setOpenAudienceModal(true);
+                              }}
+                            >
+                              <Pencil size={16} />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </Stack>
+                      {audience.description && (
+                        <Typography variant="body2" color="text.secondary" sx={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          fontSize: '0.875rem'
+                        }}>
+                          {audience.description}
+                        </Typography>
+                      )}
+                      <Stack direction="row" spacing={0.5}>
+                        {audience.isDefault && (
+                          <Chip
+                            label={tt('Mặc định', 'Default')}
+                            color="info"
+                            size="small"
+                            variant="filled"
+                            sx={{ height: 20, fontSize: '0.625rem' }}
+                          />
+                        )}
+                        <Chip
+                          label={audience.isActive ? tt('Hoạt động', 'Active') : tt('Không hoạt động', 'Inactive')}
+                          color={audience.isActive ? 'success' : 'default'}
+                          size="small"
+                          variant="soft"
+                          sx={{ height: 20, fontSize: '0.625rem' }}
+                        />
+                      </Stack>
+
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
         </Stack >
       </Stack >
+
+      <AudienceModal
+        open={openAudienceModal}
+        onClose={() => setOpenAudienceModal(false)}
+        onSubmit={async (values) => {
+          try {
+            if (isEditAudience && selectedAudience) {
+              // Update
+              await baseHttpServiceInstance.put(
+                `/event-studio/events/${params.event_id}/audiences/${selectedAudience.id}`,
+                values
+              );
+              notificationCtx.success(tt("Cập nhật thành công", "Update successful"));
+            } else {
+              // Create
+              await baseHttpServiceInstance.post(
+                `/event-studio/events/${params.event_id}/audiences`,
+                values
+              );
+              notificationCtx.success(tt("Tạo mới thành công", "Create successful"));
+            }
+            // Refresh list
+            const res = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/audiences`);
+            setAudiences(res.data);
+          } catch (error: any) {
+            notificationCtx.error(tt('Lỗi:', 'Error:'), error);
+          }
+        }}
+        initialValues={selectedAudience}
+        isEdit={isEditAudience}
+      />
 
       <Modal
         open={openEditorModal}

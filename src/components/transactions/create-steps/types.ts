@@ -12,6 +12,19 @@ export type TicketCategory = {
     disabled: boolean;
     limitPerTransaction: number | null;
     limitPerCustomer: number | null;
+    categoryAudiences?: {
+        id: number;
+        audienceId: number;
+        price: number;
+        isDefault: boolean;
+        audience: {
+            id: number;
+            name: string;
+            code: string;
+            isActive: boolean;
+            isDefault: boolean;
+        };
+    }[];
 };
 
 export type Show = {
@@ -112,6 +125,8 @@ export interface TicketInfo {
     seatLabel?: string | undefined;
     holder?: HolderInfo;
     price?: number;
+    audienceId?: number;
+    audienceName?: string;
 }
 
 export interface Order {

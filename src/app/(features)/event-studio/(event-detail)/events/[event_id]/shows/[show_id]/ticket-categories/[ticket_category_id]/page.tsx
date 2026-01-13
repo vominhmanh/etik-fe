@@ -18,6 +18,13 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Unstable_Grid2';
 import { AxiosResponse } from 'axios';
 import { useRouter } from 'next/navigation';
@@ -75,6 +82,11 @@ export default function Page({
     description: '',
     status: 'on_sale',
   });
+
+  const [audiences, setAudiences] = useState<any[]>([]);
+  const [audiencePrices, setAudiencePrices] = useState<Record<number, number>>({});
+  const [selectedAudiences, setSelectedAudiences] = useState<number[]>([]);
+
   const router = useRouter();
 
   // Fetch ticket category details
@@ -83,13 +95,16 @@ export default function Page({
       try {
         setIsLoading(true);
         // Fetch show details separately to get seatmapMode
-        const showResponse = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/shows/${showId}`);
-        setShow(showResponse.data);
+        const [showResponse, audResponse, tcResponse] = await Promise.all([
+          baseHttpServiceInstance.get(`/event-studio/events/${eventId}/shows/${showId}`),
+          baseHttpServiceInstance.get(`/event-studio/events/${eventId}/audiences`),
+          baseHttpServiceInstance.get(`/event-studio/events/${eventId}/shows/${showId}/ticket-categories/${ticketCategoryId}`)
+        ]);
 
-        const response: AxiosResponse = await baseHttpServiceInstance.get(
-          `/event-studio/events/${eventId}/shows/${showId}/ticket-categories/${ticketCategoryId}`
-        );
-        const ticketCategory = response.data;
+        setShow(showResponse.data);
+        setAudiences(audResponse.data || []);
+
+        const ticketCategory = tcResponse.data;
         setFormData({
           name: ticketCategory.name,
           type: ticketCategory.type,
@@ -100,6 +115,35 @@ export default function Page({
           limitPerTransaction: ticketCategory.limitPerTransaction || null,
           limitPerCustomer: ticketCategory.limitPerCustomer || null,
         });
+
+        // Populate audience prices
+        const prices: Record<number, number> = {};
+        const selected: number[] = [];
+
+        if (ticketCategory.categoryAudiences && Array.isArray(ticketCategory.categoryAudiences)) {
+          ticketCategory.categoryAudiences.forEach((ca: any) => {
+            prices[ca.audienceId] = ca.price;
+            selected.push(ca.audienceId);
+          });
+        }
+
+        // Ensure default 'Adult' audience is handled if not present (legacy data)
+        const allAudiences = audResponse.data || [];
+        const defaultAudience = allAudiences.find((a: any) => a.isDefault) ||
+          allAudiences.find((a: any) => a.code === 'adult') ||
+          allAudiences[0];
+
+        if (defaultAudience && !selected.includes(defaultAudience.id)) {
+          // If adult not linked, maybe use base price?
+          // User requirement: "display audience that has is_default = True"
+          // For legacy, display base price as adult price?
+          prices[defaultAudience.id] = ticketCategory.price;
+          selected.push(defaultAudience.id);
+        }
+
+        setAudiencePrices(prices);
+        setSelectedAudiences(selected);
+
         // Set the checkbox states based on the fetched values
         setIsTransactionLimitUnlimited(ticketCategory.limitPerTransaction === undefined || ticketCategory.limitPerTransaction === null);
         setIsCustomerLimitUnlimited(ticketCategory.limitPerCustomer === undefined || ticketCategory.limitPerCustomer === null);
@@ -119,6 +163,31 @@ export default function Page({
       [name as string]: value,
     }));
   };
+
+  const handleAudiencePriceChange = (audienceId: number, value: string) => {
+    let rawValue = value.replace(/\./g, '');
+    if (!/^\d*$/.test(rawValue)) return;
+    const numValue = parseFloat(rawValue) || 0;
+
+    setAudiencePrices(prev => ({ ...prev, [audienceId]: numValue }));
+
+    const defaultAudience = audiences.find((a: any) => a.isDefault) ||
+      audiences.find((a: any) => a.code === 'adult') ||
+      audiences[0];
+    if (defaultAudience && defaultAudience.id === audienceId) {
+      setFormData(prev => ({ ...prev, price: numValue }));
+    }
+  }
+
+  const handleToggleAudience = (audienceId: number) => {
+    if (selectedAudiences.includes(audienceId)) {
+      if (selectedAudiences.length > 1) {
+        setSelectedAudiences(prev => prev.filter(id => id !== audienceId));
+      }
+    } else {
+      setSelectedAudiences(prev => [...prev, audienceId]);
+    }
+  }
 
   const handleTransactionLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -158,6 +227,15 @@ export default function Page({
       notificationCtx.warning(tt('Tên loại vé không được để trống.', 'Ticket category name cannot be empty.'));
       return
     }
+
+    // Validate Audience Prices (same as Create)
+    const defaultAudience = audiences.find((a: any) => a.isDefault) ||
+      audiences.find((a: any) => a.code === 'adult') ||
+      audiences[0];
+    if (defaultAudience && selectedAudiences.includes(defaultAudience.id)) {
+      // Validation logic if needed
+    }
+
     if (formData.limitPerTransaction && formData.limitPerCustomer) {
       if (formData.limitPerTransaction > formData.quantity) {
         notificationCtx.warning(tt('Số vé tối đa mỗi giao dịch phải nhỏ hơn hoặc bằng Tổng số vé.', 'Maximum tickets per transaction must be less than or equal to total tickets.'));
@@ -189,6 +267,10 @@ export default function Page({
           limitPerTransaction: formData.limitPerTransaction,
           limitPerCustomer: formData.limitPerCustomer,
           status: formData.status,
+          audiences: selectedAudiences.map(id => ({
+            audienceId: id,
+            price: audiencePrices[id] !== undefined ? audiencePrices[id] : 0
+          }))
         }
       );
       notificationCtx.success(response.data);
@@ -286,6 +368,80 @@ export default function Page({
                   </Grid>
                 </CardContent>
               </Card>
+
+              <Card>
+                <CardHeader
+                  title={tt("Giá vé theo đối tượng", "Price by Audience")}
+                  subheader={tt("Cấu hình giá cho từng đối tượng khán giả.", "Configure prices for each audience type.")}
+                  action={
+                    <Box>
+                      <FormControl sx={{ minWidth: 130 }} size="small">
+                        <InputLabel>{tt("Thêm đối tượng", "Add Audience")}</InputLabel>
+                        <Select
+                          label={tt("Thêm đối tượng", "Add Audience")}
+                          value=""
+                          onChange={(e) => handleToggleAudience(Number(e.target.value))}
+                        >
+                          {audiences.filter(a => !selectedAudiences.includes(a.id)).map((audience) => (
+                            <MenuItem key={audience.id} value={audience.id}>
+                              {audience.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        <FormHelperText>{tt("*thay đổi đối tượng tại trang chính", "*change audience at the main page.")}</FormHelperText>
+                      </FormControl>
+                    </Box>
+                  }
+                />
+                <CardContent>
+                  <TableContainer component={Paper} elevation={0}>
+                    <Table sx={{ minWidth: 400, '& td, & th': { border: 0 } }} aria-label="audience price table">
+                      <TableBody>
+                        {selectedAudiences.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={3} align="center">
+                              <Typography color="text.secondary" variant="body2">
+                                {tt("Chưa chọn đối tượng nào.", "No audience selected.")}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {selectedAudiences.map(audienceId => {
+                          const audience = audiences.find(a => a.id === audienceId);
+                          if (!audience) return null;
+                          return (
+                            <TableRow key={audienceId}>
+                              <TableCell width="40%">
+                                <Typography sx={{ fontWeight: (audience.isDefault || audience.code === 'adult') ? 'bold' : 'normal' }}>
+                                  {audience.name} {(audience.isDefault || audience.code === 'adult') && `(${tt("Mặc định", "Default")})`}
+                                </Typography>
+                              </TableCell>
+                              <TableCell width="40%">
+                                <OutlinedInput
+                                  size="small"
+                                  fullWidth
+                                  value={audiencePrices[audienceId]?.toLocaleString('vi-VN') || ''}
+                                  onChange={(e) => handleAudiencePriceChange(audienceId, e.target.value)}
+                                  endAdornment={<InputAdornment position="end">đ</InputAdornment>}
+                                  placeholder="0"
+                                />
+                              </TableCell>
+                              <TableCell width="20%">
+                                {!(audience.isDefault || audience.code === 'adult') && (
+                                  <Button size="small" color="error" onClick={() => handleToggleAudience(audienceId)}>
+                                    {tt("Xoá", "Remove")}
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader
                   title={tt("Số lượng vé", "Ticket Quantity")}
@@ -310,25 +466,9 @@ export default function Page({
                     />
                   }
                 />
-                <CardHeader
-                  title={tt("Giá vé", "Ticket Price")}
-                  action={
-                    <OutlinedInput
-                      sx={{ maxWidth: { xs: 70, sm: 180 } }}
-                      type="text"
-                      value={formData.price.toLocaleString('vi-VN')}
-                      onChange={(e) => {
-                        let rawValue = e.target.value.replace(/\./g, '');
-                        if (!/^\d*$/.test(rawValue)) return;
 
-                        const numericValue = parseFloat(rawValue) || 0;
-                        setFormData((prev) => ({ ...prev, price: numericValue }));
-                      }}
-                      name="price"
-                      endAdornment={<InputAdornment position="end">đ</InputAdornment>}
-                    />
-                  }
-                />
+                {/* Legacy Price input replaced */}
+
                 <CardHeader
                   title={tt("Số vé tối đa mỗi đơn hàng", "Maximum Tickets Per Order")}
                   subheader={

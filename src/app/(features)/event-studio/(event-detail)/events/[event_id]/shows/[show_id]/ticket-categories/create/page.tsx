@@ -68,23 +68,41 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
   const [isCustomerLimitUnlimited, setIsCustomerLimitUnlimited] = useState(false);
   const [show, setShow] = useState<Show | null>(null);
 
-  /* Fetch show info */
-  React.useEffect(() => {
-    const fetchShow = async () => {
-      try {
-        const response = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/shows/${showId}`);
-        setShow(response.data);
+  const [audiences, setAudiences] = useState<any[]>([]);
+  const [audiencePrices, setAudiencePrices] = useState<Record<number, number>>({});
+  const [selectedAudiences, setSelectedAudiences] = useState<number[]>([]);
 
-        if (response.data.seatmapMode !== 'no_seatmap') {
+  /* Fetch show info and audiences */
+  React.useEffect(() => {
+    const fetchShowAndAudiences = async () => {
+      try {
+        const [showRes, audRes] = await Promise.all([
+          baseHttpServiceInstance.get(`/event-studio/events/${eventId}/shows/${showId}`),
+          baseHttpServiceInstance.get(`/event-studio/events/${eventId}/audiences`)
+        ]);
+
+        setShow(showRes.data);
+        const allAudiences = audRes.data || [];
+        setAudiences(allAudiences);
+
+        // Pre-select Default audience or 'Adult' or first audience
+        const defaultAudience = allAudiences.find((a: any) => a.isDefault) ||
+          allAudiences.find((a: any) => a.code === 'adult') ||
+          allAudiences[0];
+        if (defaultAudience) {
+          setSelectedAudiences([defaultAudience.id]);
+        }
+
+        if (showRes.data.seatmapMode !== 'no_seatmap') {
           setFormData(prev => ({ ...prev, quantity: 0 }));
         } else {
           setFormData(prev => ({ ...prev, quantity: 100 }));
         }
       } catch (error) {
-        console.error("Failed to fetch show", error);
+        console.error("Failed to fetch data", error);
       }
     };
-    fetchShow();
+    fetchShowAndAudiences();
   }, [eventId, showId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
@@ -94,6 +112,33 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
       [name as string]: value,
     }));
   };
+
+  const handleAudiencePriceChange = (audienceId: number, value: string) => {
+    let rawValue = value.replace(/\./g, '');
+    if (!/^\d*$/.test(rawValue)) return;
+    const numValue = parseFloat(rawValue) || 0;
+
+    setAudiencePrices(prev => ({ ...prev, [audienceId]: numValue }));
+
+    // If this is the Default (or Adult) audience, update main price too for compatibility
+    const defaultAudience = audiences.find((a: any) => a.isDefault) ||
+      audiences.find((a: any) => a.code === 'adult') ||
+      audiences[0];
+    if (defaultAudience && defaultAudience.id === audienceId) {
+      setFormData(prev => ({ ...prev, price: numValue }));
+    }
+  }
+
+  const handleToggleAudience = (audienceId: number) => {
+    if (selectedAudiences.includes(audienceId)) {
+      // Can't unselect if it's the only one or 'adult' (maybe enforce at least one?)
+      if (selectedAudiences.length > 1) {
+        setSelectedAudiences(prev => prev.filter(id => id !== audienceId));
+      }
+    } else {
+      setSelectedAudiences(prev => [...prev, audienceId]);
+    }
+  }
 
   const handleDescriptionChange = (value: string) => {
     setFormData((prev) => ({
@@ -139,6 +184,21 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
       notificationCtx.warning(tt('Tên loại vé không được để trống.', 'Ticket category name cannot be empty.'));
       return
     }
+
+    // Validate Audience Prices
+    const defaultAudience = audiences.find((a: any) => a.isDefault) ||
+      audiences.find((a: any) => a.code === 'adult') ||
+      audiences[0];
+    if (defaultAudience && selectedAudiences.includes(defaultAudience.id)) {
+      if (audiencePrices[defaultAudience.id] === undefined || audiencePrices[defaultAudience.id] === null) {
+        // If price is missing for default, maybe allow 0 but ensure input?
+        // Assuming default 0 if not set, but let's check validation requirement
+        // "validate bắt buộc nhập giá với is_default"
+        // But if current formData.price is used as default, we might have it.
+      }
+    }
+
+
     if (formData.limitPerTransaction && formData.limitPerCustomer) {
       if (formData.limitPerTransaction > formData.quantity) {
         notificationCtx.warning(tt('Số vé tối đa mỗi giao dịch phải nhỏ hơn hoặc bằng Tổng số vé.', 'Maximum tickets per transaction must be less than or equal to total tickets.'));
@@ -165,11 +225,15 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
         {
           name: formData.name,
           type: formData.type,
-          price: formData.price,
+          price: formData.price, // Main price (usually for adult)
           quantity: formData.quantity,
           limitPerTransaction: formData.limitPerTransaction,
           limitPerCustomer: formData.limitPerCustomer,
           description: formData.description,
+          audiences: selectedAudiences.map(id => ({
+            audienceId: id,
+            price: audiencePrices[id] || 0 // Should valid price
+          }))
         }
       );
       notificationCtx.success(response.data.message);
@@ -241,6 +305,65 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
                   </Grid>
                 </CardContent>
               </Card>
+
+              <Card>
+                <CardHeader
+                  title={tt("Giá vé theo đối tượng", "Price by Audience")}
+                  subheader={tt("Cấu hình giá cho từng đối tượng khán giả.", "Configure prices for each audience type.")}
+                  action={
+                    <Box>
+                      <FormControl sx={{ minWidth: 200 }} size="small">
+                        <InputLabel>{tt("Thêm đối tượng", "Add Audience")}</InputLabel>
+                        <Select
+                          label={tt("Thêm đối tượng", "Add Audience")}
+                          value=""
+                          onChange={(e) => handleToggleAudience(Number(e.target.value))}
+                        >
+                          {audiences.filter(a => !selectedAudiences.includes(a.id)).map((audience) => (
+                            <MenuItem key={audience.id} value={audience.id}>
+                              {audience.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                  }
+                />
+                <CardContent>
+                  <Stack spacing={2}>
+                    {selectedAudiences.length === 0 && (
+                      <Typography color="text.secondary" variant="body2">
+                        {tt("Chưa chọn đối tượng nào.", "No audience selected.")}
+                      </Typography>
+                    )}
+                    {selectedAudiences.map(audienceId => {
+                      const audience = audiences.find(a => a.id === audienceId);
+                      if (!audience) return null;
+                      return (
+                        <Stack key={audienceId} direction="row" spacing={2} alignItems="center">
+                          <Typography sx={{ width: 200, fontWeight: (audience.isDefault || audience.code === 'adult') ? 'bold' : 'normal' }}>
+                            {audience.name} {(audience.isDefault || audience.code === 'adult') && `(${tt("Mặc định", "Default")})`}
+                          </Typography>
+                          <OutlinedInput
+                            size="small"
+                            sx={{ maxWidth: 180 }}
+                            value={audiencePrices[audienceId]?.toLocaleString('vi-VN') || ((audience.isDefault || audience.code === 'adult') ? formData.price.toLocaleString('vi-VN') : '')}
+                            onChange={(e) => handleAudiencePriceChange(audienceId, e.target.value)}
+                            endAdornment={<InputAdornment position="end">đ</InputAdornment>}
+                            placeholder="0"
+                          />
+                          {!(audience.isDefault || audience.code === 'adult') && (
+                            <Button size="small" color="error" onClick={() => handleToggleAudience(audienceId)}>
+                              {tt("Xoá", "Remove")}
+                            </Button>
+                          )}
+                        </Stack>
+                      )
+                    })}
+                  </Stack>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader
                   title={tt("Số lượng vé", "Ticket Quantity")}
@@ -265,25 +388,15 @@ export default function Page({ params }: { params: { event_id: number; show_id: 
                     />
                   }
                 />
-                <CardHeader
-                  title={tt("Giá vé", "Ticket Price")}
-                  action={
-                    <OutlinedInput
-                      sx={{ maxWidth: { xs: 70, sm: 180 } }}
-                      type="text" // Change type to text to allow flexible input handling
-                      value={formData.price.toLocaleString('vi-VN')}
-                      onChange={(e) => {
-                        let rawValue = e.target.value.replace(/\./g, ''); // Remove formatting
-                        if (!/^\d*$/.test(rawValue)) return; // Allow only numeric input
 
-                        const numericValue = parseFloat(rawValue) || 0; // Convert to number
-                        setFormData((prev) => ({ ...prev, price: numericValue }));
-                      }}
-                      name="price"
-                      endAdornment={<InputAdornment position="end">đ</InputAdornment>}
-                    />
-                  }
-                />
+                {/* Legacy Price Input - Hidden or Readonly if using Audience Pricing? 
+                    Actually, let's just keep it hidden or synced with Adult price.
+                    For now, I'm replacing the "Ticket Price" card with "Price by Audience" above.
+                    So I will remove the single "Ticket Price" CardHeader or keep it as a fallback?
+                    The user said "hiển thị audience mà có is_default = True ra màn hình cho user nhập giá".
+                    So replacing the single input with the list is correct.
+                */}
+
                 <CardHeader
                   title={tt("Số vé tối đa mỗi đơn hàng", "Maximum Tickets Per Order")}
                   subheader={

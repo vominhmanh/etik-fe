@@ -89,10 +89,18 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
       if (!g) {
         const show = shows.find(s => s.id === t.showId);
         const cat = show?.ticketCategories.find(c => c.id === t.ticketCategoryId);
-        g = { key, show, category: cat, quantity: 0, items: [] };
+        g = {
+          key,
+          show,
+          category: cat,
+          quantity: 0,
+          total: 0,
+          items: []
+        };
         groups.push(g);
       }
       g.quantity++;
+      g.total += (t.price ?? 0); // Accumulate correct price
       g.items.push({ index, holder: t.holder });
     });
     return groups;
@@ -201,9 +209,8 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                         </Typography>
                       </Stack>
                       <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                        <Typography variant="caption">{formatPrice(group.category?.price || 0)}</Typography>
                         <Typography variant="caption">x {group.quantity}</Typography>
-                        <Typography variant="caption">= {formatPrice((group.category?.price || 0) * group.quantity)}</Typography>
+                        <Typography variant="caption">= {formatPrice(group.total)}</Typography>
                       </Stack>
                     </Stack>
 
@@ -246,8 +253,17 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                                       </Typography>
                                     </Stack>
                                   )}
+                                  {ticket?.audienceName && (
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                                      ({ticket.audienceName})
+                                    </Typography>
+                                  )}
                                   <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
                                     {holderInfo?.name ? `${holderInfo?.title || ''} ${holderInfo?.name}`.trim() : tt('Chưa có thông tin', 'No information')}
+                                  </Typography>
+                                  <Box sx={{ flexGrow: 1 }} />
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                                    {formatPrice(ticket.price ?? 0)}
                                   </Typography>
                                 </Stack>
                               </Stack>

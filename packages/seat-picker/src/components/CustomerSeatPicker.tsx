@@ -655,9 +655,9 @@ const CustomerSeatPicker: React.FC<SeatCanvasProps> = ({
                           {categoryInfo?.name || 'Unknown Category'}
                         </div>
                       </div>
-                      <div className="flex items-center text-xs font-semibold text-gray-700 ml-2">
+                      {/* <div className="flex items-center text-xs font-semibold text-gray-700 ml-2">
                         {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(seat.price))}
-                      </div>
+                      </div> */}
 
                       {/* Delete Button */}
                       <button

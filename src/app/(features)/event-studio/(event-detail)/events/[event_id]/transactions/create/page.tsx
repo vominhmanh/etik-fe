@@ -384,7 +384,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   // Calculate subtotal (before discount)
   const subtotal = React.useMemo(() => {
-    return order.tickets.reduce((sum, t) => sum + (t.price || 0), 0);
+    return order.tickets.reduce((sum, t) => sum + (t.price ?? 0), 0);
   }, [order.tickets]);
 
   // Get all tickets in order with details (Projected for voucher logic compatibility)
@@ -392,7 +392,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return order.tickets.map(t => ({
       showId: t.showId,
       ticketCategoryId: t.ticketCategoryId,
-      price: t.price || 0,
+      price: t.price ?? 0,
       quantity: 1
     }));
   }, [order.tickets]);
@@ -672,6 +672,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           showId: t.showId,
           ticketCategoryId: t.ticketCategoryId,
           seatId: t.seatId,
+          amount: t.price,
+          audienceId: t.audienceId,
           holder: holderData
         };
       }));

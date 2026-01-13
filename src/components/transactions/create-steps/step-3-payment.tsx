@@ -130,10 +130,18 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
                     {(() => {
                       const groups: any[] = [];
                       (order.tickets || []).forEach((t: any) => {
-                        const key = `${t.showId}-${t.ticketCategoryId}`;
+                        const key = `${t.showId}-${t.ticketCategoryId}-${t.audienceId || 'default'}`;
                         let g = groups.find(x => x.key === key);
                         if (!g) {
-                          g = { key, showId: t.showId, ticketCategoryId: t.ticketCategoryId, quantity: 0, price: t.price || 0 };
+                          g = {
+                            key,
+                            showId: t.showId,
+                            ticketCategoryId: t.ticketCategoryId,
+                            audienceId: t.audienceId,
+                            audienceName: t.audienceName,
+                            quantity: 0,
+                            price: t.price ?? 0
+                          };
                           groups.push(g);
                         }
                         g.quantity++;
@@ -163,6 +171,7 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary" noWrap>
                                       {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
+                                      {g.audienceName && <span style={{ fontWeight: 'normal', color: 'var(--mui-palette-text-secondary)' }}> ({g.audienceName})</span>}
                                     </Typography>
                                   </Box>
                                 </Stack>

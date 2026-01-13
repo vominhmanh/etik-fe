@@ -12,7 +12,8 @@ import dynamic from "next/dynamic";
 import { CartModal } from './cart-modal';
 import { Schedules } from './schedules';
 import { TicketCategories } from './ticket-categories';
-import { Order, Show, TicketInfo } from './types';
+import { AudienceSelectionDialog } from '@/components/dialogs/AudienceSelectionDialog';
+import { Order, Show, TicketInfo, TicketCategory } from './types';
 
 import type { SeatData } from '@/components/seat-map/SeatPickerEditor';
 
@@ -100,6 +101,53 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
     setStickySeatmapLayout(activeSchedule.layoutJson || {});
   }, [seatmapVisible, activeSchedule?.id, activeSchedule?.layoutJson, seatmapEverMounted]);
 
+  // Audience Selection Modal State
+  const [audienceSelection, setAudienceSelection] = React.useState<{
+    isOpen: boolean;
+    pendingSeat: SeatData | null;
+    ticketCategory: TicketCategory | null;
+  }>({
+    isOpen: false,
+    pendingSeat: null,
+    ticketCategory: null
+  });
+
+  const handleAudienceConfirm = (audienceId: number) => {
+    const { pendingSeat, ticketCategory } = audienceSelection;
+    if (!pendingSeat || !ticketCategory || !activeSchedule) return;
+
+    // Find audience details
+    const selectedAudience = ticketCategory.categoryAudiences?.find(ca => ca.audienceId === audienceId);
+    if (!selectedAudience) return;
+
+    // Add to order
+    setOrder(prev => {
+      const ticket: TicketInfo = {
+        showId: activeSchedule.id,
+        ticketCategoryId: ticketCategory.id,
+        seatId: pendingSeat.id,
+        seatRow: pendingSeat.rowLabel || undefined,
+        seatNumber: pendingSeat.number ? String(pendingSeat.number) : undefined,
+        seatLabel: (pendingSeat.rowLabel && pendingSeat.number) ? `${pendingSeat.rowLabel}-${pendingSeat.number}` : undefined,
+        price: selectedAudience.price,
+        audienceId: audienceId,
+        audienceName: selectedAudience.audience.name,
+        holder: undefined
+      };
+      return {
+        ...prev,
+        tickets: [...prev.tickets, ticket]
+      };
+    });
+
+    // Close modal
+    setAudienceSelection(prev => ({ ...prev, isOpen: false, pendingSeat: null, ticketCategory: null }));
+  };
+
+  const handleAudienceCancel = () => {
+    setAudienceSelection(prev => ({ ...prev, isOpen: false, pendingSeat: null, ticketCategory: null }));
+  };
+
   // Track selected seat IDs derived from order
   const selectedSeats = React.useMemo(() => {
     const s = new Set<string>();
@@ -175,6 +223,39 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
       }
     }
 
+    // Identify newly added seats for Audience Check
+    // We only care if we are adding seats. 
+    // currentSeatIds logic needs to account for this specific show
+    const currentSeatIds = new Set(order.tickets.filter(t => t.showId === activeSchedule?.id && t.seatId).map(t => t.seatId));
+    // newIds contains ALL currently selected. newly added = newIds - currentSeatIds
+    const newlyAddedIds = newIds.filter(id => !currentSeatIds.has(id));
+
+    if (newlyAddedIds.length > 0) {
+      const addedSeats = newSelectedSeats.filter(s => newlyAddedIds.includes(s.id));
+      for (const seat of addedSeats) {
+        const catId = Number(seat.category);
+        const catConfig = activeSchedule?.ticketCategories.find(tc => tc.id === catId);
+
+        if (!catConfig) continue;
+
+        const activeAudiences = catConfig.categoryAudiences?.filter(ca => ca.audience.isActive) || [];
+
+        if (activeAudiences.length === 0) {
+          notificationCtx.error('Loại vé này chưa có đối tượng khán giả nào được kích hoạt.');
+          return; // Block selection
+        } else if (activeAudiences.length > 1) {
+          // Open modal for the first one found and BLOCK the update (so others usually ignored)
+          setAudienceSelection({
+            isOpen: true,
+            pendingSeat: seat,
+            ticketCategory: catConfig
+          });
+          return; // Stop processing, discard selection until confirmed
+        }
+        // If length === 1, we proceed to add it automatically below (in logic 2)
+      }
+    }
+
     // newSelectedSeats now already has rowLabel from CustomerSeatPicker wrapper
     // Update order.tickets based on selection
     setOrder(prev => {
@@ -200,6 +281,10 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
         const catId = Number(seat.category);
         const catConfig = activeSchedule?.ticketCategories.find(tc => tc.id === catId);
 
+        // Resolve audience (Single audience case)
+        const activeAudiences = catConfig?.categoryAudiences?.filter(ca => ca.audience.isActive) || [];
+        const singleAudience = activeAudiences.length === 1 ? activeAudiences[0] : null;
+
         // Use rowLabel and number to create seatLabel
         const seatNumber = seat.number ? String(seat.number) : undefined;
         const seatRow = seat.rowLabel || undefined;
@@ -212,7 +297,9 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
           seatRow: seatRow,
           seatNumber: seatNumber,
           seatLabel: seatLabel,
-          price: catConfig?.price || 0,
+          price: singleAudience ? singleAudience.price : (catConfig?.price || 0),
+          audienceId: singleAudience?.audienceId,
+          audienceName: singleAudience?.audience.name,
           holder: undefined
         });
       });
@@ -223,6 +310,8 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
       };
     });
   };
+
+
 
   const handleAddToCart = (categoryId: number, quantity: number) => {
     if (!activeSchedule) return;
@@ -402,6 +491,17 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
         </Button>
       </Stack>
 
+      {/* Audience Selection Dialog */}
+      {audienceSelection.isOpen && audienceSelection.ticketCategory && (
+        <AudienceSelectionDialog
+          open={audienceSelection.isOpen}
+          onClose={handleAudienceCancel}
+          audiences={audienceSelection.ticketCategory.categoryAudiences?.filter(ca => ca.audience.isActive) || []}
+          onSelect={handleAudienceConfirm}
+        />
+      )}
+
+
       <CartModal
         open={props.isCartOpen}
         onClose={props.onCloseCart}
@@ -413,7 +513,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
         onEditItem={props.onEditCartItem}
         onRemoveItem={props.onRemoveCartItem}
       />
-    </Stack>
+    </Stack >
   );
 }
 

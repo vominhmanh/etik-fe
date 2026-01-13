@@ -141,7 +141,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
         groups[key] = { show: show!, category: cat, quantity: 0, total: 0, indices: [] };
       }
       groups[key].quantity += 1;
-      groups[key].total += (t.price || groups[key].category?.price || 0);
+      groups[key].total += (t.price ?? groups[key].category?.price ?? 0);
       groups[key].indices.push(index);
     });
     return Object.values(groups);
@@ -613,6 +613,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                             {ticket.seatLabel}
                                           </Typography>
                                         </Stack>
+                                      )}
+                                      {ticket.audienceName && (
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          ({ticket.audienceName})
+                                        </Typography>
                                       )}
                                       <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
                                         {holderInfo.name ? `${holderInfo.title ? `${holderInfo.title} ` : ''}${holderInfo.name}` : tt('Chưa có thông tin', 'No information')}
