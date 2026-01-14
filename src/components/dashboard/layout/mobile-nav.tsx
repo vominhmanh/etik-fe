@@ -255,7 +255,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               key="seat-maps"
               title={tt("Sơ đồ ghế", "Seat Maps")}
               href={`/event-studio/events/${dynamicId}/seat-maps`}
-              icon={Invoice}
+              icon={Armchair}
               onClose={onClose}
             />
             <NavItemCollapseChildItem

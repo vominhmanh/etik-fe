@@ -14,6 +14,10 @@ import {
   MenuItem,
   Modal,
   Select,
+  FormControlLabel,
+  FormLabel,
+  Radio,
+  RadioGroup,
   Stack,
   TextField,
   Tooltip,
@@ -101,6 +105,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const { event_id } = params;
 
   const [description, setDescription] = useState<string>('');
+
+  // Mock state for Tax Invoice Config
+  const [taxInvoiceUsage, setTaxInvoiceUsage] = useState<number>(1);
+  const [invoiceTrigger, setInvoiceTrigger] = useState<number>(1);
+
   const reactQuillRef = React.useRef<ReactQuill>(null);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -628,107 +637,130 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         <Grid container spacing={3}>
           <Grid lg={8} md={6} xs={12}>
             <Stack spacing={3}>
-              <Card id="generalSettings">
-                <CardHeader title={tt('Thông tin chung', 'General Information')} />
+              <Card id="taxSettings">
+                <CardHeader title={tt('Cấu hình Hóa đơn', 'Tax Invoice Configuration')} />
                 <Divider />
                 <CardContent>
-                  <Grid container spacing={3}>
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel>{tt('Trang khách hàng tự đăng ký', 'Customer Registration Page')}</InputLabel>
-                        <OutlinedInput
-                          value={formValues.slug}
-                          label={tt('Trang khách hàng tự đăng ký', 'Customer Registration Page')}
-                          name="slug"
-                          onChange={handleInputChange}
-                          startAdornment={<InputAdornment position="start">etik.vn/</InputAdornment>}
-                          endAdornment={
-                            <IconButton size="small" onClick={() => handleCopyToClipboard(`etik.vn/${event?.slug}`)}>
-                              <Clipboard />
-                            </IconButton>
+                  <Stack spacing={4}>
+                    {/* Question 1 */}
+                    <FormControl>
+                      <FormLabel id="tax-usage-label" sx={{ color: 'text.primary', fontWeight: 600, mb: 1 }}>
+                        {tt('Cách sử dụng hóa đơn thuế', 'How to use tax invoices')}
+                      </FormLabel>
+                      <RadioGroup
+                        aria-labelledby="tax-usage-label"
+                        name="tax-usage-group"
+                        value={taxInvoiceUsage}
+                        onChange={(e) => setTaxInvoiceUsage(Number(e.target.value))}
+                      >
+                        {/* Option 1 */}
+                        <FormControlLabel
+                          value={1}
+                          control={<Radio sx={{ alignSelf: 'flex-start', mt: -0.5 }} />}
+                          label={
+                            <Box sx={{ mb: 1 }}>
+                              <Typography variant="body1" fontWeight="500">
+                                {tt('Không sử dụng hóa đơn thuế trên ETIK', 'Do not use tax invoices on ETIK')}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {tt('Tôi sẽ tự xử lý khi khách hàng có yêu cầu xuất hóa đơn', 'I will handle it manually when customers request an invoice')}
+                              </Typography>
+                            </Box>
                           }
+                          sx={{ alignItems: 'flex-start', ml: 0 }}
                         />
-                      </FormControl>
-                    </Grid>
 
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth>
-                        <InputLabel>
-                          {tt('Liên kết ngoài (trang thông tin sự kiện)', 'External Link (Event Information Page)')}
-                        </InputLabel>
-                        <OutlinedInput
-                          value={formValues.externalLink}
-                          label={tt(
-                            'Liên kết ngoài (trang thông tin sự kiện)',
-                            'External Link (Event Information Page)'
-                          )}
-                          name="externalLink"
-                          onChange={handleInputChange}
-                          endAdornment={
-                            <InputAdornment position="end">
-                              <Tooltip
-                                title={tt(
-                                  'Đây là một liên kết đến trang facebook/ website của riêng bạn. Khách hàng sau khi mua vé thành công sẽ được điều hướng đến trang này.',
-                                  'This is a link to your own Facebook page/website. Customers will be redirected to this page after successful ticket purchase.'
+                        {/* Option 2 */}
+                        <FormControlLabel
+                          value={2}
+                          control={<Radio sx={{ alignSelf: 'flex-start', mt: -0.5 }} />}
+                          label={
+                            <Box sx={{ mb: 1 }}>
+                              <Typography variant="body1" fontWeight="500">
+                                {tt('Tôi sử dụng ETIK để chuyển hóa đơn lên phần mềm HDDT', 'I use ETIK to transfer invoices to E-invoice software')}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {tt(
+                                  'ETIK giúp tôi tạo hóa đơn điện tử nháp trên Viettel Sinvoice, MISA eInvoice,... Sau đó tôi sẽ tự thao tác xuất hóa đơn ở trên đó.',
+                                  'ETIK helps me create draft e-invoices on Viettel Sinvoice, MISA eInvoice... Then I will manually issue invoices there.'
                                 )}
-                              >
-                                <IconButton edge="end" size="small">
-                                  <Info />
-                                </IconButton>
-                              </Tooltip>
-                            </InputAdornment>
+                              </Typography>
+                            </Box>
                           }
+                          sx={{ alignItems: 'flex-start', ml: 0 }}
                         />
-                      </FormControl>
-                    </Grid>
 
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel>{tt('Chế độ hiển thị sự kiện', 'Event Display Mode')}</InputLabel>
-                        <Select
-                          disabled={!(event.adminReviewStatus === 'accepted')}
-                          label={tt('Chế độ hiển thị sự kiện', 'Event Display Mode')}
-                          name="displayOption"
-                          value={formValues.displayOption}
-                          onChange={(e: any) => handleInputChange(e)}
-                        >
-                          {/* <MenuItem value={'do_not_display'}>{tt("Không hiển thị", "Do Not Display")}</MenuItem> */}
-                          <MenuItem value={'display_with_members'}>
-                            {tt('Chỉ hiển thị với người quản lý sự kiện', 'Only visible to event managers')}
-                          </MenuItem>
-                          <MenuItem value={'display_with_everyone'}>
-                            {tt('Hiển thị với mọi người', 'Visible to everyone')}
-                          </MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
+                        {/* Option 3 */}
+                        <FormControlLabel
+                          value={3}
+                          control={<Radio sx={{ alignSelf: 'flex-start', mt: -0.5 }} />}
+                          label={
+                            <Box sx={{ mb: 1 }}>
+                              <Typography variant="body1" fontWeight="500">
+                                {tt('Tôi sử dụng ETIK như là kênh xuất hóa đơn điện tử thông thường', 'I use ETIK as a regular e-invoice issuance channel')}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {tt(
+                                  'ETIK tự động kết nối vào phần mềm HDDT và xuất HDDT dạng thông thường khi tôi thao tác trên ETIK',
+                                  'ETIK automatically connects to E-invoice software and issues regular e-invoices when I take action on ETIK'
+                                )}
+                              </Typography>
+                            </Box>
+                          }
+                          sx={{ alignItems: 'flex-start', ml: 0 }}
+                        />
 
-                    <Grid md={12} xs={12}>
-                      <FormControl fullWidth required>
-                        <InputLabel>
-                          {tt('Cho phép tìm kiếm trên Marketplace', 'Allow Search on Marketplace')}
-                        </InputLabel>
-                        <Select
-                          disabled={!(event.adminReviewStatus === 'accepted')}
-                          label={tt('Cho phép tìm kiếm trên Marketplace', 'Allow Search on Marketplace')}
-                          name="displayOnMarketplace"
-                          value={formValues.displayOnMarketplace}
-                          onChange={(e: any) => handleInputChange(e)}
+                        {/* Option 4 */}
+                        <FormControlLabel
+                          value={4}
+                          control={<Radio sx={{ alignSelf: 'flex-start', mt: -0.5 }} />}
+                          label={
+                            <Box>
+                              <Typography variant="body1" fontWeight="500">
+                                {tt(
+                                  'Tôi sử dụng ETIK như là kênh xuất hóa đơn, và sử dụng ETIK như là máy tính tiền tại quầy',
+                                  'I use ETIK as an invoice issuance channel, and use ETIK as a POS'
+                                )}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {tt(
+                                  'ETIK tự động kết nối vào phần mềm HDDT và xuất hóa đơn định dạng khởi tạo từ máy tính tiền khi tôi thao tác trên ETIK',
+                                  'ETIK automatically connects to E-invoice software and issues invoices created from POS when I take action on ETIK'
+                                )}
+                              </Typography>
+                            </Box>
+                          }
+                          sx={{ alignItems: 'flex-start', ml: 0 }}
+                        />
+                      </RadioGroup>
+                    </FormControl>
+
+                    {/* Question 2 - Conditional */}
+                    {(taxInvoiceUsage === 3 || taxInvoiceUsage === 4) && (
+                      <FormControl>
+                        <FormLabel id="invoice-trigger-label" sx={{ color: 'text.primary', fontWeight: 600, mb: 1 }}>
+                          {tt('Khi nào xuất hóa đơn?', 'When to issue invoice?')}
+                        </FormLabel>
+                        <RadioGroup
+                          aria-labelledby="invoice-trigger-label"
+                          name="invoice-trigger-group"
+                          value={invoiceTrigger}
+                          onChange={(e) => setInvoiceTrigger(Number(e.target.value))}
                         >
-                          <MenuItem value={'true'}>{tt('Cho phép', 'Allow')}</MenuItem>
-                          <MenuItem value={'false'}>{tt('Không cho phép', 'Do Not Allow')}</MenuItem>
-                        </Select>
-                        {!(event.adminReviewStatus === 'accepted') && (
-                          <FormHelperText>
-                            {tt(
-                              'Hiện tại bạn không thể thay đổi chế độ hiển thị này. Vui lòng gửi yêu cầu nâng cấp sự kiện của bạn lên sự kiện được xác thực trước.',
-                              'Now you can not change this display mode. Please upgrade to a Verified Event to change the event display mode'
-                            )}
-                          </FormHelperText>
-                        )}
+                          <FormControlLabel
+                            value={1}
+                            control={<Radio />}
+                            label={tt('Ngay khi đơn hàng xuất vé thành công', 'As soon as the order successfully issues tickets')}
+                          />
+                          <FormControlLabel
+                            value={2}
+                            control={<Radio />}
+                            label={tt('Tôi nhấn nút xuất hóa đơn', 'I click the issue invoice button')}
+                          />
+                        </RadioGroup>
                       </FormControl>
-                    </Grid>
-                  </Grid>
+                    )}
+                  </Stack>
                 </CardContent>
               </Card>
 
