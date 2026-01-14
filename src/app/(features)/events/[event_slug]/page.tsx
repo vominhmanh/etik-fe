@@ -1023,7 +1023,6 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
           <Stack direction="row" spacing={3}>
             <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
               <Typography variant="h6">{tt('Đăng ký tham dự', 'Register to attend')}</Typography>
-              <Typography variant="caption" color="error">DEBUG Subtotal: {subtotal} (Tickets: {order.tickets.reduce((sum, t) => sum + (t.price ?? 0), 0)}, Concessions: {(order.concessions || []).reduce((sum, c) => sum + (c.price * c.quantity), 0)})</Typography>
             </Stack>
           </Stack>
 
