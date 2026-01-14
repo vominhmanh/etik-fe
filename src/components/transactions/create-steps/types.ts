@@ -41,6 +41,8 @@ export type Show = {
     ticketCategories: TicketCategory[];
     limitPerTransaction?: number | null;
     limitPerCustomer?: number | null;
+    concessionsEnabled?: boolean;
+    showConcessions?: ShowConcession[];
 };
 
 export type CheckoutRuntimeFieldOption = {
@@ -129,9 +131,37 @@ export interface TicketInfo {
     audienceName?: string;
 }
 
+export interface Concession {
+    id: number;
+    code: string;
+    name: string;
+    description: string | null;
+    basePrice: number;
+    imageUrl: string | null;
+}
+
+export interface ShowConcession {
+    id: number;
+    showId: number;
+    concessionId: number;
+    isAvailable: boolean;
+    priceOverride: number | null;
+    availableFrom: string | null;
+    availableTo: string | null;
+    concession: Concession;
+}
+
+export interface ConcessionOrder {
+    showId: number;
+    concessionId: number;
+    quantity: number;
+    price: number;
+}
+
 export interface Order {
     customer: CustomerInfo;
     tickets: TicketInfo[];
+    concessions: ConcessionOrder[];
     qrOption: 'shared' | 'separate';
     paymentMethod: string;
     extraFee: number;

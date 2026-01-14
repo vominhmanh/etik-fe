@@ -104,10 +104,13 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       avatar: ''
     },
     tickets: [],
+    concessions: [],
     qrOption: 'separate',
     paymentMethod: 'napas247',
     extraFee: 0
   });
+
+  console.log('[DEBUG] Page Render - Order State:', JSON.stringify(order.concessions));
 
   const notificationCtx = React.useContext(NotificationContext);
   const captchaRef = React.useRef<any>(null); // ReCAPTCHA ref
@@ -159,6 +162,10 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
       }
     }
   }, [event, params.event_slug]);
+
+  React.useEffect(() => {
+    console.log('[DEBUG] Order Changed:', order.concessions);
+  }, [order]);
   const [manualDiscountCode, setManualDiscountCode] = React.useState<string>('');
   const [voucherDetailModalOpen, setVoucherDetailModalOpen] = React.useState<boolean>(false);
   const [selectedVoucherForDetail, setSelectedVoucherForDetail] = React.useState<any | null>(null);
@@ -397,6 +404,42 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
 
   const extraFee = order.extraFee;
 
+  const handleUpdateConcessionQuantity = (showId: number, concessionId: number, quantity: number) => {
+    setOrder(prev => {
+      const existingConcessions = prev.concessions || [];
+      const otherConcessions = existingConcessions.filter(
+        c => !(c.showId === showId && c.concessionId === concessionId)
+      );
+
+      if (quantity > 0) {
+        // Find price from event data to be safe, or use what was passed?
+        // Ideally we find the price from the show data
+        const show = event?.shows.find(s => s.id === showId);
+        const showConcession = show?.showConcessions?.find(sc => sc.concessionId === concessionId);
+        // Default to 0 if not found, but it should be found
+        const price = showConcession ? (showConcession.priceOverride ?? showConcession.concession.basePrice) : 0;
+
+        return {
+          ...prev,
+          concessions: [
+            ...otherConcessions,
+            {
+              showId,
+              concessionId,
+              quantity,
+              price
+            }
+          ]
+        };
+      } else {
+        return {
+          ...prev,
+          concessions: otherConcessions
+        };
+      }
+    });
+  };
+
   const handleExtraFeeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value.replace(/\D/g, '');
     const num = parseInt(value || '0', 10);
@@ -408,9 +451,27 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
   };
 
   // Calculate subtotal (before discount)
+  // Calculate subtotal (before discount)
+  // Calculate subtotal (before discount)
+  // Calculate subtotal (before discount)
   const subtotal = React.useMemo(() => {
-    return order.tickets.reduce((sum, t) => sum + (t.price ?? 0), 0);
-  }, [order.tickets]);
+    const ticketsTotal = order.tickets.reduce((sum, t) => sum + (t.price ?? 0), 0);
+    const concessionsTotal = (order.concessions || []).reduce((sum, c) => {
+      let p: any = c.price;
+      let q: any = c.quantity;
+      console.log(`[DEBUG] Page Calc: ID=${c.concessionId}, Price=${p} (${typeof p}), Qty=${q} (${typeof q})`);
+
+      // Robust handling for potential string '65.000' or similar
+      if (typeof p === 'string') p = parseFloat((p as string).replace(/\./g, '').replace(/,/g, '.'));
+      if (typeof q === 'string') q = parseFloat(q);
+
+      const itemVal = (Number(p || 0) * Number(q || 0));
+      console.log(`[DEBUG] Item Val: ${itemVal}`);
+      return sum + itemVal;
+    }, 0);
+    console.log(`[DEBUG] Subtotal Result: T=${ticketsTotal} + C=${concessionsTotal} = ${ticketsTotal + concessionsTotal}`);
+    return ticketsTotal + concessionsTotal;
+  }, [order.tickets, order.concessions]);
 
   // Get all tickets in order with details (Projected for voucher logic compatibility)
   const orderTickets = React.useMemo(() => {
@@ -786,6 +847,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
         paymentMethod: order.paymentMethod,
         extraFee: order.extraFee,
         formAnswers: checkoutCustomAnswers,
+        concessions: order.concessions,
         // voucherCode: order.voucherCode // If we store it in order
       };
 
@@ -961,6 +1023,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
           <Stack direction="row" spacing={3}>
             <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
               <Typography variant="h6">{tt('Đăng ký tham dự', 'Register to attend')}</Typography>
+              <Typography variant="caption" color="error">DEBUG Subtotal: {subtotal} (Tickets: {order.tickets.reduce((sum, t) => sum + (t.price ?? 0), 0)}, Concessions: {(order.concessions || []).reduce((sum, c) => sum + (c.price * c.quantity), 0)})</Typography>
             </Stack>
           </Stack>
 
@@ -1020,6 +1083,7 @@ export default function Page({ params }: { params: { event_slug: string } }): Re
                 setActiveStep(0);
               }}
               onRemoveCartItem={(showId, categoryId) => handleAddToCartQuantity(showId, categoryId, 0)}
+              onUpdateConcessionQuantity={handleUpdateConcessionQuantity}
               eventLimitPerTransaction={event?.limitPerTransaction}
               eventLimitPerCustomer={event?.limitPerCustomer}
             />

@@ -230,9 +230,9 @@ export function SideNav(): React.JSX.Element {
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
-                key="configuration-shows-consessions"
-                title={tt("Thiết lập bỏng nước", "Consessions setup")}
-                href={`/event-studio/events/${dynamicId}/consessions`}
+                key="configuration-shows-concessions"
+                title={tt("Thiết lập bỏng nước", "Concessions setup")}
+                href={`/event-studio/events/${dynamicId}/concessions`}
                 icon={Popcorn}
               />
               <NavItemCollapseChildItem

@@ -3,7 +3,7 @@
 import { Box, Stack, Typography } from '@mui/material';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Unstable_Grid2';
-import { ShoppingCart as ShoppingCartIcon } from '@phosphor-icons/react/dist/ssr/ShoppingCart';
+import { ShoppingCart as ShoppingCartIcon, Minus, Plus, Trash } from '@phosphor-icons/react/dist/ssr';
 import * as React from 'react';
 
 
@@ -56,6 +56,7 @@ export type Step1SelectTicketsProps = {
   subtotal: number;
   onEditCartItem: (showId: number, categoryId: number) => void;
   onRemoveCartItem: (showId: number, categoryId: number) => void;
+  onUpdateConcessionQuantity?: (showId: number, concessionId: number, quantity: number) => void;
   eventLimitPerTransaction?: number | null;
   eventLimitPerCustomer?: number | null;
 };
@@ -463,25 +464,133 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
 
           <Box sx={{ display: !seatmapVisible && activeSchedule ? 'block' : 'none' }}>
             {activeSchedule ? (
-              <TicketCategories
-                key={activeSchedule.id}
-                show={activeSchedule}
-                qrOption={qrOption}
-                requestedCategoryModalId={requestedCategoryModalId || undefined}
-                onModalRequestHandled={onModalRequestHandled}
-                onCategorySelect={(categoryId: number) => { }} // Unused or implement if needed
-                onAddToCart={(
-                  categoryId: number,
-                  quantity: number,
-                  holders?: { title: string; name: string; email: string; phone: string }[]
-                ) => handleAddToCart(categoryId, quantity)}
-                cartQuantities={cartQuantitiesForActiveSchedule}
-                eventLimitPerTransaction={props.eventLimitPerTransaction}
-                eventLimitPerCustomer={props.eventLimitPerCustomer}
-                totalTicketsInOrder={totalSelectedTickets}
-              />
+              <>
+                <TicketCategories
+                  key={activeSchedule.id}
+                  show={activeSchedule}
+                  qrOption={qrOption}
+                  requestedCategoryModalId={requestedCategoryModalId || undefined}
+                  onModalRequestHandled={onModalRequestHandled}
+                  onCategorySelect={(categoryId: number) => { }} // Unused or implement if needed
+                  onAddToCart={(
+                    categoryId: number,
+                    quantity: number,
+                    holders?: { title: string; name: string; email: string; phone: string }[]
+                  ) => handleAddToCart(categoryId, quantity)}
+                  cartQuantities={cartQuantitiesForActiveSchedule}
+                  eventLimitPerTransaction={props.eventLimitPerTransaction}
+                  eventLimitPerCustomer={props.eventLimitPerCustomer}
+                  totalTicketsInOrder={totalSelectedTickets}
+                />
+
+              </>
             ) : null}
           </Box>
+
+          {/* Concessions Section - Display regardless of seatmap mode */}
+          {activeSchedule && activeSchedule.concessionsEnabled && activeSchedule.showConcessions && activeSchedule.showConcessions.length > 0 && (
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+                {tt('Sản phẩm đi kèm', 'Add-ons & Concessions')}
+              </Typography>
+              <Stack spacing={2}>
+                {activeSchedule.showConcessions.map((sc) => {
+                  if (!sc.isAvailable) return null;
+
+                  const currentQty = order.concessions?.find(
+                    c => c.showId === activeSchedule.id && c.concessionId === sc.concessionId
+                  )?.quantity || 0;
+
+                  const price = sc.priceOverride ?? sc.concession.basePrice;
+
+                  const handleUpdateQty = (newQty: number) => {
+                    if (newQty < 0) return;
+                    setOrder(prev => {
+                      const existingConcessions = prev.concessions || [];
+                      const otherConcessions = existingConcessions.filter(
+                        c => !(c.showId === activeSchedule.id && c.concessionId === sc.concessionId)
+                      );
+
+                      if (newQty > 0) {
+                        return {
+                          ...prev,
+                          concessions: [
+                            ...otherConcessions,
+                            {
+                              showId: activeSchedule.id,
+                              concessionId: sc.concessionId,
+                              quantity: newQty,
+                              price: Number(price)
+                            }
+                          ]
+                        };
+                      } else {
+                        return {
+                          ...prev,
+                          concessions: otherConcessions
+                        };
+                      }
+                    });
+                  };
+
+                  return (
+                    <Box
+                      key={sc.id}
+                      sx={{
+                        p: 2,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 2
+                      }}
+                    >
+                      <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1 }}>
+                        {sc.concession.imageUrl && (
+                          <Box
+                            component="img"
+                            src={sc.concession.imageUrl}
+                            alt={sc.concession.name}
+                            sx={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 1 }}
+                          />
+                        )}
+                        <Box>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{sc.concession.name}</Typography>
+                          <Typography variant="body2" color="text.secondary">{props.formatPrice(price)}</Typography>
+                          {sc.concession.description && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>{sc.concession.description}</Typography>
+                          )}
+                        </Box>
+                      </Stack>
+
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{ minWidth: 32, width: 32, height: 32, p: 0 }}
+                          onClick={() => handleUpdateQty(currentQty - 1)}
+                          disabled={currentQty <= 0}
+                        >
+                          <Minus weight="bold" />
+                        </Button>
+                        <Typography sx={{ minWidth: 24, textAlign: 'center', fontWeight: 600 }}>{currentQty}</Typography>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{ minWidth: 32, width: 32, height: 32, p: 0 }}
+                          onClick={() => handleUpdateQty(currentQty + 1)}
+                        >
+                          <Plus weight="bold" />
+                        </Button>
+                      </Stack>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            </Box>
+          )}
         </Grid>
       </Grid>
 
@@ -512,6 +621,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
         subtotal={props.subtotal}
         onEditItem={props.onEditCartItem}
         onRemoveItem={props.onRemoveCartItem}
+        onUpdateConcessionQuantity={props.onUpdateConcessionQuantity}
       />
     </Stack >
   );

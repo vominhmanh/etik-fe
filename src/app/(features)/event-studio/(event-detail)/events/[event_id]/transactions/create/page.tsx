@@ -79,7 +79,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     tickets: [],
     qrOption: 'separate',
     paymentMethod: 'napas247',
-    extraFee: 0
+    extraFee: 0,
+    concessions: []
   });
 
   const notificationCtx = React.useContext(NotificationContext);
@@ -384,8 +385,39 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   // Calculate subtotal (before discount)
   const subtotal = React.useMemo(() => {
-    return order.tickets.reduce((sum, t) => sum + (t.price ?? 0), 0);
-  }, [order.tickets]);
+    const ticketsTotal = order.tickets.reduce((sum, t) => sum + (t.price ?? 0), 0);
+    const concessionsTotal = (order.concessions || []).reduce((sum, c) => {
+      return sum + (Number(c.price || 0) * Number(c.quantity || 0));
+    }, 0);
+    return ticketsTotal + concessionsTotal;
+  }, [order.tickets, order.concessions]);
+
+  const handleUpdateConcessionQuantity = (showId: number, concessionId: number, quantity: number) => {
+    setOrder(prev => {
+      const existingConcessions = prev.concessions || [];
+      const targetConcession = existingConcessions.find(c => c.showId === showId && c.concessionId === concessionId);
+      const otherConcessions = existingConcessions.filter(c => !(c.showId === showId && c.concessionId === concessionId));
+
+      if (quantity > 0) {
+        // If we don't have price info here (e.g. from cart modal), we might need to rely on existing price
+        // or re-fetch. But CartModal generally calls this.
+        // For simplicity, we assume price persists or we update quantity only if exists.
+        if (targetConcession) {
+          return {
+            ...prev,
+            concessions: [...otherConcessions, { ...targetConcession, quantity }]
+          };
+        }
+        // If adding new from cart modal (unlikely), we'd need price.
+        return prev;
+      } else {
+        return {
+          ...prev,
+          concessions: otherConcessions
+        };
+      }
+    });
+  };
 
   // Get all tickets in order with details (Projected for voucher logic compatibility)
   const orderTickets = React.useMemo(() => {
@@ -708,7 +740,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         paymentMethod: order.paymentMethod,
         extraFee: order.extraFee,
         formAnswers: checkoutCustomAnswers,
-        voucherCode: order.voucherCode // If we store it in order
+        voucherCode: order.voucherCode, // If we store it in order
+        concessions: order.concessions // Add concessions to payload
       };
 
       // Add voucher code from state if not in order
@@ -796,6 +829,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             onCloseCart={() => setCartOpen(false)}
             formatPrice={formatPrice}
             subtotal={subtotal}
+            onUpdateConcessionQuantity={handleUpdateConcessionQuantity}
             onEditCartItem={(showId, categoryId) => {
               setActiveScheduleId(showId);
               setRequestedCategoryModalId(categoryId);

@@ -78,6 +78,7 @@ interface Show {
   disabled: boolean;
   startDateTime?: string | null;
   endDateTime?: string | null;
+  concessionsEnabled: boolean;
 }
 
 type StatusKey = 'not_opened_for_sale' | 'on_sale' | 'out_of_stock' | 'temporarily_locked';
@@ -116,7 +117,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
   const fetchShowConcessions = async (showId: number) => {
     try {
-      const res = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/consessions/shows/${showId}/concessions`);
+      const res = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/concessions/shows/${showId}/concessions`);
       setShowConcessionsMap(prev => ({ ...prev, [showId]: res.data }));
     } catch (error) {
       console.error(error);
@@ -127,10 +128,9 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     const fetchShows = async () => {
       try {
         setIsLoading(true);
-        // Using get-shows-with-ticket-categories mainly for consistent Show list order/structure if preferred, 
-        // or effectively just getting shows. The endpoint is robust.
+        // Use new endpoint that includes concessions config only
         const response: AxiosResponse<Show[]> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${params.event_id}/shows-ticket-categories/get-shows-with-ticket-categories`
+          `/event-studio/events/${params.event_id}/concessions/shows/config`
         );
         setShows(response.data);
       } catch (error) {
@@ -142,7 +142,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
     const fetchInventory = async () => {
       try {
-        const res = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/consessions`);
+        const res = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/concessions`);
         setInventory(res.data);
       } catch (error) {
         console.error(error);
@@ -162,7 +162,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const handleAddShowConcession = async (concessionId: number) => {
     if (!selectedShowForConcession) return;
     try {
-      await baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/consessions/shows/${selectedShowForConcession.id}/concessions`, {
+      await baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/concessions/shows/${selectedShowForConcession.id}/concessions`, {
         concessionId,
         isAvailable: true,
       });
@@ -181,7 +181,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         [showId]: prev[showId]?.map(i => i.id === item.id ? { ...i, ...updates } : i) || []
       }));
 
-      await baseHttpServiceInstance.put(`/event-studio/events/${params.event_id}/consessions/shows/${showId}/concessions/${item.id}`, updates);
+      await baseHttpServiceInstance.put(`/event-studio/events/${params.event_id}/concessions/shows/${showId}/concessions/${item.id}`, updates);
       notificationCtx.success(tt("Cập nhật thành công", "Update successful"));
       fetchShowConcessions(showId); // Refresh to be safe
     } catch (error: any) {
@@ -200,12 +200,28 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         [showId]: prev[showId]?.filter(i => i.id !== id) || []
       }));
 
-      await baseHttpServiceInstance.delete(`/event-studio/events/${params.event_id}/consessions/shows/${showId}/concessions/${id}`);
+      await baseHttpServiceInstance.delete(`/event-studio/events/${params.event_id}/concessions/shows/${showId}/concessions/${id}`);
       notificationCtx.success(tt("Xóa thành công", "Delete successful"));
       fetchShowConcessions(showId);
     } catch (error: any) {
       notificationCtx.error(tt('Lỗi:', 'Error:'), error?.message);
       fetchShowConcessions(showId);
+    }
+  };
+
+  const handleToggleConcessionsEnabled = async (showId: number, enabled: boolean) => {
+    try {
+      // Optimistic
+      setShows(prev => prev.map(s => s.id === showId ? { ...s, concessionsEnabled: enabled } : s));
+
+      await baseHttpServiceInstance.patch(
+        `/event-studio/events/${params.event_id}/concessions/shows/${showId}/config`,
+        { concessionsEnabled: enabled }
+      );
+      notificationCtx.success(tt("Cập nhật thành công", "Update successful"));
+    } catch (error: any) {
+      notificationCtx.error(tt('Lỗi:', 'Error:'), error?.message);
+      // Ideally revert optimistic update here if needed
     }
   };
 
@@ -232,7 +248,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 component={LocalizedLink}
                 startIcon={<Warehouse fontSize="var(--icon-fontSize-md)" />}
                 variant="contained"
-                href="consessions/inventory"
+                href="concessions/inventory"
               >
                 {tt("Kho hàng", "Inventory")}
               </Button>
@@ -306,119 +322,140 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
                 <AccordionDetails sx={{ pt: 3, pb: 2 }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-                    <Typography variant="subtitle1" fontWeight={600}>
-                      {tt("Danh sách sản phẩm", "Product List")}
-                    </Typography>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<PlusIcon />}
-                      onClick={() => {
-                        setSelectedShowForConcession(show);
-                        setOpenShowConcessionModal(true);
-                      }}
-                    >
-                      {tt("Thêm sản phẩm", "Add Product")}
-                    </Button>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        {tt("Danh sách sản phẩm", "Product List")}
+                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, px: 1, py: 0.5 }}>
+                        <Switch
+                          size="small"
+                          checked={!!show.concessionsEnabled}
+                          onChange={(e) => handleToggleConcessionsEnabled(show.id, e.target.checked)}
+                        />
+                        <Typography variant="body2" color="text.secondary">
+                          {show.concessionsEnabled ? tt("Đang bật bán", "Selling Enabled") : tt("Đang tắt bán", "Selling Disabled")}
+                        </Typography>
+                      </Stack>
+                    </Stack>
+
+                    {show.concessionsEnabled && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<PlusIcon />}
+                        onClick={() => {
+                          setSelectedShowForConcession(show);
+                          setOpenShowConcessionModal(true);
+                        }}
+                      >
+                        {tt("Thêm sản phẩm", "Add Product")}
+                      </Button>
+                    )}
                   </Stack>
 
-                  <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
-                    {(showConcessionsMap[show.id] || []).length > 0 ? (
-                      <TableContainer>
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow sx={{ backgroundColor: 'neutral.50' }}>
-                              <TableCell>{tt("Sản phẩm", "Product")}</TableCell>
-                              <TableCell>{tt("Giá gốc", "Base Price")}</TableCell>
-                              <TableCell>{tt("Giá bán (Show)", "Show Price")}</TableCell>
-                              <TableCell align="center">{tt("Mở bán", "Available")}</TableCell>
-                              <TableCell align="right"></TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {(showConcessionsMap[show.id] || []).map((item) => (
-                              <TableRow key={item.id} hover>
-                                <TableCell>
-                                  <Stack direction="row" spacing={2} alignItems="center">
-                                    <Avatar
-                                      src={item.concession.imageUrl || undefined}
-                                      variant="rounded"
-                                      sx={{ width: 40, height: 40 }}
-                                    >
-                                      {item.concession.name.charAt(0)}
-                                    </Avatar>
-                                    <Box>
-                                      <Typography variant="subtitle2" fontWeight={600}>{item.concession.name}</Typography>
-                                      <Typography variant="caption" color="text.secondary">{item.concession.code}</Typography>
-                                    </Box>
-                                  </Stack>
-                                </TableCell>
-                                <TableCell>
-                                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.concession.basePrice)}
-                                </TableCell>
-                                <TableCell>
-                                  <OutlinedInput
-                                    size="small"
-                                    type="number"
-                                    placeholder="Default"
-                                    value={item.priceOverride ?? ''}
-                                    onChange={(e) => {
-                                      const val = e.target.value ? Number(e.target.value) : null;
-                                      // Optimistic local update via handleUpdate
-                                    }}
-                                    onBlur={(e) => {
-                                      // Update on blur to avoid excessive API calls
-                                      const val = e.target.value ? Number(e.target.value) : null;
-                                      if (val !== item.priceOverride) {
-                                        handleUpdateShowConcession(show.id, item, { priceOverride: val });
-                                      }
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        const val = (e.target as HTMLInputElement).value ? Number((e.target as HTMLInputElement).value) : null;
+                  {show.concessionsEnabled ? (
+                    <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
+                      {(showConcessionsMap[show.id] || []).length > 0 ? (
+                        <TableContainer>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow sx={{ backgroundColor: 'neutral.50' }}>
+                                <TableCell>{tt("Sản phẩm", "Product")}</TableCell>
+                                <TableCell>{tt("Giá gốc", "Base Price")}</TableCell>
+                                <TableCell>{tt("Giá bán (Show)", "Show Price")}</TableCell>
+                                <TableCell align="center">{tt("Mở bán", "Available")}</TableCell>
+                                <TableCell align="right"></TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {(showConcessionsMap[show.id] || []).map((item) => (
+                                <TableRow key={item.id} hover>
+                                  <TableCell>
+                                    <Stack direction="row" spacing={2} alignItems="center">
+                                      <Avatar
+                                        src={item.concession.imageUrl || undefined}
+                                        variant="rounded"
+                                        sx={{ width: 40, height: 40 }}
+                                      >
+                                        {item.concession.name.charAt(0)}
+                                      </Avatar>
+                                      <Box>
+                                        <Typography variant="subtitle2" fontWeight={600}>{item.concession.name}</Typography>
+                                        <Typography variant="caption" color="text.secondary">{item.concession.code}</Typography>
+                                      </Box>
+                                    </Stack>
+                                  </TableCell>
+                                  <TableCell>
+                                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.concession.basePrice)}
+                                  </TableCell>
+                                  <TableCell>
+                                    <OutlinedInput
+                                      size="small"
+                                      type="number"
+                                      placeholder="Default"
+                                      value={item.priceOverride ?? ''}
+                                      onChange={(e) => {
+                                        const val = e.target.value ? Number(e.target.value) : null;
+                                        // Optimistic local update via handleUpdate
+                                      }}
+                                      onBlur={(e) => {
+                                        // Update on blur to avoid excessive API calls
+                                        const val = e.target.value ? Number(e.target.value) : null;
                                         if (val !== item.priceOverride) {
                                           handleUpdateShowConcession(show.id, item, { priceOverride: val });
                                         }
-                                      }
-                                    }}
-                                    sx={{ width: 140 }}
-                                    endAdornment={<InputAdornment position="end">đ</InputAdornment>}
-                                  />
-                                </TableCell>
-                                <TableCell align="center">
-                                  <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-                                    <Switch
-                                      checked={!!item.isAvailable}
-                                      onChange={(e) => handleUpdateShowConcession(show.id, item, { isAvailable: e.target.checked })}
-                                      color="success"
-                                      size="small"
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          const val = (e.target as HTMLInputElement).value ? Number((e.target as HTMLInputElement).value) : null;
+                                          if (val !== item.priceOverride) {
+                                            handleUpdateShowConcession(show.id, item, { priceOverride: val });
+                                          }
+                                        }
+                                      }}
+                                      sx={{ width: 140 }}
+                                      endAdornment={<InputAdornment position="end">đ</InputAdornment>}
                                     />
-                                    <Typography variant="caption" color="text.secondary">
-                                      {item.isAvailable ? tt('Bật', 'On') : tt('Tắt', 'Off')}
-                                    </Typography>
-                                  </Stack>
-                                </TableCell>
-                                <TableCell align="right">
-                                  <IconButton
-                                    size="small"
-                                    color="error"
-                                    onClick={() => handleDeleteShowConcession(show.id, item.id)}
-                                  >
-                                    <Trash size={18} />
-                                  </IconButton>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    ) : (
-                      <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
-                        <Warehouse size={48} weight="duotone" style={{ opacity: 0.5, marginBottom: 8 }} />
-                        <Typography variant="body2">{tt("Chưa có sản phẩm nào cho show này", "No products for this show")}</Typography>
-                      </Box>
-                    )}
-                  </Paper>
+                                  </TableCell>
+                                  <TableCell align="center">
+                                    <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                                      <Switch
+                                        checked={!!item.isAvailable}
+                                        onChange={(e) => handleUpdateShowConcession(show.id, item, { isAvailable: e.target.checked })}
+                                        color="success"
+                                        size="small"
+                                      />
+                                      <Typography variant="caption" color="text.secondary">
+                                        {item.isAvailable ? tt('Bật', 'On') : tt('Tắt', 'Off')}
+                                      </Typography>
+                                    </Stack>
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    <IconButton
+                                      size="small"
+                                      color="error"
+                                      onClick={() => handleDeleteShowConcession(show.id, item.id)}
+                                    >
+                                      <Trash size={18} />
+                                    </IconButton>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      ) : (
+                        <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
+                          <Warehouse size={48} weight="duotone" style={{ opacity: 0.5, marginBottom: 8 }} />
+                          <Typography variant="body2">{tt("Chưa có sản phẩm nào cho show này", "No products for this show")}</Typography>
+                        </Box>
+                      )}
+                    </Paper>
+                  ) : (
+                    <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary', bgcolor: 'neutral.50', borderRadius: 1 }}>
+                      <Typography variant="body2">{tt("Chức năng bán bỏng nước đang tắt cho show này.", "Concessions disabled for this show.")}</Typography>
+                    </Box>
+                  )}
                 </AccordionDetails>
               </Accordion>
             ))}
@@ -482,7 +519,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 <Typography>{tt("Kho hàng trống", "Inventory empty")}</Typography>
                 <Button
                   component={LocalizedLink}
-                  href="consessions/inventory"
+                  href="concessions/inventory"
                   variant="text"
                   size="small"
                   sx={{ mt: 1 }}

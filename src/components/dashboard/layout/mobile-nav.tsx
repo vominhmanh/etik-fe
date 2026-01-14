@@ -195,9 +195,9 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             />
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
-              key="configuration-shows-consessions"
-              title={tt("Thiết lập bỏng nước", "Consessions setup")}
-              href={`/event-studio/events/${dynamicId}/consessions`}
+              key="configuration-shows-concessions"
+              title={tt("Thiết lập bỏng nước", "Concessions setup")}
+              href={`/event-studio/events/${dynamicId}/concessions`}
               icon={Popcorn}
               onClose={onClose}
             />

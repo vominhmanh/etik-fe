@@ -82,7 +82,7 @@ export default function ConcessionsPage({ params }: { params: { event_id: string
   const fetchConcessions = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/consessions`);
+      const res = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/concessions`);
       setConcessions(res.data);
     } catch (error: any) {
       notificationCtx.error('Lỗi tải danh sách hàng hóa: ' + error.message);
@@ -154,10 +154,10 @@ export default function ConcessionsPage({ params }: { params: { event_id: string
   const handleSubmit = async () => {
     try {
       if (isEdit && editId) {
-        await baseHttpServiceInstance.put(`/event-studio/events/${eventId}/consessions/${editId}`, formData);
+        await baseHttpServiceInstance.put(`/event-studio/events/${eventId}/concessions/${editId}`, formData);
         notificationCtx.success('Cập nhật hàng hóa thành công');
       } else {
-        await baseHttpServiceInstance.post(`/event-studio/events/${eventId}/consessions`, formData);
+        await baseHttpServiceInstance.post(`/event-studio/events/${eventId}/concessions`, formData);
         notificationCtx.success('Thêm hàng hóa thành công');
       }
       handleCloseModal();
@@ -170,7 +170,7 @@ export default function ConcessionsPage({ params }: { params: { event_id: string
   const handleToggleStatus = async (concession: Concession) => {
     try {
       const newStatus = concession.status === 'active' ? 'archived' : 'active';
-      await baseHttpServiceInstance.put(`/event-studio/events/${eventId}/consessions/${concession.id}`, {
+      await baseHttpServiceInstance.put(`/event-studio/events/${eventId}/concessions/${concession.id}`, {
         status: newStatus
       });
       notificationCtx.success('Cập nhật trạng thái thành công');

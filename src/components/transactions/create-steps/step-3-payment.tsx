@@ -147,7 +147,7 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
                         g.quantity++;
                       });
 
-                      if (groups.length === 0) {
+                      if (groups.length === 0 && (!order.concessions || order.concessions.length === 0)) {
                         return (
                           <Typography variant="body2" color="text.secondary" align="center">
                             {tt("Chưa chọn vé nào", "No tickets selected")}
@@ -155,40 +155,83 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
                         );
                       }
 
-                      return groups.map((g) => {
-                        const show = shows?.find((s: any) => s.id === g.showId);
-                        const ticketCategory = show?.ticketCategories?.find((c: any) => c.id === g.ticketCategoryId);
+                      return (
+                        <>
+                          {groups.map((g) => {
+                            const show = shows?.find((s: any) => s.id === g.showId);
+                            const ticketCategory = show?.ticketCategories?.find((c: any) => c.id === g.ticketCategoryId);
 
-                        return (
-                          <Card key={g.key} variant="outlined" sx={{ borderRadius: 1, boxShadow: 'none', bgcolor: 'background.default' }}>
-                            <CardContent sx={{ px: 1.5, py: 1, '&:last-child': { pb: 1 } }}>
-                              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ overflow: 'hidden' }}>
-                                  <TicketIcon size={18} weight="duotone" style={{ opacity: 0.7, flexShrink: 0 }} />
-                                  <Box sx={{ minWidth: 0 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
-                                      {show?.name || tt('Chưa xác định', 'Not specified')}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary" noWrap>
-                                      {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
-                                      {g.audienceName && <span style={{ fontWeight: 'normal', color: 'var(--mui-palette-text-secondary)' }}> ({g.audienceName})</span>}
-                                    </Typography>
-                                  </Box>
-                                </Stack>
+                            return (
+                              <Card key={g.key} variant="outlined" sx={{ borderRadius: 1, boxShadow: 'none', bgcolor: 'background.default' }}>
+                                <CardContent sx={{ px: 1.5, py: 1, '&:last-child': { pb: 1 } }}>
+                                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ overflow: 'hidden' }}>
+                                      <TicketIcon size={18} weight="duotone" style={{ opacity: 0.7, flexShrink: 0 }} />
+                                      <Box sx={{ minWidth: 0 }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                                          {show?.name || tt('Chưa xác định', 'Not specified')}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary" noWrap>
+                                          {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
+                                          {g.audienceName && <span style={{ fontWeight: 'normal', color: 'var(--mui-palette-text-secondary)' }}> ({g.audienceName})</span>}
+                                        </Typography>
+                                      </Box>
+                                    </Stack>
 
-                                <Stack direction="row" spacing={2} alignItems="center" sx={{ flexShrink: 0 }}>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {formatPrice(g.price)} x {g.quantity}
-                                  </Typography>
-                                  <Typography variant="subtitle2" sx={{ fontWeight: 600, minWidth: 80, textAlign: 'right' }}>
-                                    {formatPrice(g.price * g.quantity)}
-                                  </Typography>
-                                </Stack>
-                              </Stack>
-                            </CardContent>
-                          </Card>
-                        );
-                      });
+                                    <Stack direction="row" spacing={2} alignItems="center" sx={{ flexShrink: 0 }}>
+                                      <Typography variant="caption" color="text.secondary">
+                                        {formatPrice(g.price)} x {g.quantity}
+                                      </Typography>
+                                      <Typography variant="subtitle2" sx={{ fontWeight: 600, minWidth: 80, textAlign: 'right' }}>
+                                        {formatPrice(g.price * g.quantity)}
+                                      </Typography>
+                                    </Stack>
+                                  </Stack>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+
+                          {/* Concessions List */}
+                          {(order.concessions || []).map((c) => {
+                            const show = shows?.find((s) => s.id === c.showId);
+                            const showConcession = show?.showConcessions?.find((sc) => sc.concessionId === c.concessionId);
+                            const concessionName = showConcession?.concession?.name || tt('Sản phẩm', 'Concession');
+
+                            return (
+                              <Card key={`concession-${c.showId}-${c.concessionId}`} variant="outlined" sx={{ borderRadius: 1, boxShadow: 'none', bgcolor: 'background.default' }}>
+                                <CardContent sx={{ px: 1.5, py: 1, '&:last-child': { pb: 1 } }}>
+                                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ overflow: 'hidden' }}>
+                                      {/* Use a different icon for concessions if available, e.g., Popcorn or Coffee */}
+                                      <TicketIcon size={18} weight="duotone" style={{ opacity: 0.7, flexShrink: 0 }} />
+                                      <Box sx={{ minWidth: 0 }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                                          {concessionName}
+                                        </Typography>
+                                        {show?.name && (
+                                          <Typography variant="caption" color="text.secondary" noWrap>
+                                            {show.name}
+                                          </Typography>
+                                        )}
+                                      </Box>
+                                    </Stack>
+
+                                    <Stack direction="row" spacing={2} alignItems="center" sx={{ flexShrink: 0 }}>
+                                      <Typography variant="caption" color="text.secondary">
+                                        {formatPrice(c.price)} x {c.quantity}
+                                      </Typography>
+                                      <Typography variant="subtitle2" sx={{ fontWeight: 600, minWidth: 80, textAlign: 'right' }}>
+                                        {formatPrice(c.price * c.quantity)}
+                                      </Typography>
+                                    </Stack>
+                                  </Stack>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </>
+                      );
                     })()}
                   </Stack>
 
@@ -198,7 +241,7 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
                   <Stack spacing={1}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2" color="text.secondary">
-                        {tt("Tổng tiền vé:", "Ticket Total:")}
+                        {order.concessions && order.concessions.length > 0 ? tt("Tạm tính:", "Subtotal:") : tt("Tổng tiền vé:", "Ticket Total:")}
                       </Typography>
                       <Typography variant="body2">{formatPrice(subtotal)}</Typography>
                     </Box>

@@ -332,6 +332,53 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                 ))}
               </Stack>
 
+              {order.concessions && order.concessions.length > 0 && (
+                <>
+                  <Divider sx={{ my: 2 }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                      {tt("Sản phẩm đi kèm", "Concessions")}
+                    </Typography>
+                  </Box>
+                  <Stack spacing={2}>
+                    {order.concessions.map((c: any) => {
+                      const show = shows.find(s => s.id === c.showId);
+                      const showConcession = show?.showConcessions?.find(sc => sc.concessionId === c.concessionId);
+                      const concession = showConcession?.concession;
+
+                      return (
+                        <Box
+                          key={`${c.showId}-${c.concessionId}`}
+                          sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
+                        >
+                          <Stack direction="row" justifyContent="space-between" alignItems="center">
+                            <Stack direction="row" spacing={2} alignItems="center">
+                              {concession?.imageUrl ? (
+                                <Box component="img" src={concession.imageUrl} sx={{ width: 48, height: 48, borderRadius: 1, objectFit: 'cover' }} />
+                              ) : (
+                                <Box sx={{ width: 48, height: 48, bgcolor: 'action.hover', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Typography variant="caption">IMG</Typography>
+                                </Box>
+                              )}
+                              <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{concession?.name || tt('Sản phẩm', 'Concession')}</Typography>
+                                <Typography variant="caption" color="text.secondary">{show?.name}</Typography>
+                              </Box>
+                            </Stack>
+                            <Stack direction="row" spacing={3} alignItems="center">
+                              <Typography variant="body2">{formatPrice(c.price)} x {c.quantity}</Typography>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700, minWidth: 80, textAlign: 'right' }}>
+                                {formatPrice(c.price * c.quantity)}
+                              </Typography>
+                            </Stack>
+                          </Stack>
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+                </>
+              )}
+
               <Divider />
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -346,10 +393,21 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
               <Stack spacing={1}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">
-                    {tt("Tổng tiền vé:", "Ticket Total:")}
+                    {order.concessions && order.concessions.length > 0 ? tt("Tạm tính:", "Subtotal:") : tt("Tổng tiền vé:", "Ticket Total:")}
                   </Typography>
                   <Typography variant="body2">{formatPrice(subtotal)}</Typography>
                 </Box>
+                {order.concessions && order.concessions.length > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {tt("Tổng tiền sản phẩm:", "Concessions Total:")}
+                    </Typography>
+                    {(() => {
+                      const concessionsTotal = order.concessions.reduce((sum, c) => sum + (c.price * c.quantity), 0);
+                      return <Typography variant="body2">{formatPrice(concessionsTotal)}</Typography>;
+                    })()}
+                  </Box>
+                )}
                 {extraFee > 0 && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" color="text.secondary">

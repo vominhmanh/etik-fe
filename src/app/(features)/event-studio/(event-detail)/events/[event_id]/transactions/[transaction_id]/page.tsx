@@ -262,6 +262,23 @@ export interface CheckInHistory {
   creator: HistorySendingCreatorResponse;
 }
 
+export interface TransactionConcession {
+  id: number;
+  transactionId: number;
+  eventId: number;
+  showId: number;
+  concessionId: number;
+  concessionCode: string;
+  concessionName: string;
+  unitPrice: number;
+  quantity: number;
+  subtotal: number;
+  redeemedQuantity: number;
+  redeemStatus: 'not_redeemed' | 'partial' | 'redeemed';
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Transaction {
   id: number;                       // Unique identifier for the transaction
   eventId: number;                  // ID of the related event
@@ -290,9 +307,9 @@ export interface Transaction {
   status: string;                   // Current status of the transaction
   createdBy: number | null;         // ID of the user who created the transaction, nullable
   createdAt: string;                // The date the transaction was created
-  exportedTicketAt: string | null; // The date the transaction was created
-  sentPaymentInstructionAt: string | null; // The date the transaction was created
-  createdSource: string;            // Source of the transaction creation
+  exportedTicketAt?: string | null; // The date the transaction was created
+  sentPaymentInstructionAt?: string;
+  createdSource: CreatedSourceType; // Source of the transaction creation
   creator: Creator | null;          // Related creator of the transaction, nullable
   historySendings: HistorySending[];
   historyActions: HistoryAction[];
@@ -300,6 +317,7 @@ export interface Transaction {
   event: Event;
   qrOption: string;
   eCode?: string;
+  concessions: TransactionConcession[];
   // Dynamic checkout form answers (ETIK Forms)
   formAnswers?: Record<string, any>;
   checkoutFormFields?: CheckoutRuntimeField[];
@@ -361,6 +379,11 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [checkoutFormFields, setCheckoutFormFields] = useState<CheckoutRuntimeField[]>([]);
   const [checkoutCustomAnswers, setCheckoutCustomAnswers] = useState<Record<string, any>>({});
   const [audiences, setAudiences] = useState<Audience[]>([]);
+
+  // Redeem Concessions State
+  const [redeemModalOpen, setRedeemModalOpen] = useState<boolean>(false);
+  const [activeRedeemItem, setActiveRedeemItem] = useState<TransactionConcession | null>(null);
+  const [redeemQuantity, setRedeemQuantity] = useState<number>(1);
 
   const builtinInternalNames = React.useMemo(
     () => new Set(['title', 'name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
@@ -787,6 +810,48 @@ export default function Page({ params }: { params: { event_id: number; transacti
         );
         setTransaction(refreshResponse.data);
         handleCloseTicketMenu();
+      }
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpenRedeemModal = (item: TransactionConcession) => {
+    setActiveRedeemItem(item);
+    setRedeemQuantity(item.quantity - item.redeemedQuantity);
+    setRedeemModalOpen(true);
+  };
+
+  const handleRedeemConcession = async () => {
+    if (!activeRedeemItem) return;
+    try {
+      setIsLoading(true);
+      const response = await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/concessions/redeem`,
+        {
+          items: [
+            {
+              transactionConcessionId: activeRedeemItem.id,
+              quantity: redeemQuantity
+            }
+          ]
+        }
+      );
+
+      if (response.status === 200) {
+        notificationCtx.success(tt('Redeem thành công', 'Redeemed successfully'));
+        // Update local state by replacing concessions list
+        const updatedConcessions = response.data as TransactionConcession[];
+        setTransaction(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            concessions: updatedConcessions
+          };
+        });
+        setRedeemModalOpen(false);
       }
     } catch (error) {
       notificationCtx.error(error);
@@ -1681,6 +1746,93 @@ export default function Page({ params }: { params: { event_id: number; transacti
                 </CardActions>
               </Card>
 
+              {/* Concessions List */}
+              {transaction.concessions && transaction.concessions.length > 0 && (
+                <Card>
+                  <CardHeader
+                    title={tt(`Danh sách bổ trợ: ${transaction.concessions.length}`, `Add-ons List: ${transaction.concessions.length}`)}
+                  />
+                  <Divider />
+                  <CardContent>
+                    <Stack spacing={2}>
+                      {transaction.concessions.map((concession, index) => (
+                        <Card key={concession.id} variant="outlined" sx={{ borderRadius: 1.5 }}>
+                          <Box sx={{ p: 2 }}>
+                            <Grid container alignItems="center" spacing={2}>
+                              <Grid xs={12} md={6}>
+                                <Stack spacing={0.5}>
+                                  <Typography variant="subtitle2" fontWeight="bold">
+                                    {concession.concessionName}
+                                  </Typography>
+                                  <Stack direction="row" spacing={1} alignItems="center">
+                                    <Chip
+                                      label={concession.concessionCode}
+                                      size="small"
+                                      sx={{ fontSize: '0.7rem', height: 20 }}
+                                    />
+                                    <Typography variant="caption" color="text.secondary">
+                                      {formatPrice(concession.unitPrice)} x {concession.quantity}
+                                    </Typography>
+                                  </Stack>
+                                </Stack>
+                              </Grid>
+
+                              <Grid xs={12} md={6} container justifyContent="flex-end" alignItems="center" spacing={2}>
+                                {/* Redeem Status */}
+                                <Grid>
+                                  <Stack alignItems="flex-end">
+                                    <Typography variant="body2" fontWeight="bold">
+                                      {formatPrice(concession.subtotal)}
+                                    </Typography>
+                                    <Stack direction="row" spacing={1} alignItems="center">
+                                      <Typography variant="caption" color="text.secondary">
+                                        {tt('Đã sử dụng:', 'Used:')} {concession.redeemedQuantity}/{concession.quantity}
+                                      </Typography>
+                                      {concession.redeemStatus === 'redeemed' && <Chip label={tt('Đã dùng', 'Used')} color="success" size="small" sx={{ height: 20, fontSize: '0.65rem' }} />}
+                                      {concession.redeemStatus === 'partial' && <Chip label={tt('Một phần', 'Partial')} color="warning" size="small" sx={{ height: 20, fontSize: '0.65rem' }} />}
+                                      {concession.redeemStatus === 'not_redeemed' && <Chip label={tt('Chưa dùng', 'Unused')} color="default" size="small" sx={{ height: 20, fontSize: '0.65rem' }} />}
+                                    </Stack>
+                                  </Stack>
+                                </Grid>
+
+                                {/* Redeem Button */}
+                                <Grid>
+                                  <Tooltip
+                                    title={
+                                      transaction.status !== 'normal' ? tt('Đơn hàng không ở trạng thái bình thường', 'Transaction is not normal') :
+                                        transaction.paymentStatus !== 'paid' ? tt('Đơn hàng chưa thanh toán', 'Transaction not paid') :
+                                          !transaction.exportedTicketAt ? tt('Vé chưa được xuất', 'Tickets not exported') :
+                                            ''
+                                    }
+                                    arrow
+                                  >
+                                    <span>
+                                      <Button
+                                        variant="outlined"
+                                        size="small"
+                                        disabled={
+                                          concession.redeemStatus === 'redeemed' ||
+                                          transaction.status !== 'normal' ||
+                                          transaction.paymentStatus !== 'paid' ||
+                                          !transaction.exportedTicketAt
+                                        }
+                                        onClick={() => handleOpenRedeemModal(concession)}
+                                      >
+                                        {tt('Sử dụng', 'Redeem')}
+                                      </Button>
+                                    </span>
+                                  </Tooltip>
+                                </Grid>
+                              </Grid>
+                            </Grid>
+                          </Box>
+                        </Card>
+                      ))}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card>
                 <CardHeader
                   title={tt(`Danh sách vé: ${transaction.ticketQuantity} vé`, `Ticket List: ${transaction.ticketQuantity} tickets`)}
@@ -2268,6 +2420,57 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     <CardActions sx={{ justifyContent: 'flex-end' }}>
                       <Button size="small" variant="contained" onClick={handleSaveTicket}>{tt('Lưu', 'Save')}</Button>
                     </CardActions>
+                  </Card>
+                </Container>
+              </Modal>
+
+              {/* Redeem Modal */}
+              <Modal
+                open={redeemModalOpen}
+                onClose={() => setRedeemModalOpen(false)}
+                aria-labelledby="redeem-modal"
+              >
+                <Container maxWidth="xs">
+                  <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { xs: '90%', sm: 400 }, outline: 'none' }}>
+                    <CardHeader
+                      title={tt('Sử dụng', 'Redeem Concession')}
+                      action={<IconButton onClick={() => setRedeemModalOpen(false)}><X /></IconButton>}
+                    />
+                    <CardContent>
+                      <Stack spacing={3}>
+                        <Typography variant="body2">
+                          {tt(
+                            `Bạn đang xác nhận sử dụng cho: ${activeRedeemItem?.concessionName}`,
+                            `You are redeeming for: ${activeRedeemItem?.concessionName}`
+                          )}
+                        </Typography>
+
+                        <TextField
+                          label={tt('Số lượng sử dụng', 'Quantity to redeem')}
+                          type="number"
+                          fullWidth
+                          value={redeemQuantity}
+                          onChange={(e) => setRedeemQuantity(Number(e.target.value))}
+                          inputProps={{
+                            min: 1,
+                            max: activeRedeemItem ? (activeRedeemItem.quantity - activeRedeemItem.redeemedQuantity) : 1
+                          }}
+                          helperText={tt(
+                            `Còn lại: ${activeRedeemItem ? (activeRedeemItem.quantity - activeRedeemItem.redeemedQuantity) : 0}`,
+                            `Remaining: ${activeRedeemItem ? (activeRedeemItem.quantity - activeRedeemItem.redeemedQuantity) : 0}`
+                          )}
+                        />
+
+                        <Button
+                          variant="contained"
+                          fullWidth
+                          onClick={handleRedeemConcession}
+                          disabled={isLoading}
+                        >
+                          {tt('Xác nhận', 'Confirm')}
+                        </Button>
+                      </Stack>
+                    </CardContent>
                   </Card>
                 </Container>
               </Modal>

@@ -26,6 +26,7 @@ interface CartModalProps {
     subtotal: number;
     onEditItem: (showId: number, categoryId: number) => void;
     onRemoveItem: (showId: number, categoryId: number) => void;
+    onUpdateConcessionQuantity?: (showId: number, concessionId: number, quantity: number) => void;
 }
 
 export function CartModal({
@@ -37,7 +38,8 @@ export function CartModal({
     formatPrice,
     subtotal,
     onEditItem,
-    onRemoveItem
+    onRemoveItem,
+    onUpdateConcessionQuantity
 }: CartModalProps) {
     const totalSelectedTickets = order.tickets.length;
 
@@ -150,9 +152,72 @@ export function CartModal({
                                 })()}
                             </Stack>
                         )}
+
+                        {/* Concessions Section in Cart */}
+                        {order.concessions && order.concessions.length > 0 && (
+                            <>
+                                <Divider sx={{ my: 1 }} />
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                    {tt('Sản phẩm đi kèm', 'Concessions')}
+                                </Typography>
+                                <Stack spacing={1.25}>
+                                    {order.concessions.map((c: any) => {
+                                        const show = event?.shows?.find((s: any) => s.id === c.showId);
+                                        const showConcession = show?.showConcessions?.find((sc: any) => sc.concessionId === c.concessionId);
+                                        const concession = showConcession?.concession;
+
+                                        return (
+                                            <Card key={`${c.showId}-${c.concessionId}`} variant="outlined" sx={{ borderRadius: 1, boxShadow: 'none' }}>
+                                                <CardContent sx={{ px: 1.5, py: 1, '&:last-child': { pb: 1 } }}>
+                                                    <Stack spacing={0.75}>
+                                                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ justifyContent: 'space-between' }}>
+                                                            <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+                                                                {concession?.imageUrl ? (
+                                                                    <Box component="img" src={concession.imageUrl} sx={{ width: 40, height: 40, borderRadius: 1, objectFit: 'cover' }} />
+                                                                ) : (
+                                                                    <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                                                                )}
+                                                                <Box sx={{ minWidth: 0 }}>
+                                                                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 13 }} noWrap>
+                                                                        {concession?.name || tt('Sản phẩm', 'Concession')}
+                                                                    </Typography>
+                                                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }} noWrap>
+                                                                        {show?.name}
+                                                                    </Typography>
+                                                                </Box>
+                                                            </Stack>
+
+                                                            <Stack direction="row" spacing={1} alignItems="center">
+                                                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }}>
+                                                                    {formatPrice(c.price)}
+                                                                </Typography>
+                                                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 12 }}>
+                                                                    x {c.quantity}
+                                                                </Typography>
+
+                                                                <IconButton
+                                                                    size="small"
+                                                                    color="error"
+                                                                    sx={{ p: 0.5 }}
+                                                                    onClick={() => onUpdateConcessionQuantity?.(c.showId, c.concessionId, 0)}
+                                                                    aria-label={tt('Xóa', 'Remove')}
+                                                                >
+                                                                    <XIcon />
+                                                                </IconButton>
+                                                            </Stack>
+                                                        </Stack>
+                                                    </Stack>
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
+                                </Stack>
+                            </>
+                        )}
+
                         <Divider />
                         <Stack direction="row" alignItems="center" justifyContent="space-between">
-                            <Typography variant="subtitle2">{tt('Tổng tiền vé', 'Tickets total')}</Typography>
+                            <Typography variant="subtitle2">{tt('Tổng tiền', 'Total')}</Typography>
                             <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                                 {formatPrice(subtotal)}
                             </Typography>
@@ -163,6 +228,6 @@ export function CartModal({
             <DialogActions>
                 <Button onClick={onClose}>{tt('Đóng', 'Close')}</Button>
             </DialogActions>
-        </Dialog>
+        </Dialog >
     );
 }
