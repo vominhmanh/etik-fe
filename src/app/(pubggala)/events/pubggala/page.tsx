@@ -192,7 +192,7 @@ export default function Home() {
       const startDate = startDateUTC.tz('Asia/Ho_Chi_Minh');
       const now = dayjs.tz(dayjs(), 'Asia/Ho_Chi_Minh');
       const isStarted = now.isAfter(startDate) || now.isSame(startDate, 'minute');
-      
+
       // Debug log
       console.log('Voting start check:', {
         categoryId: category.id,
@@ -203,7 +203,7 @@ export default function Home() {
         now: now.format(),
         isStarted
       });
-      
+
       return isStarted;
     } catch (error) {
       console.error('Error parsing startAt:', error, category.startAt);
@@ -220,7 +220,7 @@ export default function Home() {
     nominee?: { title: string; updatedAt?: string }
   ) => {
     console.log('handleVoteClick called', { socialIframe, category: category?.name, nominee: nominee?.title });
-    
+
     // Check if voting is disabled (end time passed)
     if (isVotingDisabled()) {
       console.log('Voting is disabled (end time passed)');
@@ -1449,7 +1449,7 @@ export default function Home() {
                                         }}
                                       >
                                         <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
-                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala vào 14h30 17/01.</p>
+                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala.</p>
                                       </div>
                                     }
 
@@ -1654,7 +1654,7 @@ export default function Home() {
                                         }}
                                       >
                                         <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
-                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala vào 14h30 17/01.</p>
+                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala.</p>
 
                                       </div>)}
 

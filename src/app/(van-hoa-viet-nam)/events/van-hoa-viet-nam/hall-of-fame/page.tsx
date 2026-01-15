@@ -134,12 +134,12 @@ export default function Home() {
     return [...nominees].sort((a, b) => {
       const rankA = a.finalRank ?? 999999; // Treat undefined/null as high rank
       const rankB = b.finalRank ?? 999999;
-      
+
       // First sort by finalRank ascending (smallest first)
       if (rankA !== rankB) {
         return rankA - rankB;
       }
-      
+
       // If finalRank is equal, sort by total votes descending (highest first)
       const totalVotesA = getTotalVotes(a);
       const totalVotesB = getTotalVotes(b);
@@ -180,7 +180,7 @@ export default function Home() {
       const startDate = startDateUTC.tz('Asia/Ho_Chi_Minh');
       const now = dayjs.tz(dayjs(), 'Asia/Ho_Chi_Minh');
       const isStarted = now.isAfter(startDate) || now.isSame(startDate, 'minute');
-      
+
       // Debug log
       console.log('Voting start check:', {
         categoryId: category.id,
@@ -191,7 +191,7 @@ export default function Home() {
         now: now.format(),
         isStarted
       });
-      
+
       return isStarted;
     } catch (error) {
       console.error('Error parsing startAt:', error, category.startAt);
@@ -208,7 +208,7 @@ export default function Home() {
     nominee?: { title: string; updatedAt?: string }
   ) => {
     console.log('handleVoteClick called', { socialIframe, category: category?.name, nominee: nominee?.title });
-    
+
     // Check if voting is disabled (end time passed)
     if (isVotingDisabled()) {
       console.log('Voting is disabled (end time passed)');
@@ -848,74 +848,74 @@ export default function Home() {
                           {category.nominees.map((nominee, nomineeIndex) => {
                             const isWinner = nomineeIndex === 0;
                             return (
-                            <SwiperSlide
-                              key={nominee.id}
-                              style={{
-                                width: '80vw',
-                                maxWidth: '400px',
-                              }}
-                            >
-                              <div
-                                className="flex flex-col bg-black w-full"
+                              <SwiperSlide
+                                key={nominee.id}
                                 style={{
-                                  position: 'relative',
-                                  overflow: 'hidden',
-                                  aspectRatio: '1 / 1',
-                                  border: isWinner ? '6px solid #E1C693' : 'none',
-                                  boxShadow: isWinner ? '0 0 20px rgba(225, 198, 147, 0.5)' : 'none',
+                                  width: '80vw',
+                                  maxWidth: '400px',
                                 }}
                               >
-                                {/* Border bottom with gradient */}
                                 <div
+                                  className="flex flex-col bg-black w-full"
                                   style={{
-                                    position: 'absolute',
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    height: isWinner ? '2px' : '1px',
-                                    background:
-                                      'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
-                                    zIndex: 5,
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    aspectRatio: '1 / 1',
+                                    border: isWinner ? '6px solid #E1C693' : 'none',
+                                    boxShadow: isWinner ? '0 0 20px rgba(225, 198, 147, 0.5)' : 'none',
                                   }}
-                                />
-                                {/* Background Image */}
-                                <div
-                                  className="absolute inset-0"
-                                  style={{
-                                    backgroundImage: nominee.imageUrl
-                                      ? `url(${nominee.imageUrl})`
-                                      : `url(${soldierBackgroundImage.src})`,
-                                    backgroundSize: 'cover',
-                                    backgroundPosition: 'center',
-                                    backgroundRepeat: 'no-repeat',
-                                    opacity: category.allowVoting && isVotingDisabled() ? 0.33 : 1,
-                                    zIndex: 0,
-                                    width: '100%',
-                                    height: '100%',
-                                  }}
-                                />
+                                >
+                                  {/* Border bottom with gradient */}
+                                  <div
+                                    style={{
+                                      position: 'absolute',
+                                      bottom: 0,
+                                      left: 0,
+                                      right: 0,
+                                      height: isWinner ? '2px' : '1px',
+                                      background:
+                                        'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
+                                      zIndex: 5,
+                                    }}
+                                  />
+                                  {/* Background Image */}
+                                  <div
+                                    className="absolute inset-0"
+                                    style={{
+                                      backgroundImage: nominee.imageUrl
+                                        ? `url(${nominee.imageUrl})`
+                                        : `url(${soldierBackgroundImage.src})`,
+                                      backgroundSize: 'cover',
+                                      backgroundPosition: 'center',
+                                      backgroundRepeat: 'no-repeat',
+                                      opacity: category.allowVoting && isVotingDisabled() ? 0.33 : 1,
+                                      zIndex: 0,
+                                      width: '100%',
+                                      height: '100%',
+                                    }}
+                                  />
 
-                                {/* Fade Background Overlay */}
-                                <div
-                                  className="absolute"
-                                  style={{
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    width: '100%',
-                                    height: '30%',
-                                    background: isWinner 
-                                      ? 'linear-gradient(to top, rgba(225, 198, 147, 0.6) 0%, rgba(225, 198, 147, 0.3) 50%, rgba(0, 0, 0, 0) 100%)'
-                                      : 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0) 100%)',
-                                    pointerEvents: 'none',
-                                    zIndex: 1,
-                                  }}
-                                />
+                                  {/* Fade Background Overlay */}
+                                  <div
+                                    className="absolute"
+                                    style={{
+                                      bottom: 0,
+                                      left: 0,
+                                      right: 0,
+                                      width: '100%',
+                                      height: '30%',
+                                      background: isWinner
+                                        ? 'linear-gradient(to top, rgba(225, 198, 147, 0.6) 0%, rgba(225, 198, 147, 0.3) 50%, rgba(0, 0, 0, 0) 100%)'
+                                        : 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0) 100%)',
+                                      pointerEvents: 'none',
+                                      zIndex: 1,
+                                    }}
+                                  />
 
-                                {/* Card Content */}
-                                <div className="relative z-10 flex flex-col h-full p-4 justify-between">
-                                  {/* Card Title - Top */}
-                                  {/* <h3
+                                  {/* Card Content */}
+                                  <div className="relative z-10 flex flex-col h-full p-4 justify-between">
+                                    {/* Card Title - Top */}
+                                    {/* <h3
                                     style={{
                                       fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                                       fontWeight: 900,
@@ -931,131 +931,131 @@ export default function Home() {
                                     {nominee.title}
                                   </h3> */}
 
-                                  {/* Spacer to push content to bottom */}
-                                  <div style={{ flex: 1 }} />
+                                    {/* Spacer to push content to bottom */}
+                                    <div style={{ flex: 1 }} />
 
-                                  {/* Card Content - Bottom */}
-                                  <div className="flex flex-col gap-3">
-                                    {category.allowVoting && isVotingDisabled() &&
-                                      <div
-                                        style={{
-                                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                          fontWeight: 400,
-                                          fontStyle: 'normal',
-                                          fontSize: '14px',
-                                          lineHeight: '1.4',
-                                          letterSpacing: '0%',
-                                          verticalAlign: 'middle',
-                                          color: 'rgba(244, 245, 248, 1)',
-                                          textAlign: 'left',
-                                          display: '-webkit-box',
-                                          WebkitLineClamp: 3,
-                                          WebkitBoxOrient: 'vertical' as const,
-                                          overflow: 'hidden',
-                                          textOverflow: 'ellipsis',
-                                        }}
-                                      >
-                                        <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
-                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala vào 14h30 17/01.</p>
-                                      </div>
-                                    }
-
-                                    {/* Vote Button and Count */}
-                                    {category.allowVoting && (
-                                      <div className="flex flex-row items-center gap-3">
+                                    {/* Card Content - Bottom */}
+                                    <div className="flex flex-col gap-3">
+                                      {category.allowVoting && isVotingDisabled() &&
                                         <div
                                           style={{
-                                            background: 'linear-gradient(303.62deg, #000000 -52.52%, #5A5A5A 177.26%)',
-                                            borderRadius: '9999px',
-                                            padding: '1px',
+                                            fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                            fontWeight: 400,
+                                            fontStyle: 'normal',
+                                            fontSize: '14px',
+                                            lineHeight: '1.4',
+                                            letterSpacing: '0%',
+                                            verticalAlign: 'middle',
+                                            color: 'rgba(244, 245, 248, 1)',
+                                            textAlign: 'left',
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 3,
+                                            WebkitBoxOrient: 'vertical' as const,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
                                           }}
                                         >
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.preventDefault();
-                                              e.stopPropagation();
-                                              console.log('Button clicked - mobile');
-                                              handleVoteClick(
-                                                nominee.socialIframe,
-                                                nominee.socialUrl,
-                                                getTotalVotes(nominee),
-                                                category,
-                                                { title: nominee.title, updatedAt: nominee.updatedAt }
-                                              );
-                                            }}
-                                            className="flex flex-row justify-center items-center cursor-pointer"
+                                          <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
+                                          <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala.</p>
+                                        </div>
+                                      }
+
+                                      {/* Vote Button and Count */}
+                                      {category.allowVoting && (
+                                        <div className="flex flex-row items-center gap-3">
+                                          <div
                                             style={{
-                                              padding: '12px',
-                                              gap: '8px',
-                                              background: 'rgba(0, 0, 0, 1)',
+                                              background: 'linear-gradient(303.62deg, #000000 -52.52%, #5A5A5A 177.26%)',
                                               borderRadius: '9999px',
-                                              border: 'none',
-                                              zIndex: 10,
-                                              position: 'relative',
+                                              padding: '1px',
                                             }}
                                           >
-                                            <Image src={heartIcon} alt="Heart" width={20} height={20} />
-                                            <span
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                console.log('Button clicked - mobile');
+                                                handleVoteClick(
+                                                  nominee.socialIframe,
+                                                  nominee.socialUrl,
+                                                  getTotalVotes(nominee),
+                                                  category,
+                                                  { title: nominee.title, updatedAt: nominee.updatedAt }
+                                                );
+                                              }}
+                                              className="flex flex-row justify-center items-center cursor-pointer"
                                               style={{
-                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                                fontWeight: 600,
-                                                fontStyle: 'normal',
-                                                fontSize: '14px',
-                                                lineHeight: '14px',
-                                                letterSpacing: '0%',
-                                                textAlign: 'center',
-                                                verticalAlign: 'middle',
-                                                color: 'rgba(225, 198, 147, 1)',
+                                                padding: '12px',
+                                                gap: '8px',
+                                                background: 'rgba(0, 0, 0, 1)',
+                                                borderRadius: '9999px',
+                                                border: 'none',
+                                                zIndex: 10,
+                                                position: 'relative',
                                               }}
                                             >
-                                              {isVotingDisabled() ? formatNumber(getTotalVotes(nominee)) + ' lượt' : tt('Bình chọn', 'Vote')}
-                                            </span>
-                                          </button>
-                                        </div>
-
-                                        {/* Vote Count */}
-                                        {!isVotingDisabled() && (
-                                          <div className="flex items-baseline gap-1">
-
-                                            <span
-                                              style={{
-                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                                fontWeight: 700,
-                                                fontStyle: 'normal',
-                                                fontSize: '18px',
-                                                lineHeight: '100%',
-                                                letterSpacing: '0%',
-                                                verticalAlign: 'middle',
-                                                color: 'rgba(255, 255, 255, 1)',
-                                              }}
-                                            >
-                                              {formatNumber(getTotalVotes(nominee))}
-                                            </span>
-
-                                            <span
-                                              style={{
-                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                                fontWeight: 400,
-                                                fontStyle: 'normal',
-                                                fontSize: '14px',
-                                                lineHeight: '100%',
-                                                letterSpacing: '0%',
-                                                verticalAlign: 'middle',
-                                                color: 'rgba(255, 255, 255, 1)',
-                                              }}
-                                            >
-                                              {tt('lượt', 'votes')}
-                                            </span>
+                                              <Image src={heartIcon} alt="Heart" width={20} height={20} />
+                                              <span
+                                                style={{
+                                                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                                  fontWeight: 600,
+                                                  fontStyle: 'normal',
+                                                  fontSize: '14px',
+                                                  lineHeight: '14px',
+                                                  letterSpacing: '0%',
+                                                  textAlign: 'center',
+                                                  verticalAlign: 'middle',
+                                                  color: 'rgba(225, 198, 147, 1)',
+                                                }}
+                                              >
+                                                {isVotingDisabled() ? formatNumber(getTotalVotes(nominee)) + ' lượt' : tt('Bình chọn', 'Vote')}
+                                              </span>
+                                            </button>
                                           </div>
-                                        )}
-                                      </div>
-                                    )}
+
+                                          {/* Vote Count */}
+                                          {!isVotingDisabled() && (
+                                            <div className="flex items-baseline gap-1">
+
+                                              <span
+                                                style={{
+                                                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                                  fontWeight: 700,
+                                                  fontStyle: 'normal',
+                                                  fontSize: '18px',
+                                                  lineHeight: '100%',
+                                                  letterSpacing: '0%',
+                                                  verticalAlign: 'middle',
+                                                  color: 'rgba(255, 255, 255, 1)',
+                                                }}
+                                              >
+                                                {formatNumber(getTotalVotes(nominee))}
+                                              </span>
+
+                                              <span
+                                                style={{
+                                                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                                  fontWeight: 400,
+                                                  fontStyle: 'normal',
+                                                  fontSize: '14px',
+                                                  lineHeight: '100%',
+                                                  letterSpacing: '0%',
+                                                  verticalAlign: 'middle',
+                                                  color: 'rgba(255, 255, 255, 1)',
+                                                }}
+                                              >
+                                                {tt('lượt', 'votes')}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </SwiperSlide>
-                          );
+                              </SwiperSlide>
+                            );
                           })}
                         </Swiper>
                       </div>
@@ -1066,68 +1066,68 @@ export default function Home() {
                           {category.nominees.map((nominee, nomineeIndex) => {
                             const isWinner = nomineeIndex === 0;
                             return (
-                            <Grid item xs={12} md={3} lg={3} key={nominee.id}>
-                              <div
-                                className="flex flex-col bg-black w-full"
-                                style={{
-                                  position: 'relative',
-                                  overflow: 'hidden',
-                                  aspectRatio: '1 / 1',
-                                  border: isWinner ? '6px solid #E1C693' : 'none',
-                                  boxShadow: isWinner ? '0 0 20px rgba(225, 198, 147, 0.5)' : 'none',
-                                }}
-                              >
-                                {/* Border bottom with gradient */}
+                              <Grid item xs={12} md={3} lg={3} key={nominee.id}>
                                 <div
+                                  className="flex flex-col bg-black w-full"
                                   style={{
-                                    position: 'absolute',
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    height: isWinner ? '2px' : '1px',
-                                    background:
-                                      'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
-                                    zIndex: 5,
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    aspectRatio: '1 / 1',
+                                    border: isWinner ? '6px solid #E1C693' : 'none',
+                                    boxShadow: isWinner ? '0 0 20px rgba(225, 198, 147, 0.5)' : 'none',
                                   }}
-                                />
-                                {/* Background Image */}
-                                <div
-                                  className="absolute inset-0"
-                                  style={{
-                                    backgroundImage: nominee.imageUrl
-                                      ? `url(${nominee.imageUrl})`
-                                      : `url(${soldierBackgroundImage.src})`,
-                                    backgroundSize: 'cover',
-                                    backgroundPosition: 'center',
-                                    backgroundRepeat: 'no-repeat',
-                                    opacity: category.allowVoting && isVotingDisabled() ? 0.33 : 1,
-                                    zIndex: 0,
-                                    width: '100%',
-                                    height: '100%',
-                                  }}
-                                />
+                                >
+                                  {/* Border bottom with gradient */}
+                                  <div
+                                    style={{
+                                      position: 'absolute',
+                                      bottom: 0,
+                                      left: 0,
+                                      right: 0,
+                                      height: isWinner ? '2px' : '1px',
+                                      background:
+                                        'linear-gradient(90deg, rgba(225, 198, 147, 0) 0%, #E1C693 50%, rgba(225, 198, 147, 0) 100%)',
+                                      zIndex: 5,
+                                    }}
+                                  />
+                                  {/* Background Image */}
+                                  <div
+                                    className="absolute inset-0"
+                                    style={{
+                                      backgroundImage: nominee.imageUrl
+                                        ? `url(${nominee.imageUrl})`
+                                        : `url(${soldierBackgroundImage.src})`,
+                                      backgroundSize: 'cover',
+                                      backgroundPosition: 'center',
+                                      backgroundRepeat: 'no-repeat',
+                                      opacity: category.allowVoting && isVotingDisabled() ? 0.33 : 1,
+                                      zIndex: 0,
+                                      width: '100%',
+                                      height: '100%',
+                                    }}
+                                  />
 
-                                {/* Fade Background Overlay */}
-                                <div
-                                  className="absolute"
-                                  style={{
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    width: '100%',
-                                    height: '20%',
-                                    background: isWinner 
-                                      ? 'linear-gradient(to top, rgba(225, 198, 147, 0.6) 0%, rgba(225, 198, 147, 0.3) 50%, rgba(0, 0, 0, 0) 100%)'
-                                      : 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0) 100%)',
-                                    pointerEvents: 'none',
-                                    zIndex: 1,
-                                  }}
-                                />
+                                  {/* Fade Background Overlay */}
+                                  <div
+                                    className="absolute"
+                                    style={{
+                                      bottom: 0,
+                                      left: 0,
+                                      right: 0,
+                                      width: '100%',
+                                      height: '20%',
+                                      background: isWinner
+                                        ? 'linear-gradient(to top, rgba(225, 198, 147, 0.6) 0%, rgba(225, 198, 147, 0.3) 50%, rgba(0, 0, 0, 0) 100%)'
+                                        : 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0) 100%)',
+                                      pointerEvents: 'none',
+                                      zIndex: 1,
+                                    }}
+                                  />
 
-                                {/* Card Content */}
-                                <div className="relative z-10 flex flex-col h-full p-4 justify-between">
-                                  {/* Card Title - Top */}
-                                  {/* <h3
+                                  {/* Card Content */}
+                                  <div className="relative z-10 flex flex-col h-full p-4 justify-between">
+                                    {/* Card Title - Top */}
+                                    {/* <h3
                                     style={{
                                       fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
                                       fontWeight: 900,
@@ -1143,131 +1143,131 @@ export default function Home() {
                                     {nominee.title}
                                   </h3> */}
 
-                                  {/* Spacer to push content to bottom */}
-                                  <div style={{ flex: 1 }} />
+                                    {/* Spacer to push content to bottom */}
+                                    <div style={{ flex: 1 }} />
 
-                                  {/* Card Content - Bottom */}
-                                  <div className="flex flex-col gap-3">
-                                    {category.allowVoting && isVotingDisabled() && (
-                                      <div
-                                        style={{
-                                          fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                          fontWeight: 400,
-                                          fontStyle: 'normal',
-                                          fontSize: '14px',
-                                          lineHeight: '1.4',
-                                          letterSpacing: '0%',
-                                          verticalAlign: 'middle',
-                                          color: 'rgba(244, 245, 248, 1)',
-                                          textAlign: 'left',
-                                          display: '-webkit-box',
-                                          WebkitLineClamp: 3,
-                                          WebkitBoxOrient: 'vertical' as const,
-                                          overflow: 'hidden',
-                                          textOverflow: 'ellipsis',
-                                        }}
-                                      >
-                                        <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
-                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala vào 14h30 17/01.</p>
-
-                                      </div>)}
-
-                                    {/* Vote Button and Count */}
-                                    {category.allowVoting && (
-                                      <div className="flex flex-row items-center gap-3">
+                                    {/* Card Content - Bottom */}
+                                    <div className="flex flex-col gap-3">
+                                      {category.allowVoting && isVotingDisabled() && (
                                         <div
                                           style={{
-                                            background: 'linear-gradient(303.62deg, #000000 -52.52%, #5A5A5A 177.26%)',
-                                            borderRadius: '9999px',
-                                            padding: '1px',
+                                            fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                            fontWeight: 400,
+                                            fontStyle: 'normal',
+                                            fontSize: '14px',
+                                            lineHeight: '1.4',
+                                            letterSpacing: '0%',
+                                            verticalAlign: 'middle',
+                                            color: 'rgba(244, 245, 248, 1)',
+                                            textAlign: 'left',
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 3,
+                                            WebkitBoxOrient: 'vertical' as const,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
                                           }}
                                         >
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.preventDefault();
-                                              e.stopPropagation();
-                                              console.log('Button clicked - desktop');
-                                              handleVoteClick(
-                                                nominee.socialIframe,
-                                                nominee.socialUrl,
-                                                getTotalVotes(nominee),
-                                                category,
-                                                { title: nominee.title, updatedAt: nominee.updatedAt }
-                                              );
-                                            }}
-                                            className="flex flex-row justify-center items-center cursor-pointer"
+                                          <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
+                                          <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala.</p>
+
+                                        </div>)}
+
+                                      {/* Vote Button and Count */}
+                                      {category.allowVoting && (
+                                        <div className="flex flex-row items-center gap-3">
+                                          <div
                                             style={{
-                                              padding: '12px',
-                                              gap: '8px',
-                                              background: 'rgba(0, 0, 0, 1)',
+                                              background: 'linear-gradient(303.62deg, #000000 -52.52%, #5A5A5A 177.26%)',
                                               borderRadius: '9999px',
-                                              border: 'none',
-                                              zIndex: 10,
-                                              position: 'relative',
+                                              padding: '1px',
                                             }}
                                           >
-                                            <Image src={heartIcon} alt="Heart" width={20} height={20} />
-                                            <span
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                console.log('Button clicked - desktop');
+                                                handleVoteClick(
+                                                  nominee.socialIframe,
+                                                  nominee.socialUrl,
+                                                  getTotalVotes(nominee),
+                                                  category,
+                                                  { title: nominee.title, updatedAt: nominee.updatedAt }
+                                                );
+                                              }}
+                                              className="flex flex-row justify-center items-center cursor-pointer"
                                               style={{
-                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                                fontWeight: 600,
-                                                fontStyle: 'normal',
-                                                fontSize: '14px',
-                                                lineHeight: '14px',
-                                                letterSpacing: '0%',
-                                                textAlign: 'center',
-                                                verticalAlign: 'middle',
-                                                color: 'rgba(225, 198, 147, 1)',
+                                                padding: '12px',
+                                                gap: '8px',
+                                                background: 'rgba(0, 0, 0, 1)',
+                                                borderRadius: '9999px',
+                                                border: 'none',
+                                                zIndex: 10,
+                                                position: 'relative',
                                               }}
                                             >
-                                              {isVotingDisabled() ? formatNumber(getTotalVotes(nominee)) + ' lượt' : tt('Bình chọn', 'Vote')}
-                                            </span>
-                                          </button>
-                                        </div>
-
-                                        {/* Vote Count */}
-                                        {!isVotingDisabled() && (
-                                          <div className="flex items-baseline gap-1">
-
-                                            <span
-                                              style={{
-                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                                fontWeight: 700,
-                                                fontStyle: 'normal',
-                                                fontSize: '18px',
-                                                lineHeight: '100%',
-                                                letterSpacing: '0%',
-                                                verticalAlign: 'middle',
-                                                color: 'rgba(255, 255, 255, 1)',
-                                              }}
-                                            >
-                                              {formatNumber(getTotalVotes(nominee))}
-                                            </span>
-
-                                            <span
-                                              style={{
-                                                fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
-                                                fontWeight: 400,
-                                                fontStyle: 'normal',
-                                                fontSize: '14px',
-                                                lineHeight: '100%',
-                                                letterSpacing: '0%',
-                                                verticalAlign: 'middle',
-                                                color: 'rgba(255, 255, 255, 1)',
-                                              }}
-                                            >
-                                              {tt('lượt', 'votes')}
-                                            </span>
+                                              <Image src={heartIcon} alt="Heart" width={20} height={20} />
+                                              <span
+                                                style={{
+                                                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                                  fontWeight: 600,
+                                                  fontStyle: 'normal',
+                                                  fontSize: '14px',
+                                                  lineHeight: '14px',
+                                                  letterSpacing: '0%',
+                                                  textAlign: 'center',
+                                                  verticalAlign: 'middle',
+                                                  color: 'rgba(225, 198, 147, 1)',
+                                                }}
+                                              >
+                                                {isVotingDisabled() ? formatNumber(getTotalVotes(nominee)) + ' lượt' : tt('Bình chọn', 'Vote')}
+                                              </span>
+                                            </button>
                                           </div>
-                                        )}
-                                      </div>
-                                    )}
+
+                                          {/* Vote Count */}
+                                          {!isVotingDisabled() && (
+                                            <div className="flex items-baseline gap-1">
+
+                                              <span
+                                                style={{
+                                                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                                  fontWeight: 700,
+                                                  fontStyle: 'normal',
+                                                  fontSize: '18px',
+                                                  lineHeight: '100%',
+                                                  letterSpacing: '0%',
+                                                  verticalAlign: 'middle',
+                                                  color: 'rgba(255, 255, 255, 1)',
+                                                }}
+                                              >
+                                                {formatNumber(getTotalVotes(nominee))}
+                                              </span>
+
+                                              <span
+                                                style={{
+                                                  fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
+                                                  fontWeight: 400,
+                                                  fontStyle: 'normal',
+                                                  fontSize: '14px',
+                                                  lineHeight: '100%',
+                                                  letterSpacing: '0%',
+                                                  verticalAlign: 'middle',
+                                                  color: 'rgba(255, 255, 255, 1)',
+                                                }}
+                                              >
+                                                {tt('lượt', 'votes')}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </Grid>
-                          );
+                              </Grid>
+                            );
                           })}
                         </Grid>
                       </div>

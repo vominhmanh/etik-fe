@@ -1449,7 +1449,7 @@ export default function Home() {
                                         }}
                                       >
                                         <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
-                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala vào 14h30 17/01.</p>
+                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala.</p>
                                       </div>
                                     }
 
@@ -1654,7 +1654,7 @@ export default function Home() {
                                         }}
                                       >
                                         <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
-                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala vào 14h30 17/01.</p>
+                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala.</p>
 
                                       </div>)}
 
