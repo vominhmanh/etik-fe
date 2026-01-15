@@ -857,42 +857,66 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
                   {/* Unified Field Rendering */}
                   {(() => {
-                    let displayFields: { label: string; value: string }[] = [];
+                    const displayFields: { label: string; value: string }[] = [];
+                    const builtInKeys = ['name', 'email', 'phone_number', 'dob', 'address', 'idcard_number', 'title'];
 
-                    if (trxn?.checkoutFormFields && trxn.checkoutFormFields.length > 0) {
-                      displayFields = trxn.checkoutFormFields
-                        .filter(f => f.visible)
-                        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
-                        .map(f => {
-                          let value = '';
-                          if (['name', 'email', 'phone_number', 'dob', 'address', 'title', 'idcard_number'].includes(f.internalName)) {
-                            if (f.internalName === 'name') value = trxn.name;
-                            else if (f.internalName === 'email') value = trxn.email;
-                            else if (f.internalName === 'phone_number') value = trxn.phoneNumber;
-                            else if (f.internalName === 'dob') value = trxn.dob ? dayjs(trxn.dob).format('DD/MM/YYYY') : '';
-                            else if (f.internalName === 'address') value = trxn.address;
-                            else if (f.internalName === 'title') value = trxn.title;
-                            else if (f.internalName === 'idcard_number') {
-                              value = trxn.idCardNumber || '';
+                    const fieldsConfig = trxn?.checkoutFormFields || [];
 
-                            }
-                          } else {
-                            const ans = trxn.formAnswers?.find(a => a.internalName === f.internalName);
-                            if (ans) {
-                              if (Array.isArray(ans.value)) value = ans.value.join(', ');
-                              else value = String(ans.value);
-                            }
-                          }
-                          return { label: f.label, value };
-                        });
+                    // Helper to get formatted value for built-in fields
+                    const getBuiltInValue = (key: string): string => {
+                      if (key === 'name') return `${trxn?.title || ''} ${trxn?.name}`.trim();
+                      if (key === 'email') return trxn?.email || '';
+                      if (key === 'phone_number') return trxn?.phoneNumber || '';
+                      if (key === 'dob') return trxn?.dob ? dayjs(trxn.dob).format('DD/MM/YYYY') : '';
+                      if (key === 'address') return trxn?.address || '';
+                      if (key === 'idcard_number') return trxn?.idCardNumber || '';
+                      return '';
+                    };
+
+                    // Helper to get default label
+                    const getDefaultLabel = (key: string): string => {
+                      if (key === 'name') return tt('Danh xưng*  Họ và tên', 'Title* Full Name');
+                      if (key === 'email') return tt('Email', 'Email');
+                      if (key === 'phone_number') return tt('Số điện thoại', 'Phone Number');
+                      if (key === 'dob') return tt('Ngày tháng năm sinh', 'Date of Birth');
+                      if (key === 'address') return tt('Địa chỉ', 'Address');
+                      if (key === 'idcard_number') return tt('Căn cước công dân', 'ID Card Number');
+                      return '';
                     }
 
+                    // 1. Process Built-in Fields in explicit order
+                    builtInKeys.forEach(key => {
+                      if (key === 'title') return;
+                      const cfg = fieldsConfig.find(f => f.internalName === key);
+                      if (cfg && cfg.visible) {
+                        displayFields.push({
+                          label: cfg.label || getDefaultLabel(key),
+                          value: getBuiltInValue(key)
+                        });
+                      }
+                    });
+
+                    // 2. Process Custom Fields (fields not in builtInKeys)
+                    // Sort by sortOrder
+                    const customFields = fieldsConfig
+                      .filter(f => !builtInKeys.includes(f.internalName) && f.visible)
+                      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+                    customFields.forEach(f => {
+                      const ans = trxn?.formAnswers?.find(a => a.internalName === f.internalName);
+                      let value = '';
+                      if (ans) {
+                        if (Array.isArray(ans.value)) value = ans.value.join(', ');
+                        else value = String(ans.value);
+                      }
+                      displayFields.push({ label: f.label, value });
+                    });
 
                     if (displayFields.length === 0) return null;
 
                     return (
                       <>
-                        <FormFieldsSection formFieldsAnswers={displayFields as any} tt={tt} />
+                        <FormFieldsSection formFieldsAnswers={displayFields} tt={tt} />
                         <Divider />
                       </>
                     );
