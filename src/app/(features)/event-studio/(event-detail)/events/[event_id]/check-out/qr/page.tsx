@@ -85,6 +85,24 @@ export interface TransactionTicketCategory {
 }
 
 // TransactionResponse.ts
+export interface RuntimeFormField {
+  internalName: string;
+  label: string;
+  fieldType: string;
+  visible: boolean;
+  required: boolean;
+  sortOrder?: number;
+  options?: any[];
+}
+
+export interface FormAnswerItem {
+  id: number;
+  internalName: string;
+  label: string;
+  fieldType: string;
+  value: any;
+}
+
 export interface FormFieldAnswer {
   label: string;
   value: string;
@@ -111,6 +129,9 @@ export interface Transaction {
   createdAt: Date;
   exportedTicketAt: string | null;
   formFieldsAnswers?: FormFieldAnswer[];
+  idCardNumber?: string;
+  checkoutFormFields?: RuntimeFormField[];
+  formAnswers?: FormAnswerItem[];
 }
 
 export type Show = {
@@ -839,42 +860,46 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     <IconButton size='small' target='_blank' component={LocalizedLink} href={`/event-studio/events/${params.event_id}/transactions/${trxn?.id}?checkInCode=${eCode}`}><ArrowSquareIn /></IconButton>
                   </Grid>
 
-                  {/* Builtin Fields (name, email, phone, dob, address, idnumber) - only if visible */}
+                  {/* Unified Field Rendering */}
                   {(() => {
-                    const builtinOrder = ['name', 'email', 'phone_number', 'dob', 'address', 'idcard_number'];
-                    const builtinFields = trxn?.formFieldsAnswers?.filter(f => f.builtinKey && builtinOrder.includes(f.builtinKey)) || [];
-                    const builtinFieldsMap = new Map(builtinFields.map(f => [f.builtinKey, f]));
-                    const builtinLabelMap: Record<string, string> = {
-                      name: tt('Họ và tên', 'Full name'),
-                      email: tt('Email', 'Email'),
-                      phone_number: tt('Số điện thoại', 'Phone number'),
-                      dob: tt('Ngày sinh', 'Date of birth'),
-                      address: tt('Địa chỉ', 'Address'),
-                      idcard_number: tt('Số CMND/CCCD', 'ID number'),
-                    };
+                    let displayFields: { label: string; value: string }[] = [];
 
-                    return builtinOrder.map(builtinKey => {
-                      const field = builtinFieldsMap.get(builtinKey);
-                      if (!field) return null;
+                    if (trxn?.checkoutFormFields && trxn.checkoutFormFields.length > 0) {
+                      displayFields = trxn.checkoutFormFields
+                        .filter(f => f.visible)
+                        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+                        .map(f => {
+                          let value = '';
+                          if (['name', 'email', 'phone_number', 'dob', 'address', 'title', 'idcard_number'].includes(f.internalName)) {
+                            if (f.internalName === 'name') value = trxn.name;
+                            else if (f.internalName === 'email') value = trxn.email;
+                            else if (f.internalName === 'phone_number') value = trxn.phoneNumber;
+                            else if (f.internalName === 'dob') value = trxn.dob ? dayjs(trxn.dob).format('DD/MM/YYYY') : '';
+                            else if (f.internalName === 'address') value = trxn.address;
+                            else if (f.internalName === 'title') value = trxn.title;
+                            else if (f.internalName === 'idcard_number') {
+                              value = trxn.idCardNumber ||
+                                trxn.formFieldsAnswers?.find(fa => fa.builtinKey === 'idcard_number')?.value || '';
+                            }
+                          } else {
+                            const ans = trxn.formAnswers?.find(a => a.internalName === f.internalName);
+                            if (ans) {
+                              if (Array.isArray(ans.value)) value = ans.value.join(', ');
+                              else value = String(ans.value);
+                            }
+                          }
+                          return { label: f.label, value };
+                        });
+                    } else if (trxn?.formFieldsAnswers) {
+                      // Legacy fallback
+                      displayFields = trxn.formFieldsAnswers.filter(f => f.value).map(f => ({ label: f.label, value: f.value }));
+                    }
 
-                      return (
-                        <Grid container justifyContent="space-between" key={builtinKey}>
-                          <Typography variant="body1">{builtinLabelMap[builtinKey] || field.label}:</Typography>
-                          <Typography variant="body1" sx={{ maxWidth: '60%', wordBreak: 'break-word', textAlign: 'right' }}>
-                            {field.value || '-'}
-                          </Typography>
-                        </Grid>
-                      );
-                    }).filter(Boolean);
-                  })()}
-                  <Divider />
-                  {/* Custom Form Fields and Answers */}
-                  {(() => {
-                    const customFields = trxn?.formFieldsAnswers?.filter(f => !f.builtinKey) || [];
-                    if (customFields.length === 0) return null;
+                    if (displayFields.length === 0) return null;
+
                     return (
                       <>
-                        <FormFieldsSection formFieldsAnswers={customFields} tt={tt} />
+                        <FormFieldsSection formFieldsAnswers={displayFields as any} tt={tt} />
                         <Divider />
                       </>
                     );
@@ -938,12 +963,12 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                           </Stack>
                                         )}
                                         {ticket.audienceName && (
-                                          <Chip 
-                                            label={ticket.audienceName} 
-                                            size="small" 
-                                            variant="outlined" 
-                                            color="primary" 
-                                            sx={{ height: 20, fontSize: '0.7rem' }} 
+                                          <Chip
+                                            label={ticket.audienceName}
+                                            size="small"
+                                            variant="outlined"
+                                            color="primary"
+                                            sx={{ height: 20, fontSize: '0.7rem' }}
                                           />
                                         )}
                                       </Stack>
@@ -952,7 +977,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                         <Chip size="small" label={getRowStatusDetails(ticket.status).label} color={getRowStatusDetails(ticket.status).color} sx={{ height: 18, fontSize: '0.7rem' }} />
                                       )}
 
-                                     
+
                                       {(() => {
                                         const historyCheckIns = ticket.historyCheckIns || [];
                                         const latestCheckIn = historyCheckIns.length > 0

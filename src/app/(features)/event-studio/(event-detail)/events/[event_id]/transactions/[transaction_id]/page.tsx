@@ -309,7 +309,7 @@ export interface Transaction {
   createdAt: string;                // The date the transaction was created
   exportedTicketAt?: string | null; // The date the transaction was created
   sentPaymentInstructionAt?: string;
-  createdSource: CreatedSourceType; // Source of the transaction creation
+  createdSource: 'marketplace' | 'event_studio' | 'api'; // Source of the transaction creation
   creator: Creator | null;          // Related creator of the transaction, nullable
   historySendings: HistorySending[];
   historyActions: HistoryAction[];
@@ -319,7 +319,7 @@ export interface Transaction {
   eCode?: string;
   concessions: TransactionConcession[];
   // Dynamic checkout form answers (ETIK Forms)
-  formAnswers?: Record<string, any>;
+  formAnswers: Record<string, any>;
   checkoutFormFields?: CheckoutRuntimeField[];
 }
 
@@ -498,13 +498,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
               }
               return item;
             });
-          } else {
-            // Old format: dictionary
-            updatedFormAnswers = {
-              ...(prevFormAnswers || {}),
-              ...formAnswers,
-            };
           }
+
 
           return {
             ...prev,
@@ -560,10 +555,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
           formAnswersData.forEach((item: any) => {
             answersDict[item.internalName] = item.value;
           });
-        } else if (formAnswersData && typeof formAnswersData === 'object') {
-          // Old format: dictionary (backward compatibility)
-          Object.assign(answersDict, formAnswersData);
         }
+
         setCheckoutCustomAnswers(answersDict);
 
 
