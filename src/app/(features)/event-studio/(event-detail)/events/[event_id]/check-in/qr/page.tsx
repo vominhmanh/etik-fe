@@ -102,12 +102,7 @@ export interface FormAnswerItem {
   value: any;
 }
 
-export interface FormFieldAnswer {
-  label: string;
-  value: string;
-  fieldType: string;
-  builtinKey?: string | null;
-}
+
 
 export interface Transaction {
   id: number;
@@ -127,7 +122,7 @@ export interface Transaction {
   status: string;
   createdAt: Date;
   exportedTicketAt: string | null;
-  formFieldsAnswers?: FormFieldAnswer[];
+
   idCardNumber?: string;
   checkoutFormFields?: RuntimeFormField[];
   formAnswers?: FormAnswerItem[];
@@ -170,7 +165,7 @@ type MyDynamicObject = {
 };
 
 // Component for displaying form fields with max height and "see more" button
-function FormFieldsSection({ formFieldsAnswers, tt }: { formFieldsAnswers: FormFieldAnswer[], tt: (vi: string, en: string) => string }) {
+function FormFieldsSection({ formFieldsAnswers, tt }: { formFieldsAnswers: { label: string; value: string }[], tt: (vi: string, en: string) => string }) {
   const [expanded, setExpanded] = React.useState(false);
   const MAX_HEIGHT = 200; // Max height in pixels before showing "see more"
   const contentRef = React.useRef<HTMLDivElement>(null);
@@ -882,8 +877,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                             else if (f.internalName === 'address') value = trxn.address;
                             else if (f.internalName === 'title') value = trxn.title;
                             else if (f.internalName === 'idcard_number') {
-                              value = trxn.idCardNumber ||
-                                trxn.formFieldsAnswers?.find(fa => fa.builtinKey === 'idcard_number')?.value || '';
+                              value = trxn.idCardNumber || '';
+
                             }
                           } else {
                             const ans = trxn.formAnswers?.find(a => a.internalName === f.internalName);
@@ -894,11 +889,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                           }
                           return { label: f.label, value };
                         });
-                    } else if (trxn?.formFieldsAnswers) {
-                      // Legacy fallback
-                      displayFields = trxn.formFieldsAnswers.filter(f => f.value).map(f => ({ label: f.label, value: f.value }));
                     }
-
                     if (displayFields.length === 0) return null;
 
                     return (
