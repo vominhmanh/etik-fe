@@ -119,6 +119,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     setIsPlaying(newPlaying);
     setInitials(newInitials);
     setDurations(newDurations);
+    setResults(Array(2).fill(null));
     setCurrentRevealIndex(0); // Start from the first reveal
   };
 
@@ -140,8 +141,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       return newInitials
     });
     setDurations(newDurations);
+    setResults((prev) => {
+      const newResults = [...prev];
+      newResults[index] = null;
+      return newResults;
+    });
   };
-  
+
   const handleStopBtnOne = (index: number) => {
     // Prevent duplicate picking by ensuring we use the latest state
     setResults((prev) => {
@@ -241,7 +247,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         }
         const playPromise = videoElement.play();
         if (playPromise && typeof (playPromise as any).then === 'function') {
-          (playPromise as Promise<void>).catch(() => {});
+          (playPromise as Promise<void>).catch(() => { });
         }
         setReplayToggle(true);
       } else {
@@ -249,7 +255,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         videoElement.currentTime = 0;
         setReplayToggle(false);
       }
-    } catch {}
+    } catch { }
   };
 
   // Render the reveals
@@ -280,7 +286,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           updateInterval={intervals[index]} // Dynamic interval based on state
           characterSet={initials[index] ? [``] : formValues.customDrawList}
           characters={[
-            <span 
+            <span
               key={index}
               style={{
                 fontFamily: 'Shuttleblock, sans-serif',
@@ -516,7 +522,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           variant="contained"
           color="error"
           size="small"
-          onClick={() => { setSavedResults([]) }}
+          onClick={() => {
+            setSavedResults([]);
+            setResults(Array(2).fill(null));
+          }}
           sx={{
             minWidth: '0',
             padding: '0',
@@ -525,7 +534,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             height: '2%',
             fontSize: '1cqw',
             top: '98%',
-            right: '11%', 
+            right: '11%',
           }}
         >
           Xóa
