@@ -11,6 +11,7 @@ import chickenWinnerImage from '@/images/pubg/chicken-winner.png';
 import heartIcon from '@/images/pubg/heart.svg';
 import backgroundImage from '@/images/pubg/KV_PUBG_GALA_16x9.jpg';
 import soldierBackgroundImage from '@/images/pubg/soldier-background.png';
+import trophyIcon from '@/images/pubg/trophy render.338.png';
 import votingService from '@/services/Voting.service';
 import { Alert, Box, Container, Dialog, Grid, IconButton, Snackbar, Stack, Tooltip, Typography } from '@mui/material';
 import type { Swiper as SwiperType } from 'swiper';
@@ -87,9 +88,9 @@ export default function Home() {
     return main + backup;
   };
 
-  // Check if countdown time has passed (2026-01-17T14:30:00 UTC+7)
+  // Check if countdown time has passed (2026-01-22T19:00:00 UTC+7)
   const isCountdownPassed = useMemo(() => {
-    const countdownDate = dayjs.tz('2026-01-17 14:30:00', 'Asia/Ho_Chi_Minh');
+    const countdownDate = dayjs.tz('2026-01-22 19:00:00', 'Asia/Ho_Chi_Minh');
     const now = dayjs.tz(dayjs(), 'Asia/Ho_Chi_Minh');
     return now.isAfter(countdownDate);
     // return true;
@@ -643,8 +644,8 @@ export default function Home() {
                       '🔥 Đừng bỏ lỡ giây phút lịch sử này! Cùng theo dõi livestream và hòa mình vào không khí vinh quang!',
                       '🔥 Don\'t miss this historic moment! Join us in the atmosphere of glory!'
                     ) : tt(
-                      '🔥 Đừng bỏ lỡ giây phút lịch sử này! Cùng theo dõi livestream vào lúc 14h30 ngày 17/01/2026.',
-                      '🔥 Don\'t miss this historic moment! Join us at 2:30pm on January 17th.'
+                      '🔥 Đừng bỏ lỡ giây phút lịch sử này! Cùng theo dõi livestream vào lúc 19h00 ngày 22/01/2026.',
+                      '🔥 Don\'t miss this historic moment! Join us at 7:00pm on January 22nd.'
                     )}
                   </div>
                 </div>
@@ -853,18 +854,43 @@ export default function Home() {
                                 style={{
                                   width: '80vw',
                                   maxWidth: '400px',
+                                  aspectRatio: '1 / 1',
                                 }}
                               >
                                 <div
                                   className="flex flex-col bg-black w-full"
                                   style={{
                                     position: 'relative',
-                                    overflow: 'hidden',
+                                    overflow: isWinner ? 'visible' : 'hidden',
                                     aspectRatio: '1 / 1',
+                                    width: '100%',
+                                    height: 'auto',
+                                    boxSizing: 'border-box',
                                     border: isWinner ? '6px solid #E1C693' : 'none',
-                                    boxShadow: isWinner ? '0 0 20px rgba(225, 198, 147, 0.5)' : 'none',
+                                    boxShadow: isWinner ? '0 0 20px rgba(225, 198, 147, 0.5)' : '0 0 15px rgba(0, 0, 0, 0.5)',
                                   }}
                                 >
+                                  {isWinner && category.allowVoting && (
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        bottom: '0px',
+                                        left: '0px',
+                                        width: '20%',
+                                        height: '40%',
+                                        zIndex: 20,
+                                        pointerEvents: 'none',
+                                        filter: 'drop-shadow(0 0 12px rgba(225, 198, 147, 0.9)) drop-shadow(0 0 20px rgba(0, 0, 0, 0.4))',
+                                      }}
+                                    >
+                                      <Image
+                                        src={trophyIcon}
+                                        alt="Winner Trophy"
+                                        fill
+                                        style={{ objectFit: 'contain' }}
+                                      />
+                                    </div>
+                                  )}
                                   {/* Border bottom with gradient */}
                                   <div
                                     style={{
@@ -888,7 +914,7 @@ export default function Home() {
                                       backgroundSize: 'cover',
                                       backgroundPosition: 'center',
                                       backgroundRepeat: 'no-repeat',
-                                      opacity: category.allowVoting && isVotingDisabled() ? 0.33 : 1,
+                                      opacity: isWinner ? 1 : 0.8,
                                       zIndex: 0,
                                       width: '100%',
                                       height: '100%',
@@ -935,7 +961,7 @@ export default function Home() {
                                     <div style={{ flex: 1 }} />
 
                                     {/* Card Content - Bottom */}
-                                    <div className="flex flex-col gap-3">
+                                    {/* <div className="flex flex-col gap-3">
                                       {category.allowVoting && isVotingDisabled() &&
                                         <div
                                           style={{
@@ -956,11 +982,10 @@ export default function Home() {
                                           }}
                                         >
                                           <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
-                                          <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala.</p>
+                                          <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala lúc 19h ngày 22/01.</p>
                                         </div>
                                       }
 
-                                      {/* Vote Button and Count */}
                                       {category.allowVoting && (
                                         <div className="flex flex-row items-center gap-3">
                                           <div
@@ -1014,7 +1039,6 @@ export default function Home() {
                                             </button>
                                           </div>
 
-                                          {/* Vote Count */}
                                           {!isVotingDisabled() && (
                                             <div className="flex items-baseline gap-1">
 
@@ -1051,7 +1075,7 @@ export default function Home() {
                                           )}
                                         </div>
                                       )}
-                                    </div>
+                                    </div> */}
                                   </div>
                                 </div>
                               </SwiperSlide>
@@ -1071,12 +1095,36 @@ export default function Home() {
                                   className="flex flex-col bg-black w-full"
                                   style={{
                                     position: 'relative',
-                                    overflow: 'hidden',
+                                    overflow: isWinner ? 'visible' : 'hidden',
                                     aspectRatio: '1 / 1',
+                                    width: '100%',
+                                    height: 'auto',
+                                    boxSizing: 'border-box',
                                     border: isWinner ? '6px solid #E1C693' : 'none',
-                                    boxShadow: isWinner ? '0 0 20px rgba(225, 198, 147, 0.5)' : 'none',
+                                    boxShadow: isWinner ? '0 0 20px rgba(225, 198, 147, 0.5)' : '0 0 15px rgba(0, 0, 0, 0.5)',
                                   }}
                                 >
+                                  {isWinner && category.allowVoting && (
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        bottom: '0px',
+                                        left: '0px',
+                                        width: '20%',
+                                        height: '40%',
+                                        zIndex: 20,
+                                        pointerEvents: 'none',
+                                        filter: 'drop-shadow(0 0 12px rgba(225, 198, 147, 0.9)) drop-shadow(0 0 20px rgba(0, 0, 0, 0.4))',
+                                      }}
+                                    >
+                                      <Image
+                                        src={trophyIcon}
+                                        alt="Winner Trophy"
+                                        fill
+                                        style={{ objectFit: 'contain' }}
+                                      />
+                                    </div>
+                                  )}
                                   {/* Border bottom with gradient */}
                                   <div
                                     style={{
@@ -1100,7 +1148,7 @@ export default function Home() {
                                       backgroundSize: 'cover',
                                       backgroundPosition: 'center',
                                       backgroundRepeat: 'no-repeat',
-                                      opacity: category.allowVoting && isVotingDisabled() ? 0.33 : 1,
+                                      opacity: isWinner ? 1 : 0.8,
                                       zIndex: 0,
                                       width: '100%',
                                       height: '100%',
@@ -1147,7 +1195,7 @@ export default function Home() {
                                     <div style={{ flex: 1 }} />
 
                                     {/* Card Content - Bottom */}
-                                    <div className="flex flex-col gap-3">
+                                    {/* <div className="flex flex-col gap-3">
                                       {category.allowVoting && isVotingDisabled() && (
                                         <div
                                           style={{
@@ -1168,11 +1216,10 @@ export default function Home() {
                                           }}
                                         >
                                           <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
-                                          <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala.</p>
+                                          <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala lúc 19h ngày 22/01.</p>
 
                                         </div>)}
 
-                                      {/* Vote Button and Count */}
                                       {category.allowVoting && (
                                         <div className="flex flex-row items-center gap-3">
                                           <div
@@ -1226,7 +1273,6 @@ export default function Home() {
                                             </button>
                                           </div>
 
-                                          {/* Vote Count */}
                                           {!isVotingDisabled() && (
                                             <div className="flex items-baseline gap-1">
 
@@ -1263,7 +1309,7 @@ export default function Home() {
                                           )}
                                         </div>
                                       )}
-                                    </div>
+                                    </div> */}
                                   </div>
                                 </div>
                               </Grid>

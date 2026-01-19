@@ -87,9 +87,9 @@ export default function Home() {
     return main + backup;
   };
 
-  // Check if countdown time has passed (2026-01-17T14:30:00 UTC+7)
+  // Check if countdown time has passed (2026-01-22T19:00:00 UTC+7)
   const isCountdownPassed = useMemo(() => {
-    const countdownDate = dayjs.tz('2026-01-17 14:30:00', 'Asia/Ho_Chi_Minh');
+    const countdownDate = dayjs.tz('2026-01-22 19:00:00', 'Asia/Ho_Chi_Minh');
     const now = dayjs.tz(dayjs(), 'Asia/Ho_Chi_Minh');
     return now.isAfter(countdownDate);
     // return true;
@@ -563,7 +563,7 @@ export default function Home() {
 
 
       {/* Voting Categories Info Section */}
-      {/* <div
+      <div
         className="relative w-full"
         style={{
           backgroundImage: `url(${battlegroundsImageLong.src})`,
@@ -597,10 +597,10 @@ export default function Home() {
                     } as React.CSSProperties
                   }
                 >
-                  {tt('14:30 | 17 / 01 / 2026', '14:30 | 17 / 01 / 2026')}
+                  {tt('19:00 | 22 / 01 / 2026', '19:00 | 22 / 01 / 2026')}
                 </h2>
 
-                <p
+                {/* <p
                   className="text-sm md:text-2xl"
                   style={{
                     fontFamily: 'var(--font-montserrat), Montserrat, sans-serif',
@@ -619,12 +619,12 @@ export default function Home() {
                     'Ariyana Convention Centre - TP. Đà Nẵng',
                     'Ariyana Convention Centre - TP. Đà Nẵng'
                   )}
-                </p>
+                </p> */}
               </Stack>
               {!isCountdownPassed && (
                 <div className="flex justify-center items-center w-full">
                   <FlipClockCountdown
-                    to={new Date('2026-01-17T14:30:00').getTime()}
+                    to={new Date('2026-01-22T19:00:00').getTime()}
                     labels={['NGÀY', 'GIỜ', 'PHÚT', 'GIÂY']}
                     labelStyle={{
                       fontSize: flipClockConfig.label.fontSize,
@@ -672,9 +672,9 @@ export default function Home() {
             zIndex: 5,
           }}
         />
-      </div> */}
+      </div>
       {/* Body2: Message Section */}
-      {/* <div className="relative w-full bg-black py-8 md:py-16">
+      <div className="relative w-full bg-black py-8 md:py-16">
         <Container maxWidth="xl">
           <div className="flex flex-col gap-12" data-aos="fade-left">
             <h2
@@ -765,8 +765,8 @@ export default function Home() {
                       '🔥 Đừng bỏ lỡ giây phút lịch sử này! Cùng theo dõi livestream và hòa mình vào không khí vinh quang!',
                       '🔥 Don\'t miss this historic moment! Join us in the atmosphere of glory!'
                     ) : tt(
-                      '🔥 Đừng bỏ lỡ giây phút lịch sử này! Cùng theo dõi livestream vào lúc 14h30 ngày 17/01/2026.',
-                      '🔥 Don\'t miss this historic moment! Join us at 2:30pm on January 17th.'
+                      '🔥 Đừng bỏ lỡ giây phút lịch sử này! Cùng theo dõi livestream vào lúc 19h00 ngày 22/01/2026.',
+                      '🔥 Don\'t miss this historic moment! Join us at 7:00pm on January 22nd.'
                     )}
                   </div>
                 </div>
@@ -774,7 +774,7 @@ export default function Home() {
             </Grid>
           </div>
         </Container>
-      </div> */}
+      </div>
 
 
       <div
@@ -1449,7 +1449,7 @@ export default function Home() {
                                         }}
                                       >
                                         <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
-                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala.</p>
+                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala lúc 19h ngày 22/01.</p>
                                       </div>
                                     }
 
@@ -1654,7 +1654,7 @@ export default function Home() {
                                         }}
                                       >
                                         <p style={{ fontWeight: 700 }}>HẾT THỜI GIAN BÌNH CHỌN</p>
-                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala.</p>
+                                        <p style={{ fontWeight: 400 }}>Đón xem kết quả tại livestream PUBG Gala lúc 19h ngày 22/01.</p>
 
                                       </div>)}
 
