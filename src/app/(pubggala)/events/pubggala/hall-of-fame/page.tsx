@@ -11,7 +11,7 @@ import chickenWinnerImage from '@/images/pubg/chicken-winner.png';
 import heartIcon from '@/images/pubg/heart.svg';
 import backgroundImage from '@/images/pubg/KV_PUBG_GALA_16x9.jpg';
 import soldierBackgroundImage from '@/images/pubg/soldier-background.png';
-import trophyIcon from '@/images/pubg/trophy render.338.png';
+
 import votingService from '@/services/Voting.service';
 import { Alert, Box, Container, Dialog, Grid, IconButton, Snackbar, Stack, Tooltip, Typography } from '@mui/material';
 import type { Swiper as SwiperType } from 'swiper';
@@ -553,7 +553,7 @@ export default function Home() {
 
 
       {/* Body2: Message Section */}
-      {/* <div className="relative w-full bg-black py-8 md:py-16">
+      <div className="relative w-full bg-black py-8 md:py-16">
         <Container maxWidth="xl">
           <div className="flex flex-col gap-12" data-aos="fade-left">
             <h2
@@ -653,7 +653,7 @@ export default function Home() {
             </Grid>
           </div>
         </Container>
-      </div> */}
+      </div>
 
       {/* Voting Categories Info Section */}
       <div className="relative w-full">
@@ -870,27 +870,7 @@ export default function Home() {
                                     boxShadow: isWinner ? '0 0 20px rgba(225, 198, 147, 0.5)' : '0 0 15px rgba(0, 0, 0, 0.5)',
                                   }}
                                 >
-                                  {isWinner && category.allowVoting && (
-                                    <div
-                                      style={{
-                                        position: 'absolute',
-                                        bottom: '0px',
-                                        left: '0px',
-                                        width: '20%',
-                                        height: '40%',
-                                        zIndex: 20,
-                                        pointerEvents: 'none',
-                                        filter: 'drop-shadow(0 0 12px rgba(225, 198, 147, 0.9)) drop-shadow(0 0 20px rgba(0, 0, 0, 0.4))',
-                                      }}
-                                    >
-                                      <Image
-                                        src={trophyIcon}
-                                        alt="Winner Trophy"
-                                        fill
-                                        style={{ objectFit: 'contain' }}
-                                      />
-                                    </div>
-                                  )}
+
                                   {/* Border bottom with gradient */}
                                   <div
                                     style={{
@@ -921,22 +901,7 @@ export default function Home() {
                                     }}
                                   />
 
-                                  {/* Fade Background Overlay */}
-                                  <div
-                                    className="absolute"
-                                    style={{
-                                      bottom: 0,
-                                      left: 0,
-                                      right: 0,
-                                      width: '100%',
-                                      height: '30%',
-                                      background: isWinner
-                                        ? 'linear-gradient(to top, rgba(225, 198, 147, 0.6) 0%, rgba(225, 198, 147, 0.3) 50%, rgba(0, 0, 0, 0) 100%)'
-                                        : 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0) 100%)',
-                                      pointerEvents: 'none',
-                                      zIndex: 1,
-                                    }}
-                                  />
+
 
                                   {/* Card Content */}
                                   <div className="relative z-10 flex flex-col h-full p-4 justify-between">
@@ -1104,27 +1069,7 @@ export default function Home() {
                                     boxShadow: isWinner ? '0 0 20px rgba(225, 198, 147, 0.5)' : '0 0 15px rgba(0, 0, 0, 0.5)',
                                   }}
                                 >
-                                  {isWinner && category.allowVoting && (
-                                    <div
-                                      style={{
-                                        position: 'absolute',
-                                        bottom: '0px',
-                                        left: '0px',
-                                        width: '20%',
-                                        height: '40%',
-                                        zIndex: 20,
-                                        pointerEvents: 'none',
-                                        filter: 'drop-shadow(0 0 12px rgba(225, 198, 147, 0.9)) drop-shadow(0 0 20px rgba(0, 0, 0, 0.4))',
-                                      }}
-                                    >
-                                      <Image
-                                        src={trophyIcon}
-                                        alt="Winner Trophy"
-                                        fill
-                                        style={{ objectFit: 'contain' }}
-                                      />
-                                    </div>
-                                  )}
+
                                   {/* Border bottom with gradient */}
                                   <div
                                     style={{
@@ -1155,22 +1100,7 @@ export default function Home() {
                                     }}
                                   />
 
-                                  {/* Fade Background Overlay */}
-                                  <div
-                                    className="absolute"
-                                    style={{
-                                      bottom: 0,
-                                      left: 0,
-                                      right: 0,
-                                      width: '100%',
-                                      height: '20%',
-                                      background: isWinner
-                                        ? 'linear-gradient(to top, rgba(225, 198, 147, 0.6) 0%, rgba(225, 198, 147, 0.3) 50%, rgba(0, 0, 0, 0) 100%)'
-                                        : 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0) 100%)',
-                                      pointerEvents: 'none',
-                                      zIndex: 1,
-                                    }}
-                                  />
+
 
                                   {/* Card Content */}
                                   <div className="relative z-10 flex flex-col h-full p-4 justify-between">
