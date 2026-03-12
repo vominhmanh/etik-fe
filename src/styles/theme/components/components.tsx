@@ -13,8 +13,8 @@ import { MuiTableBody } from './table-body';
 import { MuiTableCell } from './table-cell';
 import { MuiTableHead } from './table-head';
 import { MuiChip } from './chip';
-import { MuiInput } from './input';
-
+import { MuiInputBase } from './input-base';
+import { MuiOutlinedInput } from './outlined-input';
 
 export const components = {
   MuiAvatar,
@@ -29,5 +29,6 @@ export const components = {
   MuiTableCell,
   MuiTableHead,
   MuiChip,
-  MuiInput,
+  MuiInputBase,
+  MuiOutlinedInput
 } satisfies Components<Theme>;
