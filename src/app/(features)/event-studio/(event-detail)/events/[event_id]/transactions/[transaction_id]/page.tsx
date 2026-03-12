@@ -1015,6 +1015,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
     return PHONE_COUNTRIES.find(c => c.iso2 === formData.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
   }, [formData.phoneCountryIso2]);
 
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   if (!transaction) {
     return <Typography>{tt('Đang tải...', 'Loading...')}</Typography>;
   }

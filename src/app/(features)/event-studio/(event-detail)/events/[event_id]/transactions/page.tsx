@@ -136,7 +136,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     params.set('order', order);
 
     const currentUrlParams = new URLSearchParams(window.location.search);
-    if (params.toString() !== currentUrlParams.toString()) {
+    const hasChanges = 
+      currentUrlParams.get('page') !== String(page) ||
+      currentUrlParams.get('rowsPerPage') !== String(rowsPerPage) ||
+      (currentUrlParams.get('orderBy') || '') !== orderBy ||
+      (currentUrlParams.get('order') || 'asc') !== order;
+
+    if (hasChanges) {
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     }
   }, [page, rowsPerPage, orderBy, order, isInitialized, pathname, router, searchParams]);
