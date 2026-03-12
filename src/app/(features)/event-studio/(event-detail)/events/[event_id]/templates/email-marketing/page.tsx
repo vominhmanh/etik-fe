@@ -62,21 +62,21 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [template, setTemplate] = useState<GetEmailTemplateResponse | null>(null);
   const { event_id } = params;
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
-  
+
   const getDefaultDescription = React.useCallback((tt: (vi: string, en: string) => string) => {
     return `<h1>${tt("Template mẫu", "Sample Template")}</h1>
      <p>${tt("Hãy chỉnh sửa nội dung template này để gửi đến khách hàng của bạn.", "Please edit this template content to send to your customers.")}</p>
      <p>${tt("Sử dụng cụm {{ customer_name }} nếu bạn muốn đại diện cho tên khách hàng.", "Use the phrase {{ customer_name }} if you want to represent the customer's name.")}</p>
      <p><b>${tt("Cảm ơn bạn đã sử dụng ETIK.", "Thank you for using ETIK.")}</b></p>`;
   }, []);
-  
+
   const [description, setDescription] = useState(() => getDefaultDescription(tt));
 
   const reactQuillRef = React.useRef<ReactQuill>(null);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
-  
+
   const getLayout = React.useCallback((tt: (vi: string, en: string) => string) => {
     return `
     <!DOCTYPE html>
@@ -89,7 +89,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         body {
           background-color: #EDF0F2;
           font-family: Arial, Helvetica, sans-serif;
-          font-size: 15px;
+          font-size: 16px;
           line-height: 28px;
         }
         .container {
@@ -158,14 +158,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     </html>
   `;
   }, [event?.bannerUrl, description, tt]);
-  
+
   const layout = getLayout(tt);
   useEffect(() => {
-    
+
   }, [event_id, notificationCtx]);
-  
+
   useEffect(() => {
-    if (event_id) {  
+    if (event_id) {
       const fetchEventDetails = async () => {
         try {
           setIsLoading(true);
@@ -185,7 +185,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           setIsLoading(true);
           const response = await baseHttpServiceInstance.get(`/event-studio/events/${event_id}/templates/email-marketing`);
           setTemplate(response.data);
-          
+
           setFormValues({
             title: response.data.title || '',
             senderName: response.data.senderName || '',

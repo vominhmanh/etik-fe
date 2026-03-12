@@ -88,7 +88,7 @@ export function SignInForm(): React.JSX.Element {
 
   const onSubmit = React.useCallback(
     async (values: Values): Promise<void> => {
-      
+
 
       try {
         setIsPending(true);
@@ -128,16 +128,16 @@ export function SignInForm(): React.JSX.Element {
 
   if (isLoading) {
     return (
-    <Backdrop
-      open={isLoading}
-      sx={{
-        color: '#fff',
-        zIndex: (theme) => theme.zIndex.drawer + 1,
-        marginLeft: '0px !important',
-      }}
-    >
-      <CircularProgress color="inherit" />
-    </Backdrop>)
+      <Backdrop
+        open={isLoading}
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          marginLeft: '0px !important',
+        }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>)
   }
 
   if (ssoUser) {

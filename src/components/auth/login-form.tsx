@@ -47,7 +47,7 @@ export function SignInForm(): React.JSX.Element {
   const pathname = usePathname();
   const errorParam = useSearchParams().get('error');
   const notificationCtx = React.useContext(NotificationContext);
-  
+
   // Get returnUrl and preserve its locale if it has one
   const returnUrl = React.useMemo(() => {
     const decoded = getDecodedReturnUrl(searchParams.get('returnUrl'), '/dashboard');
@@ -63,7 +63,7 @@ export function SignInForm(): React.JSX.Element {
     }
     return decoded;
   }, [searchParams, pathname]);
-  
+
   // Helper to make path locale-aware based on current locale selection
   const getLocalizedPath = React.useCallback((path: string): string => {
     // If path already has locale, preserve it
@@ -76,12 +76,12 @@ export function SignInForm(): React.JSX.Element {
     }
     return path;
   }, [locale]);
-  
+
   const schema = React.useMemo(() => zod.object({
     email: zod.string().min(1, { message: tt('Email là bắt buộc', 'Email is required') }).email({ message: tt('Email không hợp lệ', 'Invalid email') }),
     password: zod.string().min(1, { message: tt('Mật khẩu là bắt buộc', 'Password is required') }),
   }), [tt]);
-  
+
   const {
     control,
     handleSubmit,
@@ -119,14 +119,14 @@ export function SignInForm(): React.JSX.Element {
       // notificationCtx.error(...) hoặc Popup của bạn
       const msg =
         errorParam === 'missing_userinfo' ? tt('Không lấy được thông tin Google.', 'Unable to retrieve Google information.')
-        : errorParam === 'email_not_verified' ? tt('Email Google chưa xác thực hoặc không khả dụng.', 'Google email not verified or unavailable.')
-        : errorParam === 'db_error' ? tt('Có lỗi hệ thống, vui lòng thử lại.', 'System error, please try again.')
-        : tt('Đăng nhập Google thất bại, vui lòng thử lại.', 'Google login failed, please try again.');
+          : errorParam === 'email_not_verified' ? tt('Email Google chưa xác thực hoặc không khả dụng.', 'Google email not verified or unavailable.')
+            : errorParam === 'db_error' ? tt('Có lỗi hệ thống, vui lòng thử lại.', 'System error, please try again.')
+              : tt('Đăng nhập Google thất bại, vui lòng thử lại.', 'Google login failed, please try again.');
       // ví dụ:
       notificationCtx.error(msg);
     }
   }, [errorParam]);
-  
+
   return (
     <Stack spacing={4}>
       {!!popupContent.message && (

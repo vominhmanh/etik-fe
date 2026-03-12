@@ -13,6 +13,8 @@ import { MuiTableBody } from './table-body';
 import { MuiTableCell } from './table-cell';
 import { MuiTableHead } from './table-head';
 import { MuiChip } from './chip';
+import { MuiInput } from './input';
+
 
 export const components = {
   MuiAvatar,
@@ -27,4 +29,5 @@ export const components = {
   MuiTableCell,
   MuiTableHead,
   MuiChip,
+  MuiInput,
 } satisfies Components<Theme>;

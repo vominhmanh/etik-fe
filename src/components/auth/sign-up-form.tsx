@@ -54,7 +54,7 @@ export function SignUpForm(): React.JSX.Element {
   const [isOtpModalOpen, setIsOtpModalOpen] = React.useState<boolean>(false); // State to manage OTP modal visibility
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  
+
   const schema = React.useMemo(() => zod.object({
     fullName: zod.string().min(1, { message: tt('Tên đầy đủ là bắt buộc', 'Full name is required') }),
     phoneNumber: zod.string().min(1, { message: tt('Số điện thoại là bắt buộc', 'Phone number is required') }),
@@ -69,9 +69,9 @@ export function SignUpForm(): React.JSX.Element {
     terms: zod.boolean().refine((value) => value, tt('Bạn phải chấp nhận điều khoản và điều kiện', 'You must accept the terms and conditions')),
     otp: zod.string().optional(),
   }), [tt]);
-  
+
   const { control, handleSubmit, setError, formState: { errors } } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
-  
+
   // Get returnUrl and preserve its locale if it has one, otherwise apply current locale
   const returnUrl = React.useMemo(() => {
     const rawReturnUrl = searchParams.get('returnUrl') || '/dashboard';

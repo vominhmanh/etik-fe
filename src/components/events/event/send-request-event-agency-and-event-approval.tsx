@@ -400,12 +400,12 @@ export default function SendRequestEventAgencyAndEventApproval({ open, onClose, 
             <Typography variant="body2">
               - Thời gian và địa điểm rõ ràng, chính xác. Hạn chế thay đổi thông tin về thời gian, địa điểm và phải thông báo cho ETIK trước khi thay đổi.
             </Typography>
-            
+
             <Typography variant="body2">
               - Chính sách Giá vé, chính sách hoàn trả, hủy vé rõ ràng, minh bạch.
             </Typography>
             <Typography variant="body2">
-              - Sự kiện tuân thủ quy định của pháp luật Việt Nam, phù hợp chuẩn mực đạo đức, thuần phong mỹ tục. 
+              - Sự kiện tuân thủ quy định của pháp luật Việt Nam, phù hợp chuẩn mực đạo đức, thuần phong mỹ tục.
             </Typography>
             <Typography variant="body2">
               - Cung cấp cho ETIK các thông tin, giấy tờ để xác minh khi được yêu cầu.

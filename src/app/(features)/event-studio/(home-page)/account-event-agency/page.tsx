@@ -639,7 +639,7 @@ export default function Page(): React.JSX.Element {
                       <Grid md={12} xs={12}>
                         <FormControl fullWidth required>
                           <InputLabel shrink >{tt('Họ tên', 'Full Name')}</InputLabel>
-                          <OutlinedInput notched value={formData?.contactFullName} onChange={handleChangeFormData} inputProps={{ shrink: true }} label={tt('Họ tên', 'Full Name')} name="contactFullName"  />
+                          <OutlinedInput notched value={formData?.contactFullName} onChange={handleChangeFormData} inputProps={{ shrink: true }} label={tt('Họ tên', 'Full Name')} name="contactFullName" />
                         </FormControl>
                       </Grid>
                       <Grid md={6} xs={12}>
@@ -651,7 +651,7 @@ export default function Page(): React.JSX.Element {
                       <Grid md={6} xs={12}>
                         <FormControl fullWidth>
                           <InputLabel shrink>{tt('Số điện thoại', 'Phone Number')}</InputLabel>
-                          <OutlinedInput notched value={formData?.contactPhoneNumber} label={tt('Số điện thoại', 'Phone Number')} name="contactPhoneNumber" type="tel" onChange={handleChangeFormData} inputProps={{ shrink: true }}  />
+                          <OutlinedInput notched value={formData?.contactPhoneNumber} label={tt('Số điện thoại', 'Phone Number')} name="contactPhoneNumber" type="tel" onChange={handleChangeFormData} inputProps={{ shrink: true }} />
                         </FormControl>
                       </Grid>
 
