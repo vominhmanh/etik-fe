@@ -270,6 +270,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         `/event-studio/events/${params.event_id}/tickets`
       );
       setTickets(response.data);
+
+      setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          const scrollY = sessionStorage.getItem(`scroll-tickets-${params.event_id}`);
+          if (scrollY) {
+            window.scrollTo(0, parseInt(scrollY, 10));
+            sessionStorage.removeItem(`scroll-tickets-${params.event_id}`);
+          }
+        }
+      }, 100);
+
     } catch (error) {
       notificationCtx.error('Lỗi:', error);
     } finally {

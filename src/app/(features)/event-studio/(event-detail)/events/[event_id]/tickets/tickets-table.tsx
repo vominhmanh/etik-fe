@@ -246,6 +246,9 @@ export function TicketsTable({
                   key={row.id}
                   selected={isSelected}
                   onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      sessionStorage.setItem(`scroll-tickets-${eventId}`, window.scrollY.toString());
+                    }
                     const url = `/event-studio/events/${eventId}/transactions/${row.transactionId}`;
                     router.push(url);
                   }}

@@ -258,6 +258,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         `/event-studio/events/${params.event_id}/transactions`
       );
       setTransactions(response.data);
+
+      setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          const scrollY = sessionStorage.getItem(`scroll-transactions-${params.event_id}`);
+          if (scrollY) {
+            window.scrollTo(0, parseInt(scrollY, 10));
+            sessionStorage.removeItem(`scroll-transactions-${params.event_id}`);
+          }
+        }
+      }, 100);
+
     } catch (error) {
       notificationCtx.error(tt('Lỗi:', 'Error:'), error);
     } finally {
