@@ -28,6 +28,7 @@ import { Bank as BankIcon } from '@phosphor-icons/react/dist/ssr/Bank';
 import { Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr/Lightning';
 import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
 import dayjs from 'dayjs';
+import { useRouter } from 'next/navigation';
 
 // Function to map payment methods to corresponding labels and icons
 const getPaymentMethodDetails = (paymentMethod: string, tt: (vi: string, en: string) => string) => {
@@ -178,6 +179,7 @@ export function TransactionsTable({
   onDeselectOne,
 }: CustomersTableProps): React.JSX.Element {
   const { tt } = useTranslation();
+  const router = useRouter();
   const handleRequestSort = (property: string) => {
     const isAsc = orderBy === property && order === 'asc';
     const newOrder = isAsc ? 'desc' : 'asc';
@@ -191,26 +193,7 @@ export function TransactionsTable({
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newRowsPerPage = parseInt(event.target.value, 10);
     onRowsPerPageChange(newRowsPerPage);
-
-    // Persist user preference for rows per page
-    if (typeof window !== 'undefined') {
-      const storageKey = `transactions-table-rows-per-page-${eventId}`;
-      localStorage.setItem(storageKey, String(newRowsPerPage));
-    }
   };
-
-  // Load rowsPerPage preference from localStorage on mount / when event changes
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const storageKey = `transactions-table-rows-per-page-${eventId}`;
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      const parsed = parseInt(saved, 10);
-      if (!Number.isNaN(parsed) && parsed > 0 && parsed !== rowsPerPage) {
-        onRowsPerPageChange(parsed);
-      }
-    }
-  }, [eventId]);
 
   // Check if some or all rows on the current page are selected
   const currentPageRowIds = rows.map((row) => row.id);
@@ -264,7 +247,7 @@ export function TransactionsTable({
                   selected={isSelected}
                   onClick={() => {
                     const url = `/event-studio/events/${eventId}/transactions/${row.id}`;
-                    window.open(url, '_blank');
+                    router.push(url);
                   }}
                   sx={{ cursor: 'pointer' }}
                 >

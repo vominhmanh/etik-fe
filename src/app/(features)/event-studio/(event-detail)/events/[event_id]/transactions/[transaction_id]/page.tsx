@@ -348,6 +348,7 @@ interface Audience {
 
 export default function Page({ params }: { params: { event_id: number; transaction_id: number } }): React.JSX.Element {
   const { tt, locale } = useTranslation();
+  const router = useRouter();
   React.useEffect(() => {
     document.title = tt("Chi tiết đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện", "Order Details | ETIK - E-tickets & Event Management");
   }, [tt]);
@@ -394,8 +395,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
     () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internalName)),
     [checkoutFormFields, builtinInternalNames]
   );
-
-  const router = useRouter(); // Use useRouter from next/navigation
 
   const uploadImageToS3 = async (file: File): Promise<string | null> => {
     try {
@@ -1039,7 +1038,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
           <CircularProgress color="inherit" />
         </Backdrop>
         <Stack direction="row" spacing={3} alignItems="center">
-          <IconButton component={LocalizedLink} href={`/event-studio/events/${event_id}/transactions`}>
+          <IconButton onClick={() => router.back()}>
             <CaretLeft />
           </IconButton>
           <Typography variant="h4">{tt('Chi tiết đơn hàng của', 'Order Details for')} {transaction.name}</Typography>

@@ -774,30 +774,30 @@ export default function Page({ params }: { params: { transaction_id: number } })
                           )}
 
                           {['text', 'number'].includes(field.fieldType) && (
-                            <FormControl fullWidth size="small">
-                              <OutlinedInput
-                                type={field.fieldType === 'number' ? 'number' : 'text'}
-                                value={rawValue ?? ''}
-                                disabled={disabled}
-                              />
-                            </FormControl>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              type={field.fieldType === 'number' ? 'number' : 'text'}
+                              value={rawValue ?? ''}
+                              disabled={disabled}
+                            />
                           )}
 
                           {['date', 'time', 'datetime'].includes(field.fieldType) && (
-                            <FormControl fullWidth size="small">
-                              <OutlinedInput
-                                type={
-                                  field.fieldType === 'date'
-                                    ? 'date'
-                                    : field.fieldType === 'time'
-                                      ? 'time'
-                                      : 'datetime-local'
-                                }
-                                value={rawValue ?? ''}
-                                disabled={disabled}
-                                inputProps={{}}
-                              />
-                            </FormControl>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              type={
+                                field.fieldType === 'date'
+                                  ? 'date'
+                                  : field.fieldType === 'time'
+                                    ? 'time'
+                                    : 'datetime-local'
+                              }
+                              InputLabelProps={{ shrink: true }}
+                              value={rawValue ?? ''}
+                              disabled={disabled}
+                            />
                           )}
 
                           {field.fieldType === 'radio' && field.options && (

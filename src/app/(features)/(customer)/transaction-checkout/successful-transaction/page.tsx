@@ -3,7 +3,7 @@
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { Box, Chip, Stack, Tooltip, Checkbox, FormControl, InputLabel, OutlinedInput, FormGroup, FormControlLabel, RadioGroup, Radio } from '@mui/material';
+import { Box, Chip, Stack, Tooltip, Checkbox, FormControl, InputLabel, OutlinedInput, FormGroup, FormControlLabel, RadioGroup, Radio, Select, MenuItem, InputAdornment, TextField } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -79,6 +79,7 @@ export interface Transaction {
   customerId: number;               // ID of the customer who made the transaction
   email: string;                    // Email of the customer
   name: string;                     // Name of the customer
+  title?: string;                   // Title of the customer
   gender: string;                   // Gender of the customer
   phoneNumber: string;              // Customer's phone number
   address: string | null;           // Customer's address, nullable
@@ -137,7 +138,7 @@ type CheckoutRuntimeField = {
 };
 
 export default function Page(): React.JSX.Element {
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
 
   React.useEffect(() => {
     document.title = tt("Giao dịch thành công", "Transaction Successful") + " | ETIK - " + tt("Vé điện tử & Quản lý sự kiện", "E-Tickets & Event Management");
@@ -520,14 +521,34 @@ export default function Page(): React.JSX.Element {
                       {(() => {
                         const nameCfg = checkoutFormFields.find((f) => f.internalName === 'name');
                         const visible = !!nameCfg && nameCfg.visible;
-                        const label =
-                          nameCfg?.label || tt('Tên người mua', 'Buyer Name');
+                        const label = nameCfg?.label || tt('Danh xưng * - Họ và tên', 'Title * - Full Name');
                         return (
                           visible && (
                             <Grid md={6} xs={12}>
                               <FormControl fullWidth required>
-                                <InputLabel>{label}</InputLabel>
-                                <OutlinedInput value={transaction.name} disabled label={label} />
+                                <InputLabel htmlFor="customer-name">{label}</InputLabel>
+                                <OutlinedInput
+                                  id="customer-name"
+                                  name="name"
+                                  value={transaction.name}
+                                  disabled
+                                  label={label}
+                                  startAdornment={
+                                    <InputAdornment position="start">
+                                      <Select
+                                        variant="standard"
+                                        disableUnderline
+                                        value={transaction.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
+                                        disabled
+                                        sx={{ minWidth: 70 }}
+                                      >
+                                        {['Anh', 'Chị', 'Bạn', 'Em', 'Ông', 'Bà', 'Cô', 'Mr.', 'Ms.', 'Mx.', 'Miss', 'Thầy'].map((title) => (
+                                          <MenuItem key={title} value={title}>{title}</MenuItem>
+                                        ))}
+                                      </Select>
+                                    </InputAdornment>
+                                  }
+                                />
                               </FormControl>
                             </Grid>
                           )
@@ -555,28 +576,42 @@ export default function Page(): React.JSX.Element {
                         const visible = !!phoneCfg && phoneCfg.visible;
                         const label =
                           phoneCfg?.label || tt('Số điện thoại', 'Phone Number');
-                        return (
-                          visible && (
-                            <Grid md={6} xs={12}>
-                              <FormControl fullWidth>
-                                <InputLabel>{label}</InputLabel>
-                                <OutlinedInput value={transaction.phoneNumber} disabled label={label} />
-                              </FormControl>
-                            </Grid>
-                          )
-                        );
-                      })()}
 
-                      {(() => {
-                        const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
-                        const visible = !!addrCfg && addrCfg.visible;
-                        const label = addrCfg?.label || tt('Địa chỉ', 'Address');
+                        const parsedPhone = parseE164Phone(transaction.phoneNumber || '');
+                        const countryIso = parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2;
+                        const nationalNumber = parsedPhone?.nationalNumber || transaction.phoneNumber;
+
                         return (
                           visible && (
                             <Grid md={6} xs={12}>
                               <FormControl fullWidth>
                                 <InputLabel>{label}</InputLabel>
-                                <OutlinedInput value={transaction.address} disabled label={label} />
+                                <OutlinedInput
+                                  value={nationalNumber}
+                                  disabled
+                                  label={label}
+                                  startAdornment={
+                                    <InputAdornment position="start">
+                                      <Select
+                                        variant="standard"
+                                        disableUnderline
+                                        value={countryIso}
+                                        disabled
+                                        sx={{ minWidth: 80 }}
+                                        renderValue={(value) => {
+                                          const country = PHONE_COUNTRIES.find(c => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                          return country.dialCode;
+                                        }}
+                                      >
+                                        {PHONE_COUNTRIES.map((country) => (
+                                          <MenuItem key={country.iso2} value={country.iso2}>
+                                            {country.nameVi} ({country.dialCode})
+                                          </MenuItem>
+                                        ))}
+                                      </Select>
+                                    </InputAdornment>
+                                  }
+                                />
                               </FormControl>
                             </Grid>
                           )
@@ -595,9 +630,26 @@ export default function Page(): React.JSX.Element {
                                 <InputLabel shrink>{label}</InputLabel>
                                 <OutlinedInput
                                   label={label}
+                                  type="date"
                                   value={transaction.dob || ''}
                                   disabled
                                 />
+                              </FormControl>
+                            </Grid>
+                          )
+                        );
+                      })()}
+
+                      {(() => {
+                        const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
+                        const visible = !!addrCfg && addrCfg.visible;
+                        const label = addrCfg?.label || tt('Địa chỉ', 'Address');
+                        return (
+                          visible && (
+                            <Grid md={12} xs={12}>
+                              <FormControl fullWidth>
+                                <InputLabel>{label}</InputLabel>
+                                <OutlinedInput value={transaction.address} disabled label={label} />
                               </FormControl>
                             </Grid>
                           )
@@ -613,7 +665,7 @@ export default function Page(): React.JSX.Element {
                           idCfg?.label || tt('Căn cước công dân', 'ID Card Number');
                         return (
                           visible && (
-                            <Grid md={6} xs={12}>
+                            <Grid md={12} xs={12}>
                               <FormControl fullWidth>
                                 <InputLabel>{label}</InputLabel>
                                 <OutlinedInput
@@ -637,6 +689,7 @@ export default function Page(): React.JSX.Element {
                             <Stack spacing={0.5}>
                               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                                 {field.label}
+                                {field.required && ' *'}
                               </Typography>
                               {field.note && (
                                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -645,7 +698,7 @@ export default function Page(): React.JSX.Element {
                               )}
 
                               {['text', 'number'].includes(field.fieldType) && (
-                                <OutlinedInput
+                                <TextField
                                   fullWidth
                                   size="small"
                                   type={field.fieldType === 'number' ? 'number' : 'text'}
@@ -655,7 +708,7 @@ export default function Page(): React.JSX.Element {
                               )}
 
                               {['date', 'time', 'datetime'].includes(field.fieldType) && (
-                                <OutlinedInput
+                                <TextField
                                   fullWidth
                                   size="small"
                                   type={
@@ -665,9 +718,9 @@ export default function Page(): React.JSX.Element {
                                         ? 'time'
                                         : 'datetime-local'
                                   }
+                                  InputLabelProps={{ shrink: true }}
                                   value={rawValue ?? ''}
                                   disabled={disabled}
-                                  inputProps={{}}
                                 />
                               )}
 

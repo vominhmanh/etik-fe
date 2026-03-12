@@ -14,6 +14,7 @@ import { Checkbox, FormControl, FormControlLabel, Grid, IconButton, InputLabel, 
 import Backdrop from '@mui/material/Backdrop';
 import Card from '@mui/material/Card';
 import CircularProgress from '@mui/material/CircularProgress';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import InputAdornment from '@mui/material/InputAdornment';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import { ArrowCounterClockwise, Empty, MicrosoftExcelLogo, X } from '@phosphor-icons/react/dist/ssr';
@@ -93,14 +94,25 @@ interface Filter {
 
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const { tt } = useTranslation();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
   const STORAGE_KEY = `tickets-table-sort-${params.event_id}`;
+  const STORAGE_ROWS_KEY = `tickets-table-rows-per-page-${params.event_id}`;
   const AUTO_RELOAD_STORAGE_KEY = `tickets-auto-reload-${params.event_id}`;
+
   React.useEffect(() => {
     document.title = tt("Danh sách đơn hàng | ETIK - Vé điện tử & Quản lý sự kiện", "Order & Ticket List | ETIK - E-tickets & Event Management");
   }, [tt]);
+
+  const [isInitialized, setIsInitialized] = React.useState(false);
   const [tickets, setTickets] = React.useState<Ticket[]>([]);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
+  const [orderBy, setOrderBy] = React.useState<string>('');
+  const [order, setOrder] = React.useState<'asc' | 'desc'>('asc');
+
   const notificationCtx = React.useContext(NotificationContext);
   const [selected, setSelected] = React.useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -132,43 +144,73 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [spreadsheetId, setSpreadsheetId] = React.useState<string | null>(null);
   const [isGsheetSyncEnabled, setIsGsheetSyncEnabled] = React.useState<boolean | null>(null);
 
-  // Load sorting state from localStorage
-  const [orderBy, setOrderBy] = React.useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          return parsed.orderBy || '';
-        } catch {
-          return '';
-        }
-      }
-    }
-    return '';
-  });
-
-  const [order, setOrder] = React.useState<'asc' | 'desc'>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          return parsed.order || 'asc';
-        } catch {
-          return 'asc';
-        }
-      }
-    }
-    return 'asc';
-  });
-
-  // Save to localStorage when sorting changes
+  // Initialization
   React.useEffect(() => {
-    if (typeof window !== 'undefined' && orderBy) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ orderBy, order }));
+    if (typeof window === 'undefined') return;
+
+    let initPage = 0;
+    let initRowsPerPage = 25;
+    let initOrderBy = '';
+    let initOrder: 'asc' | 'desc' = 'asc';
+
+    const urlPage = searchParams.get('page');
+    const urlRowsPerPage = searchParams.get('rowsPerPage');
+    const urlOrderBy = searchParams.get('orderBy');
+    const urlOrder = searchParams.get('order');
+
+    if (urlPage !== null || urlRowsPerPage !== null || urlOrderBy !== null || urlOrder !== null) {
+      if (urlPage !== null) initPage = parseInt(urlPage, 10);
+      if (urlRowsPerPage !== null) initRowsPerPage = parseInt(urlRowsPerPage, 10);
+      if (urlOrderBy !== null) initOrderBy = urlOrderBy;
+      if (urlOrder === 'asc' || urlOrder === 'desc') initOrder = urlOrder;
+    } else {
+      const savedSort = localStorage.getItem(STORAGE_KEY);
+      if (savedSort) {
+        try {
+          const parsedSort = JSON.parse(savedSort);
+          initOrderBy = parsedSort.orderBy || '';
+          initOrder = parsedSort.order || 'asc';
+        } catch { }
+      }
+      const savedRows = localStorage.getItem(STORAGE_ROWS_KEY);
+      if (savedRows) {
+        const parsedRows = parseInt(savedRows, 10);
+        if (!Number.isNaN(parsedRows) && parsedRows > 0) {
+          initRowsPerPage = parsedRows;
+        }
+      }
     }
-  }, [orderBy, order, STORAGE_KEY]);
+
+    setPage(initPage);
+    setRowsPerPage(initRowsPerPage);
+    setOrderBy(initOrderBy);
+    setOrder(initOrder);
+    setIsInitialized(true);
+  }, []); // Run only once
+
+  // Sync state to URL and localStorage
+  React.useEffect(() => {
+    if (!isInitialized) return;
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ orderBy, order }));
+    localStorage.setItem(STORAGE_ROWS_KEY, String(rowsPerPage));
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', String(page));
+    params.set('rowsPerPage', String(rowsPerPage));
+    if (orderBy) {
+      params.set('orderBy', orderBy);
+    } else {
+      params.delete('orderBy');
+    }
+    params.set('order', order);
+
+    const currentUrlParams = new URLSearchParams(window.location.search);
+    if (params.toString() !== currentUrlParams.toString()) {
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [page, rowsPerPage, orderBy, order, isInitialized, pathname, router, searchParams]);
+
 
   const handleSortChange = (newOrderBy: string, newOrder: 'asc' | 'desc') => {
     setOrderBy(newOrderBy);

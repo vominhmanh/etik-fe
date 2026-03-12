@@ -27,6 +27,7 @@ import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
 import dayjs from 'dayjs';
 import { LocalizedLink } from '@/components/homepage/localized-link';
 import { useTranslation } from '@/contexts/locale-context';
+import { useRouter } from 'next/navigation';
 
 import { Ticket } from './page';
 
@@ -165,6 +166,7 @@ export function TicketsTable({
   onDeselectOne,
 }: CustomersTableProps): React.JSX.Element {
   const { tt } = useTranslation();
+  const router = useRouter();
   const handleRequestSort = (property: string) => {
     const isAsc = orderBy === property && order === 'asc';
     const newOrder = isAsc ? 'desc' : 'asc';
@@ -178,26 +180,7 @@ export function TicketsTable({
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newRowsPerPage = parseInt(event.target.value, 10);
     onRowsPerPageChange(newRowsPerPage);
-
-    // Persist user preference for rows per page
-    if (typeof window !== 'undefined') {
-      const storageKey = `tickets-table-rows-per-page-${eventId}`;
-      localStorage.setItem(storageKey, String(newRowsPerPage));
-    }
   };
-
-  // Load rowsPerPage preference from localStorage on mount / when event changes
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const storageKey = `tickets-table-rows-per-page-${eventId}`;
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      const parsed = parseInt(saved, 10);
-      if (!Number.isNaN(parsed) && parsed > 0 && parsed !== rowsPerPage) {
-        onRowsPerPageChange(parsed);
-      }
-    }
-  }, [eventId]);
 
   const rowIds = React.useMemo(() => {
     return rows.map((ticket) => ticket.id);
@@ -264,7 +247,7 @@ export function TicketsTable({
                   selected={isSelected}
                   onClick={() => {
                     const url = `/event-studio/events/${eventId}/transactions/${row.transactionId}`;
-                    window.open(url, '_blank');
+                    router.push(url);
                   }}
                   sx={{ cursor: 'pointer' }}
                 >
