@@ -497,24 +497,36 @@ function NavItemCollapse({
   title,
   children,
 }: NavItemProps): React.JSX.Element {
-  const [open, setOpen] = React.useState(true); // State to manage collapse/expand
   const active = isNavItemActive({ disabled, external, href, matcher, pathname });
   const Icon = icon;
+
+  // Function to check if any child is active
+  const isChildActive = React.useMemo(() => {
+    return React.Children.toArray(children).some((child: React.ReactNode) => {
+      if (!React.isValidElement(child)) return false;
+      const childProps = child.props as any;
+      if (childProps.href || childProps.matcher) {
+        return isNavItemActive({
+          disabled: childProps.disabled,
+          external: childProps.external,
+          href: childProps.href,
+          matcher: childProps.matcher,
+          pathname,
+        });
+      }
+      return false;
+    });
+  }, [children, pathname]);
+
+  const [open, setOpen] = React.useState(isChildActive); // State to manage collapse/expand
 
   const handleToggle = () => {
     setOpen((prev) => !prev); // Toggle the state
   };
 
-  // Function to check if any child is active
-  const isChildActive = React.Children.toArray(children).some((child: any) => {
-    return child.props.active; // Assuming that child items pass the `active` prop
-  });
-
-  // Effect to automatically keep open if a child is active
+  // Effect to automatically keep open if a child is active, or close if not
   React.useEffect(() => {
-    if (isChildActive) {
-      setOpen(true); // Force expand if any child is active
-    }
+    setOpen(isChildActive);
   }, [isChildActive]);
 
   return (

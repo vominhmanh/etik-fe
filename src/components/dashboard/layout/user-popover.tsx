@@ -81,6 +81,7 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
       onClose={onClose}
       open={open}
       slotProps={{ paper: { sx: { width: '240px' } } }}
+      BackdropProps={{ invisible: false, sx: { backgroundColor: 'rgba(0, 0, 0, 0.5)' } }}
     >
       <Box sx={{ p: '16px 20px ' }}>
         <Typography variant="subtitle1">{authUser?.fullName}</Typography>
