@@ -33,7 +33,8 @@ import dayjs from 'dayjs';
 
 import NotificationContext from '@/contexts/notification-context';
 import { useRouter, useSearchParams } from 'next/navigation';
-import PrintTagModal from './print-tag-modal';
+const PrintTagModal = React.lazy(() => import('./print-tag-modal'));
+const InvitationLetterModal = React.lazy(() => import('./invitation-letter-modal'));
 import AdminGiftTicketModal from './admin-gift-ticket-modal';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone, formatToE164 } from '@/config/phone-countries';
 import { useTranslation } from '@/contexts/locale-context';
@@ -376,6 +377,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [activeMenuTicket, setActiveMenuTicket] = useState<{ categoryIndex: number; ticketIndex: number } | null>(null);
   const [pendingHolderAvatarFile, setPendingHolderAvatarFile] = useState<File | null>(null);
   const [printTagModalOpen, setPrintTagModalOpen] = useState<boolean>(false);
+  const [invitationLetterModalOpen, setInvitationLetterModalOpen] = useState<boolean>(false);
   const [giftTicketModalOpen, setGiftTicketModalOpen] = useState<boolean>(false);
   const [checkoutFormFields, setCheckoutFormFields] = useState<CheckoutRuntimeField[]>([]);
   const [checkoutCustomAnswers, setCheckoutCustomAnswers] = useState<Record<string, any>>({});
@@ -1215,7 +1217,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           )}
 
                           <Button
-                            onClick={() => window.open(`/event-studio/events/${event_id}/transactions/${transaction_id}/invitation-letter`, '_blank')}
+                            onClick={() => setInvitationLetterModalOpen(true)}
                             size="small"
                             startIcon={<ImageSquare />} // Icon for document-like invitation letter
                           >
@@ -1898,7 +1900,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                       src={ticket.holderAvatar || undefined}
                                       sx={{ width: 32, height: 32, mt: 0.5 }}
                                     >
-                                      {!ticket.holderAvatar && <UserIcon size={20} />}
+                                      {!ticket.holderAvatar && <UserIcon size={24} />}
                                     </Avatar>
 
                                     <Stack spacing={0.5} flex={1}>
@@ -2474,12 +2476,22 @@ export default function Page({ params }: { params: { event_id: number; transacti
           </Grid>
         </Grid>
       </Stack>
-      <PrintTagModal
-        open={printTagModalOpen}
-        onClose={() => setPrintTagModalOpen(false)}
-        transaction={transaction}
-        eventId={event_id}
-      />
+      <React.Suspense fallback={null}>
+        <PrintTagModal
+          open={printTagModalOpen}
+          onClose={() => setPrintTagModalOpen(false)}
+          transaction={transaction}
+          eventId={params.event_id}
+        />
+      </React.Suspense>
+      <React.Suspense fallback={null}>
+        <InvitationLetterModal
+          open={invitationLetterModalOpen}
+          onClose={() => setInvitationLetterModalOpen(false)}
+          transaction={transaction}
+          eventId={params.event_id}
+        />
+      </React.Suspense>
       {transaction && (
         <AdminGiftTicketModal
           open={giftTicketModalOpen}

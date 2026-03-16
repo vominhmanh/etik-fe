@@ -15,6 +15,7 @@ import { authClient } from "@/lib/auth/client";
 import { eventNames } from "process";
 import { User } from '@/types/auth';
 import { useTranslation } from '@/contexts/locale-context';
+import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY, formatToE164, parseE164Phone } from '@/config/phone-countries';
 
 type EventCreatedResponse = {
   eventId: number;
@@ -30,6 +31,7 @@ export default function CreateYourEvent() {
     organizer: "",
     organizerEmail: "",
     organizerPhoneNumber: "",
+    phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
   });
   const [passwordInput, setPasswordInput] = useState('')
   const [otpInput, setOtpInput] = useState('')
@@ -46,7 +48,13 @@ export default function CreateYourEvent() {
     const fetchUser = async () => {
       setLoggedUser(user);
       if (user) {
-        setFormData((prevData) => ({ ...prevData, organizerEmail: user.email, organizerPhoneNumber: user.phoneNumber }));
+        const parsedPhone = parseE164Phone(user.phoneNumber);
+        setFormData((prevData) => ({ 
+          ...prevData, 
+          organizerEmail: user.email, 
+          organizerPhoneNumber: parsedPhone?.nationalNumber || user.phoneNumber,
+          phoneCountryIso2: parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2,
+        }));
       }
     };
 
@@ -140,6 +148,13 @@ export default function CreateYourEvent() {
     }
 
     try {
+      const formattedPhone = formatToE164(formData.phoneCountryIso2, formData.organizerPhoneNumber) || formData.organizerPhoneNumber;
+      
+      if (formattedPhone && !formattedPhone.startsWith('+')) {
+        setError(tt('Số điện thoại không hợp lệ', 'Invalid phone number'));
+        return;
+      }
+
       setIsLoading(true);
       const response: AxiosResponse<EventCreatedResponse> = await baseHttpServiceInstance.post(
         '/event-studio/events',
@@ -147,7 +162,7 @@ export default function CreateYourEvent() {
           name: formData.eventName,
           organizer: formData.organizer,
           organizerEmail: formData.organizerEmail,
-          organizerPhoneNumber: formData.organizerPhoneNumber,
+          organizerPhoneNumber: formattedPhone,
         }
       );
 
@@ -193,7 +208,7 @@ export default function CreateYourEvent() {
       const res: AuthRes = await authClient.signUp({
         fullName: formData.organizer,
         email: formData.organizerEmail,
-        phoneNumber: formData.organizerPhoneNumber,
+        phoneNumber: formatToE164(formData.phoneCountryIso2, formData.organizerPhoneNumber) || formData.organizerPhoneNumber,
         password: passwordInput,
       });
 
@@ -302,16 +317,29 @@ export default function CreateYourEvent() {
                 />
               </div>
               <div className="col-span-12 sm:col-span-6">
-                <input
-                  type="tel"
-                  id="organizerPhoneNumber"
-                  name="organizerPhoneNumber"
-                  value={formData.organizerPhoneNumber}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2"
-                  placeholder={tt("Nhập số điện thoại", "Enter phone number")}
-                  required
-                />
+                <div className="flex mt-1">
+                  <select
+                    value={formData.phoneCountryIso2}
+                    onChange={(e) => setFormData({ ...formData, phoneCountryIso2: e.target.value })}
+                    className="block w-24 border border-gray-300 rounded-l-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 bg-white text-gray-900"
+                  >
+                    {PHONE_COUNTRIES.map((country) => (
+                      <option key={country.iso2} value={country.iso2}>
+                        {country.dialCode}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="tel"
+                    id="organizerPhoneNumber"
+                    name="organizerPhoneNumber"
+                    value={formData.organizerPhoneNumber}
+                    onChange={handleInputChange}
+                    className="block w-full border-y border-r border-gray-300 rounded-r-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 text-gray-900"
+                    placeholder={tt("Nhập số điện thoại", "Enter phone number")}
+                    required
+                  />
+                </div>
               </div>
             </div>
 

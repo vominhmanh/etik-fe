@@ -42,6 +42,7 @@ import ReactQuill from 'react-quill';
 import { useTranslation } from '@/contexts/locale-context';
 import NotificationContext from '@/contexts/notification-context';
 import { LocalizedLink } from '@/components/homepage/localized-link';
+import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY, formatToE164, parseE164Phone } from '@/config/phone-countries';
 
 import 'react-quill/dist/quill.snow.css';
 
@@ -55,6 +56,7 @@ type EventResponse = {
   organizer: string;
   organizerEmail: string;
   organizerPhoneNumber: string;
+  phoneCountryIso2?: string;
   description: string | null;
   startDateTime: string | null;
   endDateTime: string | null;
@@ -317,8 +319,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
             `/event-studio/events/${event_id}`
           );
+          const parsedPhone = parseE164Phone(response.data.organizerPhoneNumber);
           setEvent(response.data);
-          setFormValues(response.data);
+          setFormValues({
+            ...response.data,
+            organizerPhoneNumber: parsedPhone?.nationalNumber || response.data.organizerPhoneNumber,
+            phoneCountryIso2: parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2,
+          });
           setDescription(response.data.description || '');
         } catch (error) {
           notificationCtx.error('Lỗi:', error);
@@ -343,10 +350,21 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleFormSubmit = async () => {
     if (formValues && event_id) {
+      const formattedPhone = formatToE164(formValues.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2, formValues.organizerPhoneNumber) || formValues.organizerPhoneNumber;
+      
+      if (formattedPhone && !formattedPhone.startsWith('+')) {
+        notificationCtx.error(tt('Số điện thoại không hợp lệ', 'Invalid phone number'));
+        return;
+      }
+
       try {
         setIsLoading(true);
-        await baseHttpServiceInstance.put(`/event-studio/events/${event_id}`, { ...formValues, description });
-        notificationCtx.success('Sửa thành công. Sẽ cập nhật lên trang chủ sau 1 phút.');
+        await baseHttpServiceInstance.put(`/event-studio/events/${event_id}`, { 
+          ...formValues, 
+          organizerPhoneNumber: formattedPhone,
+          description 
+        });
+        notificationCtx.success(tt('Sửa thành công. Sẽ cập nhật lên trang chủ sau 1 phút.', 'Update successful. Will be updated on home page in 1 minute.'));
       } catch (error) {
         notificationCtx.error(error);
       } finally {
@@ -809,13 +827,37 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     </Grid>
                     <Grid md={12} xs={12}>
                       <FormControl fullWidth>
-                        <InputLabel>{tt('Số điện thoại đơn vị tổ chức', 'Organizer Phone Number')}</InputLabel>
+                        <InputLabel shrink>{tt('Số điện thoại đơn vị tổ chức', 'Organizer Phone Number')}</InputLabel>
                         <OutlinedInput
+                          notched
                           value={formValues.organizerPhoneNumber}
                           onChange={handleInputChange}
                           label={tt('Số điện thoại đơn vị tổ chức', 'Organizer Phone Number')}
                           name="organizerPhoneNumber"
                           type="tel"
+                          startAdornment={
+                            <InputAdornment position="start">
+                              <Select
+                                variant="standard"
+                                disableUnderline
+                                value={formValues.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
+                                onChange={(event) =>
+                                  setFormValues({ ...formValues, phoneCountryIso2: event.target.value as string })
+                                }
+                                sx={{ minWidth: 80 }}
+                                renderValue={(value) => {
+                                  const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                  return country.dialCode;
+                                }}
+                              >
+                                {PHONE_COUNTRIES.map((country) => (
+                                  <MenuItem key={country.iso2} value={country.iso2}>
+                                    {country.nameVi} ({country.dialCode})
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </InputAdornment>
+                          }
                         />
                       </FormControl>
                     </Grid>

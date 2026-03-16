@@ -1,6 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
+const InvitationLetterModal = React.lazy(() => import('./invitation-letter-modal'));
 import { Avatar, Box, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, InputAdornment, Stack, Tooltip, Checkbox, FormGroup, FormControlLabel, RadioGroup, Radio, Select, MenuItem, TextField } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -254,7 +255,8 @@ export default function Page({ params }: { params: { transaction_id: number } })
   const { transaction_id } = params;
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = React.useState(false);
+  const [openInvitationModal, setOpenInvitationModal] = React.useState(false);
   const [openGiftModal, setOpenGiftModal] = useState(false);
   const [openTransferNotAllowedModal, setOpenTransferNotAllowedModal] = useState(false);
   const handleOpen = () => setOpen(true);
@@ -984,7 +986,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     {transaction.cancelRequestStatus === 'pending' ? tt('Đang chờ phản hồi hủy đơn hàng', 'Awaiting cancellation response') : transaction.cancelRequestStatus == 'accepted' ? tt('Đơn hàng đã được hủy', 'Order has been cancelled') : transaction.cancelRequestStatus == 'rejected' ? tt('Yêu cầu hủy bị từ chối', 'Cancellation request rejected') : tt('Hủy đơn hàng', 'Cancel Order')}
                   </Button>
                   <Button
-                    onClick={() => window.open(`/account/my-tickets/${transaction_id}/invitation-letter`, '_blank')}
+                    onClick={() => setOpenInvitationModal(true)}
                     size="small"
                     startIcon={<ImageSquare />}
                   >
@@ -1098,6 +1100,13 @@ export default function Page({ params }: { params: { transaction_id: number } })
           }}
         />
       )}
+      <React.Suspense fallback={null}>
+        <InvitationLetterModal
+          open={openInvitationModal}
+          onClose={() => setOpenInvitationModal(false)}
+          transaction={transaction}
+        />
+      </React.Suspense>
     </Stack>
   );
 }

@@ -229,7 +229,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               pathname={normalizedPathname}
               key="invitation-letter-design"
               title={tt("Thiết kế thư mời", "Invitation Letter Design")}
-              href={`/event-studio/events/${dynamicId}/invitation-letter-design`}
+              href={`/event-studio/events/${dynamicId}/invitation-letter-designs`}
               icon={ImageSquare}
               onClose={onClose}
             />

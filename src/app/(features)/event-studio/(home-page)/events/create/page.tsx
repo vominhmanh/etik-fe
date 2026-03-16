@@ -16,6 +16,8 @@ import { AxiosResponse } from 'axios';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { useState } from 'react';
+import { InputAdornment, Select, MenuItem } from '@mui/material';
+import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY, formatToE164 } from '@/config/phone-countries';
 
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
@@ -38,6 +40,7 @@ export default function Page(): React.JSX.Element {
     organizer: '',
     organizerEmail: '',
     organizerPhoneNumber: '',
+    phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -56,10 +59,20 @@ export default function Page(): React.JSX.Element {
     // Using httpOnly cookie auth; no token check client-side
 
     try {
+      const formattedPhone = formatToE164(formData.phoneCountryIso2, formData.organizerPhoneNumber) || formData.organizerPhoneNumber;
+      
+      if (formattedPhone && !formattedPhone.startsWith('+')) {
+        notificationCtx.error(tt('Số điện thoại không hợp lệ', 'Invalid phone number'));
+        return;
+      }
+
       setIsLoading(true);
       const response: AxiosResponse<EventCreatedResponse> = await baseHttpServiceInstance.post(
         '/event-studio/events',
-        formData
+        {
+          ...formData,
+          organizerPhoneNumber: formattedPhone,
+        }
       );
       if (response.data) {
         notificationCtx.success(tt('Tạo sự kiện thành công.', 'Event created successfully.'));
@@ -127,13 +140,37 @@ export default function Page(): React.JSX.Element {
                   </Grid>
                   <Grid md={6} xs={12}>
                     <FormControl fullWidth>
-                      <InputLabel>{tt('Số điện thoại liên hệ', 'Contact Phone Number')}</InputLabel>
+                      <InputLabel shrink>{tt('Số điện thoại liên hệ', 'Contact Phone Number')}</InputLabel>
                       <OutlinedInput
+                        notched
                         label={tt('Số điện thoại liên hệ', 'Contact Phone Number')}
                         name="organizerPhoneNumber"
                         type="tel"
                         value={formData.organizerPhoneNumber}
                         onChange={handleChange}
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <Select
+                              variant="standard"
+                              disableUnderline
+                              value={formData.phoneCountryIso2}
+                              onChange={(event) =>
+                                setFormData({ ...formData, phoneCountryIso2: event.target.value as string })
+                              }
+                              sx={{ minWidth: 80 }}
+                              renderValue={(value) => {
+                                const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                return country.dialCode;
+                              }}
+                            >
+                              {PHONE_COUNTRIES.map((country) => (
+                                <MenuItem key={country.iso2} value={country.iso2}>
+                                  {country.nameVi} ({country.dialCode})
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </InputAdornment>
+                        }
                       />
                     </FormControl>
                   </Grid>

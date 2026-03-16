@@ -260,7 +260,7 @@ export function SideNav(): React.JSX.Element {
                 pathname={pathname}
                 key="invitation-letter-design"
                 title={tt("Thiết kế thư mời", "Invitation Letter Design")}
-                href={`/event-studio/events/${dynamicId}/invitation-letter-design`}
+                href={`/event-studio/events/${dynamicId}/invitation-letter-designs`}
                 icon={ImageSquare}
               />
               <NavItemCollapseChildItem
