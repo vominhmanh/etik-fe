@@ -1451,8 +1451,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
                       return (
                         visible && (
                           <Grid md={6} xs={12}>
-                            <FormControl fullWidth required>
-                              <InputLabel htmlFor="customer-name">{label}</InputLabel>
+                            <FormControl fullWidth required variant="outlined">
+                              <InputLabel htmlFor="customer-name" shrink>{label}</InputLabel>
                               <OutlinedInput
                                 id="customer-name"
                                 name="name"
@@ -1506,8 +1506,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
                       return (
                         visible && (
                           <Grid md={6} xs={12}>
-                            <FormControl fullWidth>
-                              <InputLabel>{label}</InputLabel>
+                            <FormControl fullWidth variant="outlined">
+                              <InputLabel shrink>{label}</InputLabel>
                               <OutlinedInput
                                 value={formData.phoneNumber}
                                 onChange={(event: any) => handleFormChange(event)}
@@ -2321,8 +2321,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                     }}
                                   />
                                 </Box>
-                                <FormControl fullWidth size="small" required>
-                                  <InputLabel>{tt('Danh xưng* & Họ và tên', 'Title* Full Name')}</InputLabel>
+                                <FormControl fullWidth size="small" required variant="outlined">
+                                  <InputLabel shrink>{tt('Danh xưng* & Họ và tên', 'Title* Full Name')}</InputLabel>
                                   <OutlinedInput
                                     label={tt('Danh xưng* & Họ và tên', 'Title* Full Name')}
                                     value={editingHolderInfo.name}
@@ -2376,8 +2376,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
                               </FormControl>
                             </Grid>
                             <Grid xs={12}>
-                              <FormControl fullWidth size="small">
-                                <InputLabel>{tt('Số điện thoại', 'Phone Number')}</InputLabel>
+                              <FormControl fullWidth size="small" variant="outlined">
+                                <InputLabel shrink>{tt('Số điện thoại', 'Phone Number')}</InputLabel>
                                 <OutlinedInput
                                   label={tt('Số điện thoại', 'Phone Number')}
                                   type="tel"
