@@ -1438,311 +1438,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
           </Grid>
           <Grid lg={7} md={7} xs={12} spacing={3}>
             <Stack spacing={3}>
-              <Card>
-                <CardHeader title={tt('Thông tin người mua', 'Buyer Information')} />
-                <Divider />
-                <CardContent>
-                  <Grid container spacing={3}>
-                    {/* Built-in fields driven by checkout runtime config */}
-                    {(() => {
-                      const nameCfg = checkoutFormFields.find((f) => f.internalName === 'name');
-                      const visible = !!nameCfg && nameCfg.visible;
-                      const label = nameCfg?.label || tt('Danh xưng*  Họ và tên', 'Title* Full Name');
-                      return (
-                        visible && (
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth required variant="outlined">
-                              <InputLabel htmlFor="customer-name" shrink>{label}</InputLabel>
-                              <OutlinedInput
-                                id="customer-name"
-                                name="name"
-                                value={formData.name}
-                                onChange={(event) => handleFormChange(event)}
-                                label={label}
-                                startAdornment={
-                                  <InputAdornment position="start">
-                                    <Select
-                                      variant="standard"
-                                      disableUnderline
-                                      value={formData.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
-                                      onChange={(event) =>
-                                        setFormData({ ...formData, title: event.target.value })
-                                      }
-                                      sx={{ minWidth: 70 }}
-                                    >
-                                      {['Anh', 'Chị', 'Bạn', 'Em', 'Ông', 'Bà', 'Cô', 'Mr.', 'Ms.', 'Mx.', 'Miss', 'Thầy'].map((title) => (
-                                        <MenuItem key={title} value={title}>{title}</MenuItem>
-                                      ))}
-                                    </Select>
-                                  </InputAdornment>
-                                }
-                              />
-                            </FormControl>
-                          </Grid>
-                        )
-                      );
-                    })()}
-
-                    {(() => {
-                      const emailCfg = checkoutFormFields.find((f) => f.internalName === 'email');
-                      const visible = !!emailCfg && emailCfg.visible;
-                      const label = emailCfg?.label || tt('Email', 'Email');
-                      return (
-                        visible && (
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth required>
-                              <InputLabel>{label}</InputLabel>
-                              <OutlinedInput value={transaction.email} disabled label={label} />
-                            </FormControl>
-                          </Grid>
-                        )
-                      );
-                    })()}
-
-                    {(() => {
-                      const phoneCfg = checkoutFormFields.find((f) => f.internalName === 'phone_number');
-                      const visible = !!phoneCfg && phoneCfg.visible;
-                      const label = phoneCfg?.label || tt('Số điện thoại', 'Phone Number');
-                      return (
-                        visible && (
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth variant="outlined">
-                              <InputLabel shrink>{label}</InputLabel>
-                              <OutlinedInput
-                                value={formData.phoneNumber}
-                                onChange={(event: any) => handleFormChange(event)}
-                                name="phoneNumber"
-                                label={label}
-                                startAdornment={
-                                  <InputAdornment position="start">
-                                    <Select
-                                      variant="standard"
-                                      disableUnderline
-                                      value={formData.phoneCountryIso2}
-                                      onChange={(event) =>
-                                        setFormData({ ...formData, phoneCountryIso2: event.target.value })
-                                      }
-                                      sx={{ minWidth: 80 }}
-                                      renderValue={(value) => {
-                                        const country = PHONE_COUNTRIES.find(c => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
-                                        return country.dialCode;
-                                      }}
-                                    >
-                                      {PHONE_COUNTRIES.map((country) => (
-                                        <MenuItem key={country.iso2} value={country.iso2}>
-                                          {country.nameVi} ({country.dialCode})
-                                        </MenuItem>
-                                      ))}
-                                    </Select>
-                                  </InputAdornment>
-                                }
-                              />
-                            </FormControl>
-                          </Grid>
-                        )
-                      );
-                    })()}
-
-                    {(() => {
-                      const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
-                      const visible = !!dobCfg && dobCfg.visible;
-                      const label = dobCfg?.label || tt('Ngày tháng năm sinh', 'Date of Birth');
-                      return (
-                        visible && (
-                          <Grid md={6} xs={12}>
-                            <FormControl fullWidth required={!!dobCfg?.required}>
-                              <InputLabel shrink>{label}</InputLabel>
-                              <OutlinedInput
-                                label={label}
-                                name="dob"
-                                type="date"
-                                value={formData.dob}
-                                onChange={(event: any) => handleFormChange(event)}
-                                inputProps={{ max: new Date().toISOString().slice(0, 10) }}
-                              />
-                            </FormControl>
-                          </Grid>
-                        )
-                      );
-                    })()}
-
-                    {(() => {
-                      const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
-                      const visible = !!addrCfg && addrCfg.visible;
-                      const label = addrCfg?.label || tt('Địa chỉ', 'Address');
-                      return (
-                        visible && (
-                          <Grid md={12} xs={12}>
-                            <FormControl fullWidth required={!!addrCfg?.required}>
-                              <InputLabel>{label}</InputLabel>
-                              <OutlinedInput
-                                value={formData.address}
-                                onChange={(event: any) => handleFormChange(event)}
-                                name="address"
-                                label={label}
-                              />
-                            </FormControl>
-                          </Grid>
-                        )
-                      );
-                    })()}
-
-                    {(() => {
-                      const idCfg = checkoutFormFields.find(
-                        (f) => f.internalName === 'idcard_number'
-                      );
-                      const visible = !!idCfg && idCfg.visible;
-                      const label = idCfg?.label || tt('Căn cước công dân', 'ID Card Number');
-                      return (
-                        visible && (
-                          <Grid md={12} xs={12}>
-                            <FormControl fullWidth required={!!idCfg?.required}>
-                              <InputLabel>{label}</InputLabel>
-                              <OutlinedInput
-                                value={(transaction as any).idcardNumber || ''}
-                                disabled
-                                label={label}
-                              />
-                            </FormControl>
-                          </Grid>
-                        )
-                      );
-                    })()}
-
-                    {/* Custom checkout fields (visible only, editable in Event Studio) */}
-                    {customCheckoutFields.map((field) => {
-                      const rawValue = checkoutCustomAnswers[field.internalName];
-
-                      return (
-                        <Grid key={field.internalName} xs={12}>
-                          <Stack spacing={0.5}>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {field.label}
-                              {field.required && ' *'}
-                            </Typography>
-                            {field.note && (
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                {field.note}
-                              </Typography>
-                            )}
-
-                            {['text', 'number'].includes(field.fieldType) && (
-                              <TextField
-                                fullWidth
-                                size="small"
-                                type={field.fieldType === 'number' ? 'number' : 'text'}
-                                value={rawValue ?? ''}
-                                onChange={(e) =>
-                                  setCheckoutCustomAnswers((prev) => ({
-                                    ...prev,
-                                    [field.internalName]: e.target.value,
-                                  }))
-                                }
-                              />
-                            )}
-
-                            {['date', 'time', 'datetime'].includes(field.fieldType) && (
-                              <TextField
-                                fullWidth
-                                size="small"
-                                type={
-                                  field.fieldType === 'date'
-                                    ? 'date'
-                                    : field.fieldType === 'time'
-                                      ? 'time'
-                                      : 'datetime-local'
-                                }
-                                InputLabelProps={{ shrink: true }}
-                                value={rawValue ?? ''}
-                                onChange={(e) =>
-                                  setCheckoutCustomAnswers((prev) => ({
-                                    ...prev,
-                                    [field.internalName]: e.target.value,
-                                  }))
-                                }
-                              />
-                            )}
-
-                            {field.fieldType === 'radio' && field.options && (
-                              <FormGroup>
-                                <RadioGroup
-                                  value={rawValue ?? ''}
-                                  onChange={(e) =>
-                                    setCheckoutCustomAnswers((prev) => ({
-                                      ...prev,
-                                      [field.internalName]: e.target.value,
-                                    }))
-                                  }
-                                >
-                                  {field.options.map((opt) => (
-                                    <FormControlLabel
-                                      key={opt.value}
-                                      value={opt.value}
-                                      control={<Radio size="small" />}
-                                      label={opt.label}
-                                    />
-                                  ))}
-                                </RadioGroup>
-                              </FormGroup>
-                            )}
-
-                            {field.fieldType === 'checkbox' && field.options && (
-                              <FormGroup>
-                                {field.options.map((opt) => {
-                                  const current: string[] = Array.isArray(rawValue) ? rawValue : [];
-                                  const checked = current.includes(opt.value);
-                                  return (
-                                    <FormControlLabel
-                                      key={opt.value}
-                                      control={
-                                        <Checkbox
-                                          size="small"
-                                          checked={checked}
-                                          onChange={(e) => {
-                                            setCheckoutCustomAnswers((prev) => {
-                                              const prevArr: string[] = prev[field.internalName] ?? [];
-                                              let nextArr: string[];
-                                              if (e.target.checked) {
-                                                nextArr = Array.from(new Set([...prevArr, opt.value]));
-                                              } else {
-                                                nextArr = prevArr.filter((v) => v !== opt.value);
-                                              }
-                                              return {
-                                                ...prev,
-                                                [field.internalName]: nextArr,
-                                              };
-                                            });
-                                          }}
-                                        />
-                                      }
-                                      label={opt.label}
-                                    />
-                                  );
-                                })}
-                              </FormGroup>
-                            )}
-
-                            {!['text', 'number', 'date', 'time', 'datetime', 'radio', 'checkbox'].includes(
-                              field.fieldType
-                            ) && (
-                                <Typography variant="body2">{rawValue ?? '—'}</Typography>
-                              )}
-                          </Stack>
-                        </Grid>
-                      );
-                    })}
-                  </Grid>
-                </CardContent>
-                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    onClick={updateTransaction}
-                  >
-                    {tt('Lưu', 'Save')}
-                  </Button>
-                </CardActions>
-              </Card>
 
               {/* Concessions List */}
               {transaction.concessions && transaction.concessions.length > 0 && (
@@ -2111,6 +1806,311 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   </Stack>
                 </CardContent>
               </Card>
+              <Card>
+                <CardHeader title={tt('Thông tin người mua', 'Buyer Information')} />
+                <Divider />
+                <CardContent>
+                  <Grid container spacing={3}>
+                    {/* Built-in fields driven by checkout runtime config */}
+                    {(() => {
+                      const nameCfg = checkoutFormFields.find((f) => f.internalName === 'name');
+                      const visible = !!nameCfg && nameCfg.visible;
+                      const label = nameCfg?.label || tt('Danh xưng*  Họ và tên', 'Title* Full Name');
+                      return (
+                        visible && (
+                          <Grid md={6} xs={12}>
+                            <FormControl fullWidth required variant="outlined">
+                              <InputLabel htmlFor="customer-name" shrink>{label}</InputLabel>
+                              <OutlinedInput
+                                id="customer-name"
+                                name="name"
+                                value={formData.name}
+                                onChange={(event) => handleFormChange(event)}
+                                label={label}
+                                startAdornment={
+                                  <InputAdornment position="start">
+                                    <Select
+                                      variant="standard"
+                                      disableUnderline
+                                      value={formData.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
+                                      onChange={(event) =>
+                                        setFormData({ ...formData, title: event.target.value })
+                                      }
+                                      sx={{ minWidth: 70 }}
+                                    >
+                                      {['Anh', 'Chị', 'Bạn', 'Em', 'Ông', 'Bà', 'Cô', 'Mr.', 'Ms.', 'Mx.', 'Miss', 'Thầy'].map((title) => (
+                                        <MenuItem key={title} value={title}>{title}</MenuItem>
+                                      ))}
+                                    </Select>
+                                  </InputAdornment>
+                                }
+                              />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
+
+                    {(() => {
+                      const emailCfg = checkoutFormFields.find((f) => f.internalName === 'email');
+                      const visible = !!emailCfg && emailCfg.visible;
+                      const label = emailCfg?.label || tt('Email', 'Email');
+                      return (
+                        visible && (
+                          <Grid md={6} xs={12}>
+                            <FormControl fullWidth required>
+                              <InputLabel>{label}</InputLabel>
+                              <OutlinedInput value={transaction.email} disabled label={label} />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
+
+                    {(() => {
+                      const phoneCfg = checkoutFormFields.find((f) => f.internalName === 'phone_number');
+                      const visible = !!phoneCfg && phoneCfg.visible;
+                      const label = phoneCfg?.label || tt('Số điện thoại', 'Phone Number');
+                      return (
+                        visible && (
+                          <Grid md={6} xs={12}>
+                            <FormControl fullWidth variant="outlined">
+                              <InputLabel shrink>{label}</InputLabel>
+                              <OutlinedInput
+                                value={formData.phoneNumber}
+                                onChange={(event: any) => handleFormChange(event)}
+                                name="phoneNumber"
+                                label={label}
+                                startAdornment={
+                                  <InputAdornment position="start">
+                                    <Select
+                                      variant="standard"
+                                      disableUnderline
+                                      value={formData.phoneCountryIso2}
+                                      onChange={(event) =>
+                                        setFormData({ ...formData, phoneCountryIso2: event.target.value })
+                                      }
+                                      sx={{ minWidth: 80 }}
+                                      renderValue={(value) => {
+                                        const country = PHONE_COUNTRIES.find(c => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                        return country.dialCode;
+                                      }}
+                                    >
+                                      {PHONE_COUNTRIES.map((country) => (
+                                        <MenuItem key={country.iso2} value={country.iso2}>
+                                          {country.nameVi} ({country.dialCode})
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                  </InputAdornment>
+                                }
+                              />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
+
+                    {(() => {
+                      const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
+                      const visible = !!dobCfg && dobCfg.visible;
+                      const label = dobCfg?.label || tt('Ngày tháng năm sinh', 'Date of Birth');
+                      return (
+                        visible && (
+                          <Grid md={6} xs={12}>
+                            <FormControl fullWidth required={!!dobCfg?.required}>
+                              <InputLabel shrink>{label}</InputLabel>
+                              <OutlinedInput
+                                label={label}
+                                name="dob"
+                                type="date"
+                                value={formData.dob}
+                                onChange={(event: any) => handleFormChange(event)}
+                                inputProps={{ max: new Date().toISOString().slice(0, 10) }}
+                              />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
+
+                    {(() => {
+                      const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
+                      const visible = !!addrCfg && addrCfg.visible;
+                      const label = addrCfg?.label || tt('Địa chỉ', 'Address');
+                      return (
+                        visible && (
+                          <Grid md={12} xs={12}>
+                            <FormControl fullWidth required={!!addrCfg?.required}>
+                              <InputLabel>{label}</InputLabel>
+                              <OutlinedInput
+                                value={formData.address}
+                                onChange={(event: any) => handleFormChange(event)}
+                                name="address"
+                                label={label}
+                              />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
+
+                    {(() => {
+                      const idCfg = checkoutFormFields.find(
+                        (f) => f.internalName === 'idcard_number'
+                      );
+                      const visible = !!idCfg && idCfg.visible;
+                      const label = idCfg?.label || tt('Căn cước công dân', 'ID Card Number');
+                      return (
+                        visible && (
+                          <Grid md={12} xs={12}>
+                            <FormControl fullWidth required={!!idCfg?.required}>
+                              <InputLabel>{label}</InputLabel>
+                              <OutlinedInput
+                                value={(transaction as any).idcardNumber || ''}
+                                disabled
+                                label={label}
+                              />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
+
+                    {/* Custom checkout fields (visible only, editable in Event Studio) */}
+                    {customCheckoutFields.map((field) => {
+                      const rawValue = checkoutCustomAnswers[field.internalName];
+
+                      return (
+                        <Grid key={field.internalName} xs={12}>
+                          <Stack spacing={0.5}>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {field.label}
+                              {field.required && ' *'}
+                            </Typography>
+                            {field.note && (
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {field.note}
+                              </Typography>
+                            )}
+
+                            {['text', 'number'].includes(field.fieldType) && (
+                              <TextField
+                                fullWidth
+                                size="small"
+                                type={field.fieldType === 'number' ? 'number' : 'text'}
+                                value={rawValue ?? ''}
+                                onChange={(e) =>
+                                  setCheckoutCustomAnswers((prev) => ({
+                                    ...prev,
+                                    [field.internalName]: e.target.value,
+                                  }))
+                                }
+                              />
+                            )}
+
+                            {['date', 'time', 'datetime'].includes(field.fieldType) && (
+                              <TextField
+                                fullWidth
+                                size="small"
+                                type={
+                                  field.fieldType === 'date'
+                                    ? 'date'
+                                    : field.fieldType === 'time'
+                                      ? 'time'
+                                      : 'datetime-local'
+                                }
+                                InputLabelProps={{ shrink: true }}
+                                value={rawValue ?? ''}
+                                onChange={(e) =>
+                                  setCheckoutCustomAnswers((prev) => ({
+                                    ...prev,
+                                    [field.internalName]: e.target.value,
+                                  }))
+                                }
+                              />
+                            )}
+
+                            {field.fieldType === 'radio' && field.options && (
+                              <FormGroup>
+                                <RadioGroup
+                                  value={rawValue ?? ''}
+                                  onChange={(e) =>
+                                    setCheckoutCustomAnswers((prev) => ({
+                                      ...prev,
+                                      [field.internalName]: e.target.value,
+                                    }))
+                                  }
+                                >
+                                  {field.options.map((opt) => (
+                                    <FormControlLabel
+                                      key={opt.value}
+                                      value={opt.value}
+                                      control={<Radio size="small" />}
+                                      label={opt.label}
+                                    />
+                                  ))}
+                                </RadioGroup>
+                              </FormGroup>
+                            )}
+
+                            {field.fieldType === 'checkbox' && field.options && (
+                              <FormGroup>
+                                {field.options.map((opt) => {
+                                  const current: string[] = Array.isArray(rawValue) ? rawValue : [];
+                                  const checked = current.includes(opt.value);
+                                  return (
+                                    <FormControlLabel
+                                      key={opt.value}
+                                      control={
+                                        <Checkbox
+                                          size="small"
+                                          checked={checked}
+                                          onChange={(e) => {
+                                            setCheckoutCustomAnswers((prev) => {
+                                              const prevArr: string[] = prev[field.internalName] ?? [];
+                                              let nextArr: string[];
+                                              if (e.target.checked) {
+                                                nextArr = Array.from(new Set([...prevArr, opt.value]));
+                                              } else {
+                                                nextArr = prevArr.filter((v) => v !== opt.value);
+                                              }
+                                              return {
+                                                ...prev,
+                                                [field.internalName]: nextArr,
+                                              };
+                                            });
+                                          }}
+                                        />
+                                      }
+                                      label={opt.label}
+                                    />
+                                  );
+                                })}
+                              </FormGroup>
+                            )}
+
+                            {!['text', 'number', 'date', 'time', 'datetime', 'radio', 'checkbox'].includes(
+                              field.fieldType
+                            ) && (
+                                <Typography variant="body2">{rawValue ?? '—'}</Typography>
+                              )}
+                          </Stack>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
+                </CardContent>
+                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    onClick={updateTransaction}
+                  >
+                    {tt('Lưu', 'Save')}
+                  </Button>
+                </CardActions>
+              </Card>
 
 
               <Card>
@@ -2333,31 +2333,26 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                       <Select
                                         variant="standard"
                                         disableUnderline
-                                        value={editingHolderInfo.title || (locale === 'en' ? 'Mx.' : 'Bạn')}
+                                        value={editingHolderInfo.title || ''}
                                         onChange={(e) => {
                                           setEditingHolderInfo(prev => prev ? { ...prev, title: e.target.value as string } : null);
                                         }}
                                         sx={{ minWidth: 65 }}
+                                        MenuProps={{ sx: { zIndex: 1500 } }}
                                       >
-                                        {locale === 'en' ? (
-                                          ['Mr.', 'Ms.', 'Mx.'].map((title) => (
-                                            <MenuItem key={title} value={title}>{title}</MenuItem>
-                                          ))
-                                        ) : (
-                                          <>
-                                            <MenuItem value="Anh">Anh</MenuItem>
-                                            <MenuItem value="Chị">Chị</MenuItem>
-                                            <MenuItem value="Bạn">Bạn</MenuItem>
-                                            <MenuItem value="Em">Em</MenuItem>
-                                            <MenuItem value="Ông">Ông</MenuItem>
-                                            <MenuItem value="Bà">Bà</MenuItem>
-                                            <MenuItem value="Cô">Cô</MenuItem>
-                                            <MenuItem value="Thầy">Thầy</MenuItem>
-                                            <MenuItem value="Mr.">Mr.</MenuItem>
-                                            <MenuItem value="Ms.">Ms.</MenuItem>
-                                            <MenuItem value="Mx.">Mx.</MenuItem>
-                                          </>
-                                        )}
+                                        <MenuItem value=""><em>...</em></MenuItem>
+                                        <MenuItem value="Anh">Anh</MenuItem>
+                                        <MenuItem value="Chị">Chị</MenuItem>
+                                        <MenuItem value="Bạn">Bạn</MenuItem>
+                                        <MenuItem value="Em">Em</MenuItem>
+                                        <MenuItem value="Ông">Ông</MenuItem>
+                                        <MenuItem value="Bà">Bà</MenuItem>
+                                        <MenuItem value="Cô">Cô</MenuItem>
+                                        <MenuItem value="Thầy">Thầy</MenuItem>
+                                        <MenuItem value="Mr.">Mr.</MenuItem>
+                                        <MenuItem value="Ms.">Ms.</MenuItem>
+                                        <MenuItem value="Mx.">Mx.</MenuItem>
+                                        <MenuItem value="Miss">Miss</MenuItem>
                                       </Select>
                                     </InputAdornment>}
                                   />

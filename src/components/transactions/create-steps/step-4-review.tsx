@@ -113,83 +113,8 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
           <CardHeader title={tt("Xem lại đơn hàng", "Review Order")} />
           <Divider />
           <CardContent>
+
             <Stack spacing={2}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                {tt("Thông tin người mua", "Buyer Information")}
-              </Typography>
-
-              {checkoutFormFields.filter((f) => f.visible).map((field) => {
-                if (builtinInternalNames.has(field.internalName)) {
-                  if (field.internalName === 'name') {
-                    return (
-                      <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">{tt("Họ và tên", "Full Name")}</Typography>
-                        <Typography variant="subtitle2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
-                      </Box>
-                    );
-                  }
-                  if (field.internalName === 'email') {
-                    return (
-                      <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">{tt("Địa chỉ Email", "Email Address")}</Typography>
-                        <Typography variant="subtitle2">{customer.email}</Typography>
-                      </Box>
-                    );
-                  }
-                  if (field.internalName === 'phone_number') {
-                    return (
-                      <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">{tt("Số điện thoại", "Phone Number")}</Typography>
-                        <Typography variant="subtitle2">{formattedCustomerPhone || '-'}</Typography>
-                      </Box>
-                    );
-                  }
-                  if (field.internalName === 'address') {
-                    return (
-                      <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">{tt("Địa chỉ", "Address")}</Typography>
-                        <Typography variant="subtitle2">{customer.address || '-'}</Typography>
-                      </Box>
-                    );
-                  }
-                  if (field.internalName === 'dob') {
-                    return (
-                      <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">{tt("Ngày tháng năm sinh", "Date of Birth")}</Typography>
-                        <Typography variant="subtitle2">{customer.dob || '-'}</Typography>
-                      </Box>
-                    );
-                  }
-                  if (field.internalName === 'idcard_number') {
-                    return (
-                      <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">{tt("Số Căn cước công dân", "ID Card Number")}</Typography>
-                        <Typography variant="subtitle2">{customer.idcard_number || '-'}</Typography>
-                      </Box>
-                    );
-                  }
-                  return null;
-                }
-
-                const answer = checkoutCustomAnswers[field.internalName];
-                let displayValue = '-';
-                if (answer !== undefined && answer !== null && answer !== '') {
-                  if (field.fieldType === 'checkbox' && Array.isArray(answer)) displayValue = answer.join(', ');
-                  else if (field.fieldType === 'radio' && field.options) {
-                    const option = field.options.find((opt) => opt.value === answer);
-                    displayValue = option ? option.label : answer;
-                  } else displayValue = String(answer);
-                }
-
-                return (
-                  <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">{field.label}</Typography>
-                    <Typography variant="subtitle2">{displayValue}</Typography>
-                  </Box>
-                );
-              })}
-
-              <Divider />
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
@@ -380,11 +305,89 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
               )}
 
               <Divider />
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                {tt("Thông tin người mua", "Buyer Information")}
+              </Typography>
 
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2">{tt("Phương thức thanh toán", "Payment Method")}</Typography>
-                <Typography variant="body2">{paymentMethodLabel}</Typography>
-              </Box>
+              {checkoutFormFields.filter((f) => f.visible).map((field) => {
+                if (builtinInternalNames.has(field.internalName)) {
+                  if (field.internalName === 'name') {
+                    return (
+                      <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">{tt("Họ và tên", "Full Name")}</Typography>
+                        <Typography variant="subtitle2">{customer.title ? `${customer.title} ` : ''}{customer.name}</Typography>
+                      </Box>
+                    );
+                  }
+                  if (field.internalName === 'email') {
+                    return (
+                      <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">{tt("Địa chỉ Email", "Email Address")}</Typography>
+                        <Typography variant="subtitle2">{customer.email}</Typography>
+                      </Box>
+                    );
+                  }
+                  if (field.internalName === 'phone_number') {
+                    return (
+                      <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">{tt("Số điện thoại", "Phone Number")}</Typography>
+                        <Typography variant="subtitle2">{formattedCustomerPhone || '-'}</Typography>
+                      </Box>
+                    );
+                  }
+                  if (field.internalName === 'address') {
+                    return (
+                      <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">{tt("Địa chỉ", "Address")}</Typography>
+                        <Typography variant="subtitle2">{customer.address || '-'}</Typography>
+                      </Box>
+                    );
+                  }
+                  if (field.internalName === 'dob') {
+                    return (
+                      <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">{tt("Ngày tháng năm sinh", "Date of Birth")}</Typography>
+                        <Typography variant="subtitle2">{customer.dob || '-'}</Typography>
+                      </Box>
+                    );
+                  }
+                  if (field.internalName === 'idcard_number') {
+                    return (
+                      <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">{tt("Số Căn cước công dân", "ID Card Number")}</Typography>
+                        <Typography variant="subtitle2">{customer.idcard_number || '-'}</Typography>
+                      </Box>
+                    );
+                  }
+                  return null;
+                }
+
+                const answer = checkoutCustomAnswers[field.internalName];
+                let displayValue = '-';
+                if (answer !== undefined && answer !== null && answer !== '') {
+                  if (field.fieldType === 'checkbox' && Array.isArray(answer)) displayValue = answer.join(', ');
+                  else if (field.fieldType === 'radio' && field.options) {
+                    const option = field.options.find((opt) => opt.value === answer);
+                    displayValue = option ? option.label : answer;
+                  } else displayValue = String(answer);
+                }
+
+                return (
+                  <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">{field.label}</Typography>
+                    <Typography variant="subtitle2">{displayValue}</Typography>
+                  </Box>
+                );
+              })}
+
+              <Divider />
+
+              {finalTotal > 0 && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">{tt("Phương thức thanh toán", "Payment Method")}</Typography>
+                  <Typography variant="body2">{paymentMethodLabel}</Typography>
+                </Box>
+              )}
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body2">{tt("Phụ phí", "Extra Fee")}</Typography>
                 <Typography variant="body2">{formatPrice(extraFee)}</Typography>

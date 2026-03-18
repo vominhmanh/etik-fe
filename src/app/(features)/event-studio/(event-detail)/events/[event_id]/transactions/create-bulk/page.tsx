@@ -531,7 +531,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         if (field.required) {
           const key = field.builtinKey || field.internalName;
           let value = '';
-          if (field.builtinKey === 'name') {
+          if (field.builtinKey === 'title') {
+            value = customer.title || getDefaultTitle(); // fallback matches UI display
+          } else if (field.builtinKey === 'name') {
             value = customer.name || '';
           } else if (field.builtinKey === 'email') {
             value = customer.email || '';
@@ -911,7 +913,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         if (field.required) {
           const key = field.builtinKey || field.internalName;
           let value = '';
-          if (field.builtinKey === 'name') {
+          if (field.builtinKey === 'title') {
+            value = customer.title || getDefaultTitle(); // fallback matches UI display
+          } else if (field.builtinKey === 'name') {
             value = customer.name || '';
           } else if (field.builtinKey === 'email') {
             value = customer.email || '';
@@ -1068,8 +1072,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         setCustomerValidationErrors(items);
         setConfirmOpen(false);
       } else {
+        const errorDetail = err?.response?.data?.detail;
+        const errorMessage = typeof errorDetail === 'string' ? errorDetail : (err?.message || String(err));
+        
+        notificationCtx.error(errorMessage);
         setConfirmOpen(false);
-        notificationCtx.error(error);
       }
     } finally {
       setIsLoading(false);

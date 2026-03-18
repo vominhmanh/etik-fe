@@ -246,7 +246,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     if (formValues && event_id) {
       try {
         setIsLoading(true);
-        await baseHttpServiceInstance.put(`/event-studio/events/${event_id}`, { ...formValues, description });
+        const payload = {
+          slug: formValues.slug,
+          externalLink: formValues.externalLink,
+          displayOption: formValues.displayOption,
+          displayOnMarketplace: formValues.displayOnMarketplace,
+        };
+        await baseHttpServiceInstance.patch(`/event-studio/events/${event_id}/marketplace-settings`, payload);
         notificationCtx.success('Sửa thành công. Sẽ cập nhật lên trang chủ sau 1 phút.');
       } catch (error) {
         notificationCtx.error(error);
@@ -551,7 +557,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       size="small"
                       endIcon={<ArrowSquareIn />}
                     >
-                      {tt('Đến trang khách hàng tự đăng ký vé', 'Go to Customer Registration Page')}
+                      {tt('Xem trang khách hàng tự đăng ký vé', 'View Customer Registration Page')}
                     </Button>
                   </Box>
                   <Box sx={{ mt: 2.5 }}>

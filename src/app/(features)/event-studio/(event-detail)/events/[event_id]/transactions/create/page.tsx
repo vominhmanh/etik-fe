@@ -60,7 +60,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [event, setEvent] = React.useState<EventResponse | null>(null);
   const router = useRouter(); // Use useRouter from next/navigation
 
-  const defaultTitle = locale === 'en' ? 'Mx.' : 'Bạn';
+  const defaultTitle = '';
 
   // Refactored Order State
   const [order, setOrder] = React.useState<Order>({
@@ -354,7 +354,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           newTickets[index] = {
             ...newTickets[index],
             holder: {
-              ...newTickets[index].holder || { title: 'Bạn', name: '' },
+              ...newTickets[index].holder || { title: '', name: '' },
               avatar: previewUrl
             } as HolderInfo
           };
@@ -643,7 +643,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return true;
   };
 
-  const validateStep3 = () => {
+   const validateStep3 = () => {
+    // Skip payment method validation if finalTotal is 0
+    if (finalTotal === 0) return true;
+
     if (!order.paymentMethod) {
       notificationCtx.warning(tt('Vui lòng chọn phương thức thanh toán', 'Please select payment method'));
       return false;
@@ -737,7 +740,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         tickets: tickets,
         qrOption: order.qrOption,
 
-        paymentMethod: order.paymentMethod,
+        paymentMethod: finalTotal === 0 ? 'cash' : order.paymentMethod,
         extraFee: order.extraFee,
         formAnswers: checkoutCustomAnswers,
         voucherCode: order.voucherCode, // If we store it in order
@@ -870,6 +873,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             onNext={() => {
               if (validateStep2()) setActiveStep(2);
             }}
+            source="event-studio"
           />
         </Box>
 

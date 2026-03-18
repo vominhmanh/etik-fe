@@ -806,10 +806,6 @@ export default function Page({ params }: { params: { event_id: number; design_id
       });
 
       updateComponentProperty(componentId, 'imageUrl', fileUrl);
-      // keep snake_case for visibility/back-compat in state
-      updateComponentProperty(componentId, 'image_url' as any, fileUrl);
-      // persist in schema-supported field so backend stores it
-      updateComponentProperty(componentId, 'customText', fileUrl);
       notificationCtx.success(tt('Tải ảnh thành công', 'Image uploaded successfully'));
     } catch (error: any) {
       notificationCtx.error(tt('Lỗi tải ảnh:', 'Image upload error:') + ` ${error.message}`);
@@ -888,11 +884,10 @@ export default function Page({ params }: { params: { event_id: number; design_id
             // Ensure textDecoration and fontFamily exist for backward compatibility
             setComponents(apiComponents.map(comp => {
               const normalizedKey = comp.key === 'customerName' ? 'name' : comp.key;
-              // normalize image url from API (snake_case) to camelCase, and fallback to customText for images
               const isImage = normalizedKey === 'image';
               const imageUrl = isImage
-                ? ((comp as any).imageUrl ?? (comp as any).image_url ?? (comp as any).customText ?? '')
-                : ((comp as any).imageUrl ?? (comp as any).image_url ?? '');
+                ? ((comp as any).imageUrl ?? (comp as any).customText ?? '')
+                : (comp as any).imageUrl ?? '';
               return {
                 ...comp,
                 key: normalizedKey,
@@ -922,24 +917,42 @@ export default function Page({ params }: { params: { event_id: number; design_id
   const handleSaveTemplateSettings = async () => {
     try {
       setIsLoading(true);
-      // include image_url for backend compatibility
-      const payloadComponents = components.map((c) =>
-        c.key === 'image'
-          ? ({ ...c, image_url: (c as any).imageUrl ?? (c as any).image_url ?? '' } as any)
-          : c
-      );
+      const payloadComponents = components;
       const payload: InvitationLetterDesign = {
         name: designName,
         size: showCustomSize ? 'custom' : selectedSize,
         customSize: showCustomSize && customSize ? customSize : undefined,
         components: payloadComponents as any,
       };
-      const response: AxiosResponse = await baseHttpServiceInstance.post(
+      const response: AxiosResponse<InvitationLetterDesign> = await baseHttpServiceInstance.post(
         `/event-studio/events/${event_id}/invitation-letter-designs/${design_id}`,
         payload
       );
       if (response.status === 200) {
         notificationCtx.success(tt('Cấu hình template đã được lưu thành công!', 'Template configuration saved successfully!'));
+        
+        // Sync state with backend response (especially for permanent image URLs)
+        const updatedComponents = response.data.components;
+        if (updatedComponents && updatedComponents.length > 0) {
+          setComponents(updatedComponents.map(comp => {
+            const normalizedKey = comp.key === 'customerName' ? 'name' : comp.key;
+            const isImage = normalizedKey === 'image';
+            const imageUrl = isImage
+              ? ((comp as any).imageUrl ?? (comp as any).image_url ?? (comp as any).customText ?? '')
+              : ((comp as any).imageUrl ?? (comp as any).image_url ?? '');
+              return {
+                ...comp,
+                key: normalizedKey,
+                label: normalizedKey === 'name' ? tt('Họ tên (đơn hàng)', 'Name (Trxn)') : comp.label,
+                textDecoration: comp.textDecoration || 'none',
+                fontFamily: comp.fontFamily || 'Arial',
+                includeTitle: normalizedKey === 'name' ? (comp.includeTitle !== false) : undefined,
+                imageUrl,
+                rotation: (comp as any).rotation ?? 0,
+              };
+          }));
+          hasUserEditedRef.current = false; // Reset edit flag as we just synced with server
+        }
       }
     } catch (error: any) {
       notificationCtx.error(tt(`Lỗi khi lưu cấu hình:`, `Error saving configuration:`) + ` ${error.message}`);
@@ -1420,8 +1433,8 @@ export default function Page({ params }: { params: { event_id: number; design_id
                           >
                             {comp.key === 'eCodeQr' && showPreview && previewData[comp.key] ? (
                               <img src={previewData[comp.key]} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                            ) : comp.key === 'image' && ((comp as any).imageUrl || (comp as any).image_url || (comp as any).customText) ? (
-                              <img src={(comp as any).imageUrl || (comp as any).image_url || (comp as any).customText} alt="Component" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            ) : comp.key === 'image' && comp.imageUrl ? (
+                              <img src={comp.imageUrl} alt="Component" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                             ) : (
                               <span
                                 style={{

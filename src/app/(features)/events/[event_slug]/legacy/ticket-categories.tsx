@@ -405,10 +405,11 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                                       <MenuItem value="Ông">Ông</MenuItem>
                                       <MenuItem value="Bà">Bà</MenuItem>
                                       <MenuItem value="Cô">Cô</MenuItem>
+                                      <MenuItem value="Thầy">Thầy</MenuItem>
                                       <MenuItem value="Mr.">Mr.</MenuItem>
                                       <MenuItem value="Ms.">Ms.</MenuItem>
+                                      <MenuItem value="Mx.">Mx.</MenuItem>
                                       <MenuItem value="Miss">Miss</MenuItem>
-                                      <MenuItem value="Thầy">Thầy</MenuItem>
                                     </Select>
                                   </InputAdornment>
                                 }

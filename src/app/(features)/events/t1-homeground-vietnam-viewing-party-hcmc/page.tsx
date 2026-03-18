@@ -301,7 +301,7 @@ export default function Page(): React.JSX.Element {
                       size="small"
                       value={accessingPassword}
                       onChange={(e) => {
-                        
+
                         const input = e.target.value;
                         setAccessingPassword(input);
 
@@ -502,6 +502,15 @@ export default function Page(): React.JSX.Element {
                                   <MenuItem value="Anh">Anh</MenuItem>
                                   <MenuItem value="Chị">Chị</MenuItem>
                                   <MenuItem value="Bạn">Bạn</MenuItem>
+                                  <MenuItem value="Em">Em</MenuItem>
+                                  <MenuItem value="Ông">Ông</MenuItem>
+                                  <MenuItem value="Bà">Bà</MenuItem>
+                                  <MenuItem value="Cô">Cô</MenuItem>
+                                  <MenuItem value="Thầy">Thầy</MenuItem>
+                                  <MenuItem value="Mr.">Mr.</MenuItem>
+                                  <MenuItem value="Ms.">Ms.</MenuItem>
+                                  <MenuItem value="Mx.">Mx.</MenuItem>
+                                  <MenuItem value="Miss">Miss</MenuItem>
                                 </Select>
                               </InputAdornment>
                             }
@@ -528,7 +537,7 @@ export default function Page(): React.JSX.Element {
                             name="customer_dob"
                             type='date'
                             value={customer.dob}
-                            onChange={(e) => setCustomer({ ...customer, dob: e.target.value})}
+                            onChange={(e) => setCustomer({ ...customer, dob: e.target.value })}
                             inputProps={{ max: new Date().toISOString().slice(0, 10) }}
 
                           />
@@ -547,7 +556,7 @@ export default function Page(): React.JSX.Element {
                           />
                         </FormControl>
                       </Grid>
-                      
+
 
                       <Grid item lg={12} xs={12}>
                         <FormControl fullWidth required>
@@ -682,7 +691,7 @@ export default function Page(): React.JSX.Element {
       </Container>
 
       <Modal
-        
+
         open={openSuccessModal}
         onClose={handleCloseSuccessModal}
         aria-labelledby="modal-modal-title"
@@ -731,7 +740,7 @@ export default function Page(): React.JSX.Element {
                   endIcon={<ArrowRight />}
                   onClick={() => {
                     // setOpenSuccessModal(false)
-                    window.location.reload()  
+                    window.location.reload()
                   }}
                 >
                   Đăng ký vé mới

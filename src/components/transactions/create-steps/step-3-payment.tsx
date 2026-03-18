@@ -307,209 +307,223 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
             )}
 
             {/* Discount */}
-            <Card>
-              <CardHeader
-                title={tt("Khuyến mãi", "Discount")}
-                action={
-                  !appliedVoucher && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <OutlinedInput
-                        name="discountCode"
-                        placeholder={tt("Nhập mã khuyến mãi", "Enter discount code")}
-                        value={manualDiscountCode}
-                        onChange={(e) => setManualDiscountCode(e.target.value)}
-                        sx={{ maxWidth: 180, fontSize: 16 }}
-                        startAdornment={
-                          <InputAdornment position="start">
-                            <TicketIcon size={18} weight="duotone" style={{ opacity: 0.7 }} />
-                          </InputAdornment>
-                        }
-                      />
-                      <Button
-                        variant="outlined"
-                        onClick={async () => {
-                          const code = manualDiscountCode.trim();
-                          if (!code) return;
-                          // First try public list
-                          const voucher = availableVouchers.find((v) => v.code.toLowerCase() === code.toLowerCase());
-                          if (voucher) {
-                            handleValidateAndDisplayVoucher(voucher);
-                            setManualDiscountCode('');
-                            return;
+            {finalTotal > 0 && (
+              <Card>
+                <CardHeader
+                  title={tt("Khuyến mãi", "Discount")}
+                  action={
+                    !appliedVoucher && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <OutlinedInput
+                          name="discountCode"
+                          placeholder={tt("Nhập mã khuyến mãi", "Enter discount code")}
+                          value={manualDiscountCode}
+                          onChange={(e) => setManualDiscountCode(e.target.value)}
+                          sx={{ maxWidth: 180, fontSize: 16 }}
+                          startAdornment={
+                            <InputAdornment position="start">
+                              <TicketIcon size={18} weight="duotone" style={{ opacity: 0.7 }} />
+                            </InputAdornment>
                           }
-                          const apiVoucher = await validateVoucherByApi(code);
-                          if (apiVoucher) {
-                            handleValidateAndDisplayVoucher(apiVoucher);
-                            setManualDiscountCode('');
-                          }
-                        }}
-                      >
-                        {tt("Áp dụng", "Apply")}
-                      </Button>
-                    </Box>
-                  )
-                }
-              />
-              {(appliedVoucher || availableVouchers.length > 0) && (
-                <>
-                  <Divider />
-                  <CardContent sx={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    {appliedVoucher ? (
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          p: 2,
-                          border: '1px solid',
-                          borderColor: voucherValidation.valid ? 'success.main' : 'error.main',
-                          borderRadius: 1,
-                          bgcolor: voucherValidation.valid ? 'success.50' : 'error.50',
-                          gap: 2,
-                        }}
-                      >
-                        <Box sx={{ flex: 1 }}>
-                          <Stack spacing={0.5}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="body1" sx={{ fontWeight: 600, color: voucherValidation.valid ? 'success.main' : 'error.main' }}>
-                                {tt('Đã áp dụng:', 'Applied:')} {appliedVoucher.code}
-                              </Typography>
-                            </Box>
-                            {!voucherValidation.valid && (
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                                <Typography variant="caption" color="error.main" sx={{ fontWeight: 600 }}>
-                                  {tt('Mã khuyến mãi không hợp lệ', 'Invalid discount code')}
-                                  {voucherValidation.message && `: ${voucherValidation.message}`}
-                                </Typography>
-                                <Button
-                                  variant="text"
-                                  size="small"
-                                  sx={{
-                                    p: 0,
-                                    minWidth: 'auto',
-                                    fontSize: '0.75rem',
-                                    textTransform: 'none',
-                                    color: 'primary.main',
-                                    '&:hover': { textDecoration: 'underline' }
-                                  }}
-                                  onClick={() => onOpenVoucherDetail(appliedVoucher)}
-                                >
-                                  {tt('Xem thêm', 'View Details')}
-                                </Button>
-                              </Box>
-                            )}
-                            {voucherValidation.valid && (
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                                <Typography variant="caption" color="text.secondary">
-                                  {appliedVoucher.name}
-                                </Typography>
-                                <Button
-                                  variant="text"
-                                  size="small"
-                                  sx={{
-                                    p: 0,
-                                    minWidth: 'auto',
-                                    fontSize: '0.75rem',
-                                    textTransform: 'none',
-                                    color: 'primary.main',
-                                    '&:hover': { textDecoration: 'underline' }
-                                  }}
-                                  onClick={() => onOpenVoucherDetail(appliedVoucher)}
-                                >
-                                  {tt('Xem thêm', 'View Details')}
-                                </Button>
-                              </Box>
-                            )}
-                          </Stack>
-                        </Box>
-                        <IconButton size="small" onClick={onRemoveAppliedVoucher} sx={{ color: 'error.main' }}>
-                          <X size={20} />
-                        </IconButton>
+                        />
+                        <Button
+                          variant="outlined"
+                          onClick={async () => {
+                            const code = manualDiscountCode.trim();
+                            if (!code) return;
+                            // First try public list
+                            const voucher = availableVouchers.find((v) => v.code.toLowerCase() === code.toLowerCase());
+                            if (voucher) {
+                              handleValidateAndDisplayVoucher(voucher);
+                              setManualDiscountCode('');
+                              return;
+                            }
+                            const apiVoucher = await validateVoucherByApi(code);
+                            if (apiVoucher) {
+                              handleValidateAndDisplayVoucher(apiVoucher);
+                              setManualDiscountCode('');
+                            }
+                          }}
+                        >
+                          {tt("Áp dụng", "Apply")}
+                        </Button>
                       </Box>
-                    ) : (
-                      availableVouchers.length > 0 && (
-                        <Stack spacing={2}>
-                          {availableVouchers.map((voucher) => (
-                            <Box
-                              key={voucher.id}
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                p: 2,
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                borderRadius: 1,
-                                gap: 2,
-                              }}
-                            >
-                              <Box sx={{ flex: 1 }}>
-                                <Stack spacing={0.5}>
-                                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                    {voucher.code}
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {voucher.name}
+                    )
+                  }
+                />
+                {(appliedVoucher || availableVouchers.length > 0) && (
+                  <>
+                    <Divider />
+                    <CardContent sx={{ maxHeight: '300px', overflowY: 'auto' }}>
+                      {appliedVoucher ? (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            p: 2,
+                            border: '1px solid',
+                            borderColor: voucherValidation.valid ? 'success.main' : 'error.main',
+                            borderRadius: 1,
+                            bgcolor: voucherValidation.valid ? 'success.50' : 'error.50',
+                            gap: 2,
+                          }}
+                        >
+                          <Box sx={{ flex: 1 }}>
+                            <Stack spacing={0.5}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography variant="body1" sx={{ fontWeight: 600, color: voucherValidation.valid ? 'success.main' : 'error.main' }}>
+                                  {tt('Đã áp dụng:', 'Applied:')} {appliedVoucher.code}
+                                </Typography>
+                              </Box>
+                              {!voucherValidation.valid && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                                  <Typography variant="caption" color="error.main" sx={{ fontWeight: 600 }}>
+                                    {tt('Mã khuyến mãi không hợp lệ', 'Invalid discount code')}
+                                    {voucherValidation.message && `: ${voucherValidation.message}`}
                                   </Typography>
                                   <Button
                                     variant="text"
                                     size="small"
-                                    sx={{ p: 0, minWidth: 'auto', fontSize: '0.75rem', textTransform: 'none', color: 'primary.main' }}
-                                    onClick={() => onOpenVoucherDetail(voucher)}
+                                    sx={{
+                                      p: 0,
+                                      minWidth: 'auto',
+                                      fontSize: '0.75rem',
+                                      textTransform: 'none',
+                                      color: 'primary.main',
+                                      '&:hover': { textDecoration: 'underline' }
+                                    }}
+                                    onClick={() => onOpenVoucherDetail(appliedVoucher)}
                                   >
                                     {tt('Xem thêm', 'View Details')}
                                   </Button>
-                                </Stack>
+                                </Box>
+                              )}
+                              {voucherValidation.valid && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {appliedVoucher.name}
+                                  </Typography>
+                                  <Button
+                                    variant="text"
+                                    size="small"
+                                    sx={{
+                                      p: 0,
+                                      minWidth: 'auto',
+                                      fontSize: '0.75rem',
+                                      textTransform: 'none',
+                                      color: 'primary.main',
+                                      '&:hover': { textDecoration: 'underline' }
+                                    }}
+                                    onClick={() => onOpenVoucherDetail(appliedVoucher)}
+                                  >
+                                    {tt('Xem thêm', 'View Details')}
+                                  </Button>
+                                </Box>
+                              )}
+                            </Stack>
+                          </Box>
+                          <IconButton size="small" onClick={onRemoveAppliedVoucher} sx={{ color: 'error.main' }}>
+                            <X size={20} />
+                          </IconButton>
+                        </Box>
+                      ) : (
+                        availableVouchers.length > 0 && (
+                          <Stack spacing={2}>
+                            {availableVouchers.map((voucher) => (
+                              <Box
+                                key={voucher.id}
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  p: 2,
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                  borderRadius: 1,
+                                  gap: 2,
+                                }}
+                              >
+                                <Box sx={{ flex: 1 }}>
+                                  <Stack spacing={0.5}>
+                                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                      {voucher.code}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      {voucher.name}
+                                    </Typography>
+                                    <Button
+                                      variant="text"
+                                      size="small"
+                                      sx={{ p: 0, minWidth: 'auto', fontSize: '0.75rem', textTransform: 'none', color: 'primary.main' }}
+                                      onClick={() => onOpenVoucherDetail(voucher)}
+                                    >
+                                      {tt('Xem thêm', 'View Details')}
+                                    </Button>
+                                  </Stack>
+                                </Box>
+                                <Button variant="outlined" size="small" onClick={() => handleApplyVoucher(voucher)}>
+                                  {tt('Áp dụng', 'Apply')}
+                                </Button>
                               </Box>
-                              <Button variant="outlined" size="small" onClick={() => handleApplyVoucher(voucher)}>
-                                {tt('Áp dụng', 'Apply')}
-                              </Button>
-                            </Box>
-                          ))}
-                        </Stack>
-                      )
-                    )}
-                  </CardContent>
-                </>
-              )}
-            </Card>
+                            ))}
+                          </Stack>
+                        )
+                      )}
+                    </CardContent>
+                  </>
+                )}
+              </Card>
+            )}
 
             {/* Payment Method */}
-            <Card>
-              <CardHeader
-                title={tt("Phương thức thanh toán", "Payment Method")}
-                action={
-                  <FormControl sx={{ maxWidth: 180, minWidth: 180 }}>
-                    <Select
-                      name="payment_method"
-                      value={paymentMethod}
-                      onChange={(e) => onPaymentMethodChange(e.target.value as string)}
-                      displayEmpty
-                      sx={{ fontSize: 16 }}
-                      renderValue={(selected) => {
-                        if (!selected) return <Typography variant="body2" color="text.secondary" sx={{ fontSize: 16 }}>{tt("Chọn phương thức", "Select method")}</Typography>;
-                        const method = visiblePaymentMethods.find(m => m.value === selected);
-                        return method ? method.label : selected;
-                      }}
-                    >
-                      <MenuItem value="" disabled>
-                        <Typography variant="body2" color="text.secondary">
-                          {tt("Chọn phương thức thanh toán", "Select payment method")}
-                        </Typography>
-                      </MenuItem>
-                      {visiblePaymentMethods.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          <ListItemIcon>
-                            {option.icon}
-                          </ListItemIcon>
-                          <ListItemText primary={option.label} />
+            {finalTotal > 0 && (
+              <Card>
+                <CardHeader
+                  title={tt("Phương thức thanh toán", "Payment Method")}
+                  action={
+                    <FormControl sx={{ maxWidth: 180, minWidth: 180 }}>
+                      <Select
+                        name="payment_method"
+                        value={paymentMethod}
+                        onChange={(e) => onPaymentMethodChange(e.target.value as string)}
+                        displayEmpty
+                        sx={{ fontSize: 16 }}
+                        renderValue={(selected) => {
+                          if (!selected) return <Typography variant="body2" color="text.secondary" sx={{ fontSize: 16 }}>{tt("Chọn phương thức", "Select method")}</Typography>;
+                          const method = visiblePaymentMethods.find(m => m.value === selected);
+                          return method ? method.label : selected;
+                        }}
+                      >
+                        <MenuItem value="" disabled>
+                          <Typography variant="body2" color="text.secondary">
+                            {tt("Chọn phương thức thanh toán", "Select payment method")}
+                          </Typography>
                         </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                }
-              />
-            </Card>
+                        {visiblePaymentMethods.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            <ListItemIcon>
+                              {option.icon}
+                            </ListItemIcon>
+                            <ListItemText primary={option.label} />
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  }
+                />
+              </Card>
+            )}
+
+            {finalTotal === 0 && (
+              <Card>
+                <CardHeader
+                  title={tt("Thanh toán", "Payment")}
+                  subheader={tt("Đơn hàng 0đ, không cần thanh toán", "0đ order, no payment required")}
+                  subheaderTypographyProps={{ color: 'success.main', fontWeight: 600 }}
+                />
+              </Card>
+            )}
 
 
 

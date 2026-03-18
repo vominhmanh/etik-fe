@@ -808,10 +808,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       });
 
       updateComponentProperty(componentId, 'imageUrl', fileUrl);
-      // keep snake_case for visibility/back-compat in state
-      updateComponentProperty(componentId, 'image_url' as any, fileUrl);
-      // persist in schema-supported field so backend stores it
-      updateComponentProperty(componentId, 'customText', fileUrl);
       notificationCtx.success(tt('Tải ảnh thành công', 'Image uploaded successfully'));
     } catch (error: any) {
       notificationCtx.error(tt('Lỗi tải ảnh:', 'Image upload error:') + ` ${error.message}`);
@@ -864,12 +860,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const handleSaveTemplateSettings = async () => {
     try {
       setIsLoading(true);
-      // include image_url for backend compatibility
-      const payloadComponents = components.map((c) =>
-        c.key === 'image'
-          ? ({ ...c, image_url: (c as any).imageUrl ?? (c as any).image_url ?? '' } as any)
-          : c
-      );
+      const payloadComponents = components;
       const payload: InvitationLetterDesign = {
         name: designName || tt('Thiết kế mới', 'New Design'),
         size: showCustomSize ? 'custom' : selectedSize,
@@ -1366,8 +1357,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           >
                             {comp.key === 'eCodeQr' && showPreview && previewData[comp.key] ? (
                               <img src={previewData[comp.key]} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                            ) : comp.key === 'image' && ((comp as any).imageUrl || (comp as any).image_url || (comp as any).customText) ? (
-                              <img src={(comp as any).imageUrl || (comp as any).image_url || (comp as any).customText} alt="Component" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            ) : comp.key === 'image' && comp.imageUrl ? (
+                              <img src={comp.imageUrl} alt="Component" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                             ) : (
                               <span
                                 style={{

@@ -145,7 +145,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
     const id = selectedTicketCategory.id as number;
     const qty = ticketQuantities[id] ?? 0;
     if (qty > 0 && qrOption === 'separate') {
-      const hasInvalid = ticketHolderInfos.slice(0, qty).some((h) => !h.title || !h.name );
+      const hasInvalid = ticketHolderInfos.slice(0, qty).some((h) => !h.title || !h.name);
       if (hasInvalid) {
         notificationCtx.warning(tt('Vui lòng điền đủ thông tin người tham dự (họ tên, email, số điện thoại) cho mỗi vé.', 'Please complete attendee information (full name, email, phone) for each ticket.'));
         return;
@@ -346,7 +346,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                   )}
                 </Stack>
                 <Stack spacing={1}>
-                  
+
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">{tt('Số lượng', 'Quantity')}</Typography>
@@ -362,7 +362,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                       />
                     </Typography>
                   </Grid>
-                  
+
                 </Stack>
                 {qrOption === 'separate' && (
                   <Stack spacing={1}>
@@ -405,11 +405,11 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                                       <MenuItem value="Ông">Ông</MenuItem>
                                       <MenuItem value="Bà">Bà</MenuItem>
                                       <MenuItem value="Cô">Cô</MenuItem>
+                                      <MenuItem value="Thầy">Thầy</MenuItem>
                                       <MenuItem value="Mr.">Mr.</MenuItem>
                                       <MenuItem value="Ms.">Ms.</MenuItem>
                                       <MenuItem value="Mx.">Mx.</MenuItem>
                                       <MenuItem value="Miss">Miss</MenuItem>
-                                      <MenuItem value="Thầy">Thầy</MenuItem>
                                     </Select>
                                   </InputAdornment>
                                 }
@@ -456,7 +456,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                   </Stack>
                 )}
 
-                
+
               </Stack>
             </CardContent>
             <Divider />

@@ -590,6 +590,102 @@ export default function Page({ params }: { params: { transaction_id: number } })
         </Grid>
         <Grid lg={7} md={7} xs={12} spacing={3}>
           <Stack spacing={3}>
+
+            <Card>
+              <CardHeader
+                title={`${tt('Danh sách vé:', 'Ticket List:')} ${transaction.ticketQuantity} ${tt('vé', 'tickets')}`}
+              />
+              <Divider />
+              <CardContent>
+                <Stack spacing={2}>
+                  {/* Loop through each transactionShowTicketCategory */}
+                  {transaction.transactionTicketCategories.map((transactionTicketCategory, categoryIndex) => (
+                    <div key={categoryIndex}>
+                      <Stack direction={{ xs: 'column', md: 'row' }} sx={{ mb: 2, display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name} - {transactionTicketCategory.ticketCategory.name}</Typography>
+                        </Stack>
+                        <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                          <Typography variant="body2">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography>
+                          <Typography variant="body2">x {transactionTicketCategory.tickets.length}</Typography>
+                          <Typography variant="body2">= {formatPrice((transactionTicketCategory.netPricePerOne || 0) * transactionTicketCategory.tickets.length)}</Typography>
+                        </Stack>
+                      </Stack>
+                      {transactionTicketCategory.tickets.length > 0 && (
+                        <Stack spacing={2}>
+                          {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
+                            <Stack direction="row" spacing={0} alignItems="center">
+                              <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
+                                <>
+                                  <Stack direction="row" spacing={1} alignItems="center">
+                                    <div>
+                                      <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
+                                        {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : tt('Chưa có thông tin', 'No information')}
+                                      </Typography>
+                                      {transaction.qrOption === 'separate' && (
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          {(() => {
+                                            const email = ticket.holderEmail || tt('Chưa có email', 'No email');
+                                            if (!ticket.holderPhone) {
+                                              return `${email} - ${tt('Chưa có SĐT', 'No phone')}`;
+                                            }
+                                            // Parse E.164 phone to get country code and national number
+                                            const parsedPhone = parseE164Phone(ticket.holderPhone);
+                                            if (parsedPhone) {
+                                              const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
+                                              return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
+                                            }
+                                            return `${email} - ${ticket.holderPhone}`;
+                                          })()}
+                                        </Typography>
+                                      )}
+                                    </div>
+                                  </Stack>
+                                </>
+                                <div>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    TID-{ticket.id} {ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}
+                                    {ticket.status && ticket.status !== 'normal' && (
+                                      <> - <Chip size="small" label={getRowStatusDetails(ticket.status, tt).label} color={getRowStatusDetails(ticket.status, tt).color} sx={{ height: 18, fontSize: '0.7rem' }} /></>
+                                    )}
+                                  </Typography>
+                                </div>
+                              </Box>
+                            </Stack>
+                          ))}
+                        </Stack>
+                      )}
+                    </div>
+                  ))}
+                  {/* Additional details for this category */}
+                  <Divider sx={{ marginY: 2 }} />
+                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <StackPlusIcon fontSize="var(--icon-fontSize-md)" />
+                      <Typography variant="body1">{tt('Phụ phí:', 'Extra Fee:')}</Typography>
+                    </Stack>
+                    <Typography variant="body1">{formatPrice(transaction.extraFee || 0)}</Typography>
+                  </Grid>
+
+                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
+                      <Typography variant="body1">{tt('Giảm giá:', 'Discount:')}</Typography>
+                    </Stack>
+                    <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
+                  </Grid>
+
+                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <CoinsIcon fontSize="var(--icon-fontSize-md)" />
+                      <Typography variant="body1">{tt('Thành tiền:', 'Total:')}</Typography>
+                    </Stack>
+                    <Typography variant="body1">{formatPrice(transaction.totalAmount || 0)}</Typography>
+                  </Grid>
+                </Stack>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader title={tt('Thông tin người mua', 'Buyer Information')} />
               <Divider />
@@ -843,101 +939,6 @@ export default function Page({ params }: { params: { transaction_id: number } })
                     );
                   })}
                 </Grid>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader
-                title={`${tt('Danh sách vé:', 'Ticket List:')} ${transaction.ticketQuantity} ${tt('vé', 'tickets')}`}
-              />
-              <Divider />
-              <CardContent>
-                <Stack spacing={2}>
-                  {/* Loop through each transactionShowTicketCategory */}
-                  {transaction.transactionTicketCategories.map((transactionTicketCategory, categoryIndex) => (
-                    <div key={categoryIndex}>
-                      <Stack direction={{ xs: 'column', md: 'row' }} sx={{ mb: 2, display: 'flex', justifyContent: 'space-between' }}>
-                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                          <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{transactionTicketCategory.ticketCategory.show.name} - {transactionTicketCategory.ticketCategory.name}</Typography>
-                        </Stack>
-                        <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                          <Typography variant="body2">{formatPrice(transactionTicketCategory.netPricePerOne || 0)}</Typography>
-                          <Typography variant="body2">x {transactionTicketCategory.tickets.length}</Typography>
-                          <Typography variant="body2">= {formatPrice((transactionTicketCategory.netPricePerOne || 0) * transactionTicketCategory.tickets.length)}</Typography>
-                        </Stack>
-                      </Stack>
-                      {transactionTicketCategory.tickets.length > 0 && (
-                        <Stack spacing={2}>
-                          {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
-                            <Stack direction="row" spacing={0} alignItems="center">
-                              <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
-                                <>
-                                  <Stack direction="row" spacing={1} alignItems="center">
-                                    <div>
-                                      <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
-                                        {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : tt('Chưa có thông tin', 'No information')}
-                                      </Typography>
-                                      {transaction.qrOption === 'separate' && (
-                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                          {(() => {
-                                            const email = ticket.holderEmail || tt('Chưa có email', 'No email');
-                                            if (!ticket.holderPhone) {
-                                              return `${email} - ${tt('Chưa có SĐT', 'No phone')}`;
-                                            }
-                                            // Parse E.164 phone to get country code and national number
-                                            const parsedPhone = parseE164Phone(ticket.holderPhone);
-                                            if (parsedPhone) {
-                                              const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
-                                              return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
-                                            }
-                                            return `${email} - ${ticket.holderPhone}`;
-                                          })()}
-                                        </Typography>
-                                      )}
-                                    </div>
-                                  </Stack>
-                                </>
-                                <div>
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    TID-{ticket.id} {ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}
-                                    {ticket.status && ticket.status !== 'normal' && (
-                                      <> - <Chip size="small" label={getRowStatusDetails(ticket.status, tt).label} color={getRowStatusDetails(ticket.status, tt).color} sx={{ height: 18, fontSize: '0.7rem' }} /></>
-                                    )}
-                                  </Typography>
-                                </div>
-                              </Box>
-                            </Stack>
-                          ))}
-                        </Stack>
-                      )}
-                    </div>
-                  ))}
-                  {/* Additional details for this category */}
-                  <Divider sx={{ marginY: 2 }} />
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <StackPlusIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">{tt('Phụ phí:', 'Extra Fee:')}</Typography>
-                    </Stack>
-                    <Typography variant="body1">{formatPrice(transaction.extraFee || 0)}</Typography>
-                  </Grid>
-
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <SealPercentIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">{tt('Giảm giá:', 'Discount:')}</Typography>
-                    </Stack>
-                    <Typography variant="body1">{formatPrice(transaction.discount || 0)}</Typography>
-                  </Grid>
-
-                  <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <CoinsIcon fontSize="var(--icon-fontSize-md)" />
-                      <Typography variant="body1">{tt('Thành tiền:', 'Total:')}</Typography>
-                    </Stack>
-                    <Typography variant="body1">{formatPrice(transaction.totalAmount || 0)}</Typography>
-                  </Grid>
-                </Stack>
               </CardContent>
             </Card>
             <Card>

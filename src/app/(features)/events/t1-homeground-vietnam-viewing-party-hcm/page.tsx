@@ -708,6 +708,15 @@ export default function Page(): React.JSX.Element {
                                   <MenuItem value="Anh">Anh</MenuItem>
                                   <MenuItem value="Chị">Chị</MenuItem>
                                   <MenuItem value="Bạn">Bạn</MenuItem>
+                                  <MenuItem value="Em">Em</MenuItem>
+                                  <MenuItem value="Ông">Ông</MenuItem>
+                                  <MenuItem value="Bà">Bà</MenuItem>
+                                  <MenuItem value="Cô">Cô</MenuItem>
+                                  <MenuItem value="Thầy">Thầy</MenuItem>
+                                  <MenuItem value="Mr.">Mr.</MenuItem>
+                                  <MenuItem value="Ms.">Ms.</MenuItem>
+                                  <MenuItem value="Mx.">Mx.</MenuItem>
+                                  <MenuItem value="Miss">Miss</MenuItem>
                                 </Select>
                               </InputAdornment>
                             }
@@ -1061,18 +1070,18 @@ export default function Page(): React.JSX.Element {
                     </Button>
                   )}
                   {event?.useCheckInFace && (
-                  <Button
-                    fullWidth
-                    variant='contained'
-                    size="small"
-                    component="a"
-                    href={`https://ekyc.etik.vn/ekyc-register?event_slug=${params.event_slug}&transaction_id=${responseTransaction?.id}&response_token=${responseTransaction?.customerResponseToken}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    startIcon={<ScanSmileyIcon />}
-                  >
-                    Đăng ký check-in bằng khuôn mặt
-                  </Button>
+                    <Button
+                      fullWidth
+                      variant='contained'
+                      size="small"
+                      component="a"
+                      href={`https://ekyc.etik.vn/ekyc-register?event_slug=${params.event_slug}&transaction_id=${responseTransaction?.id}&response_token=${responseTransaction?.customerResponseToken}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      startIcon={<ScanSmileyIcon />}
+                    >
+                      Đăng ký check-in bằng khuôn mặt
+                    </Button>
                   )}
                   <Button
                     fullWidth

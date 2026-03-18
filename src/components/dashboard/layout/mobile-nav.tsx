@@ -303,7 +303,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             /> */}
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
-              key="transactions-create"
+              key="transactions-marketplace"
               title={tt("Trang marketplace", "Create Order")}
               caption={tt("Trang khách hàng tự mua vé", "Customer Self Buy Page")}
               href={`/event-studio/events/${dynamicId}/marketplace-settings`}
@@ -340,7 +340,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
           <NavItemCollapse pathname={normalizedPathname} key="email-template" title="Email" icon={Mailbox} onClose={onClose}>
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
-              key="email-template-1"
+              key="email-marketing"
               title={tt("Email marketing", "Email Marketing")}
               href={`/event-studio/events/${dynamicId}/templates/email-marketing`}
               icon={ListDashesIcon}
@@ -366,7 +366,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             />
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
-              key="email-template-1"
+              key="rating-online"
               title={tt("Chấm điểm và khảo sát", "Rating Online")}
               href={`/event-studio/events/${dynamicId}/config-mini-app-rating-online`}
               icon={StarHalf}
@@ -382,7 +382,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             /> */}
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
-              key="email-template-3"
+              key="lucky-draw"
               title={tt("Con số may mắn", "Lucky Number")}
               href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-draw`}
               icon={SpinnerBall}
@@ -390,7 +390,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             />
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
-              key="email-template-4"
+              key="lucky-wheel"
               title={tt("Vòng quay may mắn", "Lucky Wheel")}
               href={`/event-studio/events/${dynamicId}/config-mini-app-lucky-wheel`}
               icon={SpinnerBall}

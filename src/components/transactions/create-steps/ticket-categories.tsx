@@ -353,7 +353,7 @@ export function TicketCategories({ show, cartQuantities = {}, requestedCategoryM
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">{tt("Số lượng vé", "Ticket Quantity")}</Typography>
                     </Stack>
-                    <Typography variant="body1">
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <OutlinedInput
                         sx={{ maxWidth: 80 }}
                         size="small"
@@ -362,7 +362,7 @@ export function TicketCategories({ show, cartQuantities = {}, requestedCategoryM
                         onChange={handleTicketQuantityChange}
                         inputProps={{ min: 0 }}
                       />
-                    </Typography>
+                    </Box>
                   </Grid>
                   <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>

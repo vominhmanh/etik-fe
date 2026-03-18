@@ -143,7 +143,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
     const id = selectedTicketCategory.id as number;
     const qty = ticketQuantities[id] ?? 0;
     if (qty > 0 && qrOption === 'separate') {
-      const hasInvalid = ticketHolderInfos.slice(0, qty).some((h) => !h.title || !h.name );
+      const hasInvalid = ticketHolderInfos.slice(0, qty).some((h) => !h.title || !h.name);
       if (hasInvalid) {
         notificationCtx.warning('Vui lòng điền đủ thông tin người tham dự (họ tên, email, số điện thoại) cho mỗi vé.');
         return;
@@ -424,10 +424,11 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                                       <MenuItem value="Ông">Ông</MenuItem>
                                       <MenuItem value="Bà">Bà</MenuItem>
                                       <MenuItem value="Cô">Cô</MenuItem>
+                                      <MenuItem value="Thầy">Thầy</MenuItem>
                                       <MenuItem value="Mr.">Mr.</MenuItem>
                                       <MenuItem value="Ms.">Ms.</MenuItem>
+                                      <MenuItem value="Mx.">Mx.</MenuItem>
                                       <MenuItem value="Miss">Miss</MenuItem>
-                                      <MenuItem value="Thầy">Thầy</MenuItem>
                                     </Select>
                                   </InputAdornment>
                                 }
@@ -474,7 +475,7 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                   </Stack>
                 )}
 
-                
+
               </Stack>
             </CardContent>
             <Divider />
