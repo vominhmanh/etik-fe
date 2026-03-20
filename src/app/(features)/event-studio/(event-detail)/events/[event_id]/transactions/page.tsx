@@ -136,7 +136,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     params.set('order', order);
 
     const currentUrlParams = new URLSearchParams(window.location.search);
-    const hasChanges = 
+    const hasChanges =
       currentUrlParams.get('page') !== String(page) ||
       currentUrlParams.get('rowsPerPage') !== String(rowsPerPage) ||
       (currentUrlParams.get('orderBy') || '') !== orderBy ||
@@ -1251,6 +1251,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             >
               <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleExportTicketBulk() }}>{tt("Xuất vé", "Export Tickets")}</MenuItem>
               <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTransactionAndTicketBulk('email') }}>{tt("Gửi Email", "Send Email")}</MenuItem>
+              <MenuItem sx={{ fontSize: '14px' }} onClick={() => { handleSendTransactionAndTicketBulk('zalo') }}>{tt("Gửi Zalo", "Send Zalo")}</MenuItem>
             </Menu>
 
             {/* Menu for Thanh toán */}
