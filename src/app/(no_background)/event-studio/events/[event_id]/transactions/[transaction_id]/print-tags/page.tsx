@@ -11,143 +11,104 @@ import Typography from '@mui/material/Typography';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 
-type TicketTagSelectedComponent = {
+interface ComponentData {
+  id: string;
   key: string;
   label: string;
-};
-
-type TicketTagComponentSetting = {
+  x: number;
+  y: number;
   width: number;
   height: number;
-  top: number;
-  left: number;
   fontSize: number;
-  color?: string | null;
-};
+  fontFamily: string;
+  fontWeight: string;
+  fontStyle: string;
+  textDecoration: string;
+  color: string;
+  backgroundColor: string;
+  textAlign: 'left' | 'center' | 'right';
+  customText?: string | null;
+  imageUrl?: string | null;
+  zIndex?: number | null;
+  includeTitle?: boolean | null;
+  verticalAlign?: 'top' | 'middle' | 'bottom' | null;
+  fieldId?: number | null;
+  rotation?: number | null;
+}
 
-type TicketTagSettings = {
-  size: string;
-  selectedComponents: TicketTagSelectedComponent[];
-  componentSettings: Record<string, TicketTagComponentSetting>;
-};
-
-type TicketResponse = {
+interface TicketTagDesign {
   id: number;
-  holderTitle: string;
-  holderName: string;
-  holderEmail?: string | null;
-  holderPhone?: string | null;
-  eCode?: string;
-};
-
-type TicketCategoryResponse = {
-  ticketCategory: {
-    name: string;
-    show: {
-      name: string;
-    };
-  };
-  tickets: TicketResponse[];
-};
-
-type TransactionResponse = {
-  id: number;
-  title?: string | null;
   name: string;
-  email?: string | null;
-  phoneNumber?: string | null;
-  address?: string | null;
-  eCode?: string;
-  transactionTicketCategories: TicketCategoryResponse[];
-  event: {
-    name: string;
-    organizer?: string | null;
-    place?: string | null;
-    startDateTime?: string | null;
-    endDateTime?: string | null;
-    locationInstruction?: string | null;
-    timeInstruction?: string | null;
-    locationUrl?: string | null;
-  };
-};
+  size: string;
+  customSize?: { width: number; height: number } | null;
+  components: ComponentData[];
+}
 
-type PrintTicketData = {
+interface TicketRow {
   ticketId: number;
-  holderName: string;
+  holderDisplayName: string;
+  holderNameRaw?: string;
+  holderTitle?: string;
   holderEmail?: string | null;
   holderPhone?: string | null;
   showName: string;
   categoryName: string;
   eCode?: string;
+  rowLabel?: string | null;
+  seatNumber?: string | null;
+}
+
+const PX_PER_MM = 96 / 25.4;
+
+const parseSizeString = (size: string): { width: number; height: number } => {
+  const match = size?.match(/(\d+)\s*x\s*(\d+)\s*mm/i);
+  if (match) return { width: Number(match[1]), height: Number(match[2]) };
+  return { width: 40, height: 30 }; // Default tag size
 };
 
-const DEFAULT_LABEL_SIZE = { width: 50, height: 30 };
-const LABEL_SIZE_MAP: Record<string, { width: number; height: number }> = {
-  '40x30mm': { width: 40, height: 30 },
-  '50x30mm': { width: 50, height: 30 },
-  '50x40mm': { width: 50, height: 40 },
-  '50x50mm': { width: 50, height: 50 },
-};
-
-const parseLabelSize = (size?: string | null) => {
-  if (!size) return DEFAULT_LABEL_SIZE;
-  const normalized = size.trim();
-  if (LABEL_SIZE_MAP[normalized]) {
-    return LABEL_SIZE_MAP[normalized];
-  }
-  const match = normalized.match(/(\d+)\s*x\s*(\d+)\s*mm/i);
-  if (match) {
-    return { width: Number(match[1]), height: Number(match[2]) };
-  }
-  return DEFAULT_LABEL_SIZE;
-};
-
-const normalizeComponentSettings = (
-  componentSettings: Record<string, any>
-): Record<string, TicketTagComponentSetting> => {
-  const normalized: Record<string, TicketTagComponentSetting> = {};
-  Object.entries(componentSettings || {}).forEach(([key, value]) => {
-    if (!value) return;
-    normalized[key] = {
-      width: Number(value.width ?? 0),
-      height: Number(value.height ?? 0),
-      top: Number(value.top ?? 0),
-      left: Number(value.left ?? 0),
-      fontSize: Number(value.fontSize ?? value.font_size ?? 10),
-      color: typeof value.color === 'string' ? value.color : '000000',
-    };
-  });
-  return normalized;
-};
-
-const resolveComponentValue = (
-  key: string,
-  ticket: PrintTicketData,
-  transaction: TransactionResponse
-): string => {
+const resolveComponentValue = (comp: ComponentData, transaction: any, ticket: TicketRow): string => {
+  if (!transaction) return '';
   const buyerName = [transaction.title, transaction.name].filter(Boolean).join(' ').trim();
 
-  switch (key) {
+  // Custom field lookup
+  if (comp.fieldId && transaction.formAnswers) {
+    const answerItem = Array.isArray(transaction.formAnswers)
+      ? transaction.formAnswers.find((item: any) => item.id === comp.fieldId)
+      : null;
+    if (answerItem) {
+      const value = answerItem.value;
+      if (Array.isArray(value)) return value.join(', ');
+      return String(value ?? '');
+    }
+  }
+
+  switch (comp.key) {
     case 'eventName':
       return transaction.event?.name || '';
     case 'organizer':
       return transaction.event?.organizer || '';
     case 'customerName':
-      return ticket.holderName || buyerName;
-    case 'customerAddress':
-      return transaction.address || '';
-    case 'customerPhone':
-      return ticket.holderPhone || transaction.phoneNumber || '';
-    case 'customerEmail':
-      return ticket.holderEmail || transaction.email || '';
-    case 'ticketsList':
-      return `${ticket.showName} - ${ticket.categoryName}`;
+    case 'name':
+      return comp.includeTitle === false ? (transaction.name || '') : buyerName;
+    case 'ticketHolderName':
+      return comp.includeTitle === false ? (ticket.holderNameRaw || '') : ticket.holderDisplayName;
     case 'showName':
       return ticket.showName;
     case 'ticketCategory':
       return ticket.categoryName;
+    case 'address':
+    case 'customerAddress':
+      return transaction.address || '';
+    case 'phone':
+    case 'customerPhone':
+    case 'phone_number':
+      return transaction.phoneNumber || '';
+    case 'email':
+    case 'customerEmail':
+      return transaction.email || '';
+    case 'transactionId':
+      return String(transaction.id ?? '');
     case 'eCode':
-      return ticket.eCode || transaction.eCode || '';
     case 'eCodeQr':
       return ticket.eCode || transaction.eCode || '';
     case 'startDateTime':
@@ -166,14 +127,117 @@ const resolveComponentValue = (
       return transaction.event?.timeInstruction || '';
     case 'locationUrl':
       return transaction.event?.locationUrl || '';
+    case 'rowLabel':
+      return ticket.rowLabel || '';
+    case 'seatNumber':
+      return ticket.seatNumber || '';
+    case 'rowSeat':
+      if (ticket.rowLabel && ticket.seatNumber) return `${ticket.rowLabel} - ${ticket.seatNumber}`;
+      return ticket.seatNumber || ticket.rowLabel || '';
+    case 'ticketsList':
+      return transaction.transactionTicketCategories?.map((ttc: any) =>
+        `${ttc.ticketCategory.show.name} - ${ttc.ticketCategory.name} (x${ttc.quantity})`
+      ).join('<br />') || '';
+    case 'title':
+      return transaction.title || '';
+    case 'ticketHolderTitle':
+      return ticket.holderTitle || '';
+    case 'idcard_number':
+      return transaction.idcard_number || transaction.idcardNumber || '';
+    case 'dob':
+      return transaction.dob ? dayjs(transaction.dob).format('DD/MM/YYYY') : '';
+    case 'ticketTid':
+      return ticket.ticketId ? `TID-${ticket.ticketId}` : '';
+    case 'customText':
+      return comp.customText || '';
     default:
       return '';
   }
 };
 
+const renderComponent = (comp: ComponentData, transaction: any, ticket: TicketRow) => {
+  const value = resolveComponentValue(comp, transaction, ticket);
+  const rotation = comp.rotation ?? 0;
+  const normalizedRotation = ((rotation % 360) + 360) % 360;
+  const isVertical = normalizedRotation === 90 || normalizedRotation === 270;
+  const isUpsideDown = normalizedRotation === 180 || normalizedRotation === 270;
+
+  const style: React.CSSProperties = {
+    position: 'absolute',
+    left: `${comp.x / PX_PER_MM}mm`,
+    top: `${comp.y / PX_PER_MM}mm`,
+    width: `${comp.width / PX_PER_MM}mm`,
+    height: `${comp.height / PX_PER_MM}mm`,
+    backgroundColor: comp.backgroundColor ? `#${comp.backgroundColor}` : 'transparent',
+    display: 'flex',
+    alignItems: comp.verticalAlign === 'top' ? 'flex-start' : comp.verticalAlign === 'bottom' ? 'flex-end' : 'center',
+    justifyContent: comp.textAlign === 'center' ? 'center' : comp.textAlign === 'right' ? 'flex-end' : 'flex-start',
+    padding: '1mm',
+    boxSizing: 'border-box',
+    zIndex: comp.zIndex ?? 1,
+    overflow: 'hidden',
+  };
+
+  const textStyle: React.CSSProperties = {
+    fontSize: `${comp.fontSize / PX_PER_MM}mm`,
+    fontFamily: comp.fontFamily || 'Arial',
+    fontWeight: comp.fontWeight,
+    fontStyle: comp.fontStyle as any,
+    textDecoration: comp.textDecoration as any,
+    color: `#${comp.color}`,
+    textAlign: comp.textAlign as any,
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    width: '100%',
+    writingMode: isVertical ? 'vertical-rl' : 'horizontal-tb',
+    transform: isUpsideDown ? 'rotate(180deg)' : 'none',
+    transformOrigin: 'center center',
+  };
+
+  if (comp.key === 'eCodeQr') {
+    return (
+      <div key={comp.id} style={style}>
+        <img
+          src={`https://api.qrserver.com/v1/create-qr-code/?margin=16&size=200x200&data=${encodeURIComponent(value)}`}
+          alt="QR Code"
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        />
+      </div>
+    );
+  }
+
+  if (comp.key === 'image' && (comp.imageUrl || comp.customText)) {
+    return (
+      <div key={comp.id} style={style}>
+        <img
+          src={comp.imageUrl || comp.customText!}
+          alt="Design Element"
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        />
+      </div>
+    );
+  }
+
+  if (comp.key === 'ticketsList') {
+    return (
+      <div key={comp.id} style={style}>
+        <span style={textStyle} dangerouslySetInnerHTML={{ __html: value }} />
+      </div>
+    );
+  }
+
+  return (
+    <div key={comp.id} style={style}>
+      <span style={textStyle}>{value}</span>
+    </div>
+  );
+};
+
 const PrintTagPage = ({ params }: { params: { event_id: number; transaction_id: number } }) => {
   const searchParams = useSearchParams();
   const ticketIdsParam = searchParams.get('ticketIds');
+  const designIdParam = searchParams.get('design_id');
+
   const ticketIdSet = React.useMemo(() => {
     if (!ticketIdsParam) return null;
     return new Set(
@@ -184,59 +248,56 @@ const PrintTagPage = ({ params }: { params: { event_id: number; transaction_id: 
     );
   }, [ticketIdsParam]);
 
-  const [settings, setSettings] = React.useState<TicketTagSettings | null>(null);
-  const [transaction, setTransaction] = React.useState<TransactionResponse | null>(null);
-  const [tickets, setTickets] = React.useState<PrintTicketData[]>([]);
+  const [design, setDesign] = React.useState<TicketTagDesign | null>(null);
+  const [transaction, setTransaction] = React.useState<any | null>(null);
+  const [tickets, setTickets] = React.useState<TicketRow[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const labelSize = React.useMemo(() => parseLabelSize(settings?.size), [settings?.size]);
+  const labelSizeMm = React.useMemo(() => {
+    if (!design) return { width: 40, height: 30 };
+    if (design.size === 'custom' && design.customSize) return design.customSize;
+    return parseSizeString(design.size);
+  }, [design]);
 
   React.useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        const [settingsResponse, transactionResponse] = await Promise.all([
-          baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/ticket-tag-settings`),
+        const [designsResponse, transactionResponse] = await Promise.all([
+          baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/ticket-tag-designs`),
           baseHttpServiceInstance.get(
             `/event-studio/events/${params.event_id}/transactions/${params.transaction_id}`
           ),
         ]);
 
-        const normalizedSettings: TicketTagSettings = {
-          size: (settingsResponse.data as TicketTagSettings).size,
-          selectedComponents:
-            (settingsResponse.data as TicketTagSettings).selectedComponents || [],
-          componentSettings: normalizeComponentSettings(
-            (settingsResponse.data as TicketTagSettings).componentSettings || {}
-          ),
-        };
+        const allDesigns = (designsResponse.data || []) as TicketTagDesign[];
+        let selectedDesign = allDesigns.find(d => String(d.id) === designIdParam) || allDesigns[0] || null;
 
-        const trxRaw = transactionResponse.data as any;
-        const augmentedTransaction: TransactionResponse = {
-          ...trxRaw,
-          eCode: trxRaw.eCode || undefined,
-        };
+        if (!selectedDesign) {
+          throw new Error('Không tìm thấy thiết kế tem.');
+        }
 
-        const flattenedTickets: PrintTicketData[] = augmentedTransaction.transactionTicketCategories.flatMap(cat =>
-          cat.tickets.map(ticket => {
-            const ticketRaw = ticket as any;
-            const ticketECode: string | undefined =
-              ticket.eCode ?? ticketRaw.eCode ?? augmentedTransaction.eCode;
-            const holderName = [ticket.holderTitle, ticket.holderName].filter(Boolean).join(' ').trim();
-            const fallbackName = [augmentedTransaction.title, augmentedTransaction.name]
-              .filter(Boolean)
-              .join(' ')
-              .trim();
+        const trx = transactionResponse.data;
+        const buyerName = [trx.title, trx.name].filter(Boolean).join(' ').trim();
+
+        const flattenedTickets: TicketRow[] = trx.transactionTicketCategories.flatMap((cat: any) =>
+          cat.tickets.map((ticket: any) => {
+            const holderNameRaw = (ticket.holderName || '').trim();
+            const holderName = [ticket.holderTitle, holderNameRaw].filter(Boolean).join(' ').trim();
             return {
               ticketId: ticket.id,
-              holderName: holderName || fallbackName,
-              holderEmail: ticket.holderEmail ?? augmentedTransaction.email,
-              holderPhone: ticket.holderPhone ?? augmentedTransaction.phoneNumber,
+              holderDisplayName: holderName || buyerName || trx.name,
+              holderNameRaw: holderNameRaw || undefined,
+              holderTitle: ticket.holderTitle || undefined,
+              holderEmail: ticket.holderEmail ?? trx.email,
+              holderPhone: ticket.holderPhone ?? trx.phoneNumber,
               showName: cat.ticketCategory.show.name,
               categoryName: cat.ticketCategory.name,
-              eCode: ticketECode,
+              eCode: ticket.eCode ?? trx.eCode,
+              rowLabel: ticket.showSeat?.rowLabel,
+              seatNumber: ticket.showSeat?.seatNumber,
             };
           })
         );
@@ -245,40 +306,33 @@ const PrintTagPage = ({ params }: { params: { event_id: number; transaction_id: 
           ? flattenedTickets.filter(ticket => ticketIdSet.has(ticket.ticketId))
           : flattenedTickets;
 
-        setSettings(normalizedSettings);
-        setTransaction(augmentedTransaction);
+        setDesign(selectedDesign);
+        setTransaction(trx);
         setTickets(filtered);
         setError(null);
       } catch (err: any) {
-        setError(String(err));
+        setError(err.message || String(err));
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [params.event_id, params.transaction_id, ticketIdSet]);
+  }, [params.event_id, params.transaction_id, ticketIdSet, designIdParam]);
 
   React.useEffect(() => {
-    if (loading || error || !settings || tickets.length === 0 || !transaction) {
+    if (loading || error || !design || tickets.length === 0 || !transaction) {
       return;
     }
 
     const printTimeout = window.setTimeout(() => {
       window.print();
-    }, 200);
-
-    const handleAfterPrint = () => {
-      // window.close();
-    };
-
-    window.addEventListener('afterprint', handleAfterPrint);
+    }, 500);
 
     return () => {
       window.clearTimeout(printTimeout);
-      window.removeEventListener('afterprint', handleAfterPrint);
     };
-  }, [loading, error, settings, tickets, transaction]);
+  }, [loading, error, design, tickets, transaction]);
 
   if (loading) {
     return (
@@ -286,9 +340,9 @@ const PrintTagPage = ({ params }: { params: { event_id: number; transaction_id: 
         spacing={2}
         alignItems="center"
         justifyContent="center"
-        sx={{ height: '100vh', color: '#fff', backgroundColor: '#000' }}
+        sx={{ height: '100vh', backgroundColor: '#fff' }}
       >
-        <CircularProgress color="inherit" />
+        <CircularProgress />
         <Typography variant="body2">Đang chuẩn bị nội dung in...</Typography>
       </Stack>
     );
@@ -300,54 +354,26 @@ const PrintTagPage = ({ params }: { params: { event_id: number; transaction_id: 
         spacing={2}
         alignItems="center"
         justifyContent="center"
-        sx={{ height: '100vh', color: '#fff', backgroundColor: '#000', textAlign: 'center', px: 2 }}
+        sx={{ height: '100vh', textAlign: 'center', px: 2 }}
       >
-        <Typography variant="body1">Có lỗi xảy ra khi tải dữ liệu in.</Typography>
+        <Typography variant="body1" color="error">Có lỗi xảy ra khi tải dữ liệu in.</Typography>
         <Typography variant="caption">{error}</Typography>
       </Stack>
     );
   }
 
-  if (!settings || !transaction) {
+  if (!design || !transaction) {
     return (
-      <Stack
-        spacing={2}
-        alignItems="center"
-        justifyContent="center"
-        sx={{ height: '100vh', color: '#fff', backgroundColor: '#000' }}
-      >
+      <Stack spacing={2} alignItems="center" justifyContent="center" sx={{ height: '100vh' }}>
         <Typography variant="body1">Không tìm thấy cấu hình in hoặc đơn hàng.</Typography>
       </Stack>
     );
   }
 
-  if (tickets.length === 0) {
-    return (
-      <Stack
-        spacing={2}
-        alignItems="center"
-        justifyContent="center"
-        sx={{ height: '100vh', color: '#fff', backgroundColor: '#000', textAlign: 'center', px: 2 }}
-      >
-        <Typography variant="body1">Không có vé nào phù hợp để in.</Typography>
-        <Typography variant="caption">Vui lòng đóng tab này và thử lại.</Typography>
-      </Stack>
-    );
-  }
-
-  const { width, height } = labelSize;
+  const { width, height } = labelSizeMm;
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        m: 0,
-        p: 0,
-        backgroundColor: '#fff',
-        width: `${width}mm`,
-      }}
-      className="ticket-tag-print-container"
-    >
+    <Box sx={{ backgroundColor: '#fff', minHeight: '100vh' }}>
       <style>{`
         @page {
           size: ${width}mm ${height}mm;
@@ -356,102 +382,41 @@ const PrintTagPage = ({ params }: { params: { event_id: number; transaction_id: 
         @media print {
           html, body {
             width: ${width}mm;
+            height: ${height}mm;
             margin: 0;
             padding: 0;
           }
           body {
-            margin: 0;
-            padding: 0;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
-          .ticket-tag-print-page {
+          .ticket-tag-page {
             page-break-after: always;
-            margin: 0 0 5mm 0 !important;
+            box-shadow: none !important;
           }
         }
       `}</style>
 
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          justifyContent: 'flex-start',
-          gap: '5mm',
-          padding: 0,
-          margin: 0,
-          width: `${width}mm`,
-        }}
-      >
-        {tickets.map((ticket, index) => (
-          <Box
-            key={ticket.ticketId}
-            className="ticket-tag-print-page"
-            sx={{
-              width: `${width}mm`,
-              height: `${height}mm`,
-              position: 'relative',
-              backgroundColor: '#fff',
-              marginTop: index === 0 ? '0mm' : '5mm',
-              marginRight: 0,
-            }}
-          >
-            {settings.selectedComponents.map(component => {
-              const compSetting = settings.componentSettings[component.key];
-              if (!compSetting) return null;
-              const value = resolveComponentValue(component.key, ticket, transaction);
-              if (!value) return null;
-
-              const topMm = (compSetting.top / 100) * height;
-              const leftMm = (compSetting.left / 100) * width;
-              const widthMm = (compSetting.width / 100) * width;
-              const heightMm = (compSetting.height / 100) * height;
-              const fontSizeMm = (compSetting.fontSize || 10) / 3;
-
-              const baseStyles: React.CSSProperties = {
-                position: 'absolute',
-                top: `${topMm}mm`,
-                left: `${leftMm}mm`,
-                width: `${widthMm}mm`,
-                height: `${heightMm}mm`,
-                color: `#${compSetting.color || '000000'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                fontSize: `${fontSizeMm}mm`,
-                boxSizing: 'border-box',
-                padding: '1mm',
-                wordBreak: 'break-word',
-                whiteSpace: 'pre-line',
-              };
-
-              if (component.key === 'eCodeQr') {
-                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?margin=16&size=280x280&data=${encodeURIComponent(
-                  value
-                )}`;
-                return (
-                  <Box key={`${ticket.ticketId}-${component.key}`} sx={baseStyles}>
-                    <Box
-                      component="img"
-                      src={qrUrl}
-                      alt="QR"
-                      sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                    />
-                  </Box>
-                );
-              }
-
-              return (
-                <Box key={`${ticket.ticketId}-${component.key}`} sx={baseStyles}>
-                  {value}
-                </Box>
-              );
-            })}
-          </Box>
-        ))}
-      </Box>
+      {tickets.map((ticket) => (
+        <Box
+          key={ticket.ticketId}
+          className="ticket-tag-page"
+          sx={{
+            width: `${width}mm`,
+            height: `${height}mm`,
+            position: 'relative',
+            backgroundColor: '#fff',
+            overflow: 'hidden',
+            boxShadow: '0 0 1px rgba(0,0,0,0.1)',
+            mb: '10px',
+            '@media print': {
+              mb: 0,
+            }
+          }}
+        >
+          {design.components.map((comp) => renderComponent(comp, transaction, ticket))}
+        </Box>
+      ))}
     </Box>
   );
 };

@@ -38,9 +38,7 @@ type FieldType = 'text' | 'number' | 'radio' | 'checkbox' | 'date' | 'time' | 'd
 
 interface FieldDefinition {
   id: number;
-  kind: 'builtin_core' | 'builtin_optional' | 'custom';
-  builtinKey: string | null;
-  name: string;
+  internalName: string;
   label: string;
   type: FieldType;
   visible: boolean;
@@ -67,9 +65,7 @@ interface NewFieldState {
 const INITIAL_FIELDS: FieldDefinition[] = [
   {
     id: 1,
-    kind: 'builtin_core',
-    builtinKey: 'title',
-    name: 'title',
+    internalName: 'title',
     label: 'Danh xưng',
     type: 'text',
     visible: true,
@@ -82,9 +78,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
   },
   {
     id: 2,
-    kind: 'builtin_core',
-    builtinKey: 'name',
-    name: 'name',
+    internalName: 'name',
     label: 'Họ tên',
     type: 'text',
     visible: true,
@@ -97,9 +91,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
   },
   {
     id: 3,
-    kind: 'builtin_core',
-    builtinKey: 'email',
-    name: 'email',
+    internalName: 'email',
     label: 'Email',
     type: 'text',
     visible: true,
@@ -112,9 +104,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
   },
   {
     id: 4,
-    kind: 'builtin_core',
-    builtinKey: 'phone_number',
-    name: 'phone_number',
+    internalName: 'phone_number',
     label: 'Số điện thoại',
     type: 'text',
     visible: true,
@@ -127,9 +117,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
   },
   {
     id: 5,
-    kind: 'builtin_optional',
-    builtinKey: 'address',
-    name: 'address',
+    internalName: 'address',
     label: 'Địa chỉ',
     type: 'text',
     visible: false,
@@ -142,9 +130,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
   },
   {
     id: 6,
-    kind: 'builtin_optional',
-    builtinKey: 'dob',
-    name: 'dob',
+    internalName: 'dob',
     label: 'Ngày sinh',
     type: 'date',
     visible: false,
@@ -157,9 +143,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
   },
   {
     id: 7,
-    kind: 'builtin_optional',
-    builtinKey: 'idcard_number',
-    name: 'idcard_number',
+    internalName: 'idcard_number',
     label: 'Căn cước công dân',
     type: 'text',
     visible: false,
@@ -212,7 +196,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
         // Bắt đầu với bản sao của INITIAL_FIELDS để đảm bảo thứ tự
         const mappedBuiltin = INITIAL_FIELDS.map(builtin => {
-          const apiField = apiFields.find(f => f.builtinKey === builtin.builtinKey);
+          const apiField = apiFields.find(f => f.internalName === builtin.internalName);
           if (apiField) {
             return {
               ...builtin,
@@ -222,8 +206,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               visible: apiField.visible,
               required: apiField.required,
               note: apiField.note || '',
-              showInTransactionHistory: builtin.kind === 'builtin_core' ? true : (apiField.showInTransactionHistory || false),
-              showInTicketEmail: builtin.kind === 'builtin_core' ? true : (apiField.showInTicketEmail || false),
+              showInTransactionHistory: ['title', 'name', 'email', 'phone_number'].includes(builtin.internalName) ? true : (apiField.showInTransactionHistory || false),
+              showInTicketEmail: ['title', 'name', 'email', 'phone_number'].includes(builtin.internalName) ? true : (apiField.showInTicketEmail || false),
               options: apiField.options && apiField.options.length > 0
                 ? (apiField.options as any[]).map(opt => opt.label as string)
                 : undefined,
@@ -233,13 +217,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         });
 
         // Lấy các custom fields từ API
+        const builtinNames = ['title', 'name', 'email', 'phone_number', 'address', 'dob', 'idcard_number'];
         const mappedCustom: FieldDefinition[] = apiFields
-          .filter(f => f.kind === 'custom')
+          .filter(f => !builtinNames.includes(f.internalName))
           .map(f => ({
             id: f.id,
-            kind: 'custom',
-            builtinKey: null,
-            name: f.internalName,
+            internalName: f.internalName,
             label: f.label,
             type: f.fieldType,
             visible: f.visible,
@@ -332,9 +315,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const nextId = fields.length ? Math.max(...fields.map((f) => f.id)) + 1 : 1;
       const created: FieldDefinition = {
         id: nextId,
-        kind: 'custom',
-        builtinKey: null,
-        name: newField.label.trim(),
+        internalName: `${Math.floor(Date.now() / 1000)}_${newField.label.trim()}`,
         label: newField.label.trim(),
         type: newField.type,
         visible: newField.visible,
@@ -357,7 +338,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           const canEditVisibilityAndRequired = !field.locked;
 
           // Chỉ 4 trường core (title, name, email, phone_number) luôn true, các trường khác cho phép edit
-          const isCoreField = field.name === 'title' || field.name === 'name' || field.name === 'email' || field.name === 'phone_number';
+          const isCoreField = field.internalName === 'title' || field.internalName === 'name' || field.internalName === 'email' || field.internalName === 'phone_number';
 
           return {
             ...field,
@@ -406,8 +387,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const handleSaveConfigToServer = async () => {
     try {
       const payloadFields = fields.map((field, index) => {
-        const kind = field.kind;
-        const builtinKey = field.builtinKey;
+        const internalName = field.internalName;
 
         const sortOrder = (index + 1) * 10;
 
@@ -425,11 +405,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             : undefined;
 
         return {
-          // Không gửi id cho custom mới; backend sẽ map builtin theo sortOrder + builtinKey
+          // Không gửi id cho custom mới; backend sẽ map builtin theo sortOrder + internalName
           id: field.id,
-          kind,
-          builtinKey,
-          internalName: field.name,
+          internalName,
           label: field.label,
           fieldType: field.type,
           visible: field.visible,
@@ -695,7 +673,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       onChange={(e) =>
                         setNewField((prev) => ({ ...prev, showInTransactionHistory: e.target.checked }))
                       }
-                      disabled={!!editingField && (editingField.name === 'title' || editingField.name === 'name' || editingField.name === 'email' || editingField.name === 'phone_number')}
+                      disabled={!!editingField && (editingField.internalName === 'title' || editingField.internalName === 'name' || editingField.internalName === 'email' || editingField.internalName === 'phone_number')}
                     />
                   }
                   label={
@@ -715,7 +693,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       onChange={(e) =>
                         setNewField((prev) => ({ ...prev, showInTicketEmail: e.target.checked }))
                       }
-                      disabled={!!editingField && (editingField.name === 'title' || editingField.name === 'name' || editingField.name === 'email' || editingField.name === 'phone_number')}
+                      disabled={!!editingField && (editingField.internalName === 'title' || editingField.internalName === 'name' || editingField.internalName === 'email' || editingField.internalName === 'phone_number')}
                     />
                   }
                   label="Hiển thị trong email vé"

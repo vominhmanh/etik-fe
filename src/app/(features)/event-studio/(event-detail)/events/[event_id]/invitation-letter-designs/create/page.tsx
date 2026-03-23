@@ -19,7 +19,6 @@ import {
   MenuItem,
   Select,
   Stack,
-  Switch,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
@@ -27,7 +26,6 @@ import {
 } from '@mui/material';
 import { AxiosResponse } from 'axios';
 import { useRouter } from 'next/navigation';
-import { useReactToPrint } from 'react-to-print';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { ResizeCallbackData } from 'react-resizable';
 import 'react-resizable/css/styles.css';
@@ -117,21 +115,29 @@ const getDefaultComponents = (tt: (vi: string, en: string) => string): { label: 
   { label: tt('Thời gian bắt đầu', 'Start Date Time'), key: 'startDateTime' },
   { label: tt('Thời gian kết thúc', 'End Date Time'), key: 'endDateTime' },
   { label: tt('Địa điểm', 'Place'), key: 'place' },
+
+  { label: tt('TID vé', 'Ticket TID'), key: 'ticketTid' },
   { label: tt('Tên show diễn ra', 'Show Name'), key: 'showName' },
   { label: tt('Loại vé', 'Ticket Category'), key: 'ticketCategory' },
-  // Ticket Holder specific (per-ticket fields)
   { label: tt('Tên người sở hữu vé', 'Ticket Holder Name'), key: 'ticketHolderName' },
-  { label: tt('Danh xưng (người sở hữu vé)', 'Title (Ticket Holder)'), key: 'titleTicketHolder' },
+  { label: tt('Danh xưng (người sở hữu vé)', 'Title (Ticket Holder)'), key: 'ticketHolderTitle' },
   { label: tt('Email người sở hữu vé', 'Ticket Holder Email'), key: 'ticketHolderEmail' },
   { label: tt('SĐT người sở hữu vé', 'Ticket Holder Phone'), key: 'ticketHolderPhone' },
-  { label: tt('Ảnh', 'Image'), key: 'image' },
-  { label: tt('Text tùy chọn', 'Custom Text'), key: 'customText' },
-  { label: tt('ID đơn hàng', 'Transaction ID'), key: 'transactionId' },
-  { label: tt('TID vé', 'Ticket TID'), key: 'ticketTid' },
-  // Seat Info
   { label: tt('Hàng ghế', 'Row Label'), key: 'rowLabel' },
   { label: tt('Số ghế', 'Seat Number'), key: 'seatNumber' },
   { label: tt('Hàng ghế - Số ghế', 'Row - Seat'), key: 'rowSeat' },
+
+  { label: tt('ID đơn hàng', 'Transaction ID'), key: 'transactionId' },
+  { label: tt('Họ tên (đơn hàng)', 'Name (Trxn)'), key: 'name' },
+  { label: tt('Danh xưng (đơn hàng)', 'Title (Trxn)'), key: 'title' },
+  { label: tt('Email', 'Email'), key: 'email' },
+  { label: tt('Số điện thoại', 'Phone Number'), key: 'phone_number' },
+  { label: tt('Ngày sinh', 'Date of Birth'), key: 'dob' },
+  { label: tt('Địa chỉ', 'Address'), key: 'address' },
+  { label: tt('CMND/CCCD', 'ID Card Number'), key: 'idcard_number' },
+
+  { label: tt('Ảnh', 'Image'), key: 'image' },
+  { label: tt('Text tùy chọn', 'Custom Text'), key: 'customText' },
 ];
 
 const PX_PER_MM = 96 / 25.4; // ~3.7795 px/mm
@@ -426,17 +432,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   // Components state
   const [components, setComponents] = useState<ComponentData[]>([]);
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
-  const [previewData, setPreviewData] = useState<Record<string, string>>({});
-  const [showPreview, setShowPreview] = useState(false);
   const [visibleFields, setVisibleFields] = useState<VisibleField[]>([]);
 
   // Canvas refs
   const canvasRef = useRef<HTMLDivElement>(null);
   const printAreaRef = useRef<HTMLDivElement>(null);
   const hasUserEditedRef = useRef(false);
-  const triggerPrint = useReactToPrint({
-    content: () => printAreaRef.current,
-  });
 
   // Calculate current label size
   const currentLabelSize = useMemo(() => {
@@ -467,34 +468,23 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   // Map API visible field to component key
   const mapFieldToComponentKey = (f: VisibleField): string => {
-    const builtinKey = f.builtinKey;
-    switch (builtinKey) {
-      case 'name':
-        return 'name';
-      case 'email':
-        return 'email';
-      case 'phone_number':
-        return 'phone';
-      case 'dob':
-        return 'dob';
-      case 'address':
-        return 'address';
-      case 'idcard_number':
-        return 'idcard_number';
-      default:
-        const internalName = f.internalName;
-        if (internalName && internalName.trim().length > 0) {
-          return `form_${internalName}${f.id ? `_${f.id}` : ''}`;
-        }
-        if (typeof f.id === 'number') {
-          return `form_field_${f.id}`;
-        }
-        const safeLabel = (f.label || 'field')
-          .toLowerCase()
-          .replace(/\s+/g, '_')
-          .replace(/[^a-z0-9_]/g, '');
-        return `form_${safeLabel}`;
+    const internalName = f.internalName;
+    if (internalName && internalName.trim().length > 0) {
+      // Re-use built-in mapping names to keep it simple and consistent with backend
+      if (['name', 'email', 'phone_number', 'dob', 'address', 'idcard_number', 'title'].includes(internalName)) {
+        return internalName;
+      }
+      return `form_${internalName}`;
     }
+    // Fallback for fields without internalName
+    if (typeof f.id === 'number') {
+      return `form_field_${f.id}`;
+    }
+    const safeLabel = (f.label || 'field')
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '');
+    return `form_${safeLabel}`;
   };
 
   // Fetch visible fields for dynamic components
@@ -513,20 +503,68 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const getBuiltinLabelForKey = (key: string): string | null => {
     const vi = {
+      eventName: 'Tên sự kiện',
+      ticketsList: 'Danh sách vé',
+      eCode: 'Mã Check-in',
+      eCodeQr: 'Ảnh QR',
+      startDateTime: 'Thời gian bắt đầu',
+      endDateTime: 'Thời gian kết thúc',
+      place: 'Địa điểm',
+
+      ticketTid: 'TID vé',
+      showName: 'Tên show diễn ra',
+      ticketCategory: 'Loại vé',
+      ticketHolderName: 'Tên người sở hữu vé',
+      ticketHolderTitle: 'Danh xưng (người sở hữu vé)',
+      ticketHolderEmail: 'Email người sở hữu vé',
+      ticketHolderPhone: 'SĐT người sở hữu vé',
+      rowLabel: 'Hàng ghế',
+      seatNumber: 'Số ghế',
+      rowSeat: 'Hàng ghế - Số ghế',
+
+      transactionId: 'ID đơn hàng',
       name: 'Họ tên (đơn hàng)',
+      title: 'Danh xưng (đơn hàng)',
       email: 'Email',
-      phone: 'Số điện thoại',
+      phone_number: 'Số điện thoại',
       dob: 'Ngày sinh',
       address: 'Địa chỉ',
       idcard_number: 'CMND/CCCD',
+
+      image: 'Ảnh',
+      customText: 'Text tùy chọn',
     } as const;
     const en = {
+      eventName: 'Event Name',
+      ticketsList: 'Tickets List',
+      eCode: 'Check-in Code',
+      eCodeQr: 'QR Image',
+      startDateTime: 'Start Date Time',
+      endDateTime: 'End Date Time',
+      place: 'Place',
+
+      ticketTid: 'Ticket TID',
+      showName: 'Show Name',
+      ticketCategory: 'Ticket Category',
+      ticketHolderName: 'Ticket Holder Name',
+      ticketHolderTitle: 'Title (Ticket Holder)',
+      ticketHolderEmail: 'Ticket Holder Email',
+      ticketHolderPhone: 'Ticket Holder Phone',
+      rowLabel: 'Row Label',
+      seatNumber: 'Seat Number',
+      rowSeat: 'Row - Seat',
+
+      transactionId: 'Transaction ID',
       name: 'Name (Trxn)',
+      title: 'Title (Trxn)',
       email: 'Email',
-      phone: 'Phone Number',
+      phone_number: 'Phone Number',
       dob: 'Date of Birth',
       address: 'Address',
       idcard_number: 'ID Card Number',
+
+      image: 'Image',
+      customText: 'Custom Text',
     } as const;
     const dict = locale === 'en' ? en : vi;
     return (dict as any)[key] || null;
@@ -543,93 +581,30 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return comp.label;
   };
 
-  // Component list combining static + dynamic fields
-  const componentList = useMemo((): Array<{ label: string; key: string; fieldId?: number }> => {
-    const staticList = getDefaultComponents(tt);
-
-    // Define localized labels for built-in fields
-    const builtinLabels = locale === 'en'
-      ? {
-        name: 'Name (Trxn)',
-        email: 'Email',
-        phone: 'Phone Number',
-        dob: 'Date of Birth',
-        address: 'Address',
-        idcard_number: 'ID Card Number',
-      }
-      : {
-        name: 'Họ tên (đơn hàng)',
-        email: 'Email',
-        phone: 'Số điện thoại',
-        dob: 'Ngày sinh',
-        address: 'Địa chỉ',
-        idcard_number: 'CMND/CCCD',
-      };
-
-    // Map API builtin_key to component key
-    const builtinKeyMapping: Record<string, string> = {
-      'name': 'name',
-      'email': 'email',
-      'phone_number': 'phone',
-      'dob': 'dob',
-      'address': 'address',
-      'idcard_number': 'idcard_number',
-    };
-
-    // Create a Set of built-in keys that exist in visibleFields
-    const visibleBuiltinKeys = new Set<string>();
-    visibleFields.forEach((f) => {
-      const builtinKey = f.builtinKey;
-      if (builtinKey && builtinKeyMapping[builtinKey]) {
-        visibleBuiltinKeys.add(builtinKeyMapping[builtinKey]);
+  // Memoized lists for the sidebar
+  const visibleBuiltinNames = useMemo(() => {
+    const names = new Set<string>();
+    visibleFields.forEach(f => {
+      const internalName = f.internalName;
+      if (internalName && ['name', 'email', 'phone_number', 'dob', 'address', 'idcard_number', 'title'].includes(internalName)) {
+        names.add(internalName);
       }
     });
+    return names;
+  }, [visibleFields]);
 
-    // Only include built-in fields that are in visibleFields (with localized labels)
-    const builtinKeys = ['name', 'email', 'phone', 'dob', 'address', 'idcard_number'] as const;
-    const builtinList = builtinKeys
-      .filter((key) => visibleBuiltinKeys.has(key))
-      .map((key) => ({
-        label: builtinLabels[key],
-        key,
-      }));
-
-    // Add "Title (Trxn)" only if "name" is visible
-    const conditionalList: Array<{ label: string; key: string }> = [];
-    if (visibleBuiltinKeys.has('name')) {
-      conditionalList.push({
-        label: tt('Danh xưng (đơn hàng)', 'Title (Trxn)'),
-        key: 'titleTrxn',
-      });
-    }
-
-    // Only show custom fields from visibleFields (exclude built-in fields)
-    const builtinApiKeys = ['name', 'email', 'phone_number', 'dob', 'address', 'idcard_number'];
-    const customFieldsList = visibleFields
-      .filter((f) => {
-        const builtinKey = f.builtinKey;
-        return !builtinApiKeys.includes(builtinKey || '');
+  const customFieldsList = useMemo(() => {
+    return visibleFields
+      .filter(f => {
+        const internalName = f.internalName;
+        return !['name', 'email', 'phone_number', 'dob', 'address', 'idcard_number', 'title'].includes(internalName || '');
       })
-      .map((f) => {
-        const key = mapFieldToComponentKey(f);
-        // Custom fields use backend label and store field ID for stable mapping
-        return {
-          label: f.label,
-          key,
-          fieldId: f.id, // Store field ID for stable mapping with formAnswers
-        };
-      });
-
-    // Deduplicate by key while preserving order priority: static -> builtin -> conditional -> custom
-    const combined = [...staticList, ...builtinList, ...conditionalList, ...customFieldsList];
-    const seen = new Set<string>();
-    const unique = combined.filter((item) => {
-      if (seen.has(item.key)) return false;
-      seen.add(item.key);
-      return true;
-    });
-    return unique;
-  }, [tt, visibleFields, locale]);
+      .map(f => ({
+        label: f.label,
+        key: mapFieldToComponentKey(f),
+        fieldId: f.id,
+      }));
+  }, [visibleFields]);
 
   // Handle size change
   const handleSizeChange = (value: string) => {
@@ -860,7 +835,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const handleSaveTemplateSettings = async () => {
     try {
       setIsLoading(true);
-      const payloadComponents = components;
+      // include image_url for backend compatibility
+      const payloadComponents = components.map((c) =>
+        c.key === 'image'
+          ? ({ ...c, image_url: (c as any).imageUrl ?? (c as any).image_url ?? '' } as any)
+          : c
+      );
       const payload: InvitationLetterDesign = {
         name: designName || tt('Thiết kế mới', 'New Design'),
         size: showCustomSize ? 'custom' : selectedSize,
@@ -942,33 +922,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return f.label;
   };
 
-  const buildPreviewData = (): Record<string, string> => {
-    const base = buildPreviewBase();
-    for (const f of visibleFields) {
-      const key = mapFieldToComponentKey(f);
-      base[key] = buildPreviewValueForField(f);
-    }
-    return base;
-  };
-
-  // Toggle preview
-  const handleTogglePreview = () => {
-    if (!showPreview) {
-      setPreviewData(buildPreviewData());
-    } else {
-      setPreviewData({});
-    }
-    setShowPreview(!showPreview);
-  };
-
-  /** ---------- Test print ---------- */
-  const handleTestPrint = () => {
-    setPreviewData(buildPreviewData());
-    if (!triggerPrint) return;
-    setTimeout(() => {
-      triggerPrint(undefined);
-    }, 100);
-  };
 
   // Print CSS
   const printCss = `
@@ -1106,27 +1059,35 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <CardHeader title={tt("Thành phần", "Components")} titleTypographyProps={{ variant: 'subtitle2' }} />
               <Divider />
               <List dense>
+                <Divider sx={{ my: 0.5 }} />
+
                 {/* Thông tin chung */}
                 <ListItem sx={{ backgroundColor: 'rgba(0, 0, 0, 0.04)', py: 0.5 }}>
                   <Typography variant="caption" fontWeight="bold" color="text.secondary">
                     {tt("Thông tin chung", "General Info")}
                   </Typography>
                 </ListItem>
-                {componentList
-                  .filter(({ key }) => ['eventName', 'ticketsList', 'eCode', 'eCodeQr', 'startDateTime', 'endDateTime', 'place'].includes(key))
-                  .map(({ label, key, fieldId }, idx) => (
-                    <ListItem
-                      key={`${key}-${idx}`}
-                      button
-                      onClick={() => handleAddComponent(key, label, fieldId)}
-                      sx={{
-                        cursor: 'pointer',
-                        '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.08)' },
-                      }}
-                    >
-                      <Typography variant="body2">{label}</Typography>
-                    </ListItem>
-                  ))}
+                <ListItem button onClick={() => handleAddComponent('eventName', tt('Tên sự kiện', 'Event Name'))}>
+                  <Typography variant="body2">{tt('Tên sự kiện', 'Event Name')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('ticketsList', tt('Danh sách vé', 'Tickets List'))}>
+                  <Typography variant="body2">{tt('Danh sách vé', 'Tickets List')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('eCode', tt('Mã Check-in', 'Check-in Code'))}>
+                  <Typography variant="body2">{tt('Mã Check-in', 'Check-in Code')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('eCodeQr', tt('Ảnh QR', 'QR Image'))}>
+                  <Typography variant="body2">{tt('Ảnh QR', 'QR Image')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('startDateTime', tt('Thời gian bắt đầu', 'Start Date Time'))}>
+                  <Typography variant="body2">{tt('Thời gian bắt đầu', 'Start Date Time')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('endDateTime', tt('Thời gian kết thúc', 'End Date Time'))}>
+                  <Typography variant="body2">{tt('Thời gian kết thúc', 'End Date Time')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('place', tt('Địa điểm', 'Place'))}>
+                  <Typography variant="body2">{tt('Địa điểm', 'Place')}</Typography>
+                </ListItem>
 
                 <Divider sx={{ my: 0.5 }} />
 
@@ -1136,21 +1097,36 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     {tt("Thông tin vé", "Ticket Info")}
                   </Typography>
                 </ListItem>
-                {componentList
-                  .filter(({ key }) => ['ticketTid', 'showName', 'ticketCategory', 'titleTicketHolder', 'ticketHolderName', 'ticketHolderEmail', 'ticketHolderPhone', 'rowLabel', 'seatNumber', 'rowSeat'].includes(key))
-                  .map(({ label, key, fieldId }, idx) => (
-                    <ListItem
-                      key={`${key}-${idx}`}
-                      button
-                      onClick={() => handleAddComponent(key, label, fieldId)}
-                      sx={{
-                        cursor: 'pointer',
-                        '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.08)' },
-                      }}
-                    >
-                      <Typography variant="body2">{label}</Typography>
-                    </ListItem>
-                  ))}
+                <ListItem button onClick={() => handleAddComponent('ticketTid', tt('TID vé', 'Ticket TID'))}>
+                  <Typography variant="body2">{tt('TID vé', 'Ticket TID')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('showName', tt('Tên show diễn ra', 'Show Name'))}>
+                  <Typography variant="body2">{tt('Tên show diễn ra', 'Show Name')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('ticketCategory', tt('Loại vé', 'Ticket Category'))}>
+                  <Typography variant="body2">{tt('Loại vé', 'Ticket Category')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('ticketHolderName', tt('Tên người sở hữu vé', 'Ticket Holder Name'))}>
+                  <Typography variant="body2">{tt('Tên người sở hữu vé', 'Ticket Holder Name')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('ticketHolderTitle', tt('Danh xưng (người sở hữu vé)', 'Title (Ticket Holder)'))}>
+                  <Typography variant="body2">{tt('Danh xưng (người sở hữu vé)', 'Title (Ticket Holder)')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('ticketHolderEmail', tt('Email người sở hữu vé', 'Ticket Holder Email'))}>
+                  <Typography variant="body2">{tt('Email người sở hữu vé', 'Ticket Holder Email')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('ticketHolderPhone', tt('SĐT người sở hữu vé', 'Ticket Holder Phone'))}>
+                  <Typography variant="body2">{tt('SĐT người sở hữu vé', 'Ticket Holder Phone')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('rowLabel', tt('Hàng ghế', 'Row Label'))}>
+                  <Typography variant="body2">{tt('Hàng ghế', 'Row Label')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('seatNumber', tt('Số ghế', 'Seat Number'))}>
+                  <Typography variant="body2">{tt('Số ghế', 'Seat Number')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('rowSeat', tt('Hàng ghế - Số ghế', 'Row - Seat'))}>
+                  <Typography variant="body2">{tt('Hàng ghế - Số ghế', 'Row - Seat')}</Typography>
+                </ListItem>
 
                 <Divider sx={{ my: 0.5 }} />
 
@@ -1160,21 +1136,59 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     {tt("Thông tin đơn hàng", "Order Info")}
                   </Typography>
                 </ListItem>
-                {componentList
-                  .filter(({ key }) => ['transactionId', 'name', 'titleTrxn', 'email', 'phone', 'dob', 'address', 'idcard_number'].includes(key) || key.startsWith('form_'))
-                  .map(({ label, key, fieldId }, idx) => (
-                    <ListItem
-                      key={`${key}-${idx}`}
-                      button
-                      onClick={() => handleAddComponent(key, label, fieldId)}
-                      sx={{
-                        cursor: 'pointer',
-                        '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.08)' },
-                      }}
-                    >
-                      <Typography variant="body2">{label}</Typography>
-                    </ListItem>
-                  ))}
+                <ListItem button onClick={() => handleAddComponent('transactionId', tt('ID đơn hàng', 'Transaction ID'))}>
+                  <Typography variant="body2">{tt('ID đơn hàng', 'Transaction ID')}</Typography>
+                </ListItem>
+                {visibleBuiltinNames.has('name') && (
+                  <ListItem button onClick={() => handleAddComponent('name', tt('Họ tên (đơn hàng)', 'Name (Trxn)'))}>
+                    <Typography variant="body2">{tt('Họ tên (đơn hàng)', 'Name (Trxn)')}</Typography>
+                  </ListItem>
+                )}
+                {visibleBuiltinNames.has('title') && (
+                  <ListItem button onClick={() => handleAddComponent('title', tt('Danh xưng (đơn hàng)', 'Title (Trxn)'))}>
+                    <Typography variant="body2">{tt('Danh xưng (đơn hàng)', 'Title (Trxn)')}</Typography>
+                  </ListItem>
+                )}
+                {visibleBuiltinNames.has('email') && (
+                  <ListItem button onClick={() => handleAddComponent('email', tt('Email', 'Email'))}>
+                    <Typography variant="body2">{tt('Email', 'Email')}</Typography>
+                  </ListItem>
+                )}
+                {visibleBuiltinNames.has('phone_number') && (
+                  <ListItem button onClick={() => handleAddComponent('phone_number', tt('Số điện thoại', 'Phone Number'))}>
+                    <Typography variant="body2">{tt('Số điện thoại', 'Phone Number')}</Typography>
+                  </ListItem>
+                )}
+                {visibleBuiltinNames.has('dob') && (
+                  <ListItem button onClick={() => handleAddComponent('dob', tt('Ngày sinh', 'Date of Birth'))}>
+                    <Typography variant="body2">{tt('Ngày sinh', 'Date of Birth')}</Typography>
+                  </ListItem>
+                )}
+                {visibleBuiltinNames.has('address') && (
+                  <ListItem button onClick={() => handleAddComponent('address', tt('Địa chỉ', 'Address'))}>
+                    <Typography variant="body2">{tt('Địa chỉ', 'Address')}</Typography>
+                  </ListItem>
+                )}
+                {visibleBuiltinNames.has('idcard_number') && (
+                  <ListItem button onClick={() => handleAddComponent('idcard_number', tt('CMND/CCCD', 'ID Card Number'))}>
+                    <Typography variant="body2">{tt('CMND/CCCD', 'ID Card Number')}</Typography>
+                  </ListItem>
+                )}
+
+                {/* Custom Fields in Order Info */}
+                {customFieldsList.map(({ label, key, fieldId }) => (
+                  <ListItem
+                    key={key}
+                    button
+                    onClick={() => handleAddComponent(key, label, fieldId)}
+                    sx={{
+                      cursor: 'pointer',
+                      '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.08)' },
+                    }}
+                  >
+                    <Typography variant="body2">{label}</Typography>
+                  </ListItem>
+                ))}
 
                 <Divider sx={{ my: 0.5 }} />
 
@@ -1184,21 +1198,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     {tt("Components khác", "Other Components")}
                   </Typography>
                 </ListItem>
-                {componentList
-                  .filter(({ key }) => ['image', 'customText'].includes(key))
-                  .map(({ label, key, fieldId }, idx) => (
-                    <ListItem
-                      key={`${key}-${idx}`}
-                      button
-                      onClick={() => handleAddComponent(key, label, fieldId)}
-                      sx={{
-                        cursor: 'pointer',
-                        '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.08)' },
-                      }}
-                    >
-                      <Typography variant="body2">{label}</Typography>
-                    </ListItem>
-                  ))}
+                <ListItem button onClick={() => handleAddComponent('image', tt('Ảnh', 'Image'))}>
+                  <Typography variant="body2">{tt('Ảnh', 'Image')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('customText', tt('Text tùy chọn', 'Custom Text'))}>
+                  <Typography variant="body2">{tt('Text tùy chọn', 'Custom Text')}</Typography>
+                </ListItem>
               </List>
             </Card>
 
@@ -1226,20 +1231,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
             {/* Action Buttons */}
             <Stack spacing={1}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={showPreview}
-                    onChange={handleTogglePreview}
-                    size="small"
-                  />
-                }
-                label={tt("Thay thế bằng nội dung", "Replace with content")}
-                sx={{ ml: 0 }}
-              />
-              <Button variant="outlined" color="primary" onClick={handleTestPrint} disabled={isLoading} fullWidth>
-                {tt("In thử", "Test Print")}
-              </Button>
               <Button variant="contained" color="primary" onClick={handleSaveTemplateSettings} disabled={isLoading} fullWidth>
                 {isLoading ? tt('Đang tạo...', 'Creating...') : tt('Tạo thiết kế', 'Create Design')}
               </Button>
@@ -1289,9 +1280,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   // For customText component, always show customText if available
                   const displayText = comp.key === 'customText' && comp.customText
                     ? comp.customText
-                    : showPreview
-                      ? (previewData[comp.key] || getCurrentLabel(comp))
-                      : getCurrentLabel(comp);
+                    : getCurrentLabel(comp);
 
                   return (
                     <div
@@ -1355,8 +1344,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                     : 'flex-start',
                             }}
                           >
-                            {comp.key === 'eCodeQr' && showPreview && previewData[comp.key] ? (
-                              <img src={previewData[comp.key]} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            {comp.key === 'eCodeQr' ? (
+                              <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?margin=16&size=140x140&data=FMPJ8A`}
+                                alt="QR Code"
+                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                              />
                             ) : comp.key === 'image' && comp.imageUrl ? (
                               <img src={comp.imageUrl} alt="Component" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                             ) : (
@@ -1875,9 +1868,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             // For customText component, always show customText if available
             const displayText = comp.key === 'customText' && comp.customText
               ? comp.customText
-              : showPreview
-                ? (previewData[comp.key] || getCurrentLabel(comp))
-                : getCurrentLabel(comp);
+              : getCurrentLabel(comp);
             // Convert px to mm for print (px on canvas -> mm for print)
             // Canvas px = mm * PX_PER_MM * CANVAS_SCALE * canvasScale
             // So: mm = px / (PX_PER_MM * CANVAS_SCALE * canvasScale)
@@ -1913,8 +1904,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   zIndex: comp.zIndex ?? 1,
                 }}
               >
-                {comp.key === 'eCodeQr' && showPreview && previewData[comp.key] ? (
-                  <img src={previewData[comp.key]} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                {comp.key === 'eCodeQr' ? (
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?margin=16&size=140x140&data=FMPJ8A`}
+                    alt="QR Code"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
                 ) : comp.key === 'image' && ((comp as any).imageUrl || (comp as any).image_url || (comp as any).customText) ? (
                   <img src={(comp as any).imageUrl || (comp as any).image_url || (comp as any).customText} alt="Component" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 ) : (

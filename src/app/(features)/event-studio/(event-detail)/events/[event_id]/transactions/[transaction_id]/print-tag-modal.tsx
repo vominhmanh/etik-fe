@@ -241,54 +241,32 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
       if (!transaction) return '';
       const buyerName = [transaction.title, transaction.name].filter(Boolean).join(' ').trim();
       switch (key) {
-        // Ticket holder (per-ticket) fields
-        case 'ticketHolderName':
-          return ticket.holderDisplayName;
-        case 'titleTicketHolder':
-          return ticket.holderTitle || '';
-        case 'ticketHolderEmail':
-          return ticket.holderEmail || '';
-        case 'ticketHolderPhone':
-          return ticket.holderPhone || '';
         case 'eventName':
           return transaction.event?.name || '';
         case 'organizer':
           return transaction.event?.organizer || '';
         case 'customerName':
-          return buyerName;
-        case 'customerAddress':
-          return transaction.address || '';
-        case 'customerPhone':
-          return transaction.phoneNumber || '';
-        case 'customerEmail':
-          return transaction.email || '';
-        case 'ticketsList':
-          return `${ticket.showName} - ${ticket.categoryName}`;
-        case 'transactionId':
-          return String(transaction.id ?? '');
-        case 'ticketTid':
-          return ticket.ticketId ? `TID-${ticket.ticketId}` : '';
-        // New dynamic builtin keys
         case 'name':
           return buyerName;
-        case 'titleTrxn':
-          return transaction.title || '';
-        case 'email':
-          return transaction.email || '';
-        case 'phone':
-          return transaction.phoneNumber || '';
-        case 'address':
-          return transaction.address || '';
-        case 'dob':
-          return transaction.dob || '';
-        case 'idcard_number':
-          return ((transaction as any).idcardNumber || (transaction as any).idcard_number || '');
+        case 'ticketHolderName':
+          return ticket.holderDisplayName;
         case 'showName':
           return ticket.showName;
         case 'ticketCategory':
           return ticket.categoryName;
+        case 'address':
+        case 'customerAddress':
+          return transaction.address || '';
+        case 'phone':
+        case 'customerPhone':
+        case 'phone_number':
+          return transaction.phoneNumber || '';
+        case 'email':
+        case 'customerEmail':
+          return transaction.email || '';
+        case 'transactionId':
+          return String(transaction.id ?? '');
         case 'eCode':
-          return ticket.eCode || transaction.eCode || '';
         case 'eCodeQr':
           return ticket.eCode || transaction.eCode || '';
         case 'startDateTime':
@@ -312,12 +290,23 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
         case 'seatNumber':
           return ticket.seatNumber || '';
         case 'rowSeat':
-          if (ticket.rowLabel && ticket.seatNumber) {
-            return `${ticket.rowLabel} - ${ticket.seatNumber}`;
-          }
+          if (ticket.rowLabel && ticket.seatNumber) return `${ticket.rowLabel} - ${ticket.seatNumber}`;
           return ticket.seatNumber || ticket.rowLabel || '';
+        case 'ticketsList':
+          return transaction.transactionTicketCategories?.map((ttc: any) =>
+            `${ttc.ticketCategory.show.name} - ${ttc.ticketCategory.name} (x${ttc.quantity})`
+          ).join('<br />') || '';
+        case 'title':
+          return transaction.title || '';
+        case 'ticketHolderTitle':
+          return ticket.holderTitle || '';
+        case 'idcard_number':
+          return transaction.idcardNumber || '';
+        case 'dob':
+          return transaction.dob ? dayjs(transaction.dob).format('DD/MM/YYYY') : '';
+        case 'ticketTid':
+          return ticket.ticketId ? `TID-${ticket.ticketId}` : '';
         default:
-          // Unknown key - return empty
           return '';
       }
     },
@@ -427,6 +416,27 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
             src={(comp as any).imageUrl || (comp as any).image_url || (comp as any).customText}
             alt="Component"
             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          />
+        ) : normalizedKey === 'ticketsList' ? (
+          <span
+            style={{
+              fontSize: `${fontSizeMm}mm`,
+              fontFamily: comp.fontFamily || 'Arial',
+              fontWeight: String(comp.fontWeight),
+              fontStyle: comp.fontStyle as any,
+              textDecoration: comp.textDecoration as any,
+              color: `#${comp.color}`,
+              textAlign: comp.textAlign as any,
+              wordBreak: 'normal',
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'break-word',
+              width: '100%',
+              display: 'block',
+              writingMode: isVertical ? 'vertical-rl' : 'horizontal-tb',
+              transform: isUpsideDown ? 'rotate(180deg)' : 'none',
+              transformOrigin: 'center center',
+            }}
+            dangerouslySetInnerHTML={{ __html: value }}
           />
         ) : (
           <span

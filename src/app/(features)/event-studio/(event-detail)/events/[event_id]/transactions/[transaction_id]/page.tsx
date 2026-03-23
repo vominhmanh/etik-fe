@@ -293,6 +293,7 @@ export interface Transaction {
   phoneNumber: string;              // Customer's phone number in E.164 format (e.g., +84333247242)
   address: string | null;           // Customer's address, nullable
   dob: string | null;               // Date of birth, nullable
+  idcardNumber: string | null;      // ID card number of the customer
   transactionTicketCategories: TransactionTicketCategory[]; // List of ticket categories in the transaction
   ticketQuantity: number;           // Number of tickets purchased
   extraFee: number;                 // Extra fees for the transaction
@@ -1183,16 +1184,16 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
                       <>
                         <Stack spacing={0} direction={'row'} flexWrap={'wrap'}>
-                          <Button 
-                            onClick={() => { setNotificationChannel('email'); setIsNotificationModalOpen(true); }} 
-                            size="small" 
+                          <Button
+                            onClick={() => { setNotificationChannel('email'); setIsNotificationModalOpen(true); }}
+                            size="small"
                             startIcon={<EnvelopeSimpleIcon />}
                           >
                             {tt('Gửi Email', 'Send Email')}
                           </Button>
-                          <Button 
-                            onClick={() => { setNotificationChannel('zalo'); setIsNotificationModalOpen(true); }} 
-                            size="small" 
+                          <Button
+                            onClick={() => { setNotificationChannel('zalo'); setIsNotificationModalOpen(true); }}
+                            size="small"
                             startIcon={<EnvelopeSimpleIcon />}
                           >
                             {tt('Gửi Zalo', 'Send Zalo')}

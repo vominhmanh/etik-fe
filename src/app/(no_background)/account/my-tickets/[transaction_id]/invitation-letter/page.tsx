@@ -67,10 +67,10 @@ const standardSizes: Record<string, { width: number; height: number }> = {
 const resolveSize = (size: string, customSize?: { width: number; height: number } | null): { width: number; height: number } => {
   if (size === 'custom' && customSize) return customSize;
   if (standardSizes[size]) return standardSizes[size];
-  
+
   const match = size?.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)\s*mm/i);
   if (match) return { width: Number(match[1]), height: Number(match[2]) };
-  
+
   return standardSizes['A4'];
 };
 
@@ -179,6 +179,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
         return transaction.address || '';
       case 'customerPhone':
       case 'phone':
+      case 'phone_number':
         return transaction.phoneNumber || '';
       case 'customerEmail':
       case 'email':
@@ -215,6 +216,14 @@ export default function Page({ params }: { params: { transaction_id: number } })
         return transaction.transactionTicketCategories?.map((ttc: any) =>
           `${ttc.ticketCategory.show.name} - ${ttc.ticketCategory.name} (x${ttc.quantity})`
         ).join('<br />') || '';
+      case 'title':
+        return transaction.title || '';
+      case 'ticketHolderTitle':
+        return ticket?.holderTitle || '';
+      case 'idcard_number':
+        return transaction.idcard_number || transaction.idcardNumber || '';
+      case 'dob':
+        return transaction.dob ? dayjs(transaction.dob).format('DD/MM/YYYY') : '';
       case 'customText':
         return comp.customText || '';
       default:

@@ -194,6 +194,7 @@ const InvitationLetterModal: React.FC<InvitationLetterModalProps> = ({ open, onC
         return transaction.address || '';
       case 'phone':
       case 'customerPhone':
+      case 'phone_number':
         return transaction.phoneNumber || '';
       case 'email':
       case 'customerEmail':
@@ -226,6 +227,18 @@ const InvitationLetterModal: React.FC<InvitationLetterModalProps> = ({ open, onC
       case 'rowSeat':
         if (ticket.rowLabel && ticket.seatNumber) return `${ticket.rowLabel} - ${ticket.seatNumber}`;
         return ticket.seatNumber || ticket.rowLabel || '';
+      case 'ticketsList':
+        return transaction.transactionTicketCategories?.map((ttc: any) =>
+          `${ttc.ticketCategory.show.name} - ${ttc.ticketCategory.name} (x${ttc.quantity})`
+        ).join('<br />') || '';
+      case 'title':
+        return transaction.title || '';
+      case 'ticketHolderTitle':
+        return ticket.holderTitle || '';
+      case 'idcard_number':
+        return transaction.idcardNumber || '';
+      case 'dob':
+        return transaction.dob ? dayjs(transaction.dob).format('DD/MM/YYYY') : '';
       case 'customText':
         return comp.customText || '';
       default:
@@ -292,6 +305,14 @@ const InvitationLetterModal: React.FC<InvitationLetterModalProps> = ({ open, onC
             alt="Design Element"
             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           />
+        </div>
+      );
+    }
+
+    if (comp.key === 'ticketsList') {
+      return (
+        <div key={comp.id} style={style}>
+          <span style={textStyle} dangerouslySetInnerHTML={{ __html: value }} />
         </div>
       );
     }
