@@ -25,9 +25,6 @@ export type Step4ReviewProps = {
   checkoutFormFields: CheckoutRuntimeField[];
   builtinInternalNames: Set<string>;
   checkoutCustomAnswers: Record<string, any>;
-
-
-
   paymentMethodLabel: string;
   extraFee: number;
   subtotal: number;
@@ -37,7 +34,7 @@ export type Step4ReviewProps = {
   formatPrice: (price: number) => string;
 
   onBack: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   confirmDisabled?: boolean;
 
   // Captcha props
@@ -459,7 +456,15 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
         <Button variant="outlined" onClick={onBack}>
           {tt('Quay lại', 'Back')}
         </Button>
-        <Button variant="contained" onClick={onConfirm} disabled={!!confirmDisabled}>
+        <Button variant="contained" onClick={async () => {
+          try {
+            await onConfirm();
+          } finally {
+            if (props.captchaRef?.current?.reset) {
+              props.captchaRef.current.reset();
+            }
+          }
+        }} disabled={!!confirmDisabled}>
           {tt('Xác nhận', 'Confirm')}
         </Button>
       </Stack>

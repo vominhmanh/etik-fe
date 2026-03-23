@@ -35,6 +35,7 @@ import NotificationContext from '@/contexts/notification-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 const PrintTagModal = React.lazy(() => import('./print-tag-modal'));
 const InvitationLetterModal = React.lazy(() => import('./invitation-letter-modal'));
+const SendNotificationModal = React.lazy(() => import('./send-notification-modal'));
 import AdminGiftTicketModal from './admin-gift-ticket-modal';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone, formatToE164 } from '@/config/phone-countries';
 import { useTranslation } from '@/contexts/locale-context';
@@ -322,6 +323,7 @@ export interface Transaction {
   // Dynamic checkout form answers (ETIK Forms)
   formAnswers: Record<string, any>;
   checkoutFormFields?: CheckoutRuntimeField[];
+  transactionFlow?: Record<string, any>;
 }
 
 type CheckoutRuntimeFieldOption = {
@@ -382,6 +384,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [checkoutFormFields, setCheckoutFormFields] = useState<CheckoutRuntimeField[]>([]);
   const [checkoutCustomAnswers, setCheckoutCustomAnswers] = useState<Record<string, any>>({});
   const [audiences, setAudiences] = useState<Audience[]>([]);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [notificationChannel, setNotificationChannel] = useState<'email' | 'zalo'>('email');
 
   // Redeem Concessions State
   const [redeemModalOpen, setRedeemModalOpen] = useState<boolean>(false);
@@ -629,35 +633,22 @@ export default function Page({ params }: { params: { event_id: number; transacti
   };
 
 
-  const sendTransaction = async (channel: string | null) => {
+  const handleSendCustomNotification = async (payload: { channel: string; ticketIds: number[]; sendToBuyer: boolean }) => {
     try {
       setIsLoading(true); // Optional: Show loading state
       const response: AxiosResponse = await baseHttpServiceInstance.post(
-        `/event-studio/events/${event_id}/transactions/${transaction_id}/send-transaction`, channel ? { channel: channel } : {}
+        `/event-studio/events/${event_id}/transactions/${transaction_id}/send-custom-notification`,
+        {
+          channel: payload.channel,
+          ticketIds: payload.ticketIds,
+          sendToBuyer: payload.sendToBuyer,
+        }
       );
 
       // Optionally handle response
       if (response.status === 200) {
         notificationCtx.success(response.data.message);
-        setTransaction((prev) => prev ? { ...prev, exportedTicketAt: '.' } : prev);
-      }
-    } catch (error) {
-      notificationCtx.error(error);
-    } finally {
-      setIsLoading(false); // Optional: Hide loading state
-    }
-  };
-
-  const sendTicket = async (channel: string | null) => {
-    try {
-      setIsLoading(true); // Optional: Show loading state
-      const response: AxiosResponse = await baseHttpServiceInstance.post(
-        `/event-studio/events/${event_id}/transactions/${transaction_id}/send-ticket`, channel ? { channel: channel } : {}
-      );
-
-      // Optionally handle response
-      if (response.status === 200) {
-        notificationCtx.success(response.data.message);
+        setIsNotificationModalOpen(false);
         setTransaction((prev) => prev ? { ...prev, exportedTicketAt: '.' } : prev);
       }
     } catch (error) {
@@ -1192,29 +1183,20 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     {transaction.status === 'normal' && transaction.paymentStatus === 'paid' && transaction.exportedTicketAt != null && (
                       <>
                         <Stack spacing={0} direction={'row'} flexWrap={'wrap'}>
-                          {transaction.qrOption === 'shared' && (
-                            <>
-                              <Button onClick={() => sendTransaction('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                                {tt('Gửi Email đơn hàng', 'Send Order Email')}
-                              </Button>
-                              <Button onClick={() => sendTransaction('zalo')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                                {tt('Gửi Zalo đơn hàng', 'Send Order via Zalo')}
-                              </Button>
-                            </>
-                          )}
-                          {transaction.qrOption === 'separate' && (
-                            <>
-                              <Button onClick={() => sendTransaction('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                                {tt('Gửi Email cho người đại diện (ng.mua)', 'Send Email to Representative (Buyer)')}
-                              </Button>
-                              <Button onClick={() => sendTicket('email')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                                {tt('Gửi Email cho từng người sở hữu', 'Send Email to Each Ticket Holder')}
-                              </Button>
-                              <Button onClick={() => sendTicket('zalo')} size="small" startIcon={<EnvelopeSimpleIcon />}>
-                                {tt('Gửi Zalo cho từng người sở hữu', 'Send Zalo to Each Ticket Holder')}
-                              </Button>
-                            </>
-                          )}
+                          <Button 
+                            onClick={() => { setNotificationChannel('email'); setIsNotificationModalOpen(true); }} 
+                            size="small" 
+                            startIcon={<EnvelopeSimpleIcon />}
+                          >
+                            {tt('Gửi Email', 'Send Email')}
+                          </Button>
+                          <Button 
+                            onClick={() => { setNotificationChannel('zalo'); setIsNotificationModalOpen(true); }} 
+                            size="small" 
+                            startIcon={<EnvelopeSimpleIcon />}
+                          >
+                            {tt('Gửi Zalo', 'Send Zalo')}
+                          </Button>
 
                           <Button
                             onClick={() => setInvitationLetterModalOpen(true)}
@@ -1434,6 +1416,64 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   </Stack>
                 </CardContent>
               </Card>
+              {transaction.transactionFlow ? (
+                <Card>
+                  <CardHeader title={tt('Luồng đơn hàng', 'Order Flow')} />
+                  <Divider />
+                  <CardContent>
+                    <Stack spacing={0}>
+                      {/* approval_method */}
+                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body1" color="text.secondary">{tt('Duyệt giao dịch:', 'Transaction Approval:')}</Typography>
+                        </Stack>
+                        <Typography variant="body1" fontWeight={500}>
+                          {transaction.transactionFlow?.approval_method === 'manual' ? tt('Thủ công', 'Manual') : tt('Tự động', 'Auto')}
+                        </Typography>
+                      </Grid>
+
+                      {/* send_payment_instruction */}
+                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body1" color="text.secondary">{tt('Email hướng dẫn thanh toán:', 'Payment Instruction Email:')}</Typography>
+                        </Stack>
+                        <Typography variant="body1" fontWeight={500}>
+                          {transaction.transactionFlow?.send_payment_instruction ? tt('Có', 'Yes') : tt('Không', 'No')}
+                        </Typography>
+                      </Grid>
+
+                      {/* issuing_method */}
+                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body1" color="text.secondary">{tt('Xuất vé:', 'Ticket Issuing:')}</Typography>
+                        </Stack>
+                        <Typography variant="body1" fontWeight={500}>
+                          {transaction.transactionFlow?.issuing_method === 'manual' ? tt('Thủ công', 'Manual') : tt('Tự động', 'Auto')}
+                        </Typography>
+                      </Grid>
+
+                      {/* email_method */}
+                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body1" color="text.secondary">{tt('Gửi Email vé:', 'Send Email Ticket:')}</Typography>
+                        </Stack>
+                        <Typography variant="body1" fontWeight={500}>
+                          {transaction.transactionFlow?.email_method === 'manual' ? tt('Thủ công', 'Manual') : tt('Tự động', 'Auto')}
+                        </Typography>
+                      </Grid>
+                      {/* zalo_method */}
+                      <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body1" color="text.secondary">{tt('Gửi Zalo vé:', 'Send Zalo Ticket:')}</Typography>
+                        </Stack>
+                        <Typography variant="body1" fontWeight={500}>
+                          {transaction.transactionFlow?.zalo_method === 'manual' ? tt('Thủ công', 'Manual') : tt('Tự động', 'Auto')}
+                        </Typography>
+                      </Grid>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              ) : null}
             </Stack>
           </Grid>
           <Grid lg={7} md={7} xs={12} spacing={3}>
@@ -2504,6 +2544,16 @@ export default function Page({ params }: { params: { event_id: number; transacti
           }}
         />
       )}
+      <React.Suspense fallback={null}>
+        <SendNotificationModal
+          isOpen={isNotificationModalOpen}
+          onClose={() => setIsNotificationModalOpen(false)}
+          channel={notificationChannel}
+          transaction={transaction}
+          onConfirm={handleSendCustomNotification}
+          isLoading={isLoading}
+        />
+      </React.Suspense>
     </>
   );
 }

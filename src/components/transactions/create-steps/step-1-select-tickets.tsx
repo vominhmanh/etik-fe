@@ -41,6 +41,7 @@ export type Step1SelectTicketsProps = {
   // onCategorySelect: (showId: number, categoryId: number) => void; // Unused?
   // onAddToCart: (showId: number, categoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string }[]) => void; // Replaced by internal logic
   cartQuantitiesForActiveSchedule: Record<number, number>;
+  cartAudienceQuantitiesForActiveSchedule?: Record<number, Record<number, number>>;
 
   order: Order;
   setOrder: React.Dispatch<React.SetStateAction<Order>>;
@@ -77,6 +78,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
     order,
     setOrder,
     cartQuantitiesForActiveSchedule,
+    cartAudienceQuantitiesForActiveSchedule,
     tt,
     onNext,
     existingSeats,
@@ -314,10 +316,18 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
 
 
 
-  const handleAddToCart = (categoryId: number, quantity: number) => {
+  const handleAddToCart = (categoryId: number, quantities: Record<number, number> | number) => {
     if (!activeSchedule) return;
     const catConfig = activeSchedule.ticketCategories.find(tc => tc.id === categoryId);
     if (!catConfig) return;
+
+    let totalQuantity = 0;
+    const isSingle = typeof quantities === 'number';
+    if (isSingle) {
+      totalQuantity = quantities;
+    } else {
+      totalQuantity = Object.values(quantities).reduce((a, b) => a + b, 0);
+    }
 
     if (activeSchedule.limitPerTransaction) {
       const currentTickets = order.tickets;
@@ -325,7 +335,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
         t => t.showId === activeSchedule.id && t.ticketCategoryId !== categoryId
       ).length;
 
-      if (otherTicketsCount + quantity > activeSchedule.limitPerTransaction) {
+      if (otherTicketsCount + totalQuantity > activeSchedule.limitPerTransaction) {
         notificationCtx.error(
           `Bạn chỉ được chọn tối đa ${activeSchedule.limitPerTransaction} vé cho suất diễn này.`
         );
@@ -338,11 +348,9 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
       const currentCategoryTickets = order.tickets.filter(t => t.showId === activeSchedule.id && t.ticketCategoryId === categoryId).length;
       const otherTicketsTotal = ticketsFromOtherShows + (order.tickets.length - ticketsFromOtherShows - currentCategoryTickets); // effectively total - currentCat
 
-      // The logic: total tickets after update = (total - currCat) + newQty
-      // Or simply: (total - currCat) + newQty <= limit
       const ticketsExceptCurrentCat = order.tickets.filter(t => !(t.showId === activeSchedule.id && t.ticketCategoryId === categoryId)).length;
 
-      if (ticketsExceptCurrentCat + quantity > props.eventLimitPerTransaction) {
+      if (ticketsExceptCurrentCat + totalQuantity > props.eventLimitPerTransaction) {
         notificationCtx.error(
           `Bạn chỉ được chọn tối đa ${props.eventLimitPerTransaction} vé cho toàn bộ sự kiện.`
         );
@@ -352,7 +360,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
 
     if (props.eventLimitPerCustomer) {
       const ticketsExceptCurrentCat = order.tickets.filter(t => !(t.showId === activeSchedule.id && t.ticketCategoryId === categoryId)).length;
-      if (ticketsExceptCurrentCat + quantity > props.eventLimitPerCustomer) {
+      if (ticketsExceptCurrentCat + totalQuantity > props.eventLimitPerCustomer) {
         notificationCtx.error(
           `Bạn chỉ được chọn tối đa ${props.eventLimitPerCustomer} vé cho toàn bộ sự kiện.`
         );
@@ -362,7 +370,6 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
 
     setOrder(prev => {
       const currentTickets = prev.tickets;
-      // Filter tickets for this specific category in this show
       const categoryTickets = currentTickets.filter(
         t => t.showId === activeSchedule.id && t.ticketCategoryId === categoryId
       );
@@ -370,23 +377,62 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
         t => !(t.showId === activeSchedule.id && t.ticketCategoryId === categoryId)
       );
 
-      const currentQty = categoryTickets.length;
-      let newCategoryTickets = [...categoryTickets];
+      let newCategoryTickets: TicketInfo[] = [];
 
-      if (quantity > currentQty) {
-        // Add more
-        const toAdd = quantity - currentQty;
-        const newTickets: TicketInfo[] = Array.from({ length: toAdd }).map(() => ({
-          showId: activeSchedule.id,
-          ticketCategoryId: categoryId,
-          price: catConfig.price,
-          holder: undefined
-        }));
-        newCategoryTickets = [...newCategoryTickets, ...newTickets];
-      } else if (quantity < currentQty) {
-        // Remove some (from end to preserve oldest/filled ones if applicable, or just pop)
-        // Taking first 'quantity' items preserves the ones at the start.
-        newCategoryTickets = newCategoryTickets.slice(0, quantity);
+      if (isSingle) {
+        const currentQty = categoryTickets.length;
+        newCategoryTickets = [...categoryTickets];
+
+        if (totalQuantity > currentQty) {
+          const toAdd = totalQuantity - currentQty;
+          
+          // Use default audience if available, else first active one
+          const activeAudiences = catConfig.categoryAudiences?.filter(ca => ca.audience.isActive) || [];
+          const defaultAudience = activeAudiences.find(ca => ca.isDefault) || activeAudiences[0];
+          
+          const newTickets: TicketInfo[] = Array.from({ length: toAdd }).map(() => ({
+            showId: activeSchedule.id,
+            ticketCategoryId: categoryId,
+            price: defaultAudience ? defaultAudience.price : catConfig.price,
+            audienceId: defaultAudience?.audienceId,
+            audienceName: defaultAudience?.audience.name,
+            holder: undefined
+          }));
+          newCategoryTickets = [...newCategoryTickets, ...newTickets];
+        } else if (totalQuantity < currentQty) {
+          newCategoryTickets = newCategoryTickets.slice(0, totalQuantity);
+        }
+      } else {
+        const byAudience: Record<number, TicketInfo[]> = {};
+        categoryTickets.forEach(t => {
+            const audId = t.audienceId ?? 0;
+            if (!byAudience[audId]) byAudience[audId] = [];
+            byAudience[audId].push(t);
+        });
+        
+        Object.entries(quantities).forEach(([audIdStr, qty]) => {
+            const audId = Number(audIdStr);
+            const existing = byAudience[audId] || [];
+            const currentQty = existing.length;
+            
+            if (qty > currentQty) {
+                const toAdd = qty - currentQty;
+                const audConfig = catConfig.categoryAudiences?.find(ca => ca.audienceId === audId);
+                const newTickets: TicketInfo[] = Array.from({ length: toAdd }).map(() => ({
+                    showId: activeSchedule.id,
+                    ticketCategoryId: categoryId,
+                    price: audConfig ? audConfig.price : catConfig.price,
+                    audienceId: audId,
+                    audienceName: audConfig?.audience.name,
+                    holder: undefined
+                }));
+                newCategoryTickets.push(...existing, ...newTickets);
+            } else if (qty < currentQty) {
+                newCategoryTickets.push(...existing.slice(0, qty));
+            } else {
+                newCategoryTickets.push(...existing);
+            }
+        });
       }
 
       return {
@@ -474,10 +520,11 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
                   onCategorySelect={(categoryId: number) => { }} // Unused or implement if needed
                   onAddToCart={(
                     categoryId: number,
-                    quantity: number,
+                    quantities: Record<number, number> | number,
                     holders?: { title: string; name: string; email: string; phone: string }[]
-                  ) => handleAddToCart(categoryId, quantity)}
+                  ) => handleAddToCart(categoryId, quantities)}
                   cartQuantities={cartQuantitiesForActiveSchedule}
+                  cartAudienceQuantities={cartAudienceQuantitiesForActiveSchedule}
                   eventLimitPerTransaction={props.eventLimitPerTransaction}
                   eventLimitPerCustomer={props.eventLimitPerCustomer}
                   totalTicketsInOrder={totalSelectedTickets}

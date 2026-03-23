@@ -201,6 +201,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return quantities;
   }, [activeScheduleId, order.tickets]);
 
+  const cartAudienceQuantitiesForActiveSchedule = React.useMemo(() => {
+    if (!activeScheduleId) return {};
+    const quantities: Record<number, Record<number, number>> = {};
+    order.tickets.forEach(t => {
+      if (t.showId === activeScheduleId) {
+        if (!quantities[t.ticketCategoryId]) quantities[t.ticketCategoryId] = {};
+        const audId = t.audienceId ?? 0;
+        quantities[t.ticketCategoryId][audId] = (quantities[t.ticketCategoryId][audId] || 0) + 1;
+      }
+    });
+    return quantities;
+  }, [activeScheduleId, order.tickets]);
+
 
   const builtinInternalNames = React.useMemo(
     () => new Set(['title', 'name', 'email', 'phone', 'phone_number', 'address', 'dob', 'gender', 'nationality', 'idcard_number']),
@@ -709,7 +722,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           seatId: t.seatId,
           amount: t.price,
           audienceId: t.audienceId,
-          holder: holderData
+          holder: holderData,
+          quantity: 1
         };
       }));
 
@@ -822,6 +836,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             order={order}
             setOrder={setOrder}
             cartQuantitiesForActiveSchedule={cartQuantitiesForActiveSchedule}
+            cartAudienceQuantitiesForActiveSchedule={cartAudienceQuantitiesForActiveSchedule}
             tt={tt}
             onNext={() => {
               if (validateStep1()) setActiveStep(1);
