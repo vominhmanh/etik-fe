@@ -100,6 +100,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [eventAgencyRegistrationAndEventApprovalRequest, setEventAgencyRegistrationAndEventApprovalRequest] = useState<CheckEventAgencyRegistrationAndEventApprovalRequestResponse | null>(null);
   const [openEventAgencyRegistrationModal, setOpenEventAgencyRegistrationModal] = useState(false);
   const [openConfirmSubmitEventApprovalModal, setOpenConfirmSubmitEventApprovalModal] = useState(false);
+  const [openCashWithdrawalModal, setOpenCashWithdrawalModal] = useState(false);
 
   const [smtpFormValues, setSmtpFormValues] = useState<SMTPConfig>({
     smtpProvider: 'use_etik_smtp',
@@ -496,10 +497,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
                       <Stack spacing={1}>
                         <Typography color="text.secondary" variant="overline">
-                          {tt("Tài khoản Doanh thu Sự kiện", "Event Revenue Account")}
+                          {tt("Tài khoản Sự kiện", "Event Revenue Account")}
                         </Typography>
                         <Typography variant="h4">
-                          0 đ
+                          {statistics?.totalNetIncome?.toLocaleString() || 0} đ
                         </Typography>
                       </Stack>
                       <Avatar sx={{ backgroundColor: 'var(--mui-palette-primary-main)', height: '56px', width: '56px' }}>
@@ -509,16 +510,14 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     <Stack direction="row" spacing={2}>
                       <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
                         <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
-                          <Typography color='var(--mui-palette-primary-main)' variant="body2">
+                          <Typography color='var(--mui-palette-primary-main)' variant="body2" sx={{ cursor: 'pointer', "&:hover": { textDecoration: 'underline' } }} onClick={() => setOpenCashWithdrawalModal(true)}>
                             {tt("Rút tiền", "Withdraw")}
                           </Typography>
                         </Stack>
                       </Stack>
                       <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
                         <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
-                          <Typography color='var(--mui-palette-primary-main)' variant="body2">
-                            {tt("Lịch sử giao dịch", "Transaction History")}
-                          </Typography>
+
                         </Stack>
                       </Stack>
                     </Stack>
@@ -693,6 +692,35 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           </Grid>
         </Grid>
       </Stack>
+      <Modal
+        open={openCashWithdrawalModal}
+        onClose={() => setOpenCashWithdrawalModal(false)}
+        aria-labelledby="ticket-category-description-modal-title"
+        aria-describedby="ticket-category-description-modal-description"
+      >
+        <Container maxWidth="xl">
+          <Card
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: { sm: "500px", xs: "90%" },
+              bgcolor: "background.paper",
+              boxShadow: 24,
+            }}
+          >
+            <CardContent>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {tt(
+                  `Để rút tiền, quý khách vui lòng gửi email với tiêu đề "Yêu cầu rút tiền sự kiện ${event?.name}" từ địa chỉ email ${event?.organizerEmail} của quý khách đến địa chỉ email tienphongsmart@gmail.com. Chúng tôi sẽ hỗ trợ trong thời gian 24h kể từ khi nhận được yêu cầu. Xin cảm ơn!`,
+                  `To withdraw funds, please send an email with the subject "Withdrawal request for event ${event?.name}" from your email address ${event?.organizerEmail} to tienphongsmart@gmail.com. We will assist you within 24 hours of receiving the request. Thank you!`
+                )}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
     </>
   );
 }
