@@ -351,7 +351,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const handleFormSubmit = async () => {
     if (formValues && event_id) {
       const formattedPhone = formatToE164(formValues.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2, formValues.organizerPhoneNumber) || formValues.organizerPhoneNumber;
-      
+
       if (formattedPhone && !formattedPhone.startsWith('+')) {
         notificationCtx.error(tt('Số điện thoại không hợp lệ', 'Invalid phone number'));
         return;
@@ -359,10 +359,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       try {
         setIsLoading(true);
-        await baseHttpServiceInstance.put(`/event-studio/events/${event_id}`, { 
-          ...formValues, 
+        await baseHttpServiceInstance.put(`/event-studio/events/${event_id}`, {
+          ...formValues,
           organizerPhoneNumber: formattedPhone,
-          description 
+          description
         });
         notificationCtx.success(tt('Sửa thành công. Sẽ cập nhật lên trang chủ sau 1 phút.', 'Update successful. Will be updated on home page in 1 minute.'));
       } catch (error) {
@@ -786,12 +786,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             <Button fullWidth variant="contained" size="small" onClick={handleRequestEventApprovalClick}>
                               <Stack spacing={0} sx={{ alignItems: 'center' }}>
                                 <span>{tt('nâng cấp thành Sự kiện Được xác thực', 'Upgrade to Verified Event')}</span>
-                                <small>
-                                  {tt(
-                                    'Để bật thanh toán online, gửi email marketing,...',
-                                    'To enable online payment, send marketing emails,...'
-                                  )}
-                                </small>
+
                               </Stack>
                             </Button>
                           )}

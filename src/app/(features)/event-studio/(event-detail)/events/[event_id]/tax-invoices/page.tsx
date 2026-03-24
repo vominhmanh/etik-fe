@@ -614,12 +614,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                             <Button fullWidth variant="contained" size="small" onClick={handleRequestEventApprovalClick}>
                               <Stack spacing={0} sx={{ alignItems: 'center' }}>
                                 <span>{tt('nâng cấp thành Sự kiện Được xác thực', 'Upgrade to Verified Event')}</span>
-                                <small>
-                                  {tt(
-                                    'Để bật thanh toán online, gửi email marketing,...',
-                                    'To enable online payment, send marketing emails,...'
-                                  )}
-                                </small>
+
                               </Stack>
                             </Button>
                           )}
