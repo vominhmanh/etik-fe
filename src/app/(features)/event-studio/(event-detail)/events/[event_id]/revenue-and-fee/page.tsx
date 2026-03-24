@@ -48,6 +48,21 @@ type EventResponse = {
   adminReviewStatus: 'no_request_from_user' | 'waiting_for_acceptance' | 'accepted' | 'rejected';
 };
 
+export type StatisticsResponse = {
+  validTicketsCount: number;
+  emailsSentCount: number;
+  zaloSentCount: number;
+  napas247TransactionsCount: number;
+  totalTicketRevenue: number;
+  systemFee: number;
+  zaloFee: number;
+  emailFee: number;
+  paymentGatewayFee: number;
+  totalNetRevenue: number;
+  totalServiceFee: number;
+  totalNetIncome: number;
+};
+
 export interface CheckEventAgencyRegistrationAndEventApprovalRequestResponse {
   eventApprovalRequest: string;
   eventAgencyRegistration: boolean;
@@ -81,6 +96,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const [previewAvatarUrl, setPreviewAvatarUrl] = useState<string>(event?.avatarUrl || '');
   const [isAvatarSelected, setIsAvatarSelected] = useState(false);
+  const [statistics, setStatistics] = useState<StatisticsResponse | null>(null);
   const [eventAgencyRegistrationAndEventApprovalRequest, setEventAgencyRegistrationAndEventApprovalRequest] = useState<CheckEventAgencyRegistrationAndEventApprovalRequestResponse | null>(null);
   const [openEventAgencyRegistrationModal, setOpenEventAgencyRegistrationModal] = useState(false);
   const [openConfirmSubmitEventApprovalModal, setOpenConfirmSubmitEventApprovalModal] = useState(false);
@@ -132,6 +148,23 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
     fetchEventApprovalStatus();
   }, [params.event_id]);
+
+  useEffect(() => {
+    if (!event_id) return;
+
+    const fetchStatistics = async () => {
+      try {
+        const response: AxiosResponse<StatisticsResponse> = await baseHttpServiceInstance.get(
+          `/event-studio/events/${event_id}/statistics`
+        );
+        setStatistics(response.data);
+      } catch (error: any) {
+        notificationCtx.error(error);
+      }
+    };
+
+    fetchStatistics();
+  }, [event_id]);
 
   const handleRequestEventApprovalClick = () => {
     if (!eventAgencyRegistrationAndEventApprovalRequest?.eventAgencyRegistration) {
@@ -493,6 +526,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
                 </CardContent>
               </Card>
+
               <Card>
                 <CardHeader title={tt("Thống kê", "Statistics")} />
                 <Divider />
@@ -501,26 +535,34 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     {/* createdAt */}
                     <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body1">{tt("Tổng doanh thu thuần", "Total Net Revenue")}</Typography>
+                        <Typography variant="body1">{tt("Số lượng vé hợp lệ", "Number of tickets sold")}</Typography>
                       </Stack>
                       <Typography variant="body1">
-                        0 đ
+                        {statistics?.validTicketsCount || 0}
                       </Typography>
                     </Grid>
                     <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body1">{tt("Phí dịch vụ", "Service Fee")}</Typography>
+                        <Typography variant="body1">{tt("Số lượng email đã gửi", "Number of emails sent")}</Typography>
                       </Stack>
                       <Typography variant="body1">
-                        0 đ
+                        {statistics?.emailsSentCount || 0}
                       </Typography>
                     </Grid>
                     <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body1">{tt("Phí khác", "Other Fees")}</Typography>
+                        <Typography variant="body1">{tt("Số lượng Zalo SMS đã gửi", "Number of Zalo SMS sent")}</Typography>
                       </Stack>
                       <Typography variant="body1">
-                        0 đ
+                        {statistics?.zaloSentCount || 0}
+                      </Typography>
+                    </Grid>
+                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body1">{tt("Số giao dịch qua Napas 247", "Number of Napas 247 transactions")}</Typography>
+                      </Stack>
+                      <Typography variant="body1">
+                        {statistics?.napas247TransactionsCount || 0}
                       </Typography>
                     </Grid>
                   </Stack>
@@ -533,48 +575,83 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <Grid container spacing={3}>
                 <Grid lg={6} md={6} xs={12}>
                   <Card>
-                    <CardHeader title={tt("Phí dịch vụ", "Service Fees")} />
+                    <CardHeader title={tt("Thống kê", "Statistics")} />
                     <Divider />
                     <CardContent>
                       <Stack spacing={0}>
                         {/* createdAt */}
                         <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">{tt("Cách tính phí", "Fee Calculation Method")}</Typography>
+                            <Typography variant="body1" fontWeight="bold">{tt("Tổng doanh thu thuần", "Total Net Revenue")}</Typography>
                           </Stack>
-                          <Typography variant="body1">
-                            {tt("Tính theo giao dịch", "Per Transaction")}
+                          <Typography variant="body1" fontWeight="bold" color="success.main">
+                            {statistics?.totalNetRevenue?.toLocaleString() || 0} đ
                           </Typography>
                         </Grid>
-                        {/* Created source */}
-                        <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">{tt("Phí cố định", "Fixed Fee")}</Typography>
-                          </Stack>
-                          <Typography variant="body1">{tt("Thỏa thuận", "Agreement")}</Typography>
+                        {/* Sub-items for Net Revenue */}
+                        <Grid sx={{ display: 'flex', justifyContent: 'space-between', pl: 3 }}>
+                          <Typography variant="body2" color="text.secondary">{tt("Doanh thu vé", "Ticket Revenue")}</Typography>
+                          <Typography variant="body2" color="success.main">{statistics?.totalTicketRevenue?.toLocaleString() || 0} đ</Typography>
                         </Grid>
-                        {/* Created source */}
-                        <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">{tt("Phí chia sẻ doanh thu", "Revenue Share Fee")}</Typography>
-                          </Stack>
-                          <Typography variant="body1">{tt("Thỏa thuận", "Agreement")}</Typography>
+                        <Grid sx={{ display: 'flex', justifyContent: 'space-between', pl: 3, mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">{tt("Doanh thu bỏng nước", "Concession Revenue")}</Typography>
+                          <Typography variant="body2" color="success.main">0 đ</Typography>
                         </Grid>
+
                         <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">{tt("Phí SMS/Zalo", "SMS/Zalo Fee")}</Typography>
+                            <Typography variant="body1" fontWeight="bold">{tt("Phí dịch vụ", "Service Fee")}</Typography>
                           </Stack>
-                          <Typography variant="body1">{tt("Thỏa thuận", "Agreement")}</Typography>
+                          <Typography variant="body1" fontWeight="bold" color="error.main">
+                            {statistics?.totalServiceFee?.toLocaleString() || 0} đ
+                          </Typography>
                         </Grid>
+                        {/* Sub-items for Service Fee */}
+                        <Grid sx={{ display: 'flex', justifyContent: 'space-between', pl: 3 }}>
+                          <Typography variant="body2" color="text.secondary">{tt("Phí hệ thống (3% doanh thu)", "System Fee")}</Typography>
+                          <Typography variant="body2" color="error.main">{statistics?.systemFee?.toLocaleString() || 0} đ</Typography>
+                        </Grid>
+                        <Grid sx={{ display: 'flex', justifyContent: 'space-between', pl: 3 }}>
+                          <Typography variant="body2" color="text.secondary">{tt("Phí gửi email", "Email Fee")}</Typography>
+                          <Typography variant="body2" color="error.main">{statistics?.emailFee?.toLocaleString() || 0} đ</Typography>
+                        </Grid>
+                        <Grid sx={{ display: 'flex', justifyContent: 'space-between', pl: 3 }}>
+                          <Typography variant="body2" color="text.secondary">{tt("Phí gửi Zalo SMS (800đ/tin)", "Zalo SMS Fee")}</Typography>
+                          <Typography variant="body2" color="error.main">{statistics?.zaloFee?.toLocaleString() || 0} đ</Typography>
+                        </Grid>
+                        <Grid sx={{ display: 'flex', justifyContent: 'space-between', pl: 3, mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">{tt("Phí trung gian thanh toán (2.000đ/GD)", "Payment Gateway Fee")}</Typography>
+                          <Typography variant="body2" color="error.main">{statistics?.paymentGatewayFee?.toLocaleString() || 0} đ</Typography>
+                        </Grid>
+
                         <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">{tt("Phí email", "Email Fee")}</Typography>
+                            <Typography variant="body1">{tt("Phí khác", "Other Fees")}</Typography>
                           </Stack>
-                          <Typography variant="body1">{tt("Thỏa thuận", "Agreement")}</Typography>
+                          <Typography variant="body1" color="error.main">
+                            0 đ
+                          </Typography>
+                        </Grid>
+
+                        <Divider sx={{ my: 1 }} />
+
+                        <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Typography variant="h6" fontWeight="bold">{tt("Thu nhập ròng", "Net Income")}</Typography>
+                          </Stack>
+                          <Typography
+                            variant="h6"
+                            fontWeight="bold"
+                            color={(statistics?.totalNetIncome || 0) < 0 ? "error.main" : "primary.main"}
+                          >
+                            {statistics?.totalNetIncome?.toLocaleString() || 0} đ
+                          </Typography>
                         </Grid>
                       </Stack>
                     </CardContent>
                   </Card>
+
+
                 </Grid>
                 <Grid lg={6} md={6} xs={12}>
                   <Card>
