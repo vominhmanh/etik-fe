@@ -150,7 +150,7 @@ const SendNotificationModal: React.FC<SendNotificationModalProps> = ({
                         onChange={() => handleToggleTicket(ticket.id)}
                       />
                     }
-                    label={`${ticket.holderName} (${identifier})`}
+                    label={`TID-${ticket.id} ${ticket.holderName} (${identifier})`}
                   />
                 );
               })}
