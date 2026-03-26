@@ -17,11 +17,11 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType>({
   notification: null,
   notificationText: null,
-  success: () => {},
-  error: () => {},
-  warning: () => {},
-  info: () => {},
-  clear: () => {},
+  success: () => { },
+  error: () => { },
+  warning: () => { },
+  info: () => { },
+  clear: () => { },
 });
 
 export interface NotificationProviderProps {

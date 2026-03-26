@@ -47,6 +47,8 @@ export type TicketCategory = {
   sold: number;
   disabled: boolean;
   color: string;
+  limitPerTransaction: number | null;
+  limitPerCustomer: number | null;
 };
 
 export type Show = {
@@ -59,6 +61,8 @@ export type Show = {
   disabled: boolean;
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
+  limitPerTransaction: number | null;
+  limitPerCustomer: number | null;
   ticketCategories: TicketCategory[];
 };
 
@@ -79,7 +83,6 @@ export type EventResponse = {
 type FormFieldConfig = {
   id: number;
   kind: string;
-  builtinKey: string | null;
   internalName: string;
   label: string;
   fieldType: string;
@@ -105,6 +108,8 @@ const VisuallyHiddenInput = styled('input')({
   whiteSpace: 'nowrap',
   width: 1,
 });
+
+const STANDARD_INTERNAL_NAMES = ['title', 'name', 'email', 'phone_number', 'address', 'dob', 'idcard_number'];
 type TicketHolderInfo = { title: string; name: string; email: string; phone: string };
 
 
@@ -114,9 +119,9 @@ type TicketHolderInfo = { title: string; name: string; email: string; phone: str
 const getCustomerFieldLabelMap = (fields: FormFieldConfig[], tt: (vi: string, en: string) => string): Record<string, string> => {
   const map: Record<string, string> = {};
   fields.forEach(field => {
-    const key = field.builtinKey || field.internalName;
-    const normalizedKey = field.builtinKey === 'phone_number' ? 'phoneNumber' :
-      field.builtinKey === 'idcard_number' ? 'idcardNumber' : key;
+    const key = field.internalName || field.internalName;
+    const normalizedKey = field.internalName === 'phone_number' ? 'phoneNumber' :
+      field.internalName === 'idcard_number' ? 'idcardNumber' : key;
     map[normalizedKey] = field.label;
   });
   return map;
@@ -125,18 +130,18 @@ const normalizeFieldKey = (field: string): string =>
   field.replace(/[-_\s]+(.)?/g, (_match, group) => (group ? group.toUpperCase() : '')).trim();
 
 // Helper function to get builtin key label in bilingual
-const getBuiltinKeyLabel = (builtinKey: string | null, tt: (vi: string, en: string) => string): string | null => {
-  if (!builtinKey) return null;
+const getinternalNameLabel = (internalName: string | null, tt: (vi: string, en: string) => string): string | null => {
+  if (!internalName) return null;
   const labelMap: Record<string, { vi: string; en: string }> = {
     'title': { vi: 'Danh xưng', en: 'Title' },
-    'name': { vi: 'Tên', en: 'Name' },
+    'name': { vi: 'Danh xưng* Họ và tên', en: 'Title* Full Name' },
     'email': { vi: 'Email', en: 'Email' },
     'phone_number': { vi: 'Số điện thoại', en: 'Phone Number' },
     'address': { vi: 'Địa chỉ', en: 'Address' },
     'dob': { vi: 'Ngày sinh', en: 'Date of Birth' },
     'idcard_number': { vi: 'Số CMND/CCCD', en: 'ID Card Number' },
   };
-  const mapped = labelMap[builtinKey];
+  const mapped = labelMap[internalName];
   return mapped ? tt(mapped.vi, mapped.en) : null;
 };
 
@@ -214,22 +219,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const createEmptyCustomer = React.useCallback((): Customer => {
     const customer: Customer = {};
     visibleFields.forEach(field => {
-      const key = field.builtinKey || field.internalName;
-      // Map builtin keys to customer object keys
-      if (field.builtinKey === 'title') {
+      const key = field.internalName;
+      // Map standard internal names to customer object keys
+      if (field.internalName === 'title') {
         customer.title = getDefaultTitle();
-      } else if (field.builtinKey === 'name') {
+      } else if (field.internalName === 'name') {
         customer.name = '';
-      } else if (field.builtinKey === 'email') {
+      } else if (field.internalName === 'email') {
         customer.email = '';
-      } else if (field.builtinKey === 'phone_number') {
+      } else if (field.internalName === 'phone_number') {
         customer.phoneNumber = '';
-        customer.phoneCountryCode = '+84'; // Default country code
-      } else if (field.builtinKey === 'address') {
+        customer.phoneCountry = 'VN'; // Default country code (ISO2)
+      } else if (field.internalName === 'address') {
         customer.address = '';
-      } else if (field.builtinKey === 'dob') {
+      } else if (field.internalName === 'dob') {
         customer.dob = '';
-      } else if (field.builtinKey === 'idcard_number') {
+      } else if (field.internalName === 'idcard_number') {
         customer.idcardNumber = '';
       } else {
         // Custom field
@@ -250,25 +255,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const updatedCustomers = customers.map(customer => {
         const updated = { ...customer };
         visibleFields.forEach(field => {
-          const key = field.builtinKey || field.internalName;
-          if (field.builtinKey === 'name' && !('name' in updated)) {
+          const key = field.internalName || field.internalName;
+          if (field.internalName === 'name' && !('name' in updated)) {
             updated.name = '';
-          } else if (field.builtinKey === 'email' && !('email' in updated)) {
+          } else if (field.internalName === 'email' && !('email' in updated)) {
             updated.email = '';
-          } else if (field.builtinKey === 'phone_number') {
+          } else if (field.internalName === 'phone_number') {
             if (!('phoneNumber' in updated)) {
               updated.phoneNumber = '';
             }
-            if (!('phoneCountryCode' in updated)) {
-              updated.phoneCountryCode = '+84';
+            if (!('phoneCountry' in updated)) {
+              updated.phoneCountry = 'VN';
             }
-          } else if (field.builtinKey === 'address' && !('address' in updated)) {
+          } else if (field.internalName === 'address' && !('address' in updated)) {
             updated.address = '';
-          } else if (field.builtinKey === 'dob' && !('dob' in updated)) {
+          } else if (field.internalName === 'dob' && !('dob' in updated)) {
             updated.dob = '';
-          } else if (field.builtinKey === 'idcard_number' && !('idcardNumber' in updated)) {
+          } else if (field.internalName === 'idcard_number' && !('idcardNumber' in updated)) {
             updated.idcardNumber = '';
-          } else if (!field.builtinKey && !(field.internalName in updated)) {
+          } else if (!field.internalName && !(field.internalName in updated)) {
             updated[field.internalName] = '';
           }
         });
@@ -350,25 +355,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const updatedCustomers = customers.map(customer => {
         const updated = { ...customer };
         visibleFields.forEach(field => {
-          const key = field.builtinKey || field.internalName;
-          if (field.builtinKey === 'name' && !('name' in updated)) {
+          const key = field.internalName || field.internalName;
+          if (field.internalName === 'name' && !('name' in updated)) {
             updated.name = '';
-          } else if (field.builtinKey === 'email' && !('email' in updated)) {
+          } else if (field.internalName === 'email' && !('email' in updated)) {
             updated.email = '';
-          } else if (field.builtinKey === 'phone_number') {
+          } else if (field.internalName === 'phone_number') {
             if (!('phoneNumber' in updated)) {
               updated.phoneNumber = '';
             }
             if (!('phoneCountryCode' in updated)) {
               updated.phoneCountryCode = '+84';
             }
-          } else if (field.builtinKey === 'address' && !('address' in updated)) {
+          } else if (field.internalName === 'address' && !('address' in updated)) {
             updated.address = '';
-          } else if (field.builtinKey === 'dob' && !('dob' in updated)) {
+          } else if (field.internalName === 'dob' && !('dob' in updated)) {
             updated.dob = '';
-          } else if (field.builtinKey === 'idcard_number' && !('idcardNumber' in updated)) {
+          } else if (field.internalName === 'idcard_number' && !('idcardNumber' in updated)) {
             updated.idcardNumber = '';
-          } else if (!field.builtinKey && !(field.internalName in updated)) {
+          } else if (!field.internalName && !(field.internalName in updated)) {
             updated[field.internalName] = '';
           }
         });
@@ -529,21 +534,21 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       visibleFields.forEach(field => {
         if (field.required) {
-          const key = field.builtinKey || field.internalName;
+          const key = field.internalName;
           let value = '';
-          if (field.builtinKey === 'title') {
+          if (field.internalName === 'title') {
             value = customer.title || getDefaultTitle(); // fallback matches UI display
-          } else if (field.builtinKey === 'name') {
+          } else if (field.internalName === 'name') {
             value = customer.name || '';
-          } else if (field.builtinKey === 'email') {
+          } else if (field.internalName === 'email') {
             value = customer.email || '';
-          } else if (field.builtinKey === 'phone_number') {
+          } else if (field.internalName === 'phone_number') {
             value = customer.phoneNumber || '';
-          } else if (field.builtinKey === 'address') {
+          } else if (field.internalName === 'address') {
             value = customer.address || '';
-          } else if (field.builtinKey === 'dob') {
+          } else if (field.internalName === 'dob') {
             value = customer.dob || '';
-          } else if (field.builtinKey === 'idcard_number') {
+          } else if (field.internalName === 'idcard_number') {
             value = customer.idcardNumber || '';
           } else {
             value = customer[field.internalName] || '';
@@ -587,13 +592,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     const countryCodeHeader = tt('Mã quốc gia', 'Country Code');
     const headers: string[] = [];
     visibleFields.forEach(field => {
-      if (field.builtinKey === 'phone_number') {
-        // Use bilingual label for builtinKey
-        const builtinLabel = getBuiltinKeyLabel(field.builtinKey, tt) || field.label;
+      if (field.internalName === 'phone_number') {
+        // Use bilingual label for standard fields
+        const builtinLabel = getinternalNameLabel(field.internalName, tt) || field.label;
         headers.push(countryCodeHeader, builtinLabel);
       } else {
-        // Use bilingual label for builtinKey, otherwise use field.label from backend
-        const builtinLabel = getBuiltinKeyLabel(field.builtinKey, tt);
+        // Use bilingual label for standard fields, otherwise use field.label from backend
+        const builtinLabel = getinternalNameLabel(field.internalName, tt);
         headers.push(builtinLabel || field.label);
       }
     });
@@ -606,22 +611,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       visibleFields.forEach(field => {
         let exampleValue = '';
 
-        if (field.builtinKey === 'title') {
+        if (field.internalName === 'title') {
           exampleValue = locale === 'en'
             ? (i === 0 ? 'Mr.' : i === 1 ? 'Ms.' : 'Mx.')
             : (i === 0 ? tt('Anh', 'Mr.') : i === 1 ? tt('Chị', 'Ms.') : tt('Bạn', 'You'));
-        } else if (field.builtinKey === 'name') {
+        } else if (field.internalName === 'name') {
           exampleValue = i === 0 ? 'Nguyễn Văn A' : i === 1 ? 'Trần Thị B' : 'Lê Văn C';
-        } else if (field.builtinKey === 'email') {
+        } else if (field.internalName === 'email') {
           exampleValue = i === 0 ? 'nguyenvana@example.com' : i === 1 ? 'tranthib@example.com' : 'levanc@example.com';
-        } else if (field.builtinKey === 'phone_number') {
+        } else if (field.internalName === 'phone_number') {
           // Phone number will be handled separately with country code
           // Skip here, will add to row separately
-        } else if (field.builtinKey === 'address') {
+        } else if (field.internalName === 'address') {
           exampleValue = i === 0 ? '123 Đường ABC, Quận 1, TP.HCM' : i === 1 ? '456 Đường XYZ, Quận 2, TP.HCM' : '789 Đường DEF, Quận 3, TP.HCM';
-        } else if (field.builtinKey === 'dob') {
+        } else if (field.internalName === 'dob') {
           exampleValue = i === 0 ? '15/03/1990' : i === 1 ? '20/07/1995' : '10/11/2000';
-        } else if (field.builtinKey === 'idcard_number') {
+        } else if (field.internalName === 'idcard_number') {
           exampleValue = i === 0 ? '123456789012' : i === 1 ? '234567890123' : '345678901234';
         } else if (field.fieldType === 'date') {
           exampleValue = i === 0 ? '25/12/2024' : i === 1 ? '26/12/2024' : '27/12/2024';
@@ -644,13 +649,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         }
 
         // Handle phone_number separately with country code
-        if (field.builtinKey === 'phone_number') {
-          const builtinLabel = getBuiltinKeyLabel(field.builtinKey, tt) || field.label;
+        if (field.internalName === 'phone_number') {
+          const builtinLabel = getinternalNameLabel(field.internalName, tt) || field.label;
           row[countryCodeHeader] = i === 0 ? '+84' : i === 1 ? '+84' : '+84';
           row[builtinLabel] = i === 0 ? '0901234567' : i === 1 ? '0912345678' : '0923456789';
         } else {
-          // Use bilingual label for builtinKey, otherwise use field.label from backend
-          const builtinLabel = getBuiltinKeyLabel(field.builtinKey, tt);
+          // Use bilingual label for internalName, otherwise use field.label from backend
+          const builtinLabel = getinternalNameLabel(field.internalName, tt);
           row[builtinLabel || field.label] = exampleValue;
         }
       });
@@ -688,29 +693,31 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           // Actually, we should only set properties that are in visibleFields or special handling
 
           visibleFields.forEach(field => {
-            // Try to match both bilingual label and backend label for builtinKey
-            const builtinLabel = getBuiltinKeyLabel(field.builtinKey, tt);
+            // Try to match both bilingual label and backend label for internalName
+            const builtinLabel = getinternalNameLabel(field.internalName, tt);
             const excelKey = builtinLabel || field.label; // Use bilingual label if available, otherwise use field.label
             // Try to find value using either bilingual label or backend label
             const excelValue = d[excelKey] || d[field.label] || '';
 
             // Map to customer object keys
-            if (field.builtinKey === 'title') {
+            // Map to customer object keys
+            if (field.internalName === 'title') {
               customer.title = String(excelValue) || defaultTitle;
-            } else if (field.builtinKey === 'name') {
+            } else if (field.internalName === 'name') {
               customer.name = String(excelValue);
-            } else if (field.builtinKey === 'email') {
+            } else if (field.internalName === 'email') {
               customer.email = String(excelValue);
-            } else if (field.builtinKey === 'phone_number') {
+            } else if (field.internalName === 'phone_number') {
               // Get country code from "Country Code" column, default to +84
-              const countryCode = d[countryCodeHeaderKey] || '+84';
-              customer.phoneCountryCode = String(countryCode);
+              const excelDialCode = String(d[countryCodeHeaderKey] || '+84');
+              const country = PHONE_COUNTRIES.find(c => c.dialCode === excelDialCode) || PHONE_COUNTRIES[0];
+              customer.phoneCountry = country.iso2;
               customer.phoneNumber = String(excelValue);
-            } else if (field.builtinKey === 'address') {
+            } else if (field.internalName === 'address') {
               customer.address = String(excelValue);
-            } else if (field.builtinKey === 'dob') {
+            } else if (field.internalName === 'dob') {
               customer.dob = String(excelValue);
-            } else if (field.builtinKey === 'idcard_number') {
+            } else if (field.internalName === 'idcard_number') {
               customer.idcardNumber = String(excelValue);
             } else {
               // Custom field - try both bilingual label and backend label
@@ -721,9 +728,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           return customer;
           // If title field is NOT visible but is required for logic, we might need default.
           // But based on requirement, if it's not in visibleFields, we don't care about it (or it's handled by default in handleSubmit if needed)
-          if (!customer.title && visibleFields.some(f => f.builtinKey === 'title')) {
+          if (!customer.title && visibleFields.some(f => f.internalName === 'title')) {
             customer.title = defaultTitle;
-          } else if (!customer.title && !visibleFields.some(f => f.builtinKey === 'title')) {
+          } else if (!customer.title && !visibleFields.some(f => f.internalName === 'title')) {
             // If not visible, we might still want a default title for backend compatibility if it relies on it?
             // handleSubmit adds default title if missing.
           }
@@ -911,21 +918,21 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     customers.forEach((customer, index) => {
       visibleFields.forEach(field => {
         if (field.required) {
-          const key = field.builtinKey || field.internalName;
+          const key = field.internalName || field.internalName;
           let value = '';
-          if (field.builtinKey === 'title') {
+          if (field.internalName === 'title') {
             value = customer.title || getDefaultTitle(); // fallback matches UI display
-          } else if (field.builtinKey === 'name') {
+          } else if (field.internalName === 'name') {
             value = customer.name || '';
-          } else if (field.builtinKey === 'email') {
+          } else if (field.internalName === 'email') {
             value = customer.email || '';
-          } else if (field.builtinKey === 'phone_number') {
+          } else if (field.internalName === 'phone_number') {
             value = customer.phoneNumber || '';
-          } else if (field.builtinKey === 'address') {
+          } else if (field.internalName === 'address') {
             value = customer.address || '';
-          } else if (field.builtinKey === 'dob') {
+          } else if (field.internalName === 'dob') {
             value = customer.dob || '';
-          } else if (field.builtinKey === 'idcard_number') {
+          } else if (field.internalName === 'idcard_number') {
             value = customer.idcardNumber || '';
           } else {
             value = customer[field.internalName] || '';
@@ -975,14 +982,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       ));
 
       // Prepare customers with form_answers separated from builtin fields
-      const builtinKeys = ['name', 'email', 'phoneNumber', 'phoneCountryCode', 'address', 'dob', 'idcardNumber', 'title'];
       const defaultTitle = locale === 'en' ? 'Mx.' : tt('Bạn', 'You');
       const customersWithFormAnswers = customers.map(customer => {
+        const country = PHONE_COUNTRIES.find(c => c.iso2 === (customer.phoneCountry || 'VN')) || PHONE_COUNTRIES[0];
         const customerData: any = {
           name: customer.name || '',
           email: customer.email || '',
           phoneNumber: customer.phoneNumber || '',
-          phoneCountryCode: customer.phoneCountryCode || '+84',
+          phoneCountry: country.iso2,
+          phoneCountryCode: country.dialCode,
           title: customer.title || defaultTitle,
         };
 
@@ -994,7 +1002,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         // Collect custom fields into form_answers
         const formAnswers: Record<string, any> = {};
         visibleFields.forEach(field => {
-          if (!field.builtinKey) {
+          if (!STANDARD_INTERNAL_NAMES.includes(field.internalName)) {
             // This is a custom field
             const fieldValue = customer[field.internalName];
             if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
@@ -1009,12 +1017,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               } else {
                 formAnswers[field.internalName] = fieldValue;
               }
-            }
-          } else if (field.builtinKey === 'idcard_number') {
-            // idcard_number might be in form_answers if not in customer object
-            const idcardValue = customer.idcardNumber || customer[field.internalName];
-            if (idcardValue) {
-              formAnswers[field.internalName] = idcardValue;
             }
           }
         });
@@ -1074,7 +1076,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       } else {
         const errorDetail = err?.response?.data?.detail;
         const errorMessage = typeof errorDetail === 'string' ? errorDetail : (err?.message || String(err));
-        
+
         notificationCtx.error(errorMessage);
         setConfirmOpen(false);
       }
@@ -1154,25 +1156,25 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       <TableRow>
                         <TableCell sx={{ width: '20px', py: 1 }}></TableCell>
                         {visibleFields.map((field) => {
-                          if (field.builtinKey === 'title' && visibleFields.some(f => f.builtinKey === 'name')) return null;
+                          if (field.internalName === 'title' && visibleFields.some(f => f.internalName === 'name')) return null;
                           return (
                             <TableCell
                               key={field.id}
                               sx={{
                                 py: 0,
-                                ...(field.builtinKey === 'name' ? { minWidth: '200px', width: 'auto' } :
-                                  field.builtinKey === 'email' ? { width: '200px' } :
-                                    field.builtinKey === 'phone_number' ? { width: '200px' } :
-                                      field.builtinKey === 'address' ? { width: '250px' } :
-                                        field.builtinKey === 'dob' ? { width: '150px' } :
-                                          !field.builtinKey ? { width: '200px' } : {})
+                                ...(field.internalName === 'name' ? { minWidth: '200px', width: 'auto' } :
+                                  field.internalName === 'email' ? { width: '200px' } :
+                                    field.internalName === 'phone_number' ? { width: '200px' } :
+                                      field.internalName === 'address' ? { width: '250px' } :
+                                        field.internalName === 'dob' ? { width: '150px' } :
+                                          {})
                               }}
                             >
                               <Stack spacing={0}>
                                 <Typography variant="body2">
                                   {(() => {
-                                    // Use bilingual label for builtinKey, otherwise use field.label from backend
-                                    const builtinLabel = getBuiltinKeyLabel(field.builtinKey, tt);
+                                    // Use bilingual label for standard fields, otherwise use field.label from backend
+                                    const builtinLabel = getinternalNameLabel(field.internalName, tt);
                                     return builtinLabel || field.label;
                                   })()}{field.required ? ' *' : ''}
                                 </Typography>
@@ -1201,27 +1203,27 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           >
                             <TableCell>{index + 1}</TableCell>
                             {visibleFields.map((field) => {
-                              if (field.builtinKey === 'title' && visibleFields.some(f => f.builtinKey === 'name')) return null;
+                              if (field.internalName === 'title' && visibleFields.some(f => f.internalName === 'name')) return null;
 
-                              const fieldKey = field.builtinKey || field.internalName;
+                              const fieldKey = field.internalName;
                               const normalizedKey = normalizeFieldKey(fieldKey);
                               const fieldErrors = rowErrors[normalizedKey] || [];
 
                               // Get value from customer object
                               let value = '';
-                              if (field.builtinKey === 'title') {
+                              if (field.internalName === 'title') {
                                 value = customer.title || '';
-                              } else if (field.builtinKey === 'name') {
+                              } else if (field.internalName === 'name') {
                                 value = customer.name || '';
-                              } else if (field.builtinKey === 'email') {
+                              } else if (field.internalName === 'email') {
                                 value = customer.email || '';
-                              } else if (field.builtinKey === 'phone_number') {
+                              } else if (field.internalName === 'phone_number') {
                                 value = customer.phoneNumber || '';
-                              } else if (field.builtinKey === 'address') {
+                              } else if (field.internalName === 'address') {
                                 value = customer.address || '';
-                              } else if (field.builtinKey === 'dob') {
+                              } else if (field.internalName === 'dob') {
                                 value = customer.dob || '';
-                              } else if (field.builtinKey === 'idcard_number') {
+                              } else if (field.internalName === 'idcard_number') {
                                 value = customer.idcardNumber || '';
                               } else {
                                 value = customer[field.internalName] || '';
@@ -1229,15 +1231,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
                               // Determine the field key for onChange
                               let onChangeKey = fieldKey;
-                              if (field.builtinKey === 'phone_number') {
+                              if (field.internalName === 'phone_number') {
                                 onChangeKey = 'phoneNumber';
-                              } else if (field.builtinKey === 'idcard_number') {
+                              } else if (field.internalName === 'idcard_number') {
                                 onChangeKey = 'idcardNumber';
                               }
 
                               return (
                                 <TableCell key={field.id}>
-                                  {field.builtinKey === 'name' ? (
+                                  {field.internalName === 'name' ? (
                                     <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
                                       <OutlinedInput
                                         name={`customer_${fieldKey}_${index}`}
@@ -1248,11 +1250,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                         size="small"
                                         sx={{ fontSize: '11px' }}
                                         startAdornment={
-                                          visibleFields.some(f => f.builtinKey === 'title') ? (
+                                          visibleFields.some(f => f.internalName === 'title') ? (
                                             <InputAdornment position="start">
                                               <Select
                                                 variant="standard"
-                                                sx={{ fontSize: '11px' }}
+                                                sx={{
+                                                  fontSize: '11px',
+                                                  minWidth: 50,
+                                                  '& .MuiSelect-select': { py: 0 }
+                                                }}
                                                 disableUnderline
                                                 value={customer.title || getDefaultTitle()}
                                                 onChange={(e) =>
@@ -1447,7 +1453,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                         </FormHelperText>
                                       ))}
                                     </FormControl>
-                                  ) : field.builtinKey === 'phone_number' ? (
+                                  ) : field.internalName === 'phone_number' ? (
                                     <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
                                       <OutlinedInput
                                         name={`customer_${fieldKey}_${index}`}
@@ -1464,17 +1470,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                               variant="standard"
                                               sx={{ fontSize: '11px', minWidth: 40 }}
                                               disableUnderline
-                                              value={customer.phoneCountryCode || '+84'}
+                                              value={customer.phoneCountry || 'VN'}
                                               onChange={(e) =>
-                                                handleCustomerChange(index, 'phoneCountryCode', e.target.value)
+                                                handleCustomerChange(index, 'phoneCountry', e.target.value)
                                               }
                                               renderValue={(value) => {
-                                                const country = PHONE_COUNTRIES.find(c => c.dialCode === value);
+                                                const country = PHONE_COUNTRIES.find(c => c.iso2 === value);
                                                 return country ? country.dialCode : value;
                                               }}
                                             >
                                               {PHONE_COUNTRIES.map((country) => (
-                                                <MenuItem key={country.iso2} value={country.dialCode}>
+                                                <MenuItem key={country.iso2} value={country.iso2}>
                                                   {country.nameVi} ({country.dialCode})
                                                 </MenuItem>
                                               ))}
@@ -1488,7 +1494,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                         </FormHelperText>
                                       ))}
                                     </FormControl>
-                                  ) : field.builtinKey === 'address' ? (
+                                  ) : field.internalName === 'address' ? (
                                     <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
                                       <OutlinedInput
                                         name={`customer_${fieldKey}_${index}`}
@@ -1509,7 +1515,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                         </FormHelperText>
                                       ))}
                                     </FormControl>
-                                  ) : !field.builtinKey && field.fieldType === 'text' ? (
+                                  ) : !field.internalName && field.fieldType === 'text' ? (
                                     // Custom text fields - allow multiline
                                     <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
                                       <OutlinedInput
@@ -1535,7 +1541,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                                     <FormControl fullWidth required={field.required} error={fieldErrors.length > 0}>
                                       <OutlinedInput
                                         name={`customer_${fieldKey}_${index}`}
-                                        type={field.builtinKey === 'email' ? 'email' : field.fieldType === 'number' ? 'number' : 'text'}
+                                        type={field.internalName === 'email' ? 'email' : field.fieldType === 'number' ? 'number' : 'text'}
                                         value={value}
                                         onChange={(e) =>
                                           handleCustomerChange(index, onChangeKey, e.target.value)
@@ -2049,26 +2055,26 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           {tt(`Người mua ${index + 1}`, `Customer ${index + 1}`)}
                         </Typography>
                         {visibleFields.map((field) => {
-                          const fieldKey = field.builtinKey || field.internalName;
+                          const fieldKey = field.internalName || field.internalName;
                           let value = '';
-                          if (field.builtinKey === 'name') {
+                          if (field.internalName === 'name') {
                             value = customer.name || '';
-                          } else if (field.builtinKey === 'email') {
+                          } else if (field.internalName === 'email') {
                             value = customer.email || '';
-                          } else if (field.builtinKey === 'phone_number') {
+                          } else if (field.internalName === 'phone_number') {
                             value = customer.phoneNumber || '';
-                          } else if (field.builtinKey === 'address') {
+                          } else if (field.internalName === 'address') {
                             value = customer.address || '';
-                          } else if (field.builtinKey === 'dob') {
+                          } else if (field.internalName === 'dob') {
                             value = customer.dob || '';
-                          } else if (field.builtinKey === 'idcard_number') {
+                          } else if (field.internalName === 'idcard_number') {
                             value = customer.idcardNumber || '';
                           } else {
                             value = customer[field.internalName] || '';
                           }
 
                           // Format name field with title
-                          if (field.builtinKey === 'name') {
+                          if (field.internalName === 'name') {
                             value = customer.title ? `${customer.title} ${value}` : value;
                           }
 

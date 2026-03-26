@@ -394,25 +394,32 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     input.onchange = async () => {
       const file = input.files?.[0];
       if (file) {
-        const formData = new FormData();
-        formData.append('file', file);
-
         try {
-          // Upload the image to the server
           setIsLoading(true);
-          const response = await baseHttpServiceInstance.post(
-            `/event-studio/events/${event_id}/upload_image`,
-            formData,
-            {
-              headers: { 'Content-Type': 'multipart/form-data' },
-            }
-          );
+          // Step 1: Request presigned URL
+          const presignedResponse = await baseHttpServiceInstance.post('/common/s3/generate_presigned_url', {
+            filename: file.name,
+            content_type: file.type,
+          });
+          const { presignedUrl, fileUrl } = presignedResponse.data;
 
-          const imageUrl = response.data.imageUrl; // Adjust based on response
-          const quill = reactQuillRef.current;
+          // Step 2: Upload file directly to S3
+          await fetch(presignedUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+              'Content-Type': file.type,
+            },
+          });
+
+          const quill = reactQuillRef.current?.getEditor();
           if (quill) {
-            const range = quill.getEditorSelection();
-            range && quill.getEditor().insertEmbed(range.index, 'image', imageUrl);
+            const range = quill.getSelection();
+            if (range) {
+              quill.insertEmbed(range.index, 'image', fileUrl);
+            } else {
+              quill.insertEmbed(quill.getLength(), 'image', fileUrl);
+            }
           }
         } catch (error) {
           notificationCtx.error('Lỗi:', error);
@@ -446,19 +453,24 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         for (const item of imageItems) {
           const file = item.getAsFile();
           if (!file) continue;
-          const formData = new FormData();
-          formData.append('file', file);
 
-          const response = await baseHttpServiceInstance.post(
-            `/event-studio/events/${event_id}/upload_image`,
-            formData,
-            {
-              headers: { 'Content-Type': 'multipart/form-data' },
-            }
-          );
+          // Step 1: Request presigned URL
+          const presignedResponse = await baseHttpServiceInstance.post('/common/s3/generate_presigned_url', {
+            filename: file.name || 'pasted_image.png',
+            content_type: file.type,
+          });
+          const { presignedUrl, fileUrl } = presignedResponse.data;
 
-          const imageUrl = response.data.imageUrl;
-          quill.insertEmbed(insertIndex, 'image', imageUrl);
+          // Step 2: Upload file directly to S3
+          await fetch(presignedUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+              'Content-Type': file.type,
+            },
+          });
+
+          quill.insertEmbed(insertIndex, 'image', fileUrl);
           insertIndex += 1;
         }
       } catch (error) {
@@ -467,7 +479,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         setIsLoading(false);
       }
     },
-    [event_id]
+    []
   );
 
   // Attach paste listener to Quill root
@@ -489,7 +501,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         [{ header: '1' }, { header: '2' }, { font: [] }],
         [{ size: [] }],
         ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-        [{ list: 'ordered' }, { list: 'bullet' }],
+        [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '+1' }],
+        [{ align: [] }],
         ['link', 'image'],
         ['clean'],
       ],
@@ -497,10 +510,24 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         image: handleImageUpload, // <-
       },
     },
-    clipboard: {
-      matchVisual: false,
-    },
   };
+
+  const formats = [
+    'header',
+    'font',
+    'size',
+    'bold',
+    'italic',
+    'underline',
+    'strike',
+    'blockquote',
+    'list',
+    'bullet',
+    'indent',
+    'link',
+    'image',
+    'align',
+  ];
 
   async function getSMTPSettings(eventId: number): Promise<SMTPConfig | null> {
     try {
@@ -896,6 +923,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         value={description}
                         onChange={handleDescriptionChange}
                         modules={modules}
+                        formats={formats}
                         placeholder={tt('Mô tả', 'Description')}
                       />
                     </Grid>

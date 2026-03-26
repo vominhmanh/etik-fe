@@ -28,10 +28,13 @@ interface TicketCategoriesProps {
   onModalRequestHandled?: () => void;
   onCategorySelect: (ticketCategoryId: number) => void;
   onAddToCart?: (ticketCategoryId: number, quantity: number, holders?: { title: string; name: string; email: string; phone: string; }[]) => void;
+  eventLimitPerTransaction?: number | null;
+  eventLimitPerCustomer?: number | null;
+  totalTicketsInOrder?: number;
 }
 
 
-export function TicketCategories({ show, qrOption, requestedCategoryModalId, onModalRequestHandled, onCategorySelect, onAddToCart }: TicketCategoriesProps): React.JSX.Element {
+export function TicketCategories({ show, qrOption, requestedCategoryModalId, onModalRequestHandled, onCategorySelect, onAddToCart, eventLimitPerTransaction, eventLimitPerCustomer, totalTicketsInOrder }: TicketCategoriesProps): React.JSX.Element {
   const { tt, locale } = useTranslation();
   const ticketCategories = show.ticketCategories;
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);

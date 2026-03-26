@@ -25,6 +25,7 @@ import { ArrowCounterClockwise, ArrowSquareIn, X } from '@phosphor-icons/react/d
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { debounce } from 'lodash';
 import { Transaction, TransactionsTable } from './transactions-table';
+import { EmailMarketingSelectModal } from './_components/EmailMarketingSelectModal';
 
 interface BulkErrorDetail {
   id: number;
@@ -443,6 +444,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [paymentAnchorEl, setPaymentAnchorEl] = React.useState<null | HTMLElement>(null);
   const [ticketAnchorEl, setTicketAnchorEl] = React.useState<null | HTMLElement>(null);
   const [emailMarketingAnchorEl, setEmailMarketingAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [isEmailMarketingModalOpen, setIsEmailMarketingModalOpen] = React.useState(false);
 
   const open = Boolean(anchorEl);
   const paymentOpen = Boolean(paymentAnchorEl);
@@ -628,36 +630,42 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   };
 
 
-  const handleSendEmailMarketingBulk = async () => {
+  const handleSendEmailMarketingBulk = () => {
     if (selected.size === 0) {
       notificationCtx.warning(tt(`Vui lòng chọn ít nhất một đơn hàng để thao tác.`, `Please select at least one order to proceed.`));
       return
     }
+    setEmailMarketingAnchorEl(null);
+    setIsEmailMarketingModalOpen(true);
+  };
+
+  const onSelectEmailMarketingTemplate = async (templateId: number) => {
+    setIsEmailMarketingModalOpen(false);
     let userConfirmed = confirm(tt("Bạn đang thao tác với nhiều đơn hàng, bạn có chắc chắn muốn thực hiện?", "You are operating on multiple orders, are you sure you want to proceed?"));
     if (!userConfirmed) {
       return
     }
-    setEmailMarketingAnchorEl(null)
+
     setBulkErrorMessage('');
     setBulkErrorDetails([]);
     try {
-      setIsLoading(true); // Optional: Show loading state
+      setIsLoading(true);
       const response: AxiosResponse = await baseHttpServiceInstance.post(
-        `/event-studio/events/${params.event_id}/transactions/send-email-marketing-bulk`, { transactionIds: Array.from(selected) },
+        `/event-studio/events/${params.event_id}/transactions/send-email-marketing-bulk`,
+        {
+          transactionIds: Array.from(selected),
+          emailMarketingId: templateId
+        },
         {}, true
       )
 
-      // Optionally handle response
       if (response.status === 200) {
         notificationCtx.success(response.data.message);
-        // fetchTransactions()
       }
     } catch (error: any) {
       if (error.response?.data.detail.message) {
-        // Access the message and errors array
-        const message = error.response?.data.detail.message; // "Không thể thực hiện bởi các lỗi sau"
-        const errors = error.response?.data.detail.errorDetails || []; // Array of error details
-        // You can also use this data in your UI
+        const message = error.response?.data.detail.message;
+        const errors = error.response?.data.detail.errorDetails || [];
         setBulkErrorMessage(message);
         setBulkErrorDetails(errors);
       } else if (error.response?.data.detail) {
@@ -666,7 +674,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         notificationCtx.error(error);
       }
     } finally {
-      setIsLoading(false); // Optional: Hide loading state
+      setIsLoading(false);
     }
   };
 
@@ -1332,6 +1340,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         onDeselectMultiple={handleDeselectMultiple}
         onSelectOne={handleSelectOne}
         onDeselectOne={handleDeselectOne}
+      />
+      <EmailMarketingSelectModal
+        open={isEmailMarketingModalOpen}
+        onClose={() => setIsEmailMarketingModalOpen(false)}
+        onSelect={onSelectEmailMarketingTemplate}
+        eventId={params.event_id}
       />
     </Stack>
   );

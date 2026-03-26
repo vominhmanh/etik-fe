@@ -49,9 +49,11 @@ interface FieldDefinition {
   locked: boolean; // không cho chỉnh sửa (4 trường đầu)
   nonDeletable: boolean; // không cho xoá (6 trường đầu)
   options?: string[]; // cho radio / checkbox
+  isNew?: boolean; // Temporary flag
 }
 
 interface NewFieldState {
+  internalName: string;
   label: string;
   type: FieldType;
   visible: boolean;
@@ -156,6 +158,17 @@ const INITIAL_FIELDS: FieldDefinition[] = [
   },
 ];
 
+const slugify = (text: string): string => {
+  if (!text) return '';
+  return text.trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove diacritics
+    .replace(/[đĐ]/g, 'd')
+    .replace(/[^a-z0-9\s]/g, '') // remove special chars except spaces
+    .replace(/\s+/g, '_') // whitespaces to underscores
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+};
+
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   React.useEffect(() => {
     document.title = 'ETIK Forms - Form mua vé | ETIK - Vé điện tử & Quản lý sự kiện';
@@ -165,6 +178,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [isFieldModalOpen, setFieldModalOpen] = React.useState<boolean>(false);
   const [editingFieldId, setEditingFieldId] = React.useState<number | null>(null);
   const [newField, setNewField] = React.useState<NewFieldState>({
+    internalName: '',
     label: '',
     type: 'text',
     visible: true,
@@ -249,6 +263,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const handleOpenAddFieldModal = () => {
     setEditingFieldId(null);
     setNewField({
+      internalName: '',
       label: '',
       type: 'text',
       visible: true,
@@ -264,6 +279,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const handleOpenEditFieldModal = (field: FieldDefinition) => {
     setEditingFieldId(field.id);
     setNewField({
+      internalName: field.internalName,
       label: field.label,
       type: field.type,
       visible: field.visible,
@@ -315,7 +331,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const nextId = fields.length ? Math.max(...fields.map((f) => f.id)) + 1 : 1;
       const created: FieldDefinition = {
         id: nextId,
-        internalName: `${Math.floor(Date.now() / 1000)}_${newField.label.trim()}`,
+        internalName: '', // Backend sẽ sinh,
         label: newField.label.trim(),
         type: newField.type,
         visible: newField.visible,
@@ -326,6 +342,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         locked: false,
         nonDeletable: false,
         options: cleanedOptions && cleanedOptions.length > 0 ? cleanedOptions : undefined,
+        isNew: true,
       };
       setFields((prev) => [...prev, created]);
     } else {
@@ -337,11 +354,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           const canEditType = !(field.locked || field.nonDeletable);
           const canEditVisibilityAndRequired = !field.locked;
 
-          // Chỉ 4 trường core (title, name, email, phone_number) luôn true, các trường khác cho phép edit
-          const isCoreField = field.internalName === 'title' || field.internalName === 'name' || field.internalName === 'email' || field.internalName === 'phone_number';
+          const isCoreField =
+            field.internalName === 'title' ||
+            field.internalName === 'name' ||
+            field.internalName === 'email' ||
+            field.internalName === 'phone_number';
 
           return {
             ...field,
+            // Giữ nguyên internalName cũ, nếu là mới thì vẫn là ''
             label: canEditLabel ? newField.label.trim() : field.label,
             type: canEditType ? newField.type : field.type,
             visible: canEditVisibilityAndRequired ? newField.visible : field.visible,
@@ -351,8 +372,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             showInTicketEmail: isCoreField ? true : newField.showInTicketEmail,
             options:
               (newField.type === 'radio' || newField.type === 'checkbox') &&
-                cleanedOptions &&
-                cleanedOptions.length > 0
+              cleanedOptions &&
+              cleanedOptions.length > 0
                 ? cleanedOptions
                 : undefined,
           };
@@ -405,9 +426,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             : undefined;
 
         return {
-          // Không gửi id cho custom mới; backend sẽ map builtin theo sortOrder + internalName
-          id: field.id,
-          internalName,
+          id: field.isNew ? null : field.id,
+          internalName: field.isNew ? null : field.internalName,
           label: field.label,
           fieldType: field.type,
           visible: field.visible,
@@ -454,7 +474,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         </Stack>
 
         <Card>
-          <CardHeader title="Khách hàng sẽ cần nhập thông tin gì khi mua vé?" />
+          <CardHeader title="Người mua sẽ cần nhập thông tin gì khi mua vé?" />
           <Divider />
           <CardContent sx={{ p: 0 }}>
             <Box sx={{ width: '100%', overflowX: 'auto' }}>
@@ -604,7 +624,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   onChange={(e) =>
                     setNewField((prev) => ({ ...prev, label: e.target.value }))
                   }
-                  disabled={!!editingField && (editingField.locked || editingField.nonDeletable)}
+                />
+                
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Mã định danh (internalName)"
+                  value={newField.internalName || (editingFieldId ? '' : 'Sẽ được tạo tự động')}
+                  disabled
+                  helperText="Mã này do hệ thống tự sinh để đảm bảo tính duy nhất."
                 />
 
                 <FormControl fullWidth size="small">

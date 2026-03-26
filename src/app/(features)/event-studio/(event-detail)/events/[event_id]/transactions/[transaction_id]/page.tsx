@@ -39,6 +39,7 @@ const SendNotificationModal = React.lazy(() => import('./send-notification-modal
 import AdminGiftTicketModal from './admin-gift-ticket-modal';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone, formatToE164 } from '@/config/phone-countries';
 import { useTranslation } from '@/contexts/locale-context';
+import { EmailMarketingSelectModal } from '../_components/EmailMarketingSelectModal';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -386,6 +387,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [checkoutCustomAnswers, setCheckoutCustomAnswers] = useState<Record<string, any>>({});
   const [audiences, setAudiences] = useState<Audience[]>([]);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [isEmailMarketingModalOpen, setIsEmailMarketingModalOpen] = useState(false);
   const [notificationChannel, setNotificationChannel] = useState<'email' | 'zalo'>('email');
 
   // Redeem Concessions State
@@ -1005,6 +1007,25 @@ export default function Page({ params }: { params: { event_id: number; transacti
     }
   };
 
+  const handleSendEmailMarketingSingle = async (templateId: number) => {
+    setIsEmailMarketingModalOpen(false);
+    try {
+      setIsLoading(true);
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${params.event_id}/transactions/${params.transaction_id}/send-email-marketing`,
+        { emailMarketingId: templateId }
+      );
+
+      if (response.status === 200) {
+        notificationCtx.success(response.data.message || tt('Đã lên lịch gửi email marketing.', 'Email marketing scheduled successfully.'));
+      }
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const selectedPhoneCountry = React.useMemo(() => {
     return PHONE_COUNTRIES.find(c => c.iso2 === formData.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
   }, [formData.phoneCountryIso2]);
@@ -1197,6 +1218,15 @@ export default function Page({ params }: { params: { event_id: number; transacti
                             startIcon={<EnvelopeSimpleIcon />}
                           >
                             {tt('Gửi Zalo', 'Send Zalo')}
+                          </Button>
+
+                          <Button
+                            onClick={() => setIsEmailMarketingModalOpen(true)}
+                            size="small"
+                            startIcon={<EnvelopeSimpleIcon />}
+                            color="info"
+                          >
+                            {tt('Gửi Email Marketing', 'Send Marketing Email')}
                           </Button>
 
                           <Button
@@ -2536,7 +2566,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
           event={transaction.event}
           onSuccess={() => {
             // Reload transaction data
-            // Since we don't have a direct reload function exposed easily without recreating it, 
+            // Since we don't have a direct reload function exposed easily without recreating it,
             // the simplest way in Next.js app router or this setup is likely forcing a router refresh or calling a fetch function if available.
             // Looking at the code: no straightforward `fetchTransaction` in scope of render.
             // But we can reload the page or trigger a re-fetch if we had extracted it.
@@ -2555,6 +2585,12 @@ export default function Page({ params }: { params: { event_id: number; transacti
           isLoading={isLoading}
         />
       </React.Suspense>
+      <EmailMarketingSelectModal
+        open={isEmailMarketingModalOpen}
+        onClose={() => setIsEmailMarketingModalOpen(false)}
+        onSelect={handleSendEmailMarketingSingle}
+        eventId={params.event_id}
+      />
     </>
   );
 }
