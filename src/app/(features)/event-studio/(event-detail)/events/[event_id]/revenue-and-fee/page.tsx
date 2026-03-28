@@ -52,6 +52,10 @@ export type StatisticsResponse = {
   validTicketsCount: number;
   emailsSentCount: number;
   zaloSentCount: number;
+  quotaEmail: number | null;
+  quotaZns: number | null;
+  freeQuotaEmail: number | null;
+  freeQuotaZns: number | null;
   napas247TransactionsCount: number;
   totalTicketRevenue: number;
   systemFee: number;
@@ -531,9 +535,45 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <Divider />
                 <CardContent>
                   <Stack spacing={0}>
-                    {/* createdAt */}
+                    {/* Part 1: Quotas */}
                     <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body1">{tt("Hạn mức Email", "Email Quota")}</Typography>
+                      </Stack>
+                      <Typography variant="body1">
+                        {statistics?.quotaEmail ?? tt("Không giới hạn", "Unlimited")}
+                      </Typography>
+                    </Grid>
+                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body1">{tt("Số lượng email miễn phí", "Free Email Quota")}</Typography>
+                      </Stack>
+                      <Typography variant="body1">
+                        {statistics?.freeQuotaEmail ?? tt("Không giới hạn", "Unlimited")}
+                      </Typography>
+                    </Grid>
+                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body1">{tt("Hạn mức Zalo SMS", "Zalo SMS Quota")}</Typography>
+                      </Stack>
+                      <Typography variant="body1">
+                        {statistics?.quotaZns ?? tt("Không giới hạn", "Unlimited")}
+                      </Typography>
+                    </Grid>
+                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body1">{tt("Số lượng Zalo SMS miễn phí", "Free Zalo SMS Quota")}</Typography>
+                      </Stack>
+                      <Typography variant="body1">
+                        {statistics?.freeQuotaZns ?? tt("Không giới hạn", "Unlimited")}
+                      </Typography>
+                    </Grid>
+
+                    <Divider sx={{ my: 1 }} />
+
+                    {/* Part 2: Usage statistics */}
+                    <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Stack spacing={0} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                         <Typography variant="body1">{tt("Số lượng vé hợp lệ", "Number of tickets sold")}</Typography>
                       </Stack>
                       <Typography variant="body1">

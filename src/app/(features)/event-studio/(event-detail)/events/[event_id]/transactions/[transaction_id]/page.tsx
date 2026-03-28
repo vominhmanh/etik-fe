@@ -651,13 +651,13 @@ export default function Page({ params }: { params: { event_id: number; transacti
       // Optionally handle response
       if (response.status === 200) {
         notificationCtx.success(response.data.message);
-        setIsNotificationModalOpen(false);
         setTransaction((prev) => prev ? { ...prev, exportedTicketAt: '.' } : prev);
       }
     } catch (error) {
       notificationCtx.error(error);
     } finally {
       setIsLoading(false); // Optional: Hide loading state
+      setIsNotificationModalOpen(false);
     }
   };
 
