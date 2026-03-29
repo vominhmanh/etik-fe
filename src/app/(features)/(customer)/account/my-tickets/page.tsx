@@ -29,7 +29,6 @@ import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
 import { LocalizedLink } from '@/components/homepage/localized-link';
 import * as React from 'react';
-import ZaloRedirect from './zalo-redirect';
 
 export interface ListTransactionEventResponse {
   slug: string;
@@ -169,7 +168,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   return (
     <Stack spacing={3}>
-      <ZaloRedirect />
       <Stack direction="row" spacing={3} alignItems="center">
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">{tt('Vé của tôi', 'My Tickets')}</Typography>

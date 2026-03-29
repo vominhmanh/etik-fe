@@ -7,10 +7,20 @@ export default function ZaloRedirect() {
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        const from = searchParams.get("from");
-        if (from !== "zns") return;
+        const returnUrlRaw = searchParams.get("returnUrl");
+        if (!returnUrlRaw) return;
 
-        // tránh loop
+        let decoded = "";
+        try {
+            decoded = decodeURIComponent(returnUrlRaw);
+        } catch {
+            return;
+        }
+
+        // ❗ chỉ xử lý nếu có from=zns
+        if (!decoded.includes("from=zns")) return;
+
+        // ❗ tránh loop
         if (sessionStorage.getItem("zalo_redirected")) return;
         sessionStorage.setItem("zalo_redirected", "1");
 
@@ -18,43 +28,49 @@ export default function ZaloRedirect() {
         const isAndroid = /android/i.test(ua);
         const isIOS = /iPhone|iPad|iPod/i.test(ua);
 
-        // 🔹 build URL mới (xoá param)
-        const url = new URL(window.location.href);
+        // 🔹 parse returnUrl
+        const base = window.location.origin;
+        const url = new URL(decoded, base);
+
+        // 🔥 QUAN TRỌNG: xoá from=zns
         url.searchParams.delete("from");
+
+        // (optional) xoá thêm tracking
         url.searchParams.delete("zarsrc");
         url.searchParams.delete("utm_source");
         url.searchParams.delete("utm_medium");
         url.searchParams.delete("utm_campaign");
 
-        const cleanUrl = url.toString();
+        const cleanPath = url.pathname + url.search;
 
+        // 🚀 ANDROID → intent (mở Chrome)
         if (isAndroid) {
-            // ✅ Android → mở Chrome
             const intentUrl =
                 "intent://" +
-                url.host +
-                url.pathname +
-                url.search +
+                window.location.host +
+                cleanPath +
                 "#Intent;scheme=https;package=com.android.chrome;end";
 
             window.location.href = intentUrl;
-        } else if (isIOS) {
-            // ⚠️ iOS → thử Chrome
+        }
+
+        // 🍎 iOS → thử Chrome + fallback
+        else if (isIOS) {
             const chromeUrl =
                 "googlechrome://" +
-                url.host +
-                url.pathname +
-                url.search;
+                window.location.host +
+                cleanPath;
 
             window.location.href = chromeUrl;
 
-            // fallback về link sạch
             setTimeout(() => {
-                window.location.replace(cleanUrl);
+                window.location.replace(cleanPath);
             }, 1500);
-        } else {
-            // các trường hợp khác → vào link sạch luôn
-            window.location.replace(cleanUrl);
+        }
+
+        // 🌐 fallback chung
+        else {
+            window.location.replace(cleanPath);
         }
     }, [searchParams]);
 
