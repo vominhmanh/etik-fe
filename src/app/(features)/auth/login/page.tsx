@@ -6,7 +6,7 @@ import { GuestGuard } from '@/components/auth/guest-guard';
 import { Layout } from '@/components/auth/layout';
 import { SignInForm } from '@/components/auth/login-form';
 import { useTranslation } from '@/contexts/locale-context';
-import ZaloRedirect from './zalo-redirect';
+import ZaloBrowserGuard from './zalo-redirect';
 
 export default function Page(): React.JSX.Element {
   const { tt } = useTranslation();
@@ -17,7 +17,7 @@ export default function Page(): React.JSX.Element {
 
   return (
     <Layout>
-      <ZaloRedirect />
+      <ZaloBrowserGuard />
       <GuestGuard>
         <SignInForm />
       </GuestGuard>
