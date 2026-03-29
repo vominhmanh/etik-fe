@@ -1,29 +1,40 @@
 import * as React from 'react';
-import NotificationContext from '@/contexts/notification-context';
-import type { Viewport } from 'next';
+import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
+
 import { NotificationProvider } from '@/contexts/notification-context';
-
-import '@/styles/global.css';
-import "seat-picker/dist/index.css";
-
 import { UserProvider } from '@/contexts/user-context';
 import { LocaleProvider } from '@/contexts/locale-context';
 import { LocalizationProvider } from '@/components/core/localization-provider';
 import { ThemeProvider } from '@/components/core/theme-provider/theme-provider';
 import NotificationBar from './notification';
-import Script from 'next/script';
+
+import '@/styles/global.css';
+import "seat-picker/dist/index.css";
 
 export const viewport = { width: 'device-width', initialScale: 1 } satisfies Viewport;
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
+export const metadata: Metadata = {
+  metadataBase: new URL('https://etik.vn'),
+  title: {
+    default: 'ETIK - Vé điện tử & Quản lý sự kiện',
+    template: '%s | ETIK',
+  },
+  description:
+    'Phần mềm vé điện tử và quản lý sự kiện chuyên nghiệp, hiện đại: tạo vé QR, bán vé online, check-in nhanh, chống gian lận.',
+  openGraph: {
+    type: 'website',
+    url: 'https://etik.vn',
+    siteName: 'ETIK',
+    images: [{ url: '/assets/etik-logo1.png' }],
+  },
+};
 
-export default function Layout({ children }: LayoutProps): React.JSX.Element {
+export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="vi">
       <head>
-        {/* Google Tag Manager Script */}
+        {/* Google Analytics */}
         <Script
           strategy="afterInteractive"
           src={`https://www.googletagmanager.com/gtag/js?id=AW-16949452196`}
@@ -36,13 +47,12 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
-              gtag('config', 'AW-16949452196', {
-                page_path: window.location.pathname,
-              });
+              gtag('config', 'AW-16949452196');
             `,
           }}
         />
       </head>
+
       <body>
         <LocaleProvider>
           <LocalizationProvider>
@@ -56,6 +66,36 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
             </UserProvider>
           </LocalizationProvider>
         </LocaleProvider>
+
+        {/* ✅ SCHEMA */}
+        <Script
+          id="schema-org"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([
+              {
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                name: "ETIK",
+                url: "https://etik.vn",
+                logo: "https://etik.vn/assets/etik-logo1.png",
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                name: "ETIK - Vé điện tử & Quản lý sự kiện",
+                url: "https://etik.vn",
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "SoftwareApplication",
+                name: "ETIK",
+                applicationCategory: "BusinessApplication",
+                operatingSystem: "Web",
+              },
+            ]),
+          }}
+        />
       </body>
     </html>
   );

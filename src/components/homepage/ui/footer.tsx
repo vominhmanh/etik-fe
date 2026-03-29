@@ -7,6 +7,7 @@ import { MenuItem, Select, SelectChangeEvent, Typography } from '@mui/material';
 import { useLocale, useTranslation } from '@/contexts/locale-context';
 
 import LogoFooter from './logo-footer';
+import { LocalizedLink } from '../localized-link';
 
 // Small down-arrow icon for language select
 const LanguageSelectIcon = (props: any) => <span {...props}>▾</span>;
@@ -53,6 +54,8 @@ export default function Footer({ border = false }: { border?: boolean }) {
               <br />
               {tt('Giấy phép đăng ký kinh doanh số:', 'Business Registration Number:')} 0110765139
               <br />
+              {tt('Địa chỉ trụ sở chính: Số 39B ngõ 51 đường Quang Tiến, P. Tây Mỗ, TP. Hà Nội', 'Head Office Address: No. 39B, alley 51, Quang Tien street, Tay Mo ward, Hanoi')}
+              <br />
               {tt('Số điện thoại:', 'Phone:')} 0333.247.242
               <br />
               Email: Tienphongsmart@gmail.com
@@ -61,7 +64,7 @@ export default function Footer({ border = false }: { border?: boolean }) {
 
           {/* 2nd block */}
           <div className="space-y-2 sm:col-span-6 md:col-span-3 lg:col-span-2">
-            <h3 className="text-sm font-medium">{tt('Sản phẩm:', 'Products:')}</h3>
+            {/* <h3 className="text-sm font-medium">{tt('Sản phẩm:', 'Products:')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link className="text-gray-600 transition hover:text-gray-900" href="#0">
@@ -83,7 +86,7 @@ export default function Footer({ border = false }: { border?: boolean }) {
                   Tien Phong Oursourcing
                 </Link>
               </li>
-            </ul>
+            </ul> */}
           </div>
 
           {/* 3rd block */}
@@ -91,11 +94,26 @@ export default function Footer({ border = false }: { border?: boolean }) {
             <h3 className="text-sm font-medium">{tt('Công ty:', 'Company:')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link className="text-gray-600 transition hover:text-gray-900" href="#0">
+                <LocalizedLink className="text-gray-600 transition hover:text-gray-900" href="/about">
                   {tt('Về chúng tôi', 'About Us')}
-                </Link>
+                </LocalizedLink>
               </li>
               <li>
+                <a className="text-gray-600 transition hover:text-gray-900" href={`${process.env.NEXT_PUBLIC_BASE_URL}/common/downloads/gioi-thieu-cong-ty-tien-phong-smart`} target="_blank" rel="noopener noreferrer">
+                  {tt('Tài liệu giới thiệu TPS', 'Company Introduction')}
+                </a>
+              </li>
+              <li>
+                <a className="text-gray-600 transition hover:text-gray-900" href={`${process.env.NEXT_PUBLIC_BASE_URL}/common/downloads/tai-lieu-quang-ba-etik`} target="_blank" rel="noopener noreferrer">
+                  {tt('Tài liệu giới thiệu ETIK', 'ETIK Introduction')}
+                </a>
+              </li>
+              <li>
+                <a className="text-gray-600 transition hover:text-gray-900" href={`${process.env.NEXT_PUBLIC_BASE_URL}/common/downloads/tai-lieu-huong-dan-su-dung-etik`} target="_blank" rel="noopener noreferrer">
+                  {tt('Tài liệu HDSD ETIK', 'ETIK User Guide')}
+                </a>
+              </li>
+              {/* <li>
                 <Link className="text-gray-600 transition hover:text-gray-900" href="#0">
                   Blog
                 </Link>
@@ -104,7 +122,7 @@ export default function Footer({ border = false }: { border?: boolean }) {
                 <Link className="text-gray-600 transition hover:text-gray-900" href="#0">
                   {tt('Tuyển dụng', 'Careers')}
                 </Link>
-              </li>
+              </li> */}
             </ul>
           </div>
 
@@ -113,14 +131,24 @@ export default function Footer({ border = false }: { border?: boolean }) {
             <h3 className="text-sm font-medium">{tt('Tài nguyên:', 'Resources:')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link className="text-gray-600 transition hover:text-gray-900" href="#0">
-                  {tt('Điều khoản dịch vụ', 'Terms of Service')}
-                </Link>
+                <LocalizedLink className="text-gray-600 transition hover:text-gray-900" href="/policies/terms-and-regulations">
+                  {tt('Điều khoản & Quy chế', 'Terms & Regulations')}
+                </LocalizedLink>
               </li>
               <li>
-                <Link className="text-gray-600 transition hover:text-gray-900" href="#0">
-                  {tt('Nguyên tắc bảo mật', 'Privacy Policy')}
-                </Link>
+                <LocalizedLink className="text-gray-600 transition hover:text-gray-900" href="/policies/privacy-policy">
+                  {tt('Chính sách bảo mật', 'Privacy Policy')}
+                </LocalizedLink>
+              </li>
+              <li>
+                <LocalizedLink className="text-gray-600 transition hover:text-gray-900" href="/policies/dispute-resolution">
+                  {tt('Khiếu nại & tranh chấp', 'Dispute Resolution')}
+                </LocalizedLink>
+              </li>
+              <li>
+                <LocalizedLink className="text-gray-600 transition hover:text-gray-900" href="/policies/transaction-policy">
+                  {tt('Chính sách giao dịch', 'Transaction Policy')}
+                </LocalizedLink>
               </li>
             </ul>
           </div>
@@ -132,7 +160,7 @@ export default function Footer({ border = false }: { border?: boolean }) {
               <li>
                 <Link
                   className="flex items-center justify-center text-blue-500 transition hover:text-blue-600"
-                  href="#0"
+                  href="https://facebook.com/etik.vedientu"
                   aria-label="Facebook"
                 >
                   <svg className="h-8 w-8 fill-current" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">

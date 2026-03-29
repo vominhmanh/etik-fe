@@ -1,0 +1,128 @@
+'use client';
+
+import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
+import { CardMedia } from '@mui/material';
+import Backdrop from '@mui/material/Backdrop';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardActionArea from '@mui/material/CardActionArea';
+import CardContent from '@mui/material/CardContent';
+import CircularProgress from '@mui/material/CircularProgress';
+import Divider from '@mui/material/Divider';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Unstable_Grid2';
+import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
+import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
+import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
+import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
+import { AxiosResponse } from 'axios';
+import dayjs from 'dayjs';
+import { LocalizedLink } from '@/components/homepage/localized-link';
+
+import React, { useEffect, useState } from 'react';
+
+import NotificationContext from '@/contexts/notification-context';
+import { useTranslation } from '@/contexts/locale-context';
+import { UserPlus } from '@phosphor-icons/react/dist/ssr';
+
+// Define response type for the events
+export type EventResponse = {
+  id: number;
+  name: string;
+  organizer: string;
+  organizerEmail: string;
+  organizerPhoneNumber: string;
+  description: string | null;
+  startDateTime: string | null;
+  endDateTime: string | null;
+  place: string | null;
+  bannerUrl: string | null;
+  slug: string;
+  secureApiKey: string;
+  locationInstruction: string | null;
+  timeInstruction: string | null;
+};
+
+export default function Page({ initialEvents }: { initialEvents: EventResponse[] }): React.JSX.Element {
+  const { tt } = useTranslation();
+
+  const [events, setEvents] = useState<EventResponse[]>(initialEvents);
+  const notificationCtx = React.useContext(NotificationContext);
+
+  return (
+    <Stack spacing={5}>
+      <Stack direction="row" spacing={3}>
+        <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
+          <Typography variant="h4">{tt('Sự kiện', 'Events')}</Typography>
+        </Stack>
+        <div>
+          <Button
+            startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
+            variant="contained"
+            component={LocalizedLink}
+            href="/event-studio/events/create"
+          >
+            {tt('Tạo sự kiện mới', 'Create New Event')}
+          </Button>
+        </div>
+      </Stack>
+
+      <Grid container spacing={3}>
+        {events.map((event) => (
+          <Grid key={event.id} lg={4} sm={6} xs={12}>
+            <Card sx={{ height: '100%' }}>
+              <CardActionArea
+                component={LocalizedLink}
+                href={`/events/${event.slug}`}
+                sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
+              >
+                <CardMedia
+                  sx={{ height: 140 }}
+                  image={
+                    event.bannerUrl ? event.bannerUrl : 'https://mui.com/static/images/cards/contemplative-reptile.jpg'
+                  }
+                  title={event.name}
+                />
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Typography gutterBottom variant="h5" component="div">
+                    {event.name}
+                  </Typography>
+                  <Stack direction="column" spacing={2} sx={{ alignItems: 'left', mt: 2 }}>
+                    <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
+                      <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {tt('Đơn vị tổ chức:', 'Organizer:')} {event.organizer}
+                      </Typography>
+                    </Stack>
+                    <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
+                      <ClockIcon fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {event.startDateTime && event.endDateTime
+                          ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
+                          : tt('Chưa xác định', 'To be determined')} {event.timeInstruction ? `(${event.timeInstruction})` : ''}
+                      </Typography>
+                    </Stack>
+                    <Stack sx={{ alignItems: 'left' }} direction="row" spacing={1}>
+                      <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
+                      <Typography color="text.secondary" display="inline" variant="body2">
+                        {event.place ? event.place : tt('Chưa xác định', 'To be determined')} {event.locationInstruction ? `(${event.locationInstruction})` : ''}
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                </CardContent>
+                <Divider />
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'center', p: 1 }}>
+                  <UserPlus fontSize="var(--icon-fontSize-sm)" />
+                  <Typography color="text.primary" variant="body2">
+                    {tt('Đặt vé sự kiện này', 'Book Tickets for This Event')}
+                  </Typography>
+                </Stack>
+              </CardActionArea>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Stack>
+  );
+}

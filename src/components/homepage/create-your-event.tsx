@@ -197,7 +197,7 @@ export default function CreateYourEvent() {
         password: passwordInput,
       });
 
-      setIsVerifyOtpStep(true) 
+      setIsVerifyOtpStep(true)
       // router.refresh();
     } catch (error: any) {
       setError(error.message || tt("Xảy ra lỗi khi đăng ký", "An error occurred during registration"));
@@ -355,7 +355,7 @@ export default function CreateYourEvent() {
                     {tt("Tạo sự kiện", "Create Event")}
                   </Button>
 
-                  
+
                   <Button
                     variant="outlined"
                     onClick={async () => {

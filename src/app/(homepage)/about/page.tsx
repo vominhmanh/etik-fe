@@ -1,16 +1,10 @@
 // src/app/(homepage)/(default)/page.tsx
 import type { Metadata } from "next";
-
-import Header from "@/components/homepage/ui/header";
-import Footer from "@/components/homepage/ui/footer";
-import Hero from "@/components/homepage/hero-home";
-import BusinessCategories from "@/components/homepage/business-categories";
-import FeaturesPlanet from "@/components/homepage/features-planet";
-import LargeTestimonial from "@/components/homepage/large-testimonial";
-import Cta from "@/components/homepage/cta";
-import CreateYourEvent from "@/components/homepage/create-your-event";
+import Hero from "./hero-home";
+import Cta from "./cta";
+import About from "./about";
 import CustomerAlbum from "@/components/homepage/customer-album";
-import FeaturesAlbum from "@/components/homepage/features-album";
+import Footer from "@/components/homepage/ui/footer";
 
 export const metadata: Metadata = {
   title: "ETIK - Vé điện tử & Quản lý sự kiện",
@@ -31,16 +25,12 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <>
-      <Header />
+      
       <Hero />
-      <FeaturesAlbum />
-      <CreateYourEvent />
-      <BusinessCategories />
-      <FeaturesPlanet />
+      <About />
       <CustomerAlbum />
-      <LargeTestimonial />
       <Cta />
-      <Footer border />
+      
     </>
   );
 }

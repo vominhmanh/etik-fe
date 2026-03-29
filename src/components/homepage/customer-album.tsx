@@ -35,7 +35,7 @@ export default function CustomerAlbum() {
               navigation
               pagination={{ clickable: true }}
             >
-              <SwiperSlide style={{height: 200, width: 'fit-content'}}>
+              <SwiperSlide style={{ height: 200, width: 'fit-content' }}>
                 <Image
                   className="box-content border-2 border-gray-50"
                   src={CustomerMixiCup}
@@ -43,8 +43,8 @@ export default function CustomerAlbum() {
                   alt="Avatar 01"
                 />
               </SwiperSlide>
-              
-              <SwiperSlide style={{height: 200, width: 'fit-content'}}>
+
+              <SwiperSlide style={{ height: 200, width: 'fit-content' }}>
                 <Image
                   className="box-content border-2 border-gray-50"
                   src={CustomerGeforce}
@@ -53,7 +53,7 @@ export default function CustomerAlbum() {
                 />
               </SwiperSlide>
 
-              <SwiperSlide style={{height: 200, width: 'fit-content'}}>
+              <SwiperSlide style={{ height: 200, width: 'fit-content' }}>
                 <Image
                   className="box-content border-2 border-gray-50"
                   src={CustomerRefundMeeting}
@@ -61,8 +61,8 @@ export default function CustomerAlbum() {
                   alt="Avatar 01"
                 />
               </SwiperSlide>
-              
-              <SwiperSlide style={{height: 200, width: 'fit-content'}}>
+
+              <SwiperSlide style={{ height: 200, width: 'fit-content' }}>
                 <Image
                   className="box-content border-2 border-gray-50"
                   src={CustomerRedline}

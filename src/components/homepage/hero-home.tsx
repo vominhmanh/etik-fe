@@ -108,14 +108,14 @@ export default function HeroHome() {
               </div>
             </div>
             <h1
-              className="mb-6 border-y text-5xl font-bold [border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1] md:text-6xl"
+              className="mb-6 border-y text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-blue-600 [border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1] md:text-4xl"
               data-aos="zoom-y-out"
               data-aos-delay={150}
             >
               {tt("Tạo sự kiện và Bán vé ?", "Create Events and Sell Tickets?")}
             </h1>
             <h1
-              className="mb-6 border-y text-5xl font-bold [border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1] md:text-6xl"
+              className="mb-6 border-y text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-sky-500 [border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1] md:text-5xl"
               data-aos="zoom-y-out"
               data-aos-delay={850}
             >
@@ -129,7 +129,7 @@ export default function HeroHome() {
               >
                 {tt("ETIK giúp bạn tạo sự kiện và bán vé nhanh chóng, tiện lợi và tiết kiệm. Không những thế, loạt tính năng hỗ trợ sự kiện đi kèm giúp sự kiện của bạn trở nên hiện đại và chuyên nghiệp hơn bao giờ hết. Khám phá ngay !", "ETIK helps you create events and sell tickets quickly, conveniently, and economically. Moreover, a series of accompanying event support features make your event more modern and professional than ever. Explore now!")}
               </p>
-              
+
               <div className="relative before:absolute before:inset-0 before:border-y before:[border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1]">
                 <div
                   className="mx-auto max-w-xs sm:flex sm:max-w-none sm:justify-center"
@@ -141,7 +141,7 @@ export default function HeroHome() {
                     href="#create-your-event"
                   >
                     <span className="relative inline-flex items-center">
-                      <span style={{marginRight: '10px'}}>{tt("Bạn là Nhà tổ chức sự kiện?", "Are you an Event Organizer?")}</span>{" "}<b>{tt("Tạo sự kiện ngay", "Create Event Now")}</b>
+                      <span style={{ marginRight: '10px' }}>{tt("Bạn là Nhà tổ chức sự kiện?", "Are you an Event Organizer?")}</span>{" "}<b>{tt("Tạo sự kiện ngay", "Create Event Now")}</b>
                       {/* <span className="ml-1 tracking-normal text-blue-300 transition-transform group-hover:translate-x-0.5">
                         -&gt;
                       </span> */}
@@ -152,14 +152,14 @@ export default function HeroHome() {
                     href="/marketplace"
                   >
                     <span className="relative inline-flex items-center">
-                    <span style={{marginRight: '10px'}}>{tt("Bạn là khách hàng?", "Are you a customer?")}</span><b>{tt("Đặt vé ngay", "Book Tickets Now")}</b>
+                      <span style={{ marginRight: '10px' }}>{tt("Bạn là khách hàng?", "Are you a customer?")}</span><b>{tt("Đặt vé ngay", "Book Tickets Now")}</b>
                     </span>
-                    
+
                   </Link>
                 </div>
               </div>
             </div>
-          </div>          
+          </div>
         </div>
       </div>
     </section>
