@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import {
+    Dialog,
+    DialogContent,
+    Typography,
+    Button,
+    Box,
+} from "@mui/material";
 
-export default function ZaloRedirect() {
+export default function ZaloBrowserGuard() {
     const searchParams = useSearchParams();
+    const [open, setOpen] = useState(false);
 
     useEffect(() => {
         const returnUrlRaw = searchParams.get("returnUrl");
@@ -17,62 +25,44 @@ export default function ZaloRedirect() {
             return;
         }
 
-        // ❗ chỉ xử lý nếu có from=zns
         if (!decoded.includes("from=zns")) return;
 
-        // ❗ tránh loop
-        if (sessionStorage.getItem("zalo_redirected")) return;
-        sessionStorage.setItem("zalo_redirected", "1");
-
         const ua = navigator.userAgent || "";
-        const isAndroid = /android/i.test(ua);
-        const isIOS = /iPhone|iPad|iPod/i.test(ua);
+        const isZalo = /zalo/i.test(ua);
 
-        // 🔹 parse returnUrl
-        const base = window.location.origin;
-        const url = new URL(decoded, base);
-
-        // 🔥 QUAN TRỌNG: xoá from=zns
-        url.searchParams.delete("from");
-
-        // (optional) xoá thêm tracking
-        url.searchParams.delete("zarsrc");
-        url.searchParams.delete("utm_source");
-        url.searchParams.delete("utm_medium");
-        url.searchParams.delete("utm_campaign");
-
-        const cleanPath = url.pathname + url.search;
-
-        // 🚀 ANDROID → intent (mở Chrome)
-        if (isAndroid) {
-            const intentUrl =
-                "intent://" +
-                window.location.host +
-                cleanPath +
-                "#Intent;scheme=https;package=com.android.chrome;end";
-
-            window.location.href = intentUrl;
-        }
-
-        // 🍎 iOS → thử Chrome + fallback
-        else if (isIOS) {
-            const chromeUrl =
-                "googlechrome://" +
-                window.location.host +
-                cleanPath;
-
-            window.location.href = chromeUrl;
-
-            setTimeout(() => {
-                window.location.replace(cleanPath);
-            }, 1500);
-        }
-
-        // 🌐 fallback chung
-        else {
-            window.location.replace(cleanPath);
+        if (isZalo) {
+            setOpen(true);
         }
     }, [searchParams]);
 
-    return null;
+    return (
+        <Dialog open={open} fullWidth maxWidth="xs">
+            <DialogContent>
+                <Box textAlign="center">
+                    <Typography variant="h6" gutterBottom>
+                        Mở bằng trình duyệt để tiếp tục
+                    </Typography>
+
+                    <Typography variant="body2" mb={2}>
+                        Zalo đang hạn chế một số chức năng. Vui lòng mở trang này bằng trình duyệt để tiếp tục.
+                    </Typography>
+
+                    <Typography variant="body2" mb={3}>
+                        👉 Nhấn dấu <b>⋯</b> góc trên bên phải <br />
+                        → Chọn <b>Mở bằng trình duyệt</b>
+                    </Typography>
+
+                    <Button
+                        variant="contained"
+                        fullWidth
+                        onClick={() => {
+                            window.location.href = window.location.href;
+                        }}
+                    >
+                        Tôi đã mở bằng trình duyệt
+                    </Button>
+                </Box>
+            </DialogContent>
+        </Dialog>
+    );
 }
