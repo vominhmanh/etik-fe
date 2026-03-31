@@ -114,13 +114,13 @@ export default function HeroHome() {
             >
               {tt("Tạo sự kiện và Bán vé ?", "Create Events and Sell Tickets?")}
             </h1>
-            <h1
+            <div
               className="mb-6 border-y text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-sky-500 [border-image:linear-gradient(to_right,transparent,theme(colors.slate.300/.8),transparent)1] md:text-5xl"
               data-aos="zoom-y-out"
               data-aos-delay={850}
             >
               {tt("Thật dễ dàng với ETIK", "So Easy with ETIK")}
-            </h1>
+            </div>
             <div className="mx-auto max-w-3xl">
               <p
                 className="mb-8 text-lg text-gray-700"

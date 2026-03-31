@@ -20,11 +20,24 @@ export const metadata: Metadata = {
     title: "ETIK - Vé điện tử & Quản lý sự kiện",
     description:
       "Phần mềm vé điện tử và quản lý sự kiện hiện đại, dễ dàng và tiết kiệm với tính năng tạo vé điện tử, gửi vé về email, quản lý sự kiện, check-in,...",
+    url: "https://etik.vn",
+    siteName: "ETIK",
     images: [
       {
-        url: "/assets/etik-logo1.png",
+        url: "https://etik.vn/assets/etik-logo1.png",
+        width: 1200,
+        height: 630,
+        alt: "ETIK - Vé điện tử & Quản lý sự kiện",
       },
     ],
+    locale: "vi_VN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ETIK - Vé điện tử & Quản lý sự kiện",
+    description: "Phần mềm vé điện tử và quản lý sự kiện hiện đại, dễ dàng và tiết kiệm với tính năng tạo vé điện tử, gửi vé về email, quản lý sự kiện, check-in,...",
+    images: ["https://etik.vn/assets/etik-logo1.png"],
   },
 };
 

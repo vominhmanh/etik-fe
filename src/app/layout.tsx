@@ -26,7 +26,20 @@ export const metadata: Metadata = {
     type: 'website',
     url: 'https://etik.vn',
     siteName: 'ETIK',
+    title: 'ETIK - Vé điện tử & Quản lý sự kiện',
+    description: 'Phần mềm vé điện tử và quản lý sự kiện chuyên nghiệp, hiện đại: tạo vé QR, bán vé online, check-in nhanh, chống gian lận.',
     images: [{ url: '/assets/etik-logo1.png' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ETIK - Vé điện tử & Quản lý sự kiện',
+    description: 'Phần mềm vé điện tử và quản lý sự kiện chuyên nghiệp, hiện đại.',
+    images: ['/assets/etik-logo1.png'],
+  },
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/assets/etik-logo1.png',
   },
 };
 
