@@ -12,6 +12,10 @@ import CreateYourEvent from "@/components/homepage/create-your-event";
 import CustomerAlbum from "@/components/homepage/customer-album";
 import FeaturesAlbum from "@/components/homepage/features-album";
 
+export const dynamic = "force-static";
+export const revalidate = 86400; // Revalidate every 24 hours
+
+
 export const metadata: Metadata = {
   title: "ETIK - Vé điện tử & Quản lý sự kiện",
   description:
