@@ -1411,7 +1411,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   - {tt('Cung cấp cho ETIK các thông tin, giấy tờ để xác minh khi được yêu cầu.', 'Provide ETIK with information and documents for verification when requested.')}
                 </Typography>
                 <Typography variant="body2">
-                  {tt('Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH', 'If you need support, please contact Customer Service Hotline')} <b>0333.247.242</b> {tt('hoặc email', 'or email')} <b>tienphongsmart@gmail.com</b>
+                  {tt('Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH', 'If you need support, please contact Customer Service Hotline')} <b>0333.247.242</b> {tt('hoặc email', 'or email')} <b>support@etik.vn</b>
                 </Typography>
               </Stack>
               <Grid sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>

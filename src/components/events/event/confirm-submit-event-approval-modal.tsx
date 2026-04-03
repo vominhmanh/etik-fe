@@ -123,8 +123,8 @@ export default function ConfirmSubmitEventApprovalModal({
                             </Typography>
                             <Typography variant="body2">
                                 {tt(
-                                    'Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH 0333.247.242 hoặc email tienphongsmart@gmail.com',
-                                    'If you need support, please contact Customer Service Hotline 0333.247.242 or email tienphongsmart@gmail.com'
+                                    'Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH 0333.247.242 hoặc email support@etik.vn',
+                                    'If you need support, please contact Customer Service Hotline 0333.247.242 or email support@etik.vn'
                                 )}
                             </Typography>
                         </Stack>

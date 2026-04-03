@@ -293,7 +293,7 @@ export default function Policy() {
             {tt("18. Thông báo liên hệ", "18. Contact information")}
           </h3>
           <ul className="list-disc pl-5 space-y-2">
-            <li>{tt("Email: ", "Email: ")}<a href="mailto:Tienphongsmart@gmail.com" className="text-blue-600 hover:underline">Tienphongsmart@gmail.com</a></li>
+            <li>{tt("Email: ", "Email: ")}<a href="mailto:support@etik.vn" className="text-blue-600 hover:underline">support@etik.vn</a></li>
             <li>{tt("Hotline: 0333.247.242", "Hotline: 0333.247.242")}</li>
           </ul>
         </div>

@@ -58,7 +58,7 @@ export default function Footer({ border = false }: { border?: boolean }) {
               <br />
               {tt('Số điện thoại:', 'Phone:')} 0333.247.242
               <br />
-              Email: Tienphongsmart@gmail.com
+              Email: support@etik.vn
             </div>
           </div>
 

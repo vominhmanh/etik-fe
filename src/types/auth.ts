@@ -1,4 +1,5 @@
 export type User = {
+  title?: string;
   fullName: string;
   email: string;
   phoneNumber: string;
@@ -10,6 +11,7 @@ export type LoginReq = {
 };
 
 export type SignUpReq = {
+  title?: string;
   fullName: string;
   email: string;
   phoneNumber: string;

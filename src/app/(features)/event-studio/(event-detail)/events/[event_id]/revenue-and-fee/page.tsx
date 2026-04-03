@@ -753,8 +753,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <CardContent>
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 {tt(
-                  `Để rút tiền, quý khách vui lòng gửi email với tiêu đề "Yêu cầu rút tiền sự kiện ${event?.name}" từ địa chỉ email ${event?.organizerEmail} của quý khách đến địa chỉ email tienphongsmart@gmail.com. Chúng tôi sẽ hỗ trợ trong thời gian 24h kể từ khi nhận được yêu cầu. Xin cảm ơn!`,
-                  `To withdraw funds, please send an email with the subject "Withdrawal request for event ${event?.name}" from your email address ${event?.organizerEmail} to tienphongsmart@gmail.com. We will assist you within 24 hours of receiving the request. Thank you!`
+                  `Để rút tiền, quý khách vui lòng gửi email với tiêu đề "Yêu cầu rút tiền sự kiện ${event?.name}" từ địa chỉ email ${event?.organizerEmail} của quý khách đến địa chỉ email support@etik.vn. Chúng tôi sẽ hỗ trợ trong thời gian 24h kể từ khi nhận được yêu cầu. Xin cảm ơn!`,
+                  `To withdraw funds, please send an email with the subject "Withdrawal request for event ${event?.name}" from your email address ${event?.organizerEmail} to support@etik.vn. We will assist you within 24 hours of receiving the request. Thank you!`
                 )}
               </Typography>
             </CardContent>

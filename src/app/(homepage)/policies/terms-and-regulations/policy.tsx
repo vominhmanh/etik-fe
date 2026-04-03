@@ -21,7 +21,7 @@ export default function Policy() {
             <li>{tt("Giấy chứng nhận đăng ký doanh nghiệp số: 0110765139", "Business registration certificate number: 0110765139")}</li>
             <li>{tt("Địa chỉ trụ sở: Số 39B ngõ 51 đường Quang Tiến, P. Tây Mỗ, TP. Hà Nội", "Head office address: No. 39B, alley 51, Quang Tien street, Tay Mo ward, Hanoi")}</li>
             <li>{tt("Hotline: 0333.247.242", "Hotline: 0333.247.242")}</li>
-            <li>{tt("Email: ", "Email: ")}<a href="mailto:Tienphongsmart@gmail.com" className="text-blue-600 hover:underline">Tienphongsmart@gmail.com</a></li>
+            <li>{tt("Email: ", "Email: ")}<a href="mailto:support@etik.vn" className="text-blue-600 hover:underline">support@etik.vn</a></li>
           </ul>
         </div>
 
@@ -202,7 +202,7 @@ export default function Policy() {
 
           <h4 className="text-lg font-semibold text-gray-800 mt-4">{tt("10.1 Kênh tiếp nhận", "10.1 Reception channels")}</h4>
           <ul className="list-disc pl-5 space-y-2">
-            <li>{tt("Email: ", "Email: ")}<a href="mailto:Tienphongsmart@gmail.com" className="text-blue-600 hover:underline">Tienphongsmart@gmail.com</a></li>
+            <li>{tt("Email: ", "Email: ")}<a href="mailto:support@etik.vn" className="text-blue-600 hover:underline">support@etik.vn</a></li>
             <li>{tt("Hotline: 0333.247.242", "Hotline: 0333.247.242")}</li>
           </ul>
 

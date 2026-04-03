@@ -26,6 +26,7 @@ import * as React from 'react';
 import { useContext, useEffect, useState } from 'react';
 
 export interface UserInformationResponse {
+  title?: string;
   fullName: string;
   email: string;
   phoneNumber: string; // E.164 format (e.g., +84333247242)
@@ -35,6 +36,7 @@ export interface UserInformationResponse {
 }
 
 export interface UserInformationUpdate {
+  title?: string;
   fullName: string;
   phoneNumber: string;
   phoneCountry?: string;
@@ -50,6 +52,7 @@ export default function Page(): React.JSX.Element {
     confirmPassword: '',
   });
   const [formValues, setFormValues] = useState<UserInformationUpdate & { phoneCountryIso2: string }>({
+    title: '',
     fullName: '',
     phoneNumber: '',
     phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
@@ -73,6 +76,7 @@ export default function Page(): React.JSX.Element {
         // Parse E.164 format phone number to extract country and national number
         const parsedPhone = parseE164Phone(data.phoneNumber);
         setFormValues({
+          title: data.title || '',
           fullName: data.fullName,
           phoneNumber: parsedPhone?.nationalNumber || '',
           phoneCountryIso2: parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2,
@@ -142,6 +146,10 @@ export default function Page(): React.JSX.Element {
   };
 
   const handleSave = async () => {
+    if (!formValues.title) {
+      notificationCtx.warning(tt('Vui lòng chọn danh xưng.', 'Please select a title.'));
+      return;
+    }
     try {
       setIsLoading(true);
       // Derive NSN from phone number (strip leading '0' if present)
@@ -149,6 +157,7 @@ export default function Page(): React.JSX.Element {
       const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
 
       const updateData: UserInformationUpdate = {
+        title: formValues.title,
         fullName: formValues.fullName,
         phoneNumber: formValues.phoneNumber,
         phoneCountry: formValues.phoneCountryIso2,
@@ -161,6 +170,7 @@ export default function Page(): React.JSX.Element {
       // Format to E.164 for display
       const e164Phone = formatToE164(formValues.phoneCountryIso2, phoneNSN) || '';
       setUserInfo({ 
+        title: formValues.title,
         email: userInfo?.email || '', 
         fullName: formValues.fullName, 
         phoneNumber: e164Phone,
@@ -278,8 +288,40 @@ export default function Page(): React.JSX.Element {
                 <Grid container spacing={3}>
                   <Grid md={12} xs={12}>
                     <FormControl fullWidth required>
-                      <InputLabel shrink>{tt('Họ tên', 'Full Name')}</InputLabel>
-                      <OutlinedInput notched value={formValues.fullName} onChange={handleInfoChange} label={tt('Họ tên', 'Full Name')} name="fullName" />
+                      <InputLabel shrink>{tt('Danh xưng*    Họ và tên', 'Title*    Full Name')}</InputLabel>
+                      <OutlinedInput 
+                        notched 
+                        value={formValues.fullName} 
+                        onChange={handleInfoChange} 
+                        label={tt('Danh xưng*    Họ và tên', 'Title*    Full Name')} 
+                        name="fullName" 
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <Select
+                              variant="standard"
+                              disableUnderline
+                              name="title"
+                              value={formValues.title || ''}
+                              onChange={(e) => setFormValues(prev => ({...prev, title: e.target.value}))}
+                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                            >
+                              <MenuItem value=""><em>...</em></MenuItem>
+                              <MenuItem value="Anh">Anh</MenuItem>
+                              <MenuItem value="Chị">Chị</MenuItem>
+                              <MenuItem value="Bạn">Bạn</MenuItem>
+                              <MenuItem value="Em">Em</MenuItem>
+                              <MenuItem value="Ông">Ông</MenuItem>
+                              <MenuItem value="Bà">Bà</MenuItem>
+                              <MenuItem value="Cô">Cô</MenuItem>
+                              <MenuItem value="Thầy">Thầy</MenuItem>
+                              <MenuItem value="Mr.">Mr.</MenuItem>
+                              <MenuItem value="Ms.">Ms.</MenuItem>
+                              <MenuItem value="Mx.">Mx.</MenuItem>
+                              <MenuItem value="Miss">Miss</MenuItem>
+                            </Select>
+                          </InputAdornment>
+                        }
+                      />
                     </FormControl>
                   </Grid>
                   <Grid md={6} xs={12}>

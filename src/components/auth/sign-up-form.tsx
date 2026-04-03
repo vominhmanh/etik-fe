@@ -34,6 +34,7 @@ import Popup from '../core/alert-popup';
 import { useTranslation } from '@/contexts/locale-context';
 
 type Values = {
+  title: string;
   fullName: string;
   phoneNumber: string;
   phoneCountryIso2: string;
@@ -43,7 +44,7 @@ type Values = {
   otp?: string;
 };
 
-const defaultValues = { fullName: '', phoneNumber: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2, email: '', password: '', terms: false, otp: '' } satisfies Values;
+const defaultValues = { title: '', fullName: '', phoneNumber: '', phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2, email: '', password: '', terms: false, otp: '' } satisfies Values;
 
 export function SignUpForm(): React.JSX.Element {
   const { tt, locale } = useTranslation();
@@ -56,6 +57,7 @@ export function SignUpForm(): React.JSX.Element {
   const pathname = usePathname();
 
   const schema = React.useMemo(() => zod.object({
+    title: zod.string().min(1, { message: tt('Vui lòng chọn danh xưng', 'Please select a title') }),
     fullName: zod.string().min(1, { message: tt('Tên đầy đủ là bắt buộc', 'Full name is required') }),
     phoneNumber: zod.string().min(1, { message: tt('Số điện thoại là bắt buộc', 'Phone number is required') }),
     email: zod.string().email({ message: tt('Email không hợp lệ', 'Invalid email') }),
@@ -97,6 +99,7 @@ export function SignUpForm(): React.JSX.Element {
         const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
 
         const signUpData: SignUpReq = {
+          title: values.title,
           fullName: values.fullName,
           email: values.email,
           phoneNumber: values.phoneNumber,
@@ -167,8 +170,42 @@ export function SignUpForm(): React.JSX.Element {
               name="fullName"
               render={({ field }) => (
                 <FormControl error={Boolean(errors.fullName)}>
-                  <InputLabel>{tt('Tên đầy đủ', 'Full Name')}</InputLabel>
-                  <OutlinedInput {...field} label={tt('Tên đầy đủ', 'Full Name')} />
+                  <InputLabel>{tt('Danh xưng*    Họ và tên', 'Title*    Full Name')}</InputLabel>
+                  <OutlinedInput 
+                    {...field} 
+                    label={tt('Danh xưng*    Họ và tên', 'Title*    Full Name')} 
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <Controller
+                          control={control}
+                          name="title"
+                          render={({ field: titleField }) => (
+                            <Select
+                              variant="standard"
+                              disableUnderline
+                              value={titleField.value || ''}
+                              onChange={titleField.onChange}
+                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                            >
+                              <MenuItem value=""><em>...</em></MenuItem>
+                              <MenuItem value="Anh">Anh</MenuItem>
+                              <MenuItem value="Chị">Chị</MenuItem>
+                              <MenuItem value="Bạn">Bạn</MenuItem>
+                              <MenuItem value="Em">Em</MenuItem>
+                              <MenuItem value="Ông">Ông</MenuItem>
+                              <MenuItem value="Bà">Bà</MenuItem>
+                              <MenuItem value="Cô">Cô</MenuItem>
+                              <MenuItem value="Thầy">Thầy</MenuItem>
+                              <MenuItem value="Mr.">Mr.</MenuItem>
+                              <MenuItem value="Ms.">Ms.</MenuItem>
+                              <MenuItem value="Mx.">Mx.</MenuItem>
+                              <MenuItem value="Miss">Miss</MenuItem>
+                            </Select>
+                          )}
+                        />
+                      </InputAdornment>
+                    }
+                  />
                   {errors.fullName ? <FormHelperText>{errors.fullName.message}</FormHelperText> : null}
                 </FormControl>
               )}

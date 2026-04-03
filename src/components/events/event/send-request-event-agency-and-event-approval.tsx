@@ -197,7 +197,7 @@ export default function SendRequestEventAgencyAndEventApproval({ open, onClose, 
       <DialogTitle>Yêu cầu nâng cấp thành Sự kiện Được xác thực</DialogTitle>
       <DialogContent>
         <Stack spacing={3}>
-          <Typography variant='body2' textAlign={'justify'}>Nhà tổ chức sự kiện cần cung cấp đầy đủ và chính xác các thông tin dưới đây để có thể tạo sự kiện có bán vé theo nghị định 52/2013/NĐ-CP. Khi nhận được yêu cầu, ETIK sẽ liên hệ để xác thực thông tin. Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH <b>0333.247.242</b> hoặc email <b>tienphongsmart@gmail.com</b></Typography>
+          <Typography variant='body2' textAlign={'justify'}>Nhà tổ chức sự kiện cần cung cấp đầy đủ và chính xác các thông tin dưới đây để có thể tạo sự kiện có bán vé theo nghị định 52/2013/NĐ-CP. Khi nhận được yêu cầu, ETIK sẽ liên hệ để xác thực thông tin. Nếu cần hỗ trợ, Quý khách vui lòng liên hệ Hotline CSKH <b>0333.247.242</b> hoặc email <b>support@etik.vn</b></Typography>
           <Typography variant='h6'>Thông tin Nhà tổ chức sự kiện</Typography>
           <Grid container spacing={3}>
             <Grid md={12} xs={12}>
