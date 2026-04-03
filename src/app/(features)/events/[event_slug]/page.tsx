@@ -5,7 +5,7 @@ import EventDetail from './event-detail';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { EventResponse } from '@/components/transactions/create-steps/types';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60; // revalidate every 60 seconds
 
 type EventMeta = {
     name: string;
