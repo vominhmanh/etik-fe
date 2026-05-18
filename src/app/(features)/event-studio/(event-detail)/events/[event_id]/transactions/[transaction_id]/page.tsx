@@ -12,7 +12,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, CaretDoubleRight, CaretLeft, Check, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, Gift, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X, Chair, CalendarBlank, IdentificationCard, CheckCircle, User as UserIcon, Users } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, CaretDoubleRight, CaretLeft, Check, CheckFat, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, Gift, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X, Chair, CalendarBlank, IdentificationCard, CheckCircle, User as UserIcon, Users } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import * as React from 'react';
@@ -165,6 +165,21 @@ export interface ShowSeat {
   seatNumber: string | null;
 }
 
+export interface AddOnTemplate {
+  id: number;
+  name: string;
+}
+
+export interface TicketAddOn {
+  id: number;
+  isRedeemed: boolean;
+  redeemedAt: string | null;
+  redeemedById: number | null;
+  note: string | null;
+  addOn: AddOnTemplate;
+  redeemedBy: Creator | null;
+}
+
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
   holderName: string;        // Name of the ticket holder
@@ -181,6 +196,7 @@ export interface Ticket {
   audienceId?: number;
   audienceCode?: string;
   price?: number;
+  addOns?: TicketAddOn[];
 }
 
 export interface Show {
@@ -395,6 +411,11 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [activeRedeemItem, setActiveRedeemItem] = useState<TransactionConcession | null>(null);
   const [redeemQuantity, setRedeemQuantity] = useState<number>(1);
 
+  // Add-on Details Modal State
+  const [addOnDetailsModalOpen, setAddOnDetailsModalOpen] = useState<boolean>(false);
+  const [activeAddOnDetail, setActiveAddOnDetail] = useState<TicketAddOn | null>(null);
+  const [redeemLoading, setRedeemLoading] = useState<Record<number, boolean>>({});
+
   const builtinInternalNames = React.useMemo(
     () => new Set(['title', 'name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
     []
@@ -528,54 +549,55 @@ export default function Page({ params }: { params: { event_id: number; transacti
     }
   };
 
+  const fetchTransactionDetails = React.useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${event_id}/transactions/${transaction_id}`,
+        {
+          params: checkInCode ? { checkInCode } : undefined,
+        }
+      );
+      setTransaction(response.data);
+
+      // Parse E.164 phone number to extract country and national number
+      const parsedPhone = parseE164Phone(response.data?.phoneNumber);
+      const defaultTitle = locale === 'en' ? 'Mx.' : 'Bạn';
+      setFormData({
+        title: (response.data?.title || '').trim() || defaultTitle,
+        name: response.data?.name || '',
+        phoneNumber: parsedPhone?.nationalNumber || '',
+        phoneCountryIso2: parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2,
+        dob: response.data?.dob || null,
+        address: response.data?.address || '',
+        status: '',
+      });
+
+      // Khởi tạo câu trả lời custom fields nếu có
+      // Convert from structured array to dictionary for local state
+      const formAnswersData = (response.data as any).formAnswers;
+      const answersDict: Record<string, any> = {};
+      if (Array.isArray(formAnswersData)) {
+        // New format: array of objects
+        formAnswersData.forEach((item: any) => {
+          answersDict[item.internalName] = item.value;
+        });
+      }
+
+      setCheckoutCustomAnswers(answersDict);
+
+
+      // Load checkout form fields
+      setCheckoutFormFields(response.data?.checkoutFormFields || []);
+    } catch (error) {
+      notificationCtx.error(tt('Lỗi:', 'Error:'), error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [event_id, transaction_id, checkInCode, locale, notificationCtx, tt]);
+
   // Fetch transaction details
   useEffect(() => {
-    const fetchTransactionDetails = async () => {
-      try {
-        setIsLoading(true);
-        const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.get(
-          `/event-studio/events/${event_id}/transactions/${transaction_id}`,
-          {
-            params: checkInCode ? { checkInCode } : undefined,
-          }
-        );
-        setTransaction(response.data);
-
-        // Parse E.164 phone number to extract country and national number
-        const parsedPhone = parseE164Phone(response.data?.phoneNumber);
-        const defaultTitle = locale === 'en' ? 'Mx.' : 'Bạn';
-        setFormData({
-          title: (response.data?.title || '').trim() || defaultTitle,
-          name: response.data?.name || '',
-          phoneNumber: parsedPhone?.nationalNumber || '',
-          phoneCountryIso2: parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2,
-          dob: response.data?.dob || null,
-          address: response.data?.address || '',
-          status: '',
-        });
-
-        // Khởi tạo câu trả lời custom fields nếu có
-        // Convert from structured array to dictionary for local state
-        const formAnswersData = (response.data as any).formAnswers;
-        const answersDict: Record<string, any> = {};
-        if (Array.isArray(formAnswersData)) {
-          // New format: array of objects
-          formAnswersData.forEach((item: any) => {
-            answersDict[item.internalName] = item.value;
-          });
-        }
-
-        setCheckoutCustomAnswers(answersDict);
-
-
-        // Load checkout form fields
-        setCheckoutFormFields(response.data?.checkoutFormFields || []);
-      } catch (error) {
-        notificationCtx.error(tt('Lỗi:', 'Error:'), error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
     const fetchAudiences = async () => {
       try {
@@ -976,6 +998,25 @@ export default function Page({ params }: { params: { event_id: number; transacti
       }
     } catch (error) {
       notificationCtx.error(tt('Có lỗi xảy ra khi cập nhật trạng thái hoàn tiền:', 'An error occurred while updating refund status:'), error);
+    }
+  };
+
+  const handleRedeemAddOnAdmin = async (ticketAddOnId: number) => {
+    try {
+      setRedeemLoading((prev) => ({ ...prev, [ticketAddOnId]: true }));
+      const response = await baseHttpServiceInstance.post(
+        `/event-studio/events/${params.event_id}/add-ons/${ticketAddOnId}/redeem-admin`
+      );
+
+      if (response.status === 200) {
+        notificationCtx.success(tt('Sử dụng tiện ích thành công!', 'Add-on redeemed successfully!'));
+        fetchTransactionDetails();
+        setAddOnDetailsModalOpen(false);
+      }
+    } catch (error) {
+      notificationCtx.error(tt('Sử dụng tiện ích thất bại', 'Failed to redeem add-on'), error);
+    } finally {
+      setRedeemLoading((prev) => ({ ...prev, [ticketAddOnId]: false }));
     }
   };
 
@@ -1775,6 +1816,37 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                           </Tooltip>
                                         )}
                                       </Stack>
+
+                                      {/* Add-ons */}
+                                      {ticket.addOns && ticket.addOns.length > 0 && (
+                                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                          {ticket.addOns.map((addOnItem, addOnIdx) => (
+                                            <Chip
+                                              key={addOnIdx}
+                                              size="small"
+                                              variant="outlined"
+                                              label={
+                                                <Stack direction="row" spacing={0.5} alignItems="center">
+                                                  <span>{addOnItem.addOn.name}</span>
+                                                  <IconButton
+                                                    size="small"
+                                                    sx={{ p: 0, ml: 0.5 }}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setActiveAddOnDetail(addOnItem);
+                                                      setAddOnDetailsModalOpen(true);
+                                                    }}
+                                                  >
+                                                    <Info size={14} />
+                                                  </IconButton>
+                                                </Stack>
+                                              }
+                                              color={addOnItem.isRedeemed ? 'success' : 'default'}
+                                              sx={{ height: 28 }}
+                                            />
+                                          ))}
+                                        </Stack>
+                                      )}
 
                                       {/* Status + menu */}
                                       <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mt: 0.5 }}>
@@ -2591,6 +2663,87 @@ export default function Page({ params }: { params: { event_id: number; transacti
         onSelect={handleSendEmailMarketingSingle}
         eventId={params.event_id}
       />
+
+      {/* AddOn Details Modal */}
+      <Modal
+        open={addOnDetailsModalOpen}
+        onClose={() => setAddOnDetailsModalOpen(false)}
+        aria-labelledby="addon-modal"
+      >
+        <Container maxWidth="xs">
+          <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { xs: '90%', sm: 400 }, outline: 'none' }}>
+            <CardHeader
+              title={tt('Chi tiết Tiện ích', 'Add-on Details')}
+              action={<IconButton onClick={() => setAddOnDetailsModalOpen(false)}><X /></IconButton>}
+            />
+            <Divider />
+            <CardContent>
+              {activeAddOnDetail && (
+                <Stack spacing={2}>
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    {activeAddOnDetail.addOn.name}
+                  </Typography>
+                  
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="body2" color="text.secondary" sx={{ width: 100 }}>
+                      {tt('Trạng thái:', 'Status:')}
+                    </Typography>
+                    <Chip 
+                      size="small" 
+                      label={activeAddOnDetail.isRedeemed ? tt('Đã sử dụng', 'Redeemed') : tt('Chưa sử dụng', 'Not Redeemed')}
+                      color={activeAddOnDetail.isRedeemed ? 'success' : 'default'}
+                    />
+                  </Stack>
+
+                  {activeAddOnDetail.isRedeemed && (
+                    <>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2" color="text.secondary" sx={{ width: 100 }}>
+                          {tt('Nhân viên:', 'Staff:')}
+                        </Typography>
+                        <Typography variant="body2">
+                          {activeAddOnDetail.redeemedBy ? `${activeAddOnDetail.redeemedBy.fullName} (${activeAddOnDetail.redeemedBy.email})` : tt('Không rõ', 'Unknown')}
+                        </Typography>
+                      </Stack>
+
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2" color="text.secondary" sx={{ width: 100 }}>
+                          {tt('Thời gian:', 'Time:')}
+                        </Typography>
+                        <Typography variant="body2">
+                          {activeAddOnDetail.redeemedAt ? dayjs(activeAddOnDetail.redeemedAt).format('HH:mm:ss DD/MM/YYYY') : ''}
+                        </Typography>
+                      </Stack>
+                    </>
+                  )}
+
+                  <Stack direction="row" spacing={1} alignItems="flex-start">
+                    <Typography variant="body2" color="text.secondary" sx={{ width: 100 }}>
+                      {tt('Ghi chú:', 'Note:')}
+                    </Typography>
+                    <Typography variant="body2" sx={{ flex: 1, whiteSpace: 'pre-wrap' }}>
+                      {activeAddOnDetail.note || tt('Không có ghi chú', 'No note')}
+                    </Typography>
+                  </Stack>
+
+                  {!activeAddOnDetail.isRedeemed && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={redeemLoading[activeAddOnDetail.id] ? <CircularProgress size={20} color="inherit" /> : <CheckFat weight="fill" />}
+                      disabled={redeemLoading[activeAddOnDetail.id]}
+                      onClick={() => handleRedeemAddOnAdmin(activeAddOnDetail.id)}
+                      sx={{ mt: 2 }}
+                    >
+                      {tt('Sử dụng tiện ích', 'Redeem Add-on')}
+                    </Button>
+                  )}
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
     </>
   );
 }

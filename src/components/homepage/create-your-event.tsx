@@ -6,7 +6,7 @@ import { AxiosResponse } from "axios";
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
 import NotificationContext from "@/contexts/notification-context";
 import React from "react";
-import { Modal, Card, CardContent, Typography, FormControl, InputLabel, OutlinedInput, FormHelperText, Button, Backdrop, CircularProgress } from "@mui/material";
+import { Modal, Card, CardContent, Typography, FormControl, InputLabel, OutlinedInput, FormHelperText, Button, Backdrop, CircularProgress, InputAdornment, Select, MenuItem } from "@mui/material";
 import { Container, Stack } from "@mui/system";
 import { useRouter } from 'next/navigation';
 import { useUser } from "@/hooks/use-user";
@@ -27,6 +27,7 @@ export default function CreateYourEvent() {
   const router = useRouter(); // Use useRouter from next/navigation
   const [formData, setFormData] = useState({
     eventName: "",
+    title: "",
     organizer: "",
     organizerEmail: "",
     organizerPhoneNumber: "",
@@ -191,6 +192,7 @@ export default function CreateYourEvent() {
     setIsLoading(true);
     try {
       const res: AuthRes = await authClient.signUp({
+        title: formData.title,
         fullName: formData.organizer,
         email: formData.organizerEmail,
         phoneNumber: formData.organizerPhoneNumber,
@@ -278,14 +280,58 @@ export default function CreateYourEvent() {
                 />
               </div>
               <div className="col-span-12 sm:col-span-6">
-                <input
-                  type="text"
+                <OutlinedInput
                   id="organizer"
                   name="organizer"
                   value={formData.organizer}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2"
-                  placeholder={tt("Nhập đơn vị tổ chức", "Enter organizer name")}
+                  placeholder={tt("Nhập họ và tên", "Enter full name")}
+                  sx={{
+                    bgcolor: 'white',
+                    width: '100%',
+                    height: '42px',
+                    mt: '4px',
+                    borderRadius: '6px',
+                    boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#d1d5db',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#9ca3af',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#3b82f6',
+                      borderWidth: '1px',
+                      boxShadow: '0 0 0 1px #3b82f6',
+                    }
+                  }}
+                  startAdornment={
+                    <InputAdornment position="start">
+                      <Select
+                        variant="standard"
+                        disableUnderline
+                        name="title"
+                        value={formData.title}
+                        onChange={handleInputChange as any}
+                        displayEmpty
+                        sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0, pl: 1, color: formData.title ? 'inherit' : '#9ca3af' } }}
+                      >
+                        <MenuItem value="" disabled><em>...</em></MenuItem>
+                        <MenuItem value="Anh">Anh</MenuItem>
+                        <MenuItem value="Chị">Chị</MenuItem>
+                        <MenuItem value="Bạn">Bạn</MenuItem>
+                        <MenuItem value="Em">Em</MenuItem>
+                        <MenuItem value="Ông">Ông</MenuItem>
+                        <MenuItem value="Bà">Bà</MenuItem>
+                        <MenuItem value="Cô">Cô</MenuItem>
+                        <MenuItem value="Thầy">Thầy</MenuItem>
+                        <MenuItem value="Mr.">Mr.</MenuItem>
+                        <MenuItem value="Ms.">Ms.</MenuItem>
+                        <MenuItem value="Mx.">Mx.</MenuItem>
+                        <MenuItem value="Miss">Miss</MenuItem>
+                      </Select>
+                    </InputAdornment>
+                  }
                   required
                 />
               </div>

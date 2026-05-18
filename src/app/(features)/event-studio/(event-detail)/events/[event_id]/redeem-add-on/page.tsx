@@ -2,11 +2,11 @@
 
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Chip, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, MenuItem, Modal, OutlinedInput, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, styled, SwipeableDrawer, Typography } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Chip, CircularProgress, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, MenuItem, Modal, OutlinedInput, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, styled, SwipeableDrawer, Typography, List, ListItem, ListItemText } from '@mui/material';
 import type { ChipProps } from '@mui/material/Chip';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import { grey } from '@mui/material/colors';
-import { Armchair, ArrowClockwise, ArrowSquareIn, Bank, CaretDown, CheckCircle, Clock, Info, Lightning, Money, X, XCircle } from '@phosphor-icons/react/dist/ssr';
+import { Armchair, ArrowClockwise, ArrowSquareIn, Bank, CaretDown, CheckCircle, CheckFat, Clock, Info, Lightning, Money, X, XCircle } from '@phosphor-icons/react/dist/ssr';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
@@ -15,8 +15,6 @@ import { LocalizedLink } from '@/components/homepage/localized-link';
 import * as React from 'react';
 import { useZxing } from "react-zxing";
 import { useTranslation } from '@/contexts/locale-context';
-import { Schedules } from './schedules';
-import { TicketCategories } from './ticket-categories';
 
 const iOS =
   typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -299,17 +297,15 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [selectedSchedule, setSelectedSchedule] = React.useState<Show>();
   const [selectedCategories, setSelectedCategories] = React.useState<number[]>([]);
   const [event, setEvent] = React.useState<EventResponse | null>(null);
+  const [eventAddOns, setEventAddOns] = React.useState<AddOnTemplate[]>([]);
+  const [selectedAddOnIds, setSelectedAddOnIds] = React.useState<number[]>([]);
+  const [redeemLoading, setRedeemLoading] = React.useState<Record<number, boolean>>({});
   const [accordionState, setAccordionState] = React.useState<MyDynamicObject>({});
-  const [ticketDisabledState, setTicketDisabledState] = React.useState<MyDynamicObject>({});
-  const [ticketCheckboxState, setTicketCheckboxState] = React.useState<MyDynamicObject>({});
   const [recentScans, setRecentScans] = React.useState<RecentScan[]>([]);
   const [recentScansLoading, setRecentScansLoading] = React.useState<boolean>(false);
   const [activeAddOnDetail, setActiveAddOnDetail] = React.useState<TicketAddOn | null>(null);
   const [addOnDetailsModalOpen, setAddOnDetailsModalOpen] = React.useState(false);
-  const hasTicketsSelected = Object.entries(ticketCheckboxState).some(
-    ([ticketKey, checked]) =>
-      checked && !ticketDisabledState[ticketKey]
-  );
+
   const { ref, torch: { on, off, isOn, isAvailable } } = useZxing({
     onDecodeResult(result) {
       if (!isCheckinControllerOpen) {
@@ -433,12 +429,39 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const handleCloseDrawer = () => {
     setIsCheckinControllerOpen(false)
   }
-  const handleCategorySelection = (categoryIds: number[]) => {
-    setSelectedCategories(categoryIds);
+  React.useEffect(() => {
+    if (params.event_id) {
+      baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/add-ons`)
+        .then(res => {
+          setEventAddOns(res.data);
+          setSelectedAddOnIds(res.data.map((a: any) => a.id));
+        })
+        .catch(err => console.error(err));
+    }
+  }, [params.event_id]);
+
+  const handleAddOnToggle = (id: number) => {
+    setSelectedAddOnIds(prev =>
+      prev.includes(id) ? prev.filter(aId => aId !== id) : [...prev, id]
+    );
   };
 
-  const handleSelectionChange = (selected: Show) => {
-    setSelectedSchedule(selected);
+  const handleRedeem = async (ticketAddOnId: number) => {
+    try {
+      setRedeemLoading(prev => ({ ...prev, [ticketAddOnId]: true }));
+      await baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/add-ons/redeem`, {
+        ticketAddOnId,
+        eCode
+      });
+      notificationCtx.success(tt('Sử dụng tiện ích thành công!', 'Add-on redeemed successfully!'));
+      if (eCode) {
+        getTransactionByECode(eCode, false);
+      }
+    } catch (err) {
+      notificationCtx.error(err);
+    } finally {
+      setRedeemLoading(prev => ({ ...prev, [ticketAddOnId]: false }));
+    }
   };
   // Define the toggleExpand function
   const toggleExpand = (key: string) => {
@@ -448,13 +471,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     }));
   };
 
-  // Handler for checkbox change
-  const handleCheckboxChange = (key: string) => {
-    setTicketCheckboxState((prevState) => ({
-      ...prevState,
-      [key]: !prevState[key], // Toggle the value for the specific accordion key
-    }));
-  };
+
 
   const fetchRecentScans = React.useCallback(async (): Promise<void> => {
     try {
@@ -518,85 +535,12 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       setTrxn(dataTrxn);
 
       const accordState: MyDynamicObject = {}
-      const ticCheckboxState: MyDynamicObject = {}
-      const ticDisabledState: MyDynamicObject = {}
 
       dataTrxn.transactionTicketCategories.forEach(transactionTicketCategory => {
         const accordionKey = `${transactionTicketCategory.ticketCategory.show.id}-${transactionTicketCategory.ticketCategory.id}`
-        accordState[accordionKey] = false
-        if (transactionTicketCategory.ticketCategory.show.id === selectedSchedule?.id && selectedCategories.includes(transactionTicketCategory.ticketCategory.id)) {
-          accordState[accordionKey] = true
-        }
+        accordState[accordionKey] = true // Open all by default
       })
       setAccordionState(accordState)
-
-      dataTrxn.transactionTicketCategories.forEach(transactionTicketCategory => {
-        transactionTicketCategory.tickets.forEach((ticket) => {
-          const ticketKey = `${ticket.id}-${transactionTicketCategory.ticketCategory.show.id}-${transactionTicketCategory.ticketCategory.id}`
-
-          // Check latest HistoryCheckIn to determine if ticket is checked in
-          const historyCheckIns = ticket.historyCheckIns || [];
-          const latestCheckIn = historyCheckIns.length > 0
-            ? historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
-            : null;
-
-          const isCheckedIn = latestCheckIn?.type === 'check-in';
-          const isCheckedOut = latestCheckIn?.type === 'check-out';
-          const isInSelectedSchedule = transactionTicketCategory.ticketCategory.show.id === selectedSchedule?.id && selectedCategories.includes(transactionTicketCategory.ticketCategory.id);
-
-          // For check-in: only enable tickets that are not checked in (checked out or never checked in)
-          // Also disable tickets with status != 'normal'
-          if (ticket.status !== 'normal') {
-            // Ticket has invalid status - disable
-            ticDisabledState[ticketKey] = true
-            ticCheckboxState[ticketKey] = false
-          } else if (isCheckedIn) {
-            // Ticket is already checked in - disable
-            ticDisabledState[ticketKey] = true
-            ticCheckboxState[ticketKey] = true
-          } else if (isCheckedOut || !latestCheckIn) {
-            // Ticket is checked out or never checked in - can check-in if in selected schedule
-            if (isInSelectedSchedule) {
-              ticDisabledState[ticketKey] = false
-              ticCheckboxState[ticketKey] = true
-            } else {
-              ticDisabledState[ticketKey] = true
-              ticCheckboxState[ticketKey] = false
-            }
-          } else {
-            // Not in selected schedule - disable
-            ticDisabledState[ticketKey] = true
-            ticCheckboxState[ticketKey] = false
-          }
-        })
-      })
-
-      setTicketDisabledState(ticDisabledState)
-      setTicketCheckboxState(ticCheckboxState)
-      // NEW: if *all* tickets are disabled, warn the user
-      const allDisabled = Object.values(ticDisabledState).every(v => v === true);
-      if (allDisabled && selectedSchedule && firstTimeScan) {
-        // 1. Pull the names of the selected categories for this schedule
-        const invalidCats = selectedSchedule.ticketCategories
-          .filter(tc =>
-            selectedCategories.includes(tc.id)
-          )
-          .map(tc => tc.name);
-
-        // 2. Join them with commas
-        const joined = invalidCats?.join(', ') || '';
-
-        // 3. Truncate to 25 chars with "…" if necessary
-        const display =
-          joined.length > 30
-            ? joined.slice(0, 27).trimEnd() + '...'
-            : joined;
-
-        // 4. Show the warning for check-in
-        notificationCtx.warning(
-          tt(`Không có vé hợp lệ cho: ${selectedSchedule?.name} — ${display}`, `Already checked in for selected categories`)
-        );
-      }
 
       if (firstTimeScan) {
         await fetchRecentScans();
@@ -610,63 +554,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       setIsLoading(false);
     }
   };
-  const sendCheckinRequest = (eCode: string) => {
-    if (trxn) {
 
-      // Collect check-in details by filtering tickets with true checkbox state and false disabled state
-      const ticketsToCheckIn: { [key: string]: number[] } = {};
-
-      Object.keys(ticketCheckboxState).forEach(ticketKey => {
-        if (ticketCheckboxState[ticketKey] && !ticketDisabledState[ticketKey]) {
-          const [ticketId, showId, ticketCategoryId] = ticketKey.split('-').map(Number);
-
-          const key = `${showId}-${ticketCategoryId}`;
-          if (!ticketsToCheckIn[key]) {
-            ticketsToCheckIn[key] = [];
-          }
-          ticketsToCheckIn[key].push(ticketId);
-        }
-      });
-
-      // Loop through each show/ticketCategory group and send requests
-      const requests = Object.entries(ticketsToCheckIn).map(([key, ticketIds]) => {
-        const [showId, ticketCategoryId] = key.split('-').map(Number);
-        const checkInAll = ticketIds.length === trxn.transactionTicketCategories.find(
-          category => category.ticketCategory.show.id === showId &&
-            category.ticketCategory.id === ticketCategoryId
-        )?.tickets.length;
-
-        return baseHttpServiceInstance.post(`/event-studio/events/${params.event_id}/check-in-or-check-out/check-in`, {
-          eCode,
-          showId,
-          ticketCategoryId,
-          checkInAll,
-          checkInCustomerIds: checkInAll ? [] : ticketIds,
-        });
-      });
-
-      if (requests.length === 0) {
-        notificationCtx.warning(tt(`Vui lòng chọn ít nhất 1 vé để check-in.`, `Please select at least 1 ticket to check-in.`));
-        return
-      }
-      setIsLoading(true);
-
-      // Execute all requests and update UI state
-      Promise.all(requests)
-        .then(() => {
-          getTransactionByECode(eCode); // Refresh data after check-in
-          setIsSuccessful(true);
-          notificationCtx.success(tt(`Check-in thành công.`, `Check-in successful.`));
-        })
-        .catch(error => {
-          notificationCtx.error(error);
-          setIsSuccessful(false);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    }
-  };
 
   const runManualCheckIn = () => {
     if (qrManualInput) {
@@ -709,24 +597,39 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     <>
       <Stack spacing={3}>
         <div>
-          <Typography variant="h4">{tt('Check-in sự kiện', 'Event Check-in')} {event?.name}</Typography>
-          <Typography variant="body2" sx={{ mt: 1 }}>
-            <LocalizedLink href={`/event-studio/events/${params.event_id}/check-out/qr`} style={{ textDecoration: 'none', color: 'primary' }}>
-              Chuyển sang Check-out
-            </LocalizedLink>
-          </Typography>
+          <Typography variant="h4">{tt('Sử dụng Tiện ích', 'Redeem Add-ons')} {event?.name}</Typography>
         </div>
         <Grid container spacing={3}>
           <Grid item lg={5} md={5} xs={12} spacing={3}>
             <Stack spacing={3}>
-              <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
-              {selectedSchedule &&
-                <TicketCategories show={selectedSchedule} onCategoriesSelect={(categoryIds: number[]) => handleCategorySelection(categoryIds)} />
-              }
+              <Card>
+                <CardHeader title={tt('Chọn Tiện ích', 'Select Add-ons')} />
+                <Divider />
+                <List>
+                  {eventAddOns.map(addon => (
+                    <ListItem key={addon.id}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={selectedAddOnIds.includes(addon.id)}
+                            onChange={() => handleAddOnToggle(addon.id)}
+                          />
+                        }
+                        label={addon.name}
+                      />
+                    </ListItem>
+                  ))}
+                  {eventAddOns.length === 0 && (
+                    <ListItem>
+                      <ListItemText primary={tt('Không có tiện ích nào.', 'No add-ons available.')} />
+                    </ListItem>
+                  )}
+                </List>
+              </Card>
             </Stack>
           </Grid>
 
-          <Grid item lg={7} md={7} xs={12} spacing={3} sx={{ display: selectedSchedule && selectedCategories.length > 0 ? 'block' : 'none' }}>
+          <Grid item lg={7} md={7} xs={12} spacing={3} sx={{ display: selectedAddOnIds.length > 0 ? 'block' : 'none' }}>
             <Stack spacing={3}>
               <Card>
                 <CardHeader subheader={tt("Vui lòng hướng mã QR về phía camera.", "Please point the QR code towards the camera.")} title={tt("Quét mã QR", "Scan QR Code")} />
@@ -756,16 +659,16 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
               </Card>
 
               <Card>
-                <CardHeader subheader={tt("Vui lòng nhập mã để check-in thủ công nếu không quét được mã QR.", "Please enter the code to manually check-in if QR code scanning is not possible.")} title={tt("Check-in thủ công", "Manual Check-in")} />
+                <CardHeader subheader={tt("Vui lòng nhập mã để sử dụng thủ công nếu không quét được mã QR.", "Please enter the code to manually redeem if QR code scanning is not possible.")} title={tt("Nhập mã vé thủ công", "Manual Input")} />
                 <Divider />
                 <CardContent>
                   <form onSubmit={handleManualCheckInSubmit}>
                     <Grid container rowSpacing={2} spacing={2}>
                       <Grid item md={8} xs={12}>
                         <FormControl fullWidth required>
-                          <InputLabel>{tt('Mã check-in', 'Check-in Code')}</InputLabel>
+                          <InputLabel>{tt('Mã vé (Ticket Code)', 'Ticket Code')}</InputLabel>
                           <OutlinedInput
-                            label={tt('Mã check-in', 'Check-in Code')}
+                            label={tt('Mã vé (Ticket Code)', 'Ticket Code')}
                             name="name"
                             value={qrManualInput}
                             onChange={(e) => setQrManualInput(e.target.value)}
@@ -980,112 +883,107 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
 
                               return (
-                                <FormControlLabel
-                                  key={ticketKey}
-                                  control={
-                                    <Checkbox
-                                      checked={ticketCheckboxState[ticketKey]}
-                                      onChange={() => handleCheckboxChange(ticketKey)}
-                                      disabled={ticketDisabledState[ticketKey]}
-                                    />
-                                  }
-                                  label={
-                                    <Stack direction="column" alignItems="flex-start" spacing={0.5}>
-                                      <Stack direction="row" alignItems="center" spacing={1}>
-                                        <Chip label={`TID-${ticket.id}`} size="small" variant="outlined" color="default" sx={{ height: 20, fontSize: '0.7rem' }} />
-                                        {/* Seat Info */}
-                                        {ticket.showSeat && (
-                                          <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary' }}>
-                                            <Armchair size={16} />
-                                            <Typography variant="body2">
-                                              {ticket.showSeat.rowLabel}-{ticket.showSeat.seatNumber}
-                                            </Typography>
-                                          </Stack>
-                                        )}
-                                        {ticket.audienceName && (
-                                          <Chip
-                                            label={ticket.audienceName}
-                                            size="small"
-                                            variant="outlined"
-                                            color="primary"
-                                            sx={{ height: 20, fontSize: '0.7rem' }}
-                                          />
-                                        )}
-                                      </Stack>
-                                      <Stack direction="row" alignItems="center" spacing={1}>
-                                        <Typography variant="body2" fontWeight="bold">
-                                          {ticket.holderTitle} {ticket.holderName}
-                                        </Typography>
-                                      </Stack>
-
-                                      {ticket.status && ticket.status !== 'normal' && (
-                                        <Chip size="small" label={getRowStatusDetails(ticket.status).label} color={getRowStatusDetails(ticket.status).color} sx={{ height: 18, fontSize: '0.7rem' }} />
-                                      )}
-
-
-
-                                      {(() => {
-                                        const historyCheckIns = ticket.historyCheckIns || [];
-                                        const latestCheckIn = historyCheckIns.length > 0
-                                          ? historyCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
-                                          : null;
-
-                                        if (latestCheckIn?.type === 'check-in') {
-                                          return (
-                                            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'success.main' }}>
-                                              <CheckCircle size={16} weight="fill" />
-                                              <Typography variant="caption">
-                                                {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
-                                              </Typography>
-                                            </Stack>
-                                          );
-                                        } else if (latestCheckIn?.type === 'check-out') {
-                                          return (
-                                            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'error.main' }}>
-                                              <Clock size={16} />
-                                              <Typography variant="caption">
-                                                {dayjs(latestCheckIn.createdAt).format("HH:mm:ss DD/MM/YYYY")}
-                                              </Typography>
-                                            </Stack>
-                                          );
-                                        }
-                                        return null;
-                                      })()}
-
-                                      {/* Add-ons read-only display */}
-                                      {ticket.addOns && ticket.addOns.length > 0 && (
-                                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mt: 1, width: '100%', maxWidth: 400 }}>
-                                          {ticket.addOns.map((addOnItem, addOnIdx) => (
-                                            <Chip
-                                              key={addOnIdx}
-                                              size="small"
-                                              variant="outlined"
-                                              label={
-                                                <Stack direction="row" spacing={0.5} alignItems="center">
-                                                  <span>{addOnItem.addOn.name}</span>
-                                                  <IconButton
-                                                    size="small"
-                                                    sx={{ p: 0, ml: 0.5 }}
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setActiveAddOnDetail(addOnItem);
-                                                      setAddOnDetailsModalOpen(true);
-                                                    }}
-                                                  >
-                                                    <Info size={14} />
-                                                  </IconButton>
-                                                </Stack>
-                                              }
-                                              color={addOnItem.isRedeemed ? 'success' : 'default'}
-                                              sx={{ height: 24 }}
-                                            />
-                                          ))}
+                                <Box key={ticketKey} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', ml: 2, mb: 2 }}>
+                                  <Stack direction="column" alignItems="flex-start" spacing={0.5} sx={{ width: '100%' }}>
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                      <Chip label={`TID-${ticket.id}`} size="small" variant="outlined" color="default" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                      {/* Seat Info */}
+                                      {ticket.showSeat && (
+                                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary' }}>
+                                          <Armchair size={16} />
+                                          <Typography variant="body2">
+                                            {ticket.showSeat.rowLabel}-{ticket.showSeat.seatNumber}
+                                          </Typography>
                                         </Stack>
                                       )}
+                                      {ticket.audienceName && (
+                                        <Chip
+                                          label={ticket.audienceName}
+                                          size="small"
+                                          variant="outlined"
+                                          color="primary"
+                                          sx={{ height: 20, fontSize: '0.7rem' }}
+                                        />
+                                      )}
                                     </Stack>
-                                  }
-                                  sx={{ display: 'flex', alignItems: 'center', marginLeft: 2 }}
-                                />
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                      <Typography variant="body2" fontWeight="bold">
+                                        {ticket.holderTitle} {ticket.holderName}
+                                      </Typography>
+                                    </Stack>
+
+                                    {ticket.status && ticket.status !== 'normal' && (
+                                      <Chip size="small" label={getRowStatusDetails(ticket.status).label} color={getRowStatusDetails(ticket.status).color} sx={{ height: 18, fontSize: '0.7rem' }} />
+                                    )}
+
+                                    <Stack direction="column" spacing={1} sx={{ mt: 1.5, width: '100%', maxWidth: 400 }}>
+                                      {ticket.addOns?.map(addOnItem => {
+                                        const isSelected = selectedAddOnIds.includes(addOnItem.addOn.id);
+                                        const isRedeemed = addOnItem.isRedeemed;
+
+                                        return (
+                                          <Stack key={addOnItem.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ borderBottom: '1px dashed #eee', pb: 1 }}>
+                                            <Stack direction="row" spacing={0.5} alignItems="center">
+                                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{addOnItem.addOn.name}</Typography>
+                                              <IconButton
+                                                size="small"
+                                                sx={{ p: 0 }}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setActiveAddOnDetail(addOnItem);
+                                                  setAddOnDetailsModalOpen(true);
+                                                }}
+                                              >
+                                                <Info size={14} />
+                                              </IconButton>
+                                            </Stack>
+
+                                            <Stack direction="row" alignItems="center" spacing={1}>
+                                              <Stack alignItems="flex-end">
+                                                <Chip
+                                                  size="small"
+                                                  color={isRedeemed ? 'success' : 'default'}
+                                                  label={isRedeemed ? tt('Đã sử dụng', 'Redeemed') : tt('Chưa sử dụng', 'Not redeemed')}
+                                                  sx={{ height: 16, fontSize: '0.65rem' }}
+                                                />
+                                                {isRedeemed && addOnItem.redeemedAt && (
+                                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                                                    {dayjs(addOnItem.redeemedAt).format('HH:mm DD/MM')}
+                                                  </Typography>
+                                                )}
+                                              </Stack>
+
+                                              {isSelected && (
+                                                <IconButton
+                                                  size="small"
+                                                  color="primary"
+                                                  disabled={isRedeemed || redeemLoading[addOnItem.id]}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleRedeem(addOnItem.id);
+                                                  }}
+                                                  sx={{
+                                                    border: '1px solid',
+                                                    borderColor: isRedeemed ? 'grey.300' : 'primary.main',
+                                                    p: 0.5,
+                                                    ml: 1
+                                                  }}
+                                                >
+                                                  {redeemLoading[addOnItem.id] ? <CircularProgress size={16} /> : <CheckFat size={16} weight="fill" />}
+                                                </IconButton>
+                                              )}
+                                            </Stack>
+                                          </Stack>
+                                        );
+                                      })}
+                                      {(!ticket.addOns || ticket.addOns.length === 0) && (
+                                        <Typography variant="body2" color="text.secondary">
+                                          {tt('Không có tiện ích', 'No add-ons')}
+                                        </Typography>
+                                      )}
+                                    </Stack>
+                                  </Stack>
+                                </Box>
                               );
                             })}
                           </AccordionDetails>
@@ -1141,20 +1039,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                     ))}
                   </Stack> */}
 
-                  <Button
-                    variant="contained"
-                    disabled={
-                      // existing disable condition OR no tickets selected
-                      !(trxn?.status === 'normal' && trxn?.paymentStatus === 'paid')
-                      || !hasTicketsSelected
-                    }
-                    onClick={() => {
-                      setConfirmCheckin(true);
-                      sendCheckinRequest(eCode);
-                    }}
-                  >
-                    {tt('Check-in', 'Check-in')}
-                  </Button>
+                  {/* Global Check-in Button Removed */}
                 </Stack>
               </>
             )}

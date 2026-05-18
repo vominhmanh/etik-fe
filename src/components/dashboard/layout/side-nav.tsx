@@ -347,6 +347,13 @@ export function SideNav(): React.JSX.Element {
                 onClick={() => handleRedirectToCheckInFace(event?.id || 0)}
                 icon={ScanSmileyIcon}
               />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="redeem-add-on"
+                title={tt("Sử dụng tiện ích bằng mã QR", "Using add-ons with QR Code")}
+                href={`/event-studio/events/${dynamicId}/redeem-add-on`}
+                icon={BarcodeIcon}
+              />
             </NavItemCollapse>
             <NavItem
               pathname={pathname}

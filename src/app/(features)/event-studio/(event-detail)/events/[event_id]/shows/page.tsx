@@ -30,6 +30,7 @@ import { ArrowRight, Calendar, Clock, Users } from '@phosphor-icons/react';
 import { Armchair, Pencil } from '@phosphor-icons/react/dist/ssr';
 import dayjs from 'dayjs';
 import { AudienceModal, AudienceCreate, AudienceUpdate, Audience } from "@/components/dialogs/AudienceModal";
+import { AddOnModal, AddOn } from "@/components/dialogs/AddOnModal";
 
 interface TicketCategory {
   id: number;
@@ -104,6 +105,12 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [openAudienceModal, setOpenAudienceModal] = React.useState(false);
   const [selectedAudience, setSelectedAudience] = React.useState<Audience | undefined>(undefined);
   const [isEditAudience, setIsEditAudience] = React.useState(false);
+
+  // Add-on State
+  const [addOns, setAddOns] = React.useState<AddOn[]>([]);
+  const [openAddOnModal, setOpenAddOnModal] = React.useState(false);
+  const [selectedAddOn, setSelectedAddOn] = React.useState<AddOn | undefined>(undefined);
+  const [isEditAddOn, setIsEditAddOn] = React.useState(false);
 
   // Confirmation Dialog State
   const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
@@ -212,9 +219,19 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       }
     }
 
+    const fetchAddOns = async () => {
+      try {
+        const response = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/add-ons`);
+        setAddOns(response.data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
     fetchShowsWithTicketCategories();
     fetchEventData();
     fetchAudiences();
+    fetchAddOns();
   }, [params.event_id]);
 
 
@@ -566,7 +583,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           </Grid>
           <Stack direction="row" spacing={3}>
             <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-              <Typography variant="h4">{tt("Đối tượng mua vé", "Audience")}</Typography>
+              <Typography variant="h4">{tt("Đối tượng khán giả", "Audience")}</Typography>
             </Stack>
             <div>
               <Button
@@ -578,7 +595,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   setOpenAudienceModal(true);
                 }}
               >
-                {tt("Thêm đối tượng", "Add Audience")}
+                {tt("Thêm khán giả", "Add Audience")}
               </Button>
             </div>
           </Stack>
@@ -677,6 +694,93 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
               </Grid>
             ))}
           </Grid>
+
+          <Stack direction="row" spacing={3}>
+            <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
+              <Typography variant="h4">{tt("Tiện ích bổ sung", "Utilities")}</Typography>
+            </Stack>
+            <div>
+              <Button
+                startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
+                variant="contained"
+                onClick={() => {
+                  setSelectedAddOn(undefined);
+                  setIsEditAddOn(false);
+                  setOpenAddOnModal(true);
+                }}
+              >
+                {tt("Thêm tiện ích", "Add Utilities")}
+              </Button>
+            </div>
+          </Stack>
+
+          <Grid container spacing={3}>
+            {addOns.map((addOn) => (
+              <Grid key={addOn.id} lg={4} md={6} xs={12}>
+                <Card sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  borderRadius: 2,
+                  transition: 'all 0.2s',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  '&:hover': {
+                    boxShadow: (theme) => theme.shadows[4],
+                    borderColor: 'primary.light',
+                  }
+                }}>
+                  <CardContent sx={{ flex: '1 1 auto', p: 2 }}>
+                    <Stack spacing={1.5}>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', overflow: 'hidden' }}>
+                          <Avatar
+                            sx={{
+                              height: 36,
+                              width: 36,
+                              borderRadius: 1,
+                              bgcolor: 'secondary.light',
+                              fontSize: '1rem',
+                              fontWeight: 600
+                            }}
+                            variant="rounded"
+                          >
+                            {addOn.name.charAt(0).toUpperCase()}
+                          </Avatar>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                            {addOn.name}
+                          </Typography>
+                        </Stack>
+                        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                          <Tooltip title={tt("Chỉnh sửa", "Edit")}>
+                            <IconButton
+                              size="small"
+                              sx={{ color: 'text.secondary', p: 0.5 }}
+                              onClick={() => {
+                                setSelectedAddOn(addOn);
+                                setIsEditAddOn(true);
+                                setOpenAddOnModal(true);
+                              }}
+                            >
+                              <Pencil size={16} />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </Stack>
+                      <Stack spacing={1} sx={{ mt: 1 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {tt('Áp dụng cho vé:', 'Applied tickets:')} <strong>{addOn.ticketCategoryIds.length}</strong>
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {tt('Áp dụng đối tượng:', 'Applied audiences:')} <strong>{addOn.audienceIds.length}</strong>
+                        </Typography>
+                      </Stack>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
         </Stack >
       </Stack >
 
@@ -709,6 +813,36 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         }}
         initialValues={selectedAudience}
         isEdit={isEditAudience}
+      />
+
+      <AddOnModal
+        open={openAddOnModal}
+        onClose={() => setOpenAddOnModal(false)}
+        onSubmit={async (values) => {
+          try {
+            if (isEditAddOn && selectedAddOn) {
+              await baseHttpServiceInstance.put(
+                `/event-studio/events/${params.event_id}/add-ons/${selectedAddOn.id}`,
+                values
+              );
+              notificationCtx.success(tt("Cập nhật thành công", "Update successful"));
+            } else {
+              await baseHttpServiceInstance.post(
+                `/event-studio/events/${params.event_id}/add-ons`,
+                values
+              );
+              notificationCtx.success(tt("Tạo mới thành công", "Create successful"));
+            }
+            const res = await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/add-ons`);
+            setAddOns(res.data);
+          } catch (error: any) {
+            notificationCtx.error(tt('Lỗi:', 'Error:'), error);
+          }
+        }}
+        initialValues={selectedAddOn}
+        isEdit={isEditAddOn}
+        shows={shows}
+        audiences={audiences}
       />
 
       <Modal

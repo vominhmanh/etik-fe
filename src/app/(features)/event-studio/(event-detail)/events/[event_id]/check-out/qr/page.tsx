@@ -2,11 +2,11 @@
 
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Chip, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, MenuItem, OutlinedInput, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, styled, SwipeableDrawer, Typography } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Chip, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, MenuItem, Modal, OutlinedInput, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, styled, SwipeableDrawer, Typography } from '@mui/material';
 import type { ChipProps } from '@mui/material/Chip';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import { grey } from '@mui/material/colors';
-import { Armchair, ArrowClockwise, ArrowSquareIn, Bank, CaretDown, CheckCircle, Clock, Lightning, Money, XCircle } from '@phosphor-icons/react/dist/ssr';
+import { Armchair, ArrowClockwise, ArrowSquareIn, Bank, CaretDown, CheckCircle, Clock, Info, Lightning, Money, X, XCircle } from '@phosphor-icons/react/dist/ssr';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
@@ -49,6 +49,7 @@ export interface Ticket {
   historyCheckIns?: CheckInHistory[];
   audienceName: string | null;
   audienceCode: string | null;
+  addOns?: TicketAddOn[];
 }
 
 export type RecentScan = {
@@ -62,6 +63,24 @@ interface ShowSeat {
   seatNumber: string;
 }
 
+export interface AddOnTemplate {
+  id: number;
+  name: string;
+}
+
+export interface TicketAddOn {
+  id: number;
+  isRedeemed: boolean;
+  redeemedAt: string | null;
+  redeemedById: number | null;
+  note: string | null;
+  addOn: AddOnTemplate;
+  redeemedBy: {
+    id: number;
+    fullName: string;
+    email: string;
+  } | null;
+}
 
 export type TicketCategory = {
   id: number;
@@ -283,6 +302,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [ticketCheckboxState, setTicketCheckboxState] = React.useState<MyDynamicObject>({});
   const [recentScans, setRecentScans] = React.useState<RecentScan[]>([]);
   const [recentScansLoading, setRecentScansLoading] = React.useState<boolean>(false);
+  const [activeAddOnDetail, setActiveAddOnDetail] = React.useState<TicketAddOn | null>(null);
+  const [addOnDetailsModalOpen, setAddOnDetailsModalOpen] = React.useState(false);
   const hasTicketsSelected = Object.entries(ticketCheckboxState).some(
     ([ticketKey, checked]) =>
       checked && !ticketDisabledState[ticketKey]
@@ -965,11 +986,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                     <Stack direction="column" alignItems="flex-start" spacing={0.5}>
                                       <Stack direction="row" alignItems="center" spacing={1}>
                                         <Chip label={`TID-${ticket.id}`} size="small" variant="outlined" color="default" sx={{ height: 20, fontSize: '0.7rem' }} />
-                                        <Typography variant="body2" fontWeight="bold">
-                                          {ticket.holderName || ticket.holderTitle}
-                                        </Typography>
-                                      </Stack>
-                                      <Stack direction="row" alignItems="center" spacing={1}>
                                         {/* Seat Info */}
                                         {ticket.showSeat && (
                                           <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary' }}>
@@ -988,6 +1004,11 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                             sx={{ height: 20, fontSize: '0.7rem' }}
                                           />
                                         )}
+                                      </Stack>
+                                      <Stack direction="row" alignItems="center" spacing={1}>
+                                        <Typography variant="body2" fontWeight="bold">
+                                          {ticket.holderTitle} {ticket.holderName}
+                                        </Typography>
                                       </Stack>
 
                                       {ticket.status && ticket.status !== 'normal' && (
@@ -1022,6 +1043,37 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                         }
                                         return null;
                                       })()}
+
+                                      {/* Add-ons read-only display */}
+                                      {ticket.addOns && ticket.addOns.length > 0 && (
+                                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mt: 1, width: '100%', maxWidth: 400 }}>
+                                          {ticket.addOns.map((addOnItem, addOnIdx) => (
+                                            <Chip
+                                              key={addOnIdx}
+                                              size="small"
+                                              variant="outlined"
+                                              label={
+                                                <Stack direction="row" spacing={0.5} alignItems="center">
+                                                  <span>{addOnItem.addOn.name}</span>
+                                                  <IconButton
+                                                    size="small"
+                                                    sx={{ p: 0, ml: 0.5 }}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setActiveAddOnDetail(addOnItem);
+                                                      setAddOnDetailsModalOpen(true);
+                                                    }}
+                                                  >
+                                                    <Info size={14} />
+                                                  </IconButton>
+                                                </Stack>
+                                              }
+                                              color={addOnItem.isRedeemed ? 'success' : 'default'}
+                                              sx={{ height: 24 }}
+                                            />
+                                          ))}
+                                        </Stack>
+                                      )}
                                     </Stack>
                                   }
                                   sx={{ display: 'flex', alignItems: 'center', marginLeft: 2 }}
@@ -1102,7 +1154,85 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         </Container>
       </SwipeableDrawer >
 
+      <AddOnDetailsModal
+        open={addOnDetailsModalOpen}
+        onClose={() => setAddOnDetailsModalOpen(false)}
+        activeAddOnDetail={activeAddOnDetail}
+        tt={tt}
+      />
+
     </>
   );
+}
+
+export function AddOnDetailsModal({ open, onClose, activeAddOnDetail, tt }: { open: boolean, onClose: () => void, activeAddOnDetail: TicketAddOn | null, tt: (vi: string, en: string) => string }) {
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      aria-labelledby="addon-modal"
+    >
+      <Container maxWidth="xs">
+        <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { xs: '90%', sm: 400 }, outline: 'none' }}>
+          <CardHeader
+            title={tt('Chi tiết Tiện ích', 'Add-on Details')}
+            action={<IconButton onClick={onClose}><X /></IconButton>}
+          />
+          <Divider />
+          <CardContent>
+            {activeAddOnDetail && (
+              <Stack spacing={2}>
+                <Typography variant="subtitle1" fontWeight="bold">
+                  {activeAddOnDetail.addOn.name}
+                </Typography>
+
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="body2" color="text.secondary" sx={{ width: 100 }}>
+                    {tt('Trạng thái:', 'Status:')}
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={activeAddOnDetail.isRedeemed ? tt('Đã sử dụng', 'Redeemed') : tt('Chưa sử dụng', 'Not Redeemed')}
+                    color={activeAddOnDetail.isRedeemed ? 'success' : 'default'}
+                  />
+                </Stack>
+
+                {activeAddOnDetail.isRedeemed && (
+                  <>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography variant="body2" color="text.secondary" sx={{ width: 100 }}>
+                        {tt('Nhân viên:', 'Staff:')}
+                      </Typography>
+                      <Typography variant="body2">
+                        {activeAddOnDetail.redeemedBy ? `${activeAddOnDetail.redeemedBy.fullName} (${activeAddOnDetail.redeemedBy.email})` : tt('Không rõ', 'Unknown')}
+                      </Typography>
+                    </Stack>
+
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography variant="body2" color="text.secondary" sx={{ width: 100 }}>
+                        {tt('Thời gian:', 'Time:')}
+                      </Typography>
+                      <Typography variant="body2">
+                        {activeAddOnDetail.redeemedAt ? dayjs(activeAddOnDetail.redeemedAt).format('HH:mm:ss DD/MM/YYYY') : ''}
+                      </Typography>
+                    </Stack>
+                  </>
+                )}
+
+                <Stack direction="row" spacing={1} alignItems="flex-start">
+                  <Typography variant="body2" color="text.secondary" sx={{ width: 100 }}>
+                    {tt('Ghi chú:', 'Note:')}
+                  </Typography>
+                  <Typography variant="body2" sx={{ flex: 1, whiteSpace: 'pre-wrap' }}>
+                    {activeAddOnDetail.note || tt('Không có ghi chú', 'No note')}
+                  </Typography>
+                </Stack>
+              </Stack>
+            )}
+          </CardContent>
+        </Card>
+      </Container>
+    </Modal>
+  )
 }
 
