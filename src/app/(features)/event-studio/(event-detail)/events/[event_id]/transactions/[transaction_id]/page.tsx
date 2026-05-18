@@ -1,7 +1,7 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, CardActions, Chip, IconButton, InputAdornment, Menu, MenuItem, Modal, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Container, Checkbox, FormGroup, FormControlLabel, RadioGroup, Radio, TextField } from '@mui/material';
+import { Avatar, Box, CardActions, Chip, IconButton, InputAdornment, Menu, MenuItem, Modal, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Container, Checkbox, FormGroup, FormControlLabel, RadioGroup, Radio, TextField, List, ListItem } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -12,7 +12,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Bank as BankIcon, CaretDoubleRight, CaretLeft, Check, CheckFat, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, Gift, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X, Chair, CalendarBlank, IdentificationCard, CheckCircle, User as UserIcon, Users } from '@phosphor-icons/react/dist/ssr'; // Example icons
+import { Bank as BankIcon, CaretDoubleRight, CaretLeft, Check, CheckFat, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, Gift, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X, Chair, CalendarBlank, IdentificationCard, CheckCircle, User as UserIcon, Users, CirclesThreePlus, Trash } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import { LocalizedLink } from '@/components/homepage/localized-link';
 
 import * as React from 'react';
@@ -367,6 +367,11 @@ interface Audience {
   code: string;
 }
 
+interface AddOn {
+  id: number;
+  name: string;
+}
+
 export default function Page({ params }: { params: { event_id: number; transaction_id: number } }): React.JSX.Element {
   const { tt, locale } = useTranslation();
   const router = useRouter();
@@ -415,6 +420,18 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [addOnDetailsModalOpen, setAddOnDetailsModalOpen] = useState<boolean>(false);
   const [activeAddOnDetail, setActiveAddOnDetail] = useState<TicketAddOn | null>(null);
   const [redeemLoading, setRedeemLoading] = useState<Record<number, boolean>>({});
+
+  // Assign Add-ons State
+  const [assignAddOnModalOpen, setAssignAddOnModalOpen] = useState<boolean>(false);
+  const [assignAddOnTicket, setAssignAddOnTicket] = useState<{ categoryIndex: number; ticketIndex: number } | null>(null);
+  const [eventAddOns, setEventAddOns] = useState<AddOn[]>([]);
+  const [selectedAssignAddOnIds, setSelectedAssignAddOnIds] = useState<number[]>([]);
+  const [assignLoading, setAssignLoading] = useState<boolean>(false);
+
+  // Delete Add-on State
+  const [deleteAddOnConfirmOpen, setDeleteAddOnConfirmOpen] = useState<boolean>(false);
+  const [addOnToDelete, setAddOnToDelete] = useState<TicketAddOn | null>(null);
+  const [deleteAddOnLoading, setDeleteAddOnLoading] = useState<boolean>(false);
 
   const builtinInternalNames = React.useMemo(
     () => new Set(['title', 'name', 'email', 'phone_number', 'address', 'dob', 'idcard_number']),
@@ -613,6 +630,22 @@ export default function Page({ params }: { params: { event_id: number; transacti
     fetchTransactionDetails();
     fetchAudiences();
   }, [event_id, transaction_id]);
+
+  useEffect(() => {
+    const fetchEventAddOns = async () => {
+      try {
+        const response = await baseHttpServiceInstance.get(
+          `/event-studio/events/${event_id}/add-ons`
+        );
+        setEventAddOns(response.data);
+      } catch (error) {
+        console.error("Failed to fetch event add-ons", error);
+      }
+    };
+    if (event_id) {
+      fetchEventAddOns();
+    }
+  }, [event_id]);
 
 
 
@@ -1017,6 +1050,63 @@ export default function Page({ params }: { params: { event_id: number; transacti
       notificationCtx.error(tt('Sử dụng tiện ích thất bại', 'Failed to redeem add-on'), error);
     } finally {
       setRedeemLoading((prev) => ({ ...prev, [ticketAddOnId]: false }));
+    }
+  };
+
+  const handleOpenAssignAddOnModal = () => {
+    if (!activeMenuTicket || !transaction) return;
+    setAssignAddOnTicket(activeMenuTicket);
+    setSelectedAssignAddOnIds([]);
+    setAssignAddOnModalOpen(true);
+    setTicketMenuAnchorEl(null);
+  };
+
+  const handleAssignAddOns = async () => {
+    if (!assignAddOnTicket || !transaction) return;
+    const category = transaction.transactionTicketCategories[assignAddOnTicket.categoryIndex];
+    const ticket = category?.tickets[assignAddOnTicket.ticketIndex];
+    if (!ticket) return;
+
+    try {
+      setAssignLoading(true);
+      const response = await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/add-ons/tickets/${ticket.id}`,
+        {
+          addOnIds: selectedAssignAddOnIds
+        }
+      );
+
+      if (response.status === 200) {
+        notificationCtx.success(tt('Gán tiện ích thành công!', 'Add-ons assigned successfully!'));
+        setAssignAddOnModalOpen(false);
+        fetchTransactionDetails();
+      }
+    } catch (error) {
+      notificationCtx.error(tt('Gán tiện ích thất bại', 'Failed to assign add-ons'), error);
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const handleDeleteAddOn = async () => {
+    if (!addOnToDelete) return;
+
+    try {
+      setDeleteAddOnLoading(true);
+      const response = await baseHttpServiceInstance.delete(
+        `/event-studio/events/${event_id}/add-ons/ticket-add-ons/${addOnToDelete.id}`
+      );
+
+      if (response.status === 200) {
+        notificationCtx.success(tt('Xoá tiện ích thành công!', 'Add-on deleted successfully!'));
+        setDeleteAddOnConfirmOpen(false);
+        setAddOnToDelete(null);
+        fetchTransactionDetails();
+      }
+    } catch (error) {
+      notificationCtx.error(tt('Xoá tiện ích thất bại', 'Failed to delete add-on'), error);
+    } finally {
+      setDeleteAddOnLoading(false);
     }
   };
 
@@ -1909,7 +1999,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
                             <SignOut style={{ marginRight: 8 }} /> Check-out
                           </MenuItem>
                           <MenuItem onClick={handleOpenEditTicketModal} sx={{ fontSize: '14px', color: 'primary' }}>
-                            <Pencil style={{ marginRight: 8 }} /> Sửa thông tin vé
+                            <Pencil style={{ marginRight: 8 }} /> {tt('Sửa thông tin vé', 'Edit Ticket')}
+                          </MenuItem>
+                          <MenuItem onClick={handleOpenAssignAddOnModal} sx={{ fontSize: '14px', color: 'primary' }}>
+                            <CirclesThreePlus style={{ marginRight: 8 }} /> {tt('Gán tiện ích cho vé', 'Assign Add-ons to Ticket')}
                           </MenuItem>
                         </Menu>
                       </div>
@@ -2683,13 +2776,13 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   <Typography variant="subtitle1" fontWeight="bold">
                     {activeAddOnDetail.addOn.name}
                   </Typography>
-                  
+
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Typography variant="body2" color="text.secondary" sx={{ width: 100 }}>
                       {tt('Trạng thái:', 'Status:')}
                     </Typography>
-                    <Chip 
-                      size="small" 
+                    <Chip
+                      size="small"
                       label={activeAddOnDetail.isRedeemed ? tt('Đã sử dụng', 'Redeemed') : tt('Chưa sử dụng', 'Not Redeemed')}
                       color={activeAddOnDetail.isRedeemed ? 'success' : 'default'}
                     />
@@ -2727,19 +2820,143 @@ export default function Page({ params }: { params: { event_id: number; transacti
                   </Stack>
 
                   {!activeAddOnDetail.isRedeemed && (
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      startIcon={redeemLoading[activeAddOnDetail.id] ? <CircularProgress size={20} color="inherit" /> : <CheckFat weight="fill" />}
-                      disabled={redeemLoading[activeAddOnDetail.id]}
-                      onClick={() => handleRedeemAddOnAdmin(activeAddOnDetail.id)}
-                      sx={{ mt: 2 }}
-                    >
-                      {tt('Sử dụng tiện ích', 'Redeem Add-on')}
-                    </Button>
+                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 2 }}>
+                      <IconButton
+                        color="error"
+                        sx={{
+                          border: '1px solid var(--mui-palette-error-main)',
+                          borderRadius: 1,
+                          p: 1.25,
+                          '&:hover': {
+                            backgroundColor: 'rgba(211, 47, 47, 0.04)'
+                          }
+                        }}
+                        onClick={() => {
+                          setAddOnToDelete(activeAddOnDetail);
+                          setDeleteAddOnConfirmOpen(true);
+                          setAddOnDetailsModalOpen(false);
+                        }}
+                      >
+                        <Trash size={20} />
+                      </IconButton>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        fullWidth
+                        startIcon={redeemLoading[activeAddOnDetail.id] ? <CircularProgress size={20} color="inherit" /> : <CheckFat weight="fill" />}
+                        disabled={redeemLoading[activeAddOnDetail.id]}
+                        onClick={() => handleRedeemAddOnAdmin(activeAddOnDetail.id)}
+                      >
+                        {tt('Sử dụng tiện ích / Quà tặng', 'Redeem Add-on')}
+                      </Button>
+                    </Stack>
                   )}
                 </Stack>
               )}
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+
+      {/* Assign AddOns Modal */}
+      <Modal
+        open={assignAddOnModalOpen}
+        onClose={() => setAssignAddOnModalOpen(false)}
+        aria-labelledby="assign-addon-modal"
+      >
+        <Container maxWidth="xs">
+          <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { xs: '90%', sm: 400 }, outline: 'none' }}>
+            <CardHeader
+              title={tt('Gán Tiện ích / Quà tặng cho vé', 'Assign Add-ons / Gifts to Ticket')}
+              action={<IconButton onClick={() => setAssignAddOnModalOpen(false)}><X /></IconButton>}
+            />
+            <Divider />
+            <CardContent>
+              <Stack spacing={2}>
+                <Typography variant="body2" color="text.secondary">
+                  {tt('Chọn các tiện ích / quà tặng muốn gán thêm cho vé này:', 'Select the add-ons / gifts you want to assign to this ticket:')}
+                </Typography>
+                <List sx={{ maxHeight: 300, overflow: 'auto' }}>
+                  {eventAddOns.map((addon) => (
+                    <ListItem key={addon.id} disablePadding>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={selectedAssignAddOnIds.includes(addon.id)}
+                            onChange={() => {
+                              setSelectedAssignAddOnIds((prev) =>
+                                prev.includes(addon.id)
+                                  ? prev.filter((id) => id !== addon.id)
+                                  : [...prev, addon.id]
+                              );
+                            }}
+                          />
+                        }
+                        label={addon.name}
+                        sx={{ width: '100%', margin: 0, py: 0.5 }}
+                      />
+                    </ListItem>
+                  ))}
+                  {eventAddOns.length === 0 && (
+                    <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 2 }}>
+                      {tt('Không có tiện ích khả dụng cho sự kiện này.', 'No available add-ons for this event.')}
+                    </Typography>
+                  )}
+                </List>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  disabled={assignLoading || selectedAssignAddOnIds.length === 0}
+                  onClick={handleAssignAddOns}
+                  startIcon={assignLoading && <CircularProgress size={20} color="inherit" />}
+                >
+                  {tt('Lưu thay đổi', 'Save Changes')}
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+
+      {/* Delete AddOn Confirm Modal */}
+      <Modal
+        open={deleteAddOnConfirmOpen}
+        onClose={() => setDeleteAddOnConfirmOpen(false)}
+        aria-labelledby="delete-addon-confirm-modal"
+      >
+        <Container maxWidth="xs">
+          <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { xs: '90%', sm: 400 }, outline: 'none' }}>
+            <CardHeader
+              title={tt('Xác nhận xoá tiện ích', 'Confirm Delete Add-on')}
+              action={<IconButton onClick={() => setDeleteAddOnConfirmOpen(false)}><X /></IconButton>}
+            />
+            <Divider />
+            <CardContent>
+              <Stack spacing={2}>
+                <Typography variant="body1">
+                  {tt('Bạn có chắc chắn muốn xoá tiện ích này khỏi vé không?', 'Are you sure you want to delete this add-on from the ticket?')}
+                </Typography>
+                {addOnToDelete && (
+                  <Typography variant="body2" fontWeight="bold" color="error">
+                    {addOnToDelete.addOn.name}
+                  </Typography>
+                )}
+                <Stack direction="row" spacing={2} justifyContent="flex-end">
+                  <Button variant="outlined" onClick={() => setDeleteAddOnConfirmOpen(false)}>
+                    {tt('Huỷ', 'Cancel')}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    disabled={deleteAddOnLoading}
+                    onClick={handleDeleteAddOn}
+                    startIcon={deleteAddOnLoading && <CircularProgress size={20} color="inherit" />}
+                  >
+                    {tt('Xoá', 'Delete')}
+                  </Button>
+                </Stack>
+              </Stack>
             </CardContent>
           </Card>
         </Container>

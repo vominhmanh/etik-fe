@@ -350,7 +350,7 @@ export function SideNav(): React.JSX.Element {
               <NavItemCollapseChildItem
                 pathname={pathname}
                 key="redeem-add-on"
-                title={tt("Sử dụng tiện ích bằng mã QR", "Using add-ons with QR Code")}
+                title={tt("Đổi tiện ích / Quà tặng", "Redeem add-ons / gifts with QR Code")}
                 href={`/event-studio/events/${dynamicId}/redeem-add-on`}
                 icon={BarcodeIcon}
               />

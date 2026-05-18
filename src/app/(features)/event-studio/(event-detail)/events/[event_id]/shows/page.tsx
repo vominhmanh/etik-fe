@@ -697,7 +697,13 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
           <Stack direction="row" spacing={3}>
             <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-              <Typography variant="h4">{tt("Tiện ích bổ sung", "Utilities")}</Typography>
+              <Typography variant="h4">{tt("Tiện ích / Quà tặng", "Add-ons / Gifts")}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ maxWidth: '600px' }}>
+                {tt(
+                  "Tính năng tự động gán thêm quà tặng hoặc tiện ích đi kèm (ví dụ: nước uống miễn phí, vé gửi xe, quà lưu niệm,...) vào từng chiếc vé khi người mua đặt vé thành công và thỏa mãn các điều kiện áp dụng.",
+                  "Automatically assign accompanying gifts or add-ons (e.g., free drinks, parking tickets, souvenirs,...) to each ticket when attendees successfully purchase tickets and meet the applicable conditions."
+                )}
+              </Typography>
             </Stack>
             <div>
               <Button
@@ -709,7 +715,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   setOpenAddOnModal(true);
                 }}
               >
-                {tt("Thêm tiện ích", "Add Utilities")}
+                {tt("Thêm", "Add")}
               </Button>
             </div>
           </Stack>
@@ -769,10 +775,39 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       </Stack>
                       <Stack spacing={1} sx={{ mt: 1 }}>
                         <Typography variant="caption" color="text.secondary">
-                          {tt('Áp dụng cho vé:', 'Applied tickets:')} <strong>{addOn.ticketCategoryIds.length}</strong>
+                          {tt('Áp dụng cho vé:', 'Applied tickets:')}{' '}
+                          <strong>
+                            {addOn.ticketCategoryIds && addOn.ticketCategoryIds.length > 0 ? (
+                              addOn.ticketCategoryIds
+                                .map((tcId) => {
+                                  for (const show of shows) {
+                                    const tc = show.ticketCategories.find((c) => c.id === tcId);
+                                    if (tc) {
+                                      return `(${show.name}) ${tc.name}`;
+                                    }
+                                  }
+                                  return `ID: ${tcId}`;
+                                })
+                                .join(', ')
+                            ) : (
+                              tt('Tất cả loại vé', 'All ticket categories')
+                            )}
+                          </strong>
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {tt('Áp dụng đối tượng:', 'Applied audiences:')} <strong>{addOn.audienceIds.length}</strong>
+                          {tt('Áp dụng đối tượng:', 'Applied audiences:')}{' '}
+                          <strong>
+                            {addOn.audienceIds && addOn.audienceIds.length > 0 ? (
+                              addOn.audienceIds
+                                .map((aId) => {
+                                  const aud = audiences.find((a) => a.id === aId);
+                                  return aud ? aud.name : `ID: ${aId}`;
+                                })
+                                .join(', ')
+                            ) : (
+                              tt('Tất cả đối tượng', 'All audiences')
+                            )}
+                          </strong>
                         </Typography>
                       </Stack>
                     </Stack>

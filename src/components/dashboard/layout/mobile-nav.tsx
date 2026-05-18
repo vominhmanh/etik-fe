@@ -331,7 +331,7 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
             <NavItemCollapseChildItem
               pathname={normalizedPathname}
               key="redeem-add-on"
-              title={tt("Sử dụng tiện ích bằng mã QR", "Using add-ons with QR Code")}
+              title={tt("Đổi tiện ích / Quà tặng", "Redeem add-ons / gifts")}
               href={`/event-studio/events/${dynamicId}/redeem-add-on`}
               icon={BarcodeIcon}
               onClose={onClose}

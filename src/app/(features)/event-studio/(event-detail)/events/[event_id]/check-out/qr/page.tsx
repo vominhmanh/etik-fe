@@ -860,7 +860,19 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       </Stack>
       <SwipeableDrawer disableBackdropTransition={!iOS} disableDiscovery={iOS} open={isCheckinControllerOpen} onOpen={() => setIsCheckinControllerOpen(true)} onClose={handleCloseDrawer} anchor="bottom">
         <Puller />
-        <Container maxWidth="sm">
+        <Container maxWidth="sm" sx={{ position: 'relative' }}>
+          <IconButton
+            onClick={handleCloseDrawer}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              color: 'text.secondary',
+            }}
+            size="small"
+          >
+            <X size={18} />
+          </IconButton>
           <Stack spacing={2} sx={{ mt: 3, mb: 2 }}>
             <Typography variant="h6">{tt('Mã QR:', 'QR Code:')} {eCode}</Typography>
             <Divider />

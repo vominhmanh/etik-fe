@@ -434,7 +434,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/add-ons`)
         .then(res => {
           setEventAddOns(res.data);
-          setSelectedAddOnIds(res.data.map((a: any) => a.id));
+          setSelectedAddOnIds([]);
         })
         .catch(err => console.error(err));
     }
@@ -596,14 +596,35 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   return (
     <>
       <Stack spacing={3}>
-        <div>
-          <Typography variant="h4">{tt('Sử dụng Tiện ích', 'Redeem Add-ons')} {event?.name}</Typography>
-        </div>
+        <Typography variant="h4">{tt('Đổi Tiện ích / Quà tặng bằng QR vé', 'Redeem Add-ons / Gifts by Ticket QR')} {event?.name}</Typography>
+        <Typography variant="body2">Khách hàng xuất trình mã QR vé. Nhân viên quét mã QR để đổi quà tặng cho khách hàng.</Typography>
         <Grid container spacing={3}>
           <Grid item lg={5} md={5} xs={12} spacing={3}>
             <Stack spacing={3}>
               <Card>
-                <CardHeader title={tt('Chọn Tiện ích', 'Select Add-ons')} />
+                <CardHeader
+                  title={tt('Chọn Tiện ích / Quà tặng', 'Select Add-ons / Gifts')}
+                  subheader={tt('Vui lòng chọn tiện ích / quà tặng bạn muốn kiểm soát sử dụng', 'Please select the add-ons / gifts you want to control')}
+                  action={
+                    eventAddOns.length > 0 && (
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          const allSelected = selectedAddOnIds.length === eventAddOns.length;
+                          if (allSelected) {
+                            setSelectedAddOnIds([]);
+                          } else {
+                            setSelectedAddOnIds(eventAddOns.map(addon => addon.id));
+                          }
+                        }}
+                      >
+                        {selectedAddOnIds.length === eventAddOns.length
+                          ? tt('Bỏ chọn tất cả', 'Deselect All')
+                          : tt('Chọn tất cả', 'Select All')}
+                      </Button>
+                    )
+                  }
+                />
                 <Divider />
                 <List>
                   {eventAddOns.map(addon => (
@@ -621,7 +642,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   ))}
                   {eventAddOns.length === 0 && (
                     <ListItem>
-                      <ListItemText primary={tt('Không có tiện ích nào.', 'No add-ons available.')} />
+                      <ListItemText primary={tt('Không có tiện ích / quà tặng nào.', 'No add-ons / gifts available.')} />
                     </ListItem>
                   )}
                 </List>
@@ -768,7 +789,19 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       </Stack>
       <SwipeableDrawer disableBackdropTransition={!iOS} disableDiscovery={iOS} open={isCheckinControllerOpen} onOpen={() => setIsCheckinControllerOpen(true)} onClose={handleCloseDrawer} anchor="bottom">
         <Puller />
-        <Container maxWidth="sm">
+        <Container maxWidth="sm" sx={{ position: 'relative' }}>
+          <IconButton
+            onClick={handleCloseDrawer}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              color: 'text.secondary',
+            }}
+            size="small"
+          >
+            <X size={18} />
+          </IconButton>
           <Stack spacing={2} sx={{ mt: 3, mb: 2 }}>
             <Typography variant="h6">{tt('Mã QR:', 'QR Code:')} {eCode}</Typography>
             <Divider />
@@ -943,14 +976,19 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                                 <Chip
                                                   size="small"
                                                   color={isRedeemed ? 'success' : 'default'}
-                                                  label={isRedeemed ? tt('Đã sử dụng', 'Redeemed') : tt('Chưa sử dụng', 'Not redeemed')}
-                                                  sx={{ height: 16, fontSize: '0.65rem' }}
+                                                  icon={isRedeemed ? <CheckCircle size={10} weight="fill" /> : undefined}
+                                                  label={isRedeemed ? (addOnItem.redeemedAt ? dayjs(addOnItem.redeemedAt).format('HH:mm DD/MM') : tt('Đã sử dụng', 'Redeemed')) : tt('Chưa sử dụng', 'Not redeemed')}
+                                                  sx={{
+                                                    height: 16,
+                                                    fontSize: '0.65rem',
+                                                    '& .MuiChip-icon': {
+                                                      fontSize: '10px',
+                                                      marginLeft: '4px',
+                                                      marginRight: '-2px',
+                                                      color: 'inherit'
+                                                    }
+                                                  }}
                                                 />
-                                                {isRedeemed && addOnItem.redeemedAt && (
-                                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                                                    {dayjs(addOnItem.redeemedAt).format('HH:mm DD/MM')}
-                                                  </Typography>
-                                                )}
                                               </Stack>
 
                                               {isSelected && (
@@ -1128,4 +1166,3 @@ export function AddOnDetailsModal({ open, onClose, activeAddOnDetail, tt }: { op
     </Modal>
   )
 }
-

@@ -14,6 +14,7 @@ import {
     Checkbox,
     ListItemText,
     OutlinedInput,
+    Typography,
 } from "@mui/material";
 import React, { useContext, useEffect, useState } from 'react';
 import { useTranslation } from "@/contexts/locale-context";
@@ -180,7 +181,7 @@ export const AddOnModal = ({
                         />
 
                         <FormControl fullWidth>
-                            <InputLabel id="tc-multiple-checkbox-label">{tt("Áp dụng cho các vé", "Apply to Tickets")}</InputLabel>
+                            <InputLabel id="tc-multiple-checkbox-label">{tt("Áp dụng cho các loại vé", "Apply to Ticket Categories")}</InputLabel>
                             <Select
                                 labelId="tc-multiple-checkbox-label"
                                 id="tc-multiple-checkbox"
@@ -243,6 +244,10 @@ export const AddOnModal = ({
                                 ))}
                             </Select>
                         </FormControl>
+
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
+                            * {tt("tiện ích / quà tặng sẽ tự động được gán vào vé nếu vé thoả mãn 2 điều kiện trên", "add-ons / gifts will be automatically assigned to the ticket if the ticket satisfies both conditions above")}
+                        </Typography>
                     </Stack>
                 </DialogContent>
                 <DialogActions>

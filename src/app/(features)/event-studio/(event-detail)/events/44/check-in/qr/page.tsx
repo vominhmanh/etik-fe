@@ -4,7 +4,7 @@ import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { Accordion, AccordionDetails, AccordionSummary, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, OutlinedInput, Stack, styled, SwipeableDrawer, Typography } from '@mui/material';
 import { grey } from '@mui/material/colors';
-import { ArrowSquareIn, Bank, CaretDown, Lightning, Money } from '@phosphor-icons/react/dist/ssr';
+import { ArrowSquareIn, Bank, CaretDown, Lightning, Money, X } from '@phosphor-icons/react/dist/ssr';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
@@ -444,7 +444,19 @@ export default function Page(): React.JSX.Element {
       </Stack>
       <SwipeableDrawer disableBackdropTransition={!iOS} disableDiscovery={iOS} open={isCheckinControllerOpen} onOpen={() => setIsCheckinControllerOpen(true)} onClose={handleCloseDrawer} anchor="bottom">
         <Puller />
-        <Container maxWidth="sm">
+        <Container maxWidth="sm" sx={{ position: 'relative' }}>
+          <IconButton
+            onClick={handleCloseDrawer}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              color: 'text.secondary',
+            }}
+            size="small"
+          >
+            <X size={18} />
+          </IconButton>
           <Stack spacing={2} sx={{ mt: 3 }}>
             <Typography variant="h6">Mã QR: {eCode}</Typography>
             <Divider />
