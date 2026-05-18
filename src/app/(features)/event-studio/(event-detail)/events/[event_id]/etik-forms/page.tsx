@@ -90,8 +90,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const { tt } = useTranslation();
   React.useEffect(() => {
     document.title = tt(
-      'Thông tin & Hiển thị | ETIK - Vé điện tử & Quản lý sự kiện',
-      'Information & Display | ETIK - E-tickets & Event Management'
+      'ETIK Form | ETIK - Vé điện tử & Quản lý sự kiện',
+      'ETIK Form | ETIK - E-tickets & Event Management'
     );
   }, [tt]);
   const [event, setEvent] = useState<EventResponse | null>(null);

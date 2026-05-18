@@ -207,6 +207,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const handleSaveAvatar = async () => {
     if (!selectedAvatar) return;
 
+    if (selectedAvatar.size > 1024 * 1024) {
+      notificationCtx.warning(
+        tt(
+          'Dung lượng ảnh đại diện phải nhỏ hơn 1MB.',
+          'Avatar image size must be less than 1MB.'
+        )
+      );
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', selectedAvatar);
 
@@ -265,6 +275,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   // Handle saving the image
   const handleSaveBannerImage = async () => {
     if (!selectedImage) return;
+
+    if (selectedImage.size > 1024 * 1024) {
+      notificationCtx.warning(
+        tt(
+          'Dung lượng ảnh banner phải nhỏ hơn 1MB.',
+          'Banner image size must be less than 1MB.'
+        )
+      );
+      return;
+    }
 
     const formData = new FormData();
     formData.append('file', selectedImage);
