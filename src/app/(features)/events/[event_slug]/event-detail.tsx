@@ -1028,6 +1028,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
           {/* Steps */}
           <Box sx={{ display: activeStep === 0 ? 'block' : 'none' }}>
             <Step1SelectTickets
+              source="marketplace"
               shows={event?.shows}
               selectedSchedules={selectedSchedules}
               activeScheduleId={activeScheduleId}

@@ -820,6 +820,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         {/* Keep all steps mounted; show/hide via CSS so users can still open modals from previous steps */}
         <Box sx={{ display: activeStep === 0 ? 'block' : 'none' }}>
           <Step1SelectTickets
+            source="event_studio"
             shows={event?.shows}
             selectedSchedules={selectedSchedules}
             activeScheduleId={activeScheduleId}

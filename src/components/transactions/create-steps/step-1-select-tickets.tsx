@@ -60,6 +60,7 @@ export type Step1SelectTicketsProps = {
   onUpdateConcessionQuantity?: (showId: number, concessionId: number, quantity: number) => void;
   eventLimitPerTransaction?: number | null;
   eventLimitPerCustomer?: number | null;
+  source?: string;
 };
 
 export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.Element {
@@ -514,6 +515,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
                 <TicketCategories
                   key={activeSchedule.id}
                   show={activeSchedule}
+                  source={props.source}
                   qrOption={qrOption}
                   requestedCategoryModalId={requestedCategoryModalId || undefined}
                   onModalRequestHandled={onModalRequestHandled}

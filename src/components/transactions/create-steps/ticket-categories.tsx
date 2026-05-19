@@ -21,6 +21,7 @@ import { Show } from "./types";
 interface TicketCategoriesProps {
   show: Show;
   qrOption?: string;
+  source?: string;
 
   cartQuantities?: Record<number, number>;
   cartAudienceQuantities?: Record<number, Record<number, number>>;
@@ -33,8 +34,9 @@ interface TicketCategoriesProps {
   totalTicketsInOrder?: number;
 }
 
-export function TicketCategories({ show, cartQuantities = {}, cartAudienceQuantities = {}, requestedCategoryModalId, onModalRequestHandled, onCategorySelect, onAddToCart, eventLimitPerTransaction, eventLimitPerCustomer, totalTicketsInOrder = 0 }: TicketCategoriesProps): React.JSX.Element {
+export function TicketCategories({ show, source, cartQuantities = {}, cartAudienceQuantities = {}, requestedCategoryModalId, onModalRequestHandled, onCategorySelect, onAddToCart, eventLimitPerTransaction, eventLimitPerCustomer, totalTicketsInOrder = 0 }: TicketCategoriesProps): React.JSX.Element {
   const { tt } = useTranslation();
+  const isEventStudio = source === "event_studio";
   const ticketCategories = show.ticketCategories;
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [ticketCategoryDescriptionModalOpen, setTicketCategoryDescriptionModalOpen] = useState(false);
@@ -316,7 +318,9 @@ export function TicketCategories({ show, cartQuantities = {}, cartAudienceQuanti
                           : ""
                       : ticketCategory.sold >= ticketCategory.quantity
                         ? `| ${tt("Đã hết", "Sold out")}`
-                        : `| ${tt("Còn", "Available")} ${ticketCategory.quantity - ticketCategory.sold}/${ticketCategory.quantity} ${tt("vé", "tickets")}`
+                        : isEventStudio
+                          ? `| ${tt("Còn", "Available")} ${ticketCategory.quantity - ticketCategory.sold}/${ticketCategory.quantity} ${tt("vé", "tickets")}`
+                          : ""
                   }`
                 }
                 secondaryTypographyProps={{ variant: "caption" }}
