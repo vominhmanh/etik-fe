@@ -168,6 +168,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
     console.log('[DEBUG] Order Changed:', order.concessions);
   }, [order]);
   const [manualDiscountCode, setManualDiscountCode] = React.useState<string>('');
+  const [promoCodeFromUrl, setPromoCodeFromUrl] = React.useState<string | null>(null);
   const [voucherDetailModalOpen, setVoucherDetailModalOpen] = React.useState<boolean>(false);
   const [selectedVoucherForDetail, setSelectedVoucherForDetail] = React.useState<any | null>(null);
 
@@ -595,6 +596,59 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
       return null;
     }
   }, [params.event_slug, notificationCtx, tt]);
+
+  // Parse promoCode from url parameter on mount
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const promoCode = searchParams.get('promoCode');
+      if (promoCode) {
+        setPromoCodeFromUrl(promoCode);
+        notificationCtx.success(
+          tt(
+            `Đơn hàng đang được áp dụng mã khuyến mãi "${promoCode}"`,
+            `Order is applying discount code "${promoCode}"`
+          )
+        );
+      }
+    }
+  }, []);
+
+  // Auto-apply promoCode from url parameter when user goes to Step 3 (activeStep === 2)
+  React.useEffect(() => {
+    if (activeStep === 2 && promoCodeFromUrl && !appliedVoucher) {
+      const code = promoCodeFromUrl.trim();
+      
+      const autoApply = async () => {
+        // 1. Try to find in local availableVouchers first (public vouchers)
+        const voucher = availableVouchers.find((v) => v.code.toLowerCase() === code.toLowerCase());
+        if (voucher) {
+          handleApplyVoucher(voucher);
+          setPromoCodeFromUrl(null);
+          return;
+        }
+
+        // 2. Validate via API
+        const apiVoucher = await validateVoucherByApi(code);
+        if (apiVoucher) {
+          setAppliedVoucher(apiVoucher);
+          const validation = validateVoucher(apiVoucher);
+          if (validation.valid) {
+            notificationCtx.success(tt(`Đã áp dụng mã ${apiVoucher.code}`, `Applied code ${apiVoucher.code}`));
+          } else {
+            notificationCtx.info(tt(`Đã tìm thấy mã ${apiVoucher.code}, nhưng không đủ điều kiện áp dụng`, `Found code ${apiVoucher.code}, but does not meet application conditions`));
+          }
+        } else {
+          // If invalid/not found, populate the input field with the code so they can see and edit it
+          setManualDiscountCode(code);
+        }
+        
+        setPromoCodeFromUrl(null);
+      };
+
+      autoApply();
+    }
+  }, [activeStep, promoCodeFromUrl, appliedVoucher, availableVouchers, handleApplyVoucher, validateVoucherByApi, validateVoucher, notificationCtx, tt]);
 
   const openVoucherDetail = React.useCallback((voucher: any) => {
     setSelectedVoucherForDetail(voucher);
@@ -1146,7 +1200,6 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               checkoutFormFields={checkoutFormFields}
               builtinInternalNames={builtinInternalNames}
               checkoutCustomAnswers={checkoutCustomAnswers}
-
               paymentMethodLabel={paymentMethodLabel}
               extraFee={extraFee}
               subtotal={subtotal}
@@ -1163,10 +1216,6 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
             />
           </Box>
         </Stack>
-
-
-
-
       </Container>
       <Modal
         open={openSuccessModal}

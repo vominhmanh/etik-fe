@@ -22,6 +22,7 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
@@ -36,6 +37,8 @@ import { useTranslation } from '@/contexts/locale-context';
 import { LocalizedLink } from '@/components/homepage/localized-link';
 import dayjs from 'dayjs';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import LinkIcon from '@mui/icons-material/Link';
 
 interface Voucher {
   id: number;
@@ -103,6 +106,7 @@ export default function Page({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [campaign, setCampaign] = useState<VoucherCampaign | null>(null);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [eventSlug, setEventSlug] = useState<string>('');
 
   useEffect(() => {
     document.title = tt(
@@ -139,9 +143,32 @@ export default function Page({
       }
     };
 
+    const fetchEventSlug = async () => {
+      try {
+        const response: AxiosResponse<any> = await baseHttpServiceInstance.get(
+          `/event-studio/events/${params.event_id}`
+        );
+        setEventSlug(response.data?.slug || '');
+      } catch (error) {
+        console.error('Error fetching event slug:', error);
+      }
+    };
+
     fetchCampaign();
     fetchVouchers();
+    fetchEventSlug();
   }, [params.event_id, params.campaign_id, notificationCtx, tt]);
+
+  const handleCopyToClipboard = (data: string) => {
+    navigator.clipboard
+      .writeText(data)
+      .then(() => {
+        notificationCtx.success(tt('Đã sao chép vào bộ nhớ tạm', 'Copied to clipboard'));
+      })
+      .catch(() => {
+        notificationCtx.error(tt('Không thể sao chép, vui lòng thử lại', 'Failed to copy, please try again'));
+      });
+  };
 
   const handleToggleActive = async () => {
     if (!campaign) return;
@@ -725,7 +752,20 @@ export default function Page({
                     {vouchers.map((voucher, index) => (
                       <TableRow key={voucher.id}>
                         <TableCell>{index + 1}</TableCell>
-                        <TableCell>{voucher.code}</TableCell>
+                        <TableCell>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <Typography variant="body2">{voucher.code}</Typography>
+                            <Tooltip title={tt('Sao chép mã khuyến mãi', 'Copy discount code')}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleCopyToClipboard(voucher.code)}
+                                sx={{ color: 'text.secondary' }}
+                              >
+                                <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </TableCell>
                         <TableCell>
                           {campaign.codeType === 'single' ? (
                             <Typography>
@@ -739,7 +779,24 @@ export default function Page({
                             />
                           )}
                         </TableCell>
-                        <TableCell>-</TableCell>
+                        <TableCell>
+                          {eventSlug ? (
+                            <Tooltip title={tt('Sao chép link sử dụng', 'Copy usage link')}>
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  const link = `https://etik.vn/${eventSlug}?promoCode=${voucher.code}`;
+                                  handleCopyToClipboard(link);
+                                }}
+                                color="primary"
+                              >
+                                <LinkIcon sx={{ fontSize: '1.1rem' }} />
+                              </IconButton>
+                            </Tooltip>
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
