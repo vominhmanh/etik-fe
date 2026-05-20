@@ -65,9 +65,8 @@ const formatDateTime = (date: string | Date | null) => {
 };
 
 
-export default function EventDetail({ params, initialEvent }: { params: { event_slug: string }, initialEvent: EventResponse | null }): React.JSX.Element {
+export default function InvitationCheckout({ params, initialEvent, invitation }: { params: { event_slug: string, uuid: string }, initialEvent: EventResponse | null, invitation: any }): React.JSX.Element {
   const { tt, locale } = useTranslation();
-  const [activeStep, setActiveStep] = React.useState<number>(0);
   const stepLabels = React.useMemo(
     () => [
       tt('Chọn vé', 'Select tickets'),
@@ -87,25 +86,33 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
   const defaultTitle = locale === 'en' ? 'Mx.' : 'Bạn';
 
   // Refactored Order State
-  const [order, setOrder] = React.useState<Order>({
-    customer: {
-      title: defaultTitle,
-      name: '',
-      email: '',
-      phoneNumber: '',
-      nationalPhone: '',
-      address: '',
-      phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
-      dob: null,
-      idcard_number: '',
-      avatar: ''
-    },
-    tickets: [],
-    concessions: [],
-    qrOption: 'separate',
-    paymentMethod: 'napas247',
-    extraFee: 0
+  const [order, setOrder] = React.useState<Order>(() => {
+    const preSelected = invitation?.preSelectedTickets || {};
+    const preFilled = invitation?.preFilledInfo || {};
+    
+    return {
+      customer: {
+        title: preFilled.customer?.title || defaultTitle,
+        name: preFilled.customer?.name || '',
+        email: preFilled.customer?.email || '',
+        phoneNumber: preFilled.customer?.phoneNumber || '',
+        nationalPhone: preFilled.customer?.nationalPhone || '',
+        address: preFilled.customer?.address || '',
+        phoneCountryIso2: preFilled.customer?.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2,
+        dob: preFilled.customer?.dob || null,
+        idcard_number: preFilled.customer?.idcard_number || '',
+        avatar: preFilled.customer?.avatar || ''
+      },
+      tickets: preSelected.tickets || [],
+      concessions: preSelected.concessions || [],
+      qrOption: 'separate',
+      paymentMethod: 'napas247',
+      extraFee: 0
+    };
   });
+
+  const [activeStep, setActiveStep] = React.useState<number>(!invitation?.allowTicketEdit ? 1 : 0);
+
 
   console.log('[DEBUG] Page Render - Order State:', JSON.stringify(order.concessions));
 
@@ -121,7 +128,9 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
   const [checkoutFormFields, setCheckoutFormFields] = React.useState<CheckoutRuntimeField[]>(
     (initialEvent as any)?.checkoutFormFields || []
   );
-  const [checkoutCustomAnswers, setCheckoutCustomAnswers] = React.useState<Record<string, any>>({});
+  const [checkoutCustomAnswers, setCheckoutCustomAnswers] = React.useState<Record<string, any>>(
+    invitation?.preFilledInfo?.formAnswers || {}
+  );
   const [availableVouchers, setAvailableVouchers] = React.useState<any[]>(
     (initialEvent as any)?.voucherCampaigns || []
   );
@@ -597,9 +606,17 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
     }
   }, [params.event_slug, notificationCtx, tt]);
 
-  // Parse promoCode from url parameter on mount
+  // Parse promoCode from url parameter or invitation on mount
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (invitation?.voucherCode) {
+      setPromoCodeFromUrl(invitation.voucherCode);
+      notificationCtx.success(
+        tt(
+          `Đơn hàng đang được áp dụng mã khuyến mãi từ lời mời`,
+          `Order is applying discount code from invitation`
+        )
+      );
+    } else if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       const promoCode = searchParams.get('promoCode');
       if (promoCode) {
@@ -618,7 +635,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
   React.useEffect(() => {
     if (activeStep === 2 && promoCodeFromUrl && !appliedVoucher) {
       const code = promoCodeFromUrl.trim();
-
+      
       const autoApply = async () => {
         // 1. Try to find in local availableVouchers first (public vouchers)
         const voucher = availableVouchers.find((v) => v.code.toLowerCase() === code.toLowerCase());
@@ -642,7 +659,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
           // If invalid/not found, populate the input field with the code so they can see and edit it
           setManualDiscountCode(code);
         }
-
+        
         setPromoCodeFromUrl(null);
       };
 
@@ -775,7 +792,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
   };
 
   const handleBack = () => {
-    if (activeStep > 0) {
+    if (activeStep > (!invitation?.allowTicketEdit ? 1 : 0)) {
       setActiveStep(activeStep - 1);
     }
   };
@@ -880,6 +897,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
         extraFee: order.extraFee,
         formAnswers: checkoutCustomAnswers,
         concessions: order.concessions,
+        invitationUuid: invitation?.uuid,
         // voucherCode: order.voucherCode // If we store it in order
       };
 
@@ -1137,6 +1155,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               builtinInternalNames={builtinInternalNames}
               checkoutCustomAnswers={checkoutCustomAnswers}
               setCheckoutCustomAnswers={setCheckoutCustomAnswers}
+              readonly={!invitation?.allowInfoEdit}
 
               shows={event?.shows || []}
               handleCustomerAvatarFile={handleCustomerAvatarFile}

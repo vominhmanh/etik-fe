@@ -71,6 +71,7 @@ export type Step2InfoProps = {
   onNext: () => void;
 
   source?: 'marketplace' | 'event-studio';
+  readonly?: boolean;
 };
 
 export function Step2Info(props: Step2InfoProps): React.JSX.Element {
@@ -99,6 +100,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     onBack,
     onNext,
     source = 'marketplace',
+    readonly = false,
   } = props;
 
   // State to control expanded accordions
@@ -165,7 +167,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                   )}
                 />
                 <Divider />
-                <CardContent sx={{ pt: 1.5, pb: 1.5 }}>
+                <CardContent sx={{ pt: 1.5, pb: 1.5, pointerEvents: readonly ? 'none' : 'auto', opacity: readonly ? 0.8 : 1 }}>
                   <Stack spacing={2}>
                     {/* Summary of categories */}
                     {/* Summary and Ticket Holders Combined */}
@@ -541,343 +543,347 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
               />
               <Divider />
               <CardContent sx={{ pt: 1.5, pb: 1.5 }}>
-                <Grid container spacing={2}>
-                  <Grid lg={12} xs={12}>
-                    <FormControl fullWidth required size="small">
-                      <InputLabel htmlFor="customer-name">{tt("Danh xưng*   Họ và tên", "Title*   Full Name")}</InputLabel>
-                      <OutlinedInput
-                        id="customer-name"
-                        size="small"
-                        autoComplete="name"
-                        label={tt("Danh xưng*    Họ và tên", "Title*    Full Name")}
-                        name="customer_name"
-                        value={customer.name}
-                        onChange={(e) => {
-                          // Update customer
-                          setCustomer({ name: e.target.value });
+                <Box sx={{ pointerEvents: readonly ? 'none' : 'auto', opacity: readonly ? 0.8 : 1 }}>
+                  <Grid container spacing={2}>
+                    <Grid lg={12} xs={12}>
+                      <FormControl fullWidth required size="small">
+                        <InputLabel htmlFor="customer-name">{tt("Danh xưng*   Họ và tên", "Title*   Full Name")}</InputLabel>
+                        <OutlinedInput
+                          id="customer-name"
+                          size="small"
+                          autoComplete="name"
+                          label={tt("Danh xưng*    Họ và tên", "Title*    Full Name")}
+                          name="customer_name"
+                          value={customer.name}
+                          onChange={(e) => {
+                            // Update customer
+                            setCustomer({ name: e.target.value });
 
-                          // Also auto-fill first ticket holder if it's "you" and empty
-                          if (order.tickets.length > 0) {
-                            setOrder(prev => {
-                              const newTickets = [...prev.tickets];
-                              const firstHolder = newTickets[0].holder;
-                              if (firstHolder && (!firstHolder.name || firstHolder.name === prev.customer.name)) {
-                                newTickets[0] = {
-                                  ...newTickets[0],
-                                  holder: { ...firstHolder, name: e.target.value } as HolderInfo
-                                };
-                              }
-                              // Or if undefined holder, init it? Usually step 1 creates holder undefined.
-                              // Logic here is tricky if we don't want to enforce it.
-                              // Original logic: !ticketHolderEditted && ticketHolders.length > 0
+                            // Also auto-fill first ticket holder if it's "you" and empty
+                            if (order.tickets.length > 0) {
+                              setOrder(prev => {
+                                const newTickets = [...prev.tickets];
+                                const firstHolder = newTickets[0].holder;
+                                if (firstHolder && (!firstHolder.name || firstHolder.name === prev.customer.name)) {
+                                  newTickets[0] = {
+                                    ...newTickets[0],
+                                    holder: { ...firstHolder, name: e.target.value } as HolderInfo
+                                  };
+                                }
+                                // Or if undefined holder, init it? Usually step 1 creates holder undefined.
+                                // Logic here is tricky if we don't want to enforce it.
+                                // Original logic: !ticketHolderEditted && ticketHolders.length > 0
 
-                              return { ...prev, customer: { ...prev.customer, name: e.target.value }, tickets: newTickets };
-                            });
-                            return; // handled above
+                                return { ...prev, customer: { ...prev.customer, name: e.target.value }, tickets: newTickets };
+                              });
+                              return; // handled above
+                            }
+                            setCustomer({ name: e.target.value });
+                          }}
+                          startAdornment={
+                            <InputAdornment position="start">
+                              <Select
+                                variant="standard"
+                                disableUnderline
+                                value={customer.title || ''}
+                                onChange={(e) => setCustomer({ ...customer, title: e.target.value })}
+                                sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                              >
+                                <MenuItem value=""><em>...</em></MenuItem>
+                                <MenuItem value="Anh">Anh</MenuItem>
+                                <MenuItem value="Chị">Chị</MenuItem>
+                                <MenuItem value="Bạn">Bạn</MenuItem>
+                                {source !== 'marketplace' && (
+                                  <>
+                                    <MenuItem value="Em">Em</MenuItem>
+                                    <MenuItem value="Ông">Ông</MenuItem>
+                                    <MenuItem value="Bà">Bà</MenuItem>
+                                    <MenuItem value="Cô">Cô</MenuItem>
+                                    <MenuItem value="Thầy">Thầy</MenuItem>
+                                  </>
+                                )}
+                                <MenuItem value="Mr.">Mr.</MenuItem>
+                                <MenuItem value="Ms.">Ms.</MenuItem>
+                                <MenuItem value="Mx.">Mx.</MenuItem>
+                                {source !== 'marketplace' && <MenuItem value="Miss">Miss</MenuItem>}
+                              </Select>
+                            </InputAdornment>
                           }
-                          setCustomer({ name: e.target.value });
-                        }}
-                        startAdornment={
-                          <InputAdornment position="start">
-                            <Select
-                              variant="standard"
-                              disableUnderline
-                              value={customer.title || ''}
-                              onChange={(e) => setCustomer({ ...customer, title: e.target.value })}
-                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
-                            >
-                              <MenuItem value=""><em>...</em></MenuItem>
-                              <MenuItem value="Anh">Anh</MenuItem>
-                              <MenuItem value="Chị">Chị</MenuItem>
-                              <MenuItem value="Bạn">Bạn</MenuItem>
-                              {source !== 'marketplace' && (
-                                <>
-                                  <MenuItem value="Em">Em</MenuItem>
-                                  <MenuItem value="Ông">Ông</MenuItem>
-                                  <MenuItem value="Bà">Bà</MenuItem>
-                                  <MenuItem value="Cô">Cô</MenuItem>
-                                  <MenuItem value="Thầy">Thầy</MenuItem>
-                                </>
-                              )}
-                              <MenuItem value="Mr.">Mr.</MenuItem>
-                              <MenuItem value="Ms.">Ms.</MenuItem>
-                              <MenuItem value="Mx.">Mx.</MenuItem>
-                              {source !== 'marketplace' && <MenuItem value="Miss">Miss</MenuItem>}
-                            </Select>
-                          </InputAdornment>
-                        }
-                      />
-                    </FormControl>
-                  </Grid>
+                        />
+                      </FormControl>
+                    </Grid>
 
-                  <Grid lg={6} xs={12}>
-                    <FormControl fullWidth required size="small">
-                      <InputLabel>{tt("Địa chỉ Email", "Email Address")}</InputLabel>
-                      <OutlinedInput
-                        label={tt("Địa chỉ Email", "Email Address")}
-                        size="small"
-                        autoComplete="email"
-                        name="customer_email"
-                        type="email"
-                        value={customer.email}
-                        onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
-                      />
-                    </FormControl>
-                  </Grid>
+                    <Grid lg={6} xs={12}>
+                      <FormControl fullWidth required size="small">
+                        <InputLabel>{tt("Địa chỉ Email", "Email Address")}</InputLabel>
+                        <OutlinedInput
+                          label={tt("Địa chỉ Email", "Email Address")}
+                          size="small"
+                          autoComplete="email"
+                          name="customer_email"
+                          type="email"
+                          value={customer.email}
+                          onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
+                        />
+                      </FormControl>
+                    </Grid>
 
-                  <Grid lg={6} xs={12}>
-                    <FormControl fullWidth required size="small">
-                      <InputLabel>{tt("Số điện thoại", "Phone Number")}</InputLabel>
-                      <OutlinedInput
-                        label={tt("Số điện thoại", "Phone Number")}
-                        size="small"
-                        autoComplete="tel-national"
-                        name="customer_national_phone"
-                        type="tel"
-                        value={customer.nationalPhone}
-                        onChange={(e) => setCustomer({ ...customer, nationalPhone: e.target.value })}
-                        startAdornment={
-                          <InputAdornment position="start">
-                            <Select
-                              variant="standard"
-                              disableUnderline
-                              value={customer.phoneCountryIso2}
-                              onChange={(e) => setCustomer({ ...customer, phoneCountryIso2: e.target.value as string })}
-                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
-                              renderValue={(value) => {
-                                const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
-                                return country.dialCode;
+                    <Grid lg={6} xs={12}>
+                      <FormControl fullWidth required size="small">
+                        <InputLabel>{tt("Số điện thoại", "Phone Number")}</InputLabel>
+                        <OutlinedInput
+                          label={tt("Số điện thoại", "Phone Number")}
+                          size="small"
+                          autoComplete="tel-national"
+                          name="customer_national_phone"
+                          type="tel"
+                          value={customer.nationalPhone}
+                          onChange={(e) => setCustomer({ ...customer, nationalPhone: e.target.value })}
+                          startAdornment={
+                            <InputAdornment position="start">
+                              <Select
+                                variant="standard"
+                                disableUnderline
+                                value={customer.phoneCountryIso2}
+                                onChange={(e) => setCustomer({ ...customer, phoneCountryIso2: e.target.value as string })}
+                                sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                                renderValue={(value) => {
+                                  const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                  return country.dialCode;
+                                }}
+                              >
+                                {PHONE_COUNTRIES.map((country) => (
+                                  <MenuItem key={country.iso2} value={country.iso2}>
+                                    {tt(country.nameVi, country.nameEn)} ({country.dialCode})
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </InputAdornment>
+                          }
+                        />
+                      </FormControl>
+                    </Grid>
+
+                    {/* Builtin optional fields controlled by checkout form config */}
+                    {(() => {
+                      const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
+                      const visible = !!dobCfg && dobCfg.visible;
+                      const required = !!dobCfg?.required;
+                      return (
+                        visible && (
+                          <Grid lg={6} xs={12}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label={tt("Ngày tháng năm sinh", "Date of Birth")}
+                              name="customer_dob"
+                              type="date"
+                              required={required}
+                              value={customer.dob || ""}
+                              onChange={(e) => setCustomer({ ...customer, dob: e.target.value })}
+                              InputLabelProps={{ shrink: true }}
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <CalendarBlank size={18} weight="duotone" style={{ opacity: 0.7 }} />
+                                  </InputAdornment>
+                                ),
                               }}
-                            >
-                              {PHONE_COUNTRIES.map((country) => (
-                                <MenuItem key={country.iso2} value={country.iso2}>
-                                  {tt(country.nameVi, country.nameEn)} ({country.dialCode})
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </InputAdornment>
-                        }
-                      />
-                    </FormControl>
-                  </Grid>
-
-                  {/* Builtin optional fields controlled by checkout form config */}
-                  {(() => {
-                    const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
-                    const visible = !!dobCfg && dobCfg.visible;
-                    const required = !!dobCfg?.required;
-                    return (
-                      visible && (
-                        <Grid lg={6} xs={12}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label={tt("Ngày tháng năm sinh", "Date of Birth")}
-                            name="customer_dob"
-                            type="date"
-                            required={required}
-                            value={customer.dob || ""}
-                            onChange={(e) => setCustomer({ ...customer, dob: e.target.value })}
-                            InputLabelProps={{ shrink: true }}
-                            InputProps={{
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  <CalendarBlank size={18} weight="duotone" style={{ opacity: 0.7 }} />
-                                </InputAdornment>
-                              ),
-                            }}
-                            inputProps={{ max: new Date().toISOString().slice(0, 10) }}
-                          />
-                        </Grid>
-                      )
-                    );
-                  })()}
-
-                  {(() => {
-                    const idCfg = checkoutFormFields.find((f) => f.internalName === 'idcard_number');
-                    const visible = !!idCfg && idCfg.visible;
-                    const required = !!idCfg?.required;
-                    return (
-                      visible && (
-                        <Grid lg={6} xs={12}>
-                          <FormControl fullWidth required={required} size="small">
-                            <InputLabel>{tt("Số Căn cước công dân", "ID Card Number")}</InputLabel>
-                            <OutlinedInput
-                              label={tt("Số Căn cước công dân", "ID Card Number")}
-                              size="small"
-                              name="customer_idcard_number"
-                              value={customer.idcard_number}
-                              onChange={(e) => setCustomer({ ...customer, idcard_number: e.target.value })}
-                              startAdornment={
-                                <InputAdornment position="start">
-                                  <IdentificationCard size={18} weight="duotone" style={{ opacity: 0.7 }} />
-                                </InputAdornment>
-                              }
+                              inputProps={{ max: new Date().toISOString().slice(0, 10) }}
                             />
-                          </FormControl>
-                        </Grid>
-                      )
-                    );
-                  })()}
+                          </Grid>
+                        )
+                      );
+                    })()}
 
-                  {(() => {
-                    const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
-                    const visible = !!addrCfg && addrCfg.visible;
-                    const required = !!addrCfg?.required;
-                    return (
-                      visible && (
-                        <Grid lg={12} xs={12}>
-                          <FormControl fullWidth required={required} size="small">
-                            <InputLabel>{tt("Địa chỉ", "Address")}</InputLabel>
-                            <OutlinedInput
-                              label={tt("Địa chỉ", "Address")}
-                              size="small"
-                              autoComplete="street-address"
-                              name="customer_address"
-                              value={customer.address}
-                              onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                              startAdornment={
-                                <InputAdornment position="start">
-                                  <MapPin size={18} weight="duotone" style={{ opacity: 0.7 }} />
-                                </InputAdornment>
-                              }
-                            />
-                          </FormControl>
-                        </Grid>
-                      )
-                    );
-                  })()}
+                    {(() => {
+                      const idCfg = checkoutFormFields.find((f) => f.internalName === 'idcard_number');
+                      const visible = !!idCfg && idCfg.visible;
+                      const required = !!idCfg?.required;
+                      return (
+                        visible && (
+                          <Grid lg={6} xs={12}>
+                            <FormControl fullWidth required={required} size="small">
+                              <InputLabel>{tt("Số Căn cước công dân", "ID Card Number")}</InputLabel>
+                              <OutlinedInput
+                                label={tt("Số Căn cước công dân", "ID Card Number")}
+                                size="small"
+                                name="customer_idcard_number"
+                                value={customer.idcard_number}
+                                onChange={(e) => setCustomer({ ...customer, idcard_number: e.target.value })}
+                                startAdornment={
+                                  <InputAdornment position="start">
+                                    <IdentificationCard size={18} weight="duotone" style={{ opacity: 0.7 }} />
+                                  </InputAdornment>
+                                }
+                              />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
 
-                  {/* Custom checkout fields */}
-                  {customCheckoutFields.map((field) => (
-                    <Grid key={field.internalName} xs={12}>
-                      <Stack spacing={0.5}>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {field.label}
-                          {field.required && ' *'}
-                        </Typography>
-                        {field.note && (
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {field.note}
+                    {(() => {
+                      const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
+                      const visible = !!addrCfg && addrCfg.visible;
+                      const required = !!addrCfg?.required;
+                      return (
+                        visible && (
+                          <Grid lg={12} xs={12}>
+                            <FormControl fullWidth required={required} size="small">
+                              <InputLabel>{tt("Địa chỉ", "Address")}</InputLabel>
+                              <OutlinedInput
+                                label={tt("Địa chỉ", "Address")}
+                                size="small"
+                                autoComplete="street-address"
+                                name="customer_address"
+                                value={customer.address}
+                                onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
+                                startAdornment={
+                                  <InputAdornment position="start">
+                                    <MapPin size={18} weight="duotone" style={{ opacity: 0.7 }} />
+                                  </InputAdornment>
+                                }
+                              />
+                            </FormControl>
+                          </Grid>
+                        )
+                      );
+                    })()}
+
+                    {/* Custom checkout fields */}
+                    {customCheckoutFields.map((field) => (
+                      <Grid key={field.internalName} xs={12}>
+                        <Stack spacing={0.5}>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {field.label}
+                            {field.required && ' *'}
                           </Typography>
-                        )}
+                          {field.note && (
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {field.note}
+                            </Typography>
+                          )}
 
-                        {['text', 'number'].includes(field.fieldType) && (
-                          <TextField
-                            fullWidth
-                            size="small"
-                            type={field.fieldType === 'number' ? 'number' : 'text'}
-                            value={checkoutCustomAnswers[field.internalName] ?? ''}
-                            onChange={(e) =>
-                              setCheckoutCustomAnswers((prev) => ({
-                                ...prev,
-                                [field.internalName]: e.target.value,
-                              }))
-                            }
-                          />
-                        )}
+                          {['text', 'number'].includes(field.fieldType) && (
+                            <TextField
+                              fullWidth
+                              size="small"
+                              type={field.fieldType === 'number' ? 'number' : 'text'}
+                              value={checkoutCustomAnswers[field.internalName] ?? ''}
+                              onChange={(e) =>
+                                setCheckoutCustomAnswers((prev) => ({
+                                  ...prev,
+                                  [field.internalName]: e.target.value,
+                                }))
+                              }
+                            />
+                          )}
 
-                        {['date', 'time', 'datetime'].includes(field.fieldType) && (
-                          <TextField
-                            fullWidth
-                            size="small"
-                            type={
-                              field.fieldType === 'date'
-                                ? 'date'
-                                : field.fieldType === 'time'
-                                  ? 'time'
-                                  : 'datetime-local'
-                            }
-                            InputLabelProps={{ shrink: true }}
-                            value={checkoutCustomAnswers[field.internalName] ?? ''}
-                            onChange={(e) =>
-                              setCheckoutCustomAnswers((prev) => ({
-                                ...prev,
-                                [field.internalName]: e.target.value,
-                              }))
-                            }
-                          />
-                        )}
+                          {['date', 'time', 'datetime'].includes(field.fieldType) && (
+                            <TextField
+                              fullWidth
+                              size="small"
+                              type={
+                                field.fieldType === 'date'
+                                  ? 'date'
+                                  : field.fieldType === 'time'
+                                    ? 'time'
+                                    : 'datetime-local'
+                              }
+                              InputLabelProps={{ shrink: true }}
+                              value={checkoutCustomAnswers[field.internalName] ?? ''}
+                              onChange={(e) =>
+                                setCheckoutCustomAnswers((prev) => ({
+                                  ...prev,
+                                  [field.internalName]: e.target.value,
+                                }))
+                              }
+                            />
+                          )}
 
-                        {field.fieldType === 'radio' && field.options && (
-                          <FormControl component="fieldset" variant="standard">
-                            <Stack spacing={0.5}>
-                              {field.options.map((opt) => (
-                                <FormControlLabel
-                                  key={opt.value}
-                                  value={opt.value}
-                                  control={
-                                    <Radio
-                                      size="small"
-                                      sx={{ p: 0.5 }}
-                                      checked={checkoutCustomAnswers[field.internalName] === opt.value}
-                                      onChange={() =>
-                                        setCheckoutCustomAnswers((prev) => ({
-                                          ...prev,
-                                          [field.internalName]: opt.value,
-                                        }))
-                                      }
-                                    />
-                                  }
-                                  label={opt.label}
-                                  componentsProps={{ typography: { variant: 'body2', fontSize: '0.875rem' } }}
-                                />
-                              ))}
-                            </Stack>
-                          </FormControl>
-                        )}
-
-                        {field.fieldType === 'checkbox' && field.options && (
-                          <FormGroup>
-                            <Stack spacing={0.5}>
-                              {field.options.map((opt) => {
-                                const current: string[] = checkoutCustomAnswers[field.internalName] ?? [];
-                                const checked = current.includes(opt.value);
-                                return (
+                          {field.fieldType === 'radio' && field.options && (
+                            <FormControl component="fieldset" variant="standard">
+                              <Stack spacing={0.5}>
+                                {field.options.map((opt) => (
                                   <FormControlLabel
                                     key={opt.value}
+                                    value={opt.value}
                                     control={
-                                      <Checkbox
+                                      <Radio
                                         size="small"
                                         sx={{ p: 0.5 }}
-                                        checked={checked}
-                                        onChange={(e) => {
-                                          setCheckoutCustomAnswers((prev) => {
-                                            const prevArr: string[] = prev[field.internalName] ?? [];
-                                            const nextArr = e.target.checked
-                                              ? Array.from(new Set([...prevArr, opt.value]))
-                                              : prevArr.filter((v) => v !== opt.value);
-                                            return { ...prev, [field.internalName]: nextArr };
-                                          });
-                                        }}
+                                        checked={checkoutCustomAnswers[field.internalName] === opt.value}
+                                        onChange={() =>
+                                          setCheckoutCustomAnswers((prev) => ({
+                                            ...prev,
+                                            [field.internalName]: opt.value,
+                                          }))
+                                        }
                                       />
                                     }
                                     label={opt.label}
                                     componentsProps={{ typography: { variant: 'body2', fontSize: '0.875rem' } }}
                                   />
-                                );
-                              })}
-                            </Stack>
-                          </FormGroup>
-                        )}
-                      </Stack>
-                    </Grid>
-                  ))}
-                </Grid>
+                                ))}
+                              </Stack>
+                            </FormControl>
+                          )}
+
+                          {field.fieldType === 'checkbox' && field.options && (
+                            <FormGroup>
+                              <Stack spacing={0.5}>
+                                {field.options.map((opt) => {
+                                  const current: string[] = checkoutCustomAnswers[field.internalName] ?? [];
+                                  const checked = current.includes(opt.value);
+                                  return (
+                                    <FormControlLabel
+                                      key={opt.value}
+                                      control={
+                                        <Checkbox
+                                          size="small"
+                                          sx={{ p: 0.5 }}
+                                          checked={checked}
+                                          onChange={(e) => {
+                                            setCheckoutCustomAnswers((prev) => {
+                                              const prevArr: string[] = prev[field.internalName] ?? [];
+                                              const nextArr = e.target.checked
+                                                ? Array.from(new Set([...prevArr, opt.value]))
+                                                : prevArr.filter((v) => v !== opt.value);
+                                              return { ...prev, [field.internalName]: nextArr };
+                                            });
+                                          }}
+                                        />
+                                      }
+                                      label={opt.label}
+                                      componentsProps={{ typography: { variant: 'body2', fontSize: '0.875rem' } }}
+                                    />
+                                  );
+                                })}
+                              </Stack>
+                            </FormGroup>
+                          )}
+                        </Stack>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
               </CardContent>
             </Card>
           </Stack>
         </Grid>
 
       </Grid>
-      <Stack direction="row" justifyContent="space-between">
-        <Button variant="outlined" onClick={onBack}>
-          {tt('Quay lại', 'Back')}
-        </Button>
-        <Button variant="contained" onClick={onNext}>
-          {tt('Tiếp tục', 'Continue')}
-        </Button>
-      </Stack>
+      <Box>
+        <Stack direction="row" justifyContent="space-between">
+          <Button variant="outlined" onClick={onBack}>
+            {tt('Quay lại', 'Back')}
+          </Button>
+          <Button variant="contained" onClick={onNext}>
+            {tt('Tiếp tục', 'Continue')}
+          </Button>
+        </Stack>
+      </Box>
     </Stack>
   );
 }

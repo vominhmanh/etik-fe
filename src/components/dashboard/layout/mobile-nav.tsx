@@ -26,6 +26,7 @@ import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { ScanSmiley as ScanSmileyIcon } from '@phosphor-icons/react/dist/ssr/ScanSmiley';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
+import { PaperPlaneTilt as PaperPlaneTiltIcon } from '@phosphor-icons/react/dist/ssr/PaperPlaneTilt';
 
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
@@ -283,6 +284,14 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               title={tt("Tạo đơn hàng theo lô", "Create Bulk Orders (Admin)")}
               href={`/event-studio/events/${dynamicId}/transactions/create-bulk`}
               icon={StackPlus}
+              onClose={onClose}
+            />
+            <NavItemCollapseChildItem
+              pathname={normalizedPathname}
+              key="transactions-invite"
+              title={tt("Tạo lời mời mua vé", "Create Invitation Letters")}
+              href={`/event-studio/events/${dynamicId}/transactions/invite`}
+              icon={PaperPlaneTiltIcon}
               onClose={onClose}
             />
             <NavItemCollapseChildItem

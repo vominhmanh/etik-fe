@@ -53,27 +53,27 @@ export function TicketCategories({ show, source, cartQuantities = {}, cartAudien
     if (!target) return;
     setSelectedTicketCategory(target);
     setTicketCategoryDescriptionModalOpen(true);
-
+    
     // Determine active audiences
     const activeAudiences = target.categoryAudiences?.filter((ca: any) => ca.audience.isActive) || [];
     const isMultiAudience = activeAudiences.length > 1;
 
     const maxAllowed = getMaxAllowedForCategory(target);
-
+    
     if (isMultiAudience) {
       const fromCartAudiences = cartAudienceQuantities[target.id] || {};
       const initialAudienceQtys = { ...fromCartAudiences };
-
+      
       // If none selected, default to 1 for the default/first audience? Or 0? Let's leave as 0 or empty for now
       // Actually, if it's the first open, initialize with 1 for default audience if no cart quantity
       if (Object.keys(initialAudienceQtys).length === 0) {
         const defaultAudience = activeAudiences.find((ca: any) => ca.isDefault) || activeAudiences[0];
         if (defaultAudience && maxAllowed >= 1) {
-          initialAudienceQtys[defaultAudience.audienceId] = 1;
+           initialAudienceQtys[defaultAudience.audienceId] = 1;
         }
       }
       setAudienceQuantities(initialAudienceQtys);
-
+      
       // update ticketQuantities total
       const total = Object.values(initialAudienceQtys).reduce((a, b) => a + b, 0);
       setTicketQuantities((prev) => ({ ...prev, [target.id]: total }));
@@ -81,7 +81,7 @@ export function TicketCategories({ show, source, cartQuantities = {}, cartAudien
       const initialQty = Math.max(1, Math.min(maxAllowed, cartQuantities[target.id] ?? ticketQuantities[target.id] ?? 1));
       setTicketQuantities((prev) => ({ ...prev, [target.id]: initialQty }));
     }
-
+    
     onModalRequestHandled && onModalRequestHandled();
   }, [requestedCategoryModalId]);
 
@@ -158,21 +158,21 @@ export function TicketCategories({ show, source, cartQuantities = {}, cartAudien
     setSelectedTicketCategory(ticketCategory);
     setTicketCategoryDescriptionModalOpen(true);
     setShowMore(false);
-
+    
     const activeAudiences = ticketCategory.categoryAudiences?.filter((ca: any) => ca.audience.isActive) || [];
     const isMultiAudience = activeAudiences.length > 1;
 
     if (isMultiAudience) {
       const fromCartAudiences = cartAudienceQuantities[ticketCategory.id] || {};
       const maxAllowed = getMaxAllowedForCategory(ticketCategory);
-
+      
       // Keep previous state if existing, else use cart, else default
       let initialAudienceQtys = { ...fromCartAudiences };
       if (Object.keys(initialAudienceQtys).length === 0) {
         const currentQty = ticketQuantities[ticketCategory.id] || 0;
         if (currentQty === 0 && maxAllowed >= 1) {
-          const defaultAudience = activeAudiences.find((ca: any) => ca.isDefault) || activeAudiences[0];
-          if (defaultAudience) initialAudienceQtys[defaultAudience.audienceId] = 1;
+           const defaultAudience = activeAudiences.find((ca: any) => ca.isDefault) || activeAudiences[0];
+           if (defaultAudience) initialAudienceQtys[defaultAudience.audienceId] = 1;
         }
       }
       setAudienceQuantities(initialAudienceQtys);
@@ -202,18 +202,18 @@ export function TicketCategories({ show, source, cartQuantities = {}, cartAudien
     if (!selectedTicketCategory) return;
     const raw = parseInt(event.target.value as unknown as string, 10);
     const value = Number.isNaN(raw) ? 0 : raw;
-
+    
     setAudienceQuantities(prev => {
       const newQtys = { ...prev, [audienceId]: Math.max(0, value) };
       const totalRequested = Object.values(newQtys).reduce((a, b) => a + b, 0);
-
+      
       const maxAllowed = getMaxAllowedForCategory(selectedTicketCategory);
       // We need to clamp based on total max allowed
       if (totalRequested > maxAllowed) {
-        notificationCtx.error(`Tổng số vé không được vượt quá giới hạn (${maxAllowed} vé)`);
-        return prev; // Reject change if it exceeds total max
+         notificationCtx.error(`Tổng số vé không được vượt quá giới hạn (${maxAllowed} vé)`);
+         return prev; // Reject change if it exceeds total max
       }
-
+      
       setTicketQuantities(tPrev => ({ ...tPrev, [selectedTicketCategory.id]: totalRequested }));
       return newQtys;
     });
@@ -222,7 +222,7 @@ export function TicketCategories({ show, source, cartQuantities = {}, cartAudien
   const handleAddToCart = () => {
     if (!selectedTicketCategory) return;
     const id = selectedTicketCategory.id as number;
-
+    
     const activeAudiences = selectedTicketCategory.categoryAudiences?.filter((ca: any) => ca.audience.isActive) || [];
     const isMultiAudience = activeAudiences.length > 1;
 
@@ -230,8 +230,8 @@ export function TicketCategories({ show, source, cartQuantities = {}, cartAudien
     let totalQty = typeof payloadQty === 'number' ? payloadQty : 0;
 
     if (isMultiAudience) {
-      payloadQty = { ...audienceQuantities };
-      totalQty = Object.values(audienceQuantities).reduce((a, b) => a + b, 0);
+       payloadQty = { ...audienceQuantities };
+       totalQty = Object.values(audienceQuantities).reduce((a, b) => a + b, 0);
     }
 
     if (totalQty <= 0) {
@@ -470,10 +470,10 @@ export function TicketCategories({ show, source, cartQuantities = {}, cartAudien
                         </>
                       );
                     } else {
-                      const singlePrice = activeAudiences.length === 1 ? activeAudiences[0].price : (selectedTicketCategory?.price || 0);
-                      return (
-                        <>
-                          <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                       const singlePrice = activeAudiences.length === 1 ? activeAudiences[0].price : (selectedTicketCategory?.price || 0);
+                       return (
+                         <>
+                           <Grid sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                               <Typography variant="body1">{tt("Đơn giá", "Unit Price")}</Typography>
                             </Stack>
@@ -504,8 +504,8 @@ export function TicketCategories({ show, source, cartQuantities = {}, cartAudien
                               {formatPrice(singlePrice * (ticketQuantities[selectedTicketCategory?.id as number] ?? 0))}
                             </Typography>
                           </Grid>
-                        </>
-                      );
+                         </>
+                       );
                     }
                   })()}
                 </Stack>

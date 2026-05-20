@@ -61,6 +61,8 @@ export type Step1SelectTicketsProps = {
   eventLimitPerTransaction?: number | null;
   eventLimitPerCustomer?: number | null;
   source?: string;
+  invitationSettings: any;
+  setInvitationSettings: React.Dispatch<React.SetStateAction<any>>;
 };
 
 export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.Element {
@@ -83,6 +85,8 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
     tt,
     onNext,
     existingSeats,
+    invitationSettings,
+    setInvitationSettings,
   } = props;
 
   const notificationCtx = React.useContext(NotificationContext);
@@ -386,11 +390,11 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
 
         if (totalQuantity > currentQty) {
           const toAdd = totalQuantity - currentQty;
-
+          
           // Use default audience if available, else first active one
           const activeAudiences = catConfig.categoryAudiences?.filter(ca => ca.audience.isActive) || [];
           const defaultAudience = activeAudiences.find(ca => ca.isDefault) || activeAudiences[0];
-
+          
           const newTickets: TicketInfo[] = Array.from({ length: toAdd }).map(() => ({
             showId: activeSchedule.id,
             ticketCategoryId: categoryId,
@@ -406,33 +410,33 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
       } else {
         const byAudience: Record<number, TicketInfo[]> = {};
         categoryTickets.forEach(t => {
-          const audId = t.audienceId ?? 0;
-          if (!byAudience[audId]) byAudience[audId] = [];
-          byAudience[audId].push(t);
+            const audId = t.audienceId ?? 0;
+            if (!byAudience[audId]) byAudience[audId] = [];
+            byAudience[audId].push(t);
         });
-
+        
         Object.entries(quantities).forEach(([audIdStr, qty]) => {
-          const audId = Number(audIdStr);
-          const existing = byAudience[audId] || [];
-          const currentQty = existing.length;
-
-          if (qty > currentQty) {
-            const toAdd = qty - currentQty;
-            const audConfig = catConfig.categoryAudiences?.find(ca => ca.audienceId === audId);
-            const newTickets: TicketInfo[] = Array.from({ length: toAdd }).map(() => ({
-              showId: activeSchedule.id,
-              ticketCategoryId: categoryId,
-              price: audConfig ? audConfig.price : catConfig.price,
-              audienceId: audId,
-              audienceName: audConfig?.audience.name,
-              holder: undefined
-            }));
-            newCategoryTickets.push(...existing, ...newTickets);
-          } else if (qty < currentQty) {
-            newCategoryTickets.push(...existing.slice(0, qty));
-          } else {
-            newCategoryTickets.push(...existing);
-          }
+            const audId = Number(audIdStr);
+            const existing = byAudience[audId] || [];
+            const currentQty = existing.length;
+            
+            if (qty > currentQty) {
+                const toAdd = qty - currentQty;
+                const audConfig = catConfig.categoryAudiences?.find(ca => ca.audienceId === audId);
+                const newTickets: TicketInfo[] = Array.from({ length: toAdd }).map(() => ({
+                    showId: activeSchedule.id,
+                    ticketCategoryId: categoryId,
+                    price: audConfig ? audConfig.price : catConfig.price,
+                    audienceId: audId,
+                    audienceName: audConfig?.audience.name,
+                    holder: undefined
+                }));
+                newCategoryTickets.push(...existing, ...newTickets);
+            } else if (qty < currentQty) {
+                newCategoryTickets.push(...existing.slice(0, qty));
+            } else {
+                newCategoryTickets.push(...existing);
+            }
         });
       }
 
@@ -445,7 +449,49 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
 
   return (
     <Stack spacing={3}>
-      <Grid container spacing={3}>
+      <Stack direction="row" spacing={2} sx={{ p: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 1, bgcolor: 'primary.50' }}>
+        <Stack spacing={1.5} sx={{ flex: 1 }}>
+          <Typography variant="subtitle2">Cấu hình lời mời</Typography>
+          
+          <Stack spacing={1}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input 
+                type="radio" 
+                name="ticketSelectionType"
+                checked={invitationSettings.letCustomerSelect}
+                onChange={() => setInvitationSettings({...invitationSettings, letCustomerSelect: true})}
+              />
+              <Typography variant="body2">Cho phép khách tự chọn vé (Khách sẽ tự do chọn mua trong số các vé công khai)</Typography>
+            </label>
+            
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input 
+                type="radio" 
+                name="ticketSelectionType"
+                checked={!invitationSettings.letCustomerSelect}
+                onChange={() => setInvitationSettings({...invitationSettings, letCustomerSelect: false})}
+              />
+              <Typography variant="body2">Chọn sẵn vé cho khách</Typography>
+            </label>
+          </Stack>
+
+          {!invitationSettings.letCustomerSelect && (
+            <Box sx={{ pl: 3.5 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  checked={invitationSettings.allowTicketEdit}
+                  onChange={(e) => setInvitationSettings({...invitationSettings, allowTicketEdit: e.target.checked})}
+                />
+                <Typography variant="body2">Cho phép khách chỉnh sửa các vé đã được chọn sẵn (thêm, bớt số lượng vé)</Typography>
+              </label>
+            </Box>
+          )}
+        </Stack>
+      </Stack>
+
+      {!invitationSettings.letCustomerSelect && (
+        <Grid container spacing={3}>
         <Grid lg={3} md={4} xs={12}>
           <Stack spacing={3}>
             <Schedules
@@ -641,7 +687,8 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
             </Box>
           )}
         </Grid>
-      </Grid>
+        </Grid>
+      )}
 
       <Stack direction="row" justifyContent="flex-end">
         <Button variant="contained" onClick={onNext}>

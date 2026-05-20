@@ -55,6 +55,7 @@ import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
+import { PaperPlaneTilt as PaperPlaneTiltIcon } from '@phosphor-icons/react/dist/ssr/PaperPlaneTilt';
 
 import { getNavItems } from './config';
 import { Tag } from '@phosphor-icons/react/dist/ssr/Tag';
@@ -308,6 +309,13 @@ export function SideNav(): React.JSX.Element {
                 title={tt("Tạo đơn hàng theo lô", "Create Bulk Orders")}
                 href={`/event-studio/events/${dynamicId}/transactions/create-bulk`}
                 icon={StackPlus}
+              />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="transactions-invite"
+                title={tt("Tạo lời mời mua vé", "Create Invitation Letters")}
+                href={`/event-studio/events/${dynamicId}/transactions/invite`}
+                icon={PaperPlaneTiltIcon}
               />
               <NavItemCollapseChildItem
                 pathname={pathname}
