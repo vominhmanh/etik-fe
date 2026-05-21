@@ -3,6 +3,7 @@
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import {
   Box,
+  Button,
   IconButton,
   Step,
   StepButton,
@@ -13,7 +14,7 @@ import Typography from '@mui/material/Typography';
 import { AxiosResponse } from 'axios';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
-import { CaretLeft } from '@phosphor-icons/react/dist/ssr';
+import { CaretLeft, PaperPlaneTilt } from '@phosphor-icons/react/dist/ssr';
 import { LocalizedLink } from '@/components/homepage/localized-link';
 
 
@@ -656,7 +657,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return true;
   };
 
-   const validateStep3 = () => {
+  const validateStep3 = () => {
     // Skip payment method validation if finalTotal is 0
     if (finalTotal === 0) return true;
 
@@ -856,6 +857,19 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             eventLimitPerTransaction={event?.limitPerTransaction}
             eventLimitPerCustomer={event?.limitPerCustomer}
           />
+          <Box>
+            <Button
+              component={LocalizedLink}
+              href={`/event-studio/events/${params.event_id}/transaction-invitations/create`}
+              variant="outlined"
+              startIcon={<PaperPlaneTilt />}
+            >
+              {tt("Tạo Đơn hàng chỉ định (Gửi lời mời mua vé)", "Create Designated Order (Send Invitation to Buy Tickets)")}
+            </Button>
+            <Typography variant='body2' sx={{ mt: 1, ml: 1 }}>
+              {tt("* Nhân viên thiết lập sẵn giỏ hàng rồi gửi link cho khách. Khách hàng truy cập link để chủ động hoàn tất đơn hàng. Tính năng này phù hợp với các hạng vé nội bộ (VIP, khách mời) khi khách hàng không thể tự đăng ký bằng trang mua vé công khai.", "* The organizer sets up the shopping cart in advance and sends the link to the customer. The customer accesses the link to proactively complete the order. This feature is suitable for internal ticket types (VIP, invitees) when customers cannot register by themselves through the public ticket purchase page.")}
+            </Typography>
+          </Box>
         </Box>
 
         <Box sx={{ display: activeStep === 1 ? 'block' : 'none' }}>
@@ -950,7 +964,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             confirmDisabled={isLoading}
           />
         </Box>
-
 
       </Stack>
     </>
