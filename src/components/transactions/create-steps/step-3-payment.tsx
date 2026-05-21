@@ -54,6 +54,7 @@ export type Step3PaymentProps = {
 
   showExtraFeeInput?: boolean;
   allowedPaymentMethods?: string[];
+  invitation?: any;
 };
 
 export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
@@ -83,7 +84,24 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
     onNext,
     showExtraFeeInput = true, // Default to true
     allowedPaymentMethods,
+    invitation,
   } = props;
+
+  // Auto-apply invitation voucher code when entering this step
+  React.useEffect(() => {
+    if (invitation?.voucherCode && !appliedVoucher) {
+      const code = invitation.voucherCode.trim();
+      const found = availableVouchers.find((v) => v.code.toLowerCase() === code.toLowerCase());
+      if (found) {
+        handleApplyVoucher(found);
+      } else {
+        validateVoucherByApi(code).then((v) => {
+          if (v) handleApplyVoucher(v);
+        });
+      }
+    }
+  }, []);
+
 
   const allPaymentMethods = [
     { value: 'cash', label: tt("Tiền mặt", "Cash"), icon: <Money size={20} weight="duotone" /> },

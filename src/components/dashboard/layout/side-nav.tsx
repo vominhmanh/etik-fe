@@ -314,7 +314,7 @@ export function SideNav(): React.JSX.Element {
                 pathname={pathname}
                 key="transactions-invite"
                 title={tt("Tạo lời mời mua vé", "Create Invitation Letters")}
-                href={`/event-studio/events/${dynamicId}/transactions/invite`}
+                href={`/event-studio/events/${dynamicId}/transaction-invitations/create`}
                 icon={PaperPlaneTiltIcon}
               />
               <NavItemCollapseChildItem

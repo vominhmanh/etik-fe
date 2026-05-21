@@ -1,10 +1,11 @@
 "use client";
 
-import { Box, Stack, Typography } from '@mui/material';
+import { Box, Stack, Typography, Card, CardHeader, CardContent, Divider } from '@mui/material';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Unstable_Grid2';
 import { ShoppingCart as ShoppingCartIcon, Minus, Plus, Trash } from '@phosphor-icons/react/dist/ssr';
 import * as React from 'react';
+import dayjs from 'dayjs';
 
 
 import NotificationContext from '@/contexts/notification-context';
@@ -61,6 +62,14 @@ export type Step1SelectTicketsProps = {
   eventLimitPerTransaction?: number | null;
   eventLimitPerCustomer?: number | null;
   source?: string;
+  invitation?: any;
+  /** Called when guest clicks "Change Tickets" – clears all auto-filled tickets so they pick manually */
+  onClearAndReselect?: () => void;
+};
+
+const formatDateTime = (date: string | Date | null) => {
+  if (!date) return '';
+  return dayjs(date).format('HH:mm DD/MM/YYYY');
 };
 
 export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.Element {
@@ -83,8 +92,18 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
     tt,
     onNext,
     existingSeats,
+    invitation,
+    onClearAndReselect,
   } = props;
 
+  // isEditingTickets: only true if invitation has pre-selected tickets but user wants to re-pick.
+  // When true, we show the normal ticket selection UI.
+  const [isEditingTickets, setIsEditingTickets] = React.useState<boolean>(false);
+
+  // Determine if we should show the invitation summary card:
+  // invitation exists AND has pre-selected tickets AND guest hasn't chosen to re-pick
+  const hasPreSelectedTickets = !!(invitation && (invitation.preSelectedTickets?.tickets?.length > 0));
+  const showInvitationCard = hasPreSelectedTickets && !isEditingTickets;
   const notificationCtx = React.useContext(NotificationContext);
 
   const seatmapVisible =
@@ -442,6 +461,133 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
       };
     });
   };
+
+  if (showInvitationCard) {
+    return (
+      <Card sx={{ borderRadius: '16px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)' }}>
+        <CardHeader
+          title={
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a3322' }}>
+              {tt('Vé đã được chọn sẵn cho bạn', 'Tickets Pre-selected for You')}
+            </Typography>
+          }
+          subheader={
+            invitation.recipientName ? (
+              <Typography variant="body2" color="text.secondary">
+                {tt('Kính gửi:', 'Dear:')} <strong>{invitation.recipientTitle || ''} {invitation.recipientName}</strong>
+              </Typography>
+            ) : null
+          }
+          sx={{ backgroundColor: 'rgba(209, 249, 219, 0.3)', pb: 2 }}
+        />
+        <Divider />
+        <CardContent sx={{ p: 3 }}>
+          {invitation.message && (
+            <Box sx={{ mb: 3, p: 2, bgcolor: '#fffde6', borderRadius: '12px', borderLeft: '4px solid #ffcc00' }}>
+              <Typography dangerouslySetInnerHTML={{ __html: invitation.message }} variant="body2" sx={{ fontStyle: 'italic', color: '#555' }} />
+            </Box>
+          )}
+          <Stack spacing={2}>
+            {order.tickets.map((ticket, index) => {
+              const show = shows?.find(s => s.id === ticket.showId);
+              const category = show?.ticketCategories.find(c => c.id === ticket.ticketCategoryId);
+              return (
+                <Box
+                  key={index}
+                  sx={{
+                    p: 2,
+                    borderRadius: '12px',
+                    border: '1px solid #e0e0e0',
+                    bgcolor: '#fcfcfc',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1
+                  }}
+                >
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#2e7d32' }}>
+                      {category?.name || tt('Vé', 'Ticket')}
+                    </Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      {props.formatPrice(ticket.price || 0)}
+                    </Typography>
+                  </Stack>
+                  {show && (
+                    <Typography variant="body2" color="text.secondary">
+                      {tt('Suất diễn:', 'Showtime:')} {formatDateTime(show.startDateTime)}
+                    </Typography>
+                  )}
+                  <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 0.5 }}>
+                    {ticket.seatLabel && (
+                      <Box sx={{ px: 1.5, py: 0.5, bgcolor: '#e8f5e9', color: '#2e7d32', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
+                        {tt('Ghế:', 'Seat:')} {ticket.seatLabel}
+                      </Box>
+                    )}
+                    {ticket.audienceName && (
+                      <Box sx={{ px: 1.5, py: 0.5, bgcolor: '#efebe9', color: '#5d4037', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
+                        {tt('Đối tượng:', 'Audience:')} {ticket.audienceName}
+                      </Box>
+                    )}
+                  </Stack>
+                </Box>
+              );
+            })}
+
+            {/* Concessions */}
+            {order.concessions && order.concessions.length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: '#333' }}>
+                  {tt('Dịch vụ đi kèm:', 'Add-ons:')}
+                </Typography>
+                <Stack spacing={1}>
+                  {order.concessions.map((con, index) => {
+                    let concessionName = tt('Dịch vụ', 'Service');
+                    for (const s of shows || []) {
+                      const sc = s.showConcessions?.find(x => x.concessionId === con.concessionId);
+                      if (sc) { concessionName = sc.concession.name; break; }
+                    }
+                    return (
+                      <Stack key={index} direction="row" justifyContent="space-between">
+                        <Typography variant="body2">{concessionName} x{con.quantity}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{props.formatPrice(con.price * con.quantity)}</Typography>
+                      </Stack>
+                    );
+                  })}
+                </Stack>
+              </Box>
+            )}
+          </Stack>
+
+          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {invitation.allowTicketEdit && (
+              <Button
+                variant="outlined"
+                color="warning"
+                onClick={() => {
+                  // Clear all tickets so guest picks manually
+                  setOrder(prev => ({ ...prev, tickets: [], concessions: [] }));
+                  setIsEditingTickets(true);
+                  onClearAndReselect?.();
+                }}
+                sx={{ borderRadius: '8px', fontWeight: 600 }}
+              >
+                {tt('Thay đổi vé', 'Change Tickets')}
+              </Button>
+            )}
+            <Box sx={{ flexGrow: 1 }} />
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={onNext}
+              sx={{ px: 4, py: 1, borderRadius: '8px', fontWeight: 600 }}
+            >
+              {tt('Tiếp tục', 'Continue')}
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Stack spacing={3}>

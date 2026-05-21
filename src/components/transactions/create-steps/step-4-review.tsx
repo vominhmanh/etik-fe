@@ -14,7 +14,7 @@ import { Armchair, User } from '@phosphor-icons/react/dist/ssr';
 import ReCAPTCHA from "react-google-recaptcha";
 
 import type { CheckoutRuntimeField, Show, TicketHolderInfo, Order, TicketInfo, HolderInfo } from './types';
-import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from '@/config/phone-countries';
+import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone } from '@/config/phone-countries';
 
 export type Step4ReviewProps = {
   tt: (vi: string, en: string) => string;
@@ -71,11 +71,17 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
   }, [customer.phoneCountryIso2]);
 
   const formattedCustomerPhone = React.useMemo(() => {
-    if (!customer.nationalPhone) return '';
-    const digits = customer.nationalPhone.replace(/\D/g, '');
+    const rawPhone = customer.nationalPhone || customer.phoneNumber || '';
+    if (!rawPhone) return '';
+    const parsed = parseE164Phone(rawPhone);
+    if (parsed) {
+      const country = PHONE_COUNTRIES.find((c) => c.iso2 === parsed.countryCode) || DEFAULT_PHONE_COUNTRY;
+      return `${country.dialCode} ${parsed.nationalNumber}`;
+    }
+    const digits = rawPhone.replace(/\D/g, '');
     const nsn = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
     return `${customerPhoneCountry.dialCode} ${nsn}`;
-  }, [customer.nationalPhone, customerPhoneCountry]);
+  }, [customer.nationalPhone, customer.phoneNumber, customerPhoneCountry]);
 
   // Group tickets for display
   const ticketGroups = React.useMemo(() => {
@@ -235,9 +241,15 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                                     </Typography>
                                     <Typography variant="body2">
                                       {(() => {
-                                        if (!holderInfo?.nationalPhone) return '-';
+                                        const rawPhone = holderInfo?.nationalPhone || holderInfo?.phone || '';
+                                        if (!rawPhone) return '-';
+                                        const parsed = parseE164Phone(rawPhone);
+                                        if (parsed) {
+                                          const country = PHONE_COUNTRIES.find((c) => c.iso2 === parsed.countryCode) || DEFAULT_PHONE_COUNTRY;
+                                          return `${country.dialCode} ${parsed.nationalNumber}`;
+                                        }
                                         const holderPhoneCountry = PHONE_COUNTRIES.find((c) => c.iso2 === holderInfo?.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
-                                        const digits = holderInfo.nationalPhone.replace(/\D/g, '');
+                                        const digits = rawPhone.replace(/\D/g, '');
                                         const nsn = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
                                         return `${holderPhoneCountry.dialCode} ${nsn}`;
                                       })()}

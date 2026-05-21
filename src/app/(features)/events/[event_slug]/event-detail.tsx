@@ -52,7 +52,7 @@ import {
   TicketInfo,
   Transaction
 } from '@/components/transactions/create-steps/types';
-import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, formatToE164 } from '@/config/phone-countries';
+import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, formatToE164, parseE164Phone } from '@/config/phone-countries';
 import { calculateVoucherDiscount } from '@/utils/voucher-discount';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -130,6 +130,239 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
   const [openNotifModal, setOpenNotifModal] = React.useState(false);
   const [prevent24h, setPrevent24h] = React.useState(false);
   const [responseTransaction, setResponseTransaction] = React.useState<any | null>(null);
+
+  const [invitation, setInvitation] = React.useState<any | null>(null);
+  const hasFetchedInvitation = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!event || hasFetchedInvitation.current) return;
+
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const invitationUuid = searchParams.get('invitationUuid');
+      if (invitationUuid) {
+        hasFetchedInvitation.current = true;
+        const fetchInvitationDetails = async (uuid: string) => {
+          setIsLoading(true);
+          try {
+            const response = await baseHttpServiceInstance.get(`/marketplace/invitations/${uuid}`, {}, true);
+            const data = response.data;
+            setInvitation(data);
+
+            // Auto-select/pre-fill states:
+            const preSelected = data.preSelectedTickets || {};
+            const preFilled = data.preFilledInfo || {};
+
+            const preSelectedTicketsList = preSelected.tickets || [];
+            if (preSelectedTicketsList.length > 0) {
+              const showIds = new Set(preSelectedTicketsList.map((t: any) => t.showId || t.show_id));
+              const showsToSelect = event.shows.filter((s: Show) => showIds.has(s.id));
+              setSelectedSchedules(showsToSelect);
+              if (showsToSelect.length > 0) {
+                setActiveScheduleId(showsToSelect[0].id);
+              }
+            }
+
+            // Fetch seats for each show to resolve seat details
+            const uniqueShowIds = Array.from(new Set(preSelectedTicketsList.map((t: any) => t.showId || t.show_id)));
+            const seatsByShowId: Record<number, any[]> = {};
+            await Promise.all(uniqueShowIds.map(async (showId: any) => {
+              try {
+                const res = await baseHttpServiceInstance.get(
+                  `/marketplace/events/${event.slug}/transactions/shows/${showId}/seats`
+                );
+                seatsByShowId[showId] = res.data;
+              } catch (e) {
+                console.error(`Failed to fetch seats for show ${showId}`, e);
+              }
+            }));
+
+            const resolvedTickets = preSelectedTicketsList.map((t: any) => {
+              const showId = t.showId || t.show_id;
+              const ticketCategoryId = t.ticketCategoryId || t.ticket_category_id;
+              const seatId = t.seatId || t.seat_id;
+              const audienceId = t.audienceId || t.audience_id;
+
+              let audienceName = t.audienceName || t.audience_name || '';
+              let seatRow = t.seatRow || t.seat_row;
+              let seatNumber = t.seatNumber || t.seat_number;
+              let seatLabel = t.seatLabel || t.seat_label;
+              let price = t.price || t.amount || 0;
+
+              if (!seatLabel && seatRow && seatNumber) {
+                seatLabel = `${seatRow}-${seatNumber}`;
+              }
+
+              const show = event.shows.find((s: Show) => s.id === showId);
+              if (show) {
+                const category = show.ticketCategories.find((c: any) => c.id === ticketCategoryId);
+                if (category) {
+                  // Resolve audience Name
+                  if (audienceId) {
+                    const categoryAudience = category.categoryAudiences?.find((ca: any) => ca.audienceId === audienceId);
+                    if (categoryAudience) {
+                      audienceName = categoryAudience.audience.name;
+                      if (!price) price = categoryAudience.price;
+                    }
+                  } else {
+                    const activeAudiences = category.categoryAudiences?.filter((ca: any) => ca.audience.isActive) || [];
+                    const defaultAudience = activeAudiences.find((ca: any) => ca.isDefault) || activeAudiences[0];
+                    if (defaultAudience) {
+                      audienceName = defaultAudience.audience.name;
+                      if (!price) price = defaultAudience.price;
+                    }
+                  }
+                  if (!price) price = category.price;
+                }
+
+                // Resolve seat details from fetched seats
+                if (seatId && (!seatRow || !seatNumber || !seatLabel)) {
+                  const showSeatsList = seatsByShowId[showId] || [];
+                  const seatObj = showSeatsList.find((s: any) => s.canvasSeatId === seatId || s.canvas_seat_id === seatId || String(s.id) === String(seatId));
+                  if (seatObj) {
+                    seatRow = seatObj.rowLabel || seatObj.row_label;
+                    seatNumber = seatObj.seatNumber || seatObj.seat_number;
+                    seatLabel = (seatRow && seatNumber) ? `${seatRow}-${seatNumber}` : (seatObj.canvasSeatId || seatObj.canvas_seat_id || String(seatObj.id));
+                  } else {
+                    // Fallback to layoutJson
+                    try {
+                      const layout = show.layoutJson || {};
+                      const objects = layout.objects || [];
+                      const seatInLayout = objects.find((obj: any) => obj.id === seatId);
+                      if (seatInLayout) {
+                        seatRow = seatInLayout.rowLabel;
+                        seatNumber = seatInLayout.number ? String(seatInLayout.number) : undefined;
+                        seatLabel = (seatRow && seatNumber) ? `${seatRow}-${seatNumber}` : seatId;
+                      }
+                    } catch (err) {
+                      console.error("Error parsing layoutJson for fallback seat resolution", err);
+                    }
+                  }
+                }
+              }
+
+              let holderObj = undefined;
+              const holder = t.holder || t.holder_info;
+              if (holder) {
+                let holderPhone = holder.phone || holder.phoneNumber || holder.phone_number || '';
+                let holderNationalPhone = holder.phoneNationalNumber || holder.phone_national_number || holder.nationalPhone || '';
+                let holderPhoneCountry = holder.phoneCountry || holder.phone_country || holder.phoneCountryIso2 || holder.phone_country_iso2 || DEFAULT_PHONE_COUNTRY.iso2;
+
+                let parsed = parseE164Phone(holderPhone);
+                if (!parsed && holderPhone) {
+                  const digits = holderPhone.replace(/\D/g, '');
+                  if (digits.startsWith('84') && digits.length > 2) {
+                    parsed = { countryCode: 'VN', nationalNumber: digits.slice(2) };
+                  } else if (digits.startsWith('0') && digits.length > 1) {
+                    parsed = { countryCode: 'VN', nationalNumber: digits.slice(1) };
+                  } else if (digits) {
+                    parsed = { countryCode: 'VN', nationalNumber: digits };
+                  }
+                }
+
+                if (parsed) {
+                  holderNationalPhone = parsed.nationalNumber;
+                  holderPhoneCountry = parsed.countryCode;
+                  const dialCode = PHONE_COUNTRIES.find(c => c.iso2 === holderPhoneCountry)?.dialCode || '+84';
+                  holderPhone = `${dialCode}${holderNationalPhone}`;
+                }
+
+                holderObj = {
+                  title: holder.title || '',
+                  name: holder.name || '',
+                  email: holder.email || '',
+                  phone: holderPhone,
+                  nationalPhone: holderNationalPhone,
+                  phoneCountryIso2: holderPhoneCountry,
+                  avatar: holder.avatar || holder.avatarUrl || holder.avatar_url || ''
+                };
+              }
+
+              return {
+                showId: showId,
+                ticketCategoryId: ticketCategoryId,
+                price: price,
+                seatId: seatId,
+                seatRow: seatRow,
+                seatNumber: seatNumber,
+                seatLabel: seatLabel,
+                audienceId: audienceId,
+                audienceName: audienceName,
+                holder: holderObj
+              };
+            });
+
+            let customerPhone = preFilled.customer?.phoneNumber || preFilled.customer?.phone_number || preFilled.customer?.phone || data.recipientPhone || '';
+            let customerNationalPhone = preFilled.customer?.phoneNationalNumber || preFilled.customer?.phone_national_number || preFilled.customer?.nationalPhone || '';
+            let customerPhoneCountry = preFilled.customer?.phoneCountry || preFilled.customer?.phone_country || preFilled.customer?.phoneCountryIso2 || preFilled.customer?.phone_country_iso2 || DEFAULT_PHONE_COUNTRY.iso2;
+
+            let parsedCust = parseE164Phone(customerPhone);
+            if (!parsedCust && customerPhone) {
+              const digits = customerPhone.replace(/\D/g, '');
+              if (digits.startsWith('84') && digits.length > 2) {
+                parsedCust = { countryCode: 'VN', nationalNumber: digits.slice(2) };
+              } else if (digits.startsWith('0') && digits.length > 1) {
+                parsedCust = { countryCode: 'VN', nationalNumber: digits.slice(1) };
+              } else if (digits) {
+                parsedCust = { countryCode: 'VN', nationalNumber: digits };
+              }
+            }
+
+            if (parsedCust) {
+              customerNationalPhone = parsedCust.nationalNumber;
+              customerPhoneCountry = parsedCust.countryCode;
+              const dialCode = PHONE_COUNTRIES.find(c => c.iso2 === customerPhoneCountry)?.dialCode || '+84';
+              customerPhone = `${dialCode}${customerNationalPhone}`;
+            }
+
+            setOrder(prev => ({
+              ...prev,
+              customer: {
+                title: preFilled.customer?.title || prev.customer.title,
+                name: preFilled.customer?.name || '',
+                email: preFilled.customer?.email || '',
+                phoneNumber: customerPhone,
+                nationalPhone: customerNationalPhone,
+                address: preFilled.customer?.address || '',
+                phoneCountryIso2: customerPhoneCountry,
+                dob: preFilled.customer?.dob || null,
+                idcard_number: preFilled.customer?.idcard_number || '',
+                avatar: preFilled.customer?.avatar || ''
+              },
+              tickets: resolvedTickets,
+              concessions: preSelected.concessions || [],
+              qrOption: 'separate',
+              paymentMethod: 'napas247',
+              extraFee: 0
+            }));
+
+            if (preFilled.formAnswers) {
+              setCheckoutCustomAnswers(preFilled.formAnswers);
+            }
+
+            if (data.voucherCode) {
+              setPromoCodeFromUrl(data.voucherCode);
+              setManualDiscountCode(data.voucherCode);
+            }
+
+            notificationCtx.success(tt('Đã áp dụng lời mời thành công!', 'Invitation applied successfully!'));
+          } catch (err) {
+            console.error("Failed to load invitation", err);
+            setInvitation(null);
+            const errorMsg = (err as any)?.response?.data?.detail;
+            if (errorMsg) {
+              notificationCtx.error(errorMsg);
+            } else {
+              notificationCtx.error(tt('Không thể tải thông tin lời mời', 'Failed to load invitation details'));
+            }
+          } finally {
+            setIsLoading(false);
+          }
+        };
+        fetchInvitationDetails(invitationUuid);
+      }
+    }
+  }, [event]);
 
   const handleCloseSuccessModal = () => {
     // Optionally handle close
@@ -624,6 +857,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
         const voucher = availableVouchers.find((v) => v.code.toLowerCase() === code.toLowerCase());
         if (voucher) {
           handleApplyVoucher(voucher);
+          setManualDiscountCode('');
           setPromoCodeFromUrl(null);
           return;
         }
@@ -635,8 +869,10 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
           const validation = validateVoucher(apiVoucher);
           if (validation.valid) {
             notificationCtx.success(tt(`Đã áp dụng mã ${apiVoucher.code}`, `Applied code ${apiVoucher.code}`));
+            setManualDiscountCode('');
           } else {
             notificationCtx.info(tt(`Đã tìm thấy mã ${apiVoucher.code}, nhưng không đủ điều kiện áp dụng`, `Found code ${apiVoucher.code}, but does not meet application conditions`));
+            setManualDiscountCode(code);
           }
         } else {
           // If invalid/not found, populate the input field with the code so they can see and edit it
@@ -832,8 +1068,6 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
             email: t.holder.email,
             phone: holderPhoneE164,
             avatar: holderAvatar || undefined,
-            phoneCountry: phoneCountry,
-            phoneNationalNumber: phoneNationalNumber,
           };
         }
 
@@ -862,8 +1096,6 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
         name: customerData.name,
         email: customerData.email,
         phoneNumber: customerPhoneE164 || '',
-        phoneCountry: phoneCountryIso2,
-        phoneNationalNumber: phoneDigits,
         address: customerData.address,
         dob: customerData.dob,
         idcard_number: customerData.idcard_number,
@@ -886,6 +1118,10 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
       // Add voucher code from state if not in order
       if (appliedVoucher && voucherValidation.valid) {
         transactionData.voucherCode = appliedVoucher.code;
+      }
+
+      if (invitation) {
+        transactionData.invitationUuid = invitation.uuid;
       }
 
       // Marketplace API
@@ -1063,15 +1299,14 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               <Step key={label}>
                 <StepButton
                   onClick={() => {
-                    // Check validation if moving forward to step 1, 2 etc.
-                    // But for nonlinear, we might allow jumping back, but force validation for forward?
-                    // Reference implementation allows jumping back only if index > activeStep is disabled (wait, reference has disabled property).
-                    // Reference: disabled={index > activeStep}
                     if (index < activeStep) {
+                      if (index === 0 && invitation && !invitation.allowTicketEdit) {
+                        return;
+                      }
                       setActiveStep(index);
                     }
                   }}
-                  disabled={index > activeStep}
+                  disabled={index > activeStep || (index === 0 && invitation && !invitation.allowTicketEdit)}
                 >
                   {label}
                 </StepButton>
@@ -1102,6 +1337,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               onNext={() => {
                 if (validateStep1()) setActiveStep(1);
               }}
+              invitation={invitation}
 
               // Cart props
               isCartOpen={cartOpen}
@@ -1120,7 +1356,6 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               eventLimitPerCustomer={event?.limitPerCustomer}
             />
           </Box>
-
           <Box sx={{ display: activeStep === 1 ? 'block' : 'none' }}>
             <Step2Info
               tt={tt}
@@ -1137,7 +1372,6 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               builtinInternalNames={builtinInternalNames}
               checkoutCustomAnswers={checkoutCustomAnswers}
               setCheckoutCustomAnswers={setCheckoutCustomAnswers}
-
               shows={event?.shows || []}
               handleCustomerAvatarFile={handleCustomerAvatarFile}
               handleTicketHolderAvatarFile={handleTicketHolderAvatarFile}
@@ -1148,6 +1382,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               onNext={() => {
                 if (validateStep2()) setActiveStep(2);
               }}
+              invitation={invitation}
             />
           </Box>
 
@@ -1189,6 +1424,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               selectedVoucherForDetail={selectedVoucherForDetail}
               showExtraFeeInput={false}
               allowedPaymentMethods={['napas247']}
+              invitation={invitation}
             />
           </Box>
 

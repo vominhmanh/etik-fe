@@ -3,6 +3,7 @@
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import {
   Box,
+  Button,
   IconButton,
   Step,
   StepButton,
@@ -20,8 +21,8 @@ import { LocalizedLink } from '@/components/homepage/localized-link';
 import { useTranslation } from '@/contexts/locale-context';
 import NotificationContext from '@/contexts/notification-context';
 
-import { Step1SelectTickets } from '@/components/transactions/invite-steps/step-1-select-tickets';
-import { Step2Info } from '@/components/transactions/invite-steps/step-2-info';
+import { Step1SelectTickets } from '@/components/transactions/create-steps/step-1-select-tickets';
+import { Step2Info } from '@/components/transactions/create-steps/step-2-info';
 import { Step3Payment } from '@/components/transactions/invite-steps/step-3-payment';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, formatToE164 } from '@/config/phone-countries';
 import { getPaymentMethodLabel } from '@/utils/payment';
@@ -701,8 +702,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             email: t.holder.email,
             phone: holderPhoneE164,
             avatar: holderAvatar || undefined,
-            phoneCountry: phoneCountryIso2,
-            phoneNationalNumber: phoneDigits,
           };
         }
 
@@ -711,7 +710,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           ticketCategoryId: t.ticketCategoryId,
           seatId: t.seatId,
           amount: t.price,
+          price: t.price,
           audienceId: t.audienceId,
+          audienceName: t.audienceName,
           holder: holderData,
           quantity: 1
         };
@@ -731,8 +732,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         name: customerData.name,
         email: customerData.email,
         phoneNumber: customerPhoneE164 || '',
-        phoneCountry: phoneCountryIso2,
-        phoneNationalNumber: phoneDigits,
         address: customerData.address,
         dob: customerData.dob,
         idcard_number: customerData.idcard_number,
@@ -769,11 +768,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       };
 
       const response = await baseHttpServiceInstance.post(
-        `/event-studio/events/${params.event_id}/invitations`,
+        `/event-studio/events/${params.event_id}/transaction-invitations`,
         invitationPayload
       );
 
-      const path = `/event-studio/events/${params.event_id}/transactions`;
+      const path = `/event-studio/events/${params.event_id}/transaction-invitations`;
       router.push(locale === 'en' ? `/en${path}` : path);
       notificationCtx.success(tt("Gửi lời mời thành công!", "Invitation sent successfully!"));
     } catch (error: any) {
@@ -804,6 +803,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             <CaretLeft />
           </IconButton>
           <Typography variant="h4">{tt("Tạo lời mời mua vé", "Create New Buying Invitation")}</Typography>
+          <Button
+            component={LocalizedLink}
+            href={`/event-studio/events/${params.event_id}/transaction-invitations`}
+            variant="outlined"
+          >
+            {tt("Xem lời mời đã tạo", "View Created Invitations")}
+          </Button>
         </Stack>
 
         <Stepper nonLinear activeStep={activeStep} sx={{ mb: 1 }}>
@@ -821,82 +827,182 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
         {/* Keep all steps mounted; show/hide via CSS so users can still open modals from previous steps */}
         <Box sx={{ display: activeStep === 0 ? 'block' : 'none' }}>
-          <Step1SelectTickets
-            source="event_studio"
-            shows={event?.shows}
-            selectedSchedules={selectedSchedules}
-            activeScheduleId={activeScheduleId}
-            onSelectionChange={handleSelectionChange}
-            onOpenSchedule={(show) => setActiveScheduleId(show ? show.id : null)}
-            totalSelectedTickets={totalSelectedTickets}
-            onOpenCart={() => setCartOpen(true)}
-            activeSchedule={activeSchedule}
-            qrOption={order.qrOption}
-            existingSeats={showSeats}
+          <Stack spacing={3}>
+            {/* Cấu hình lời mời */}
+            <Stack direction="row" spacing={2} sx={{ p: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 1, bgcolor: 'primary.50' }}>
+              <Stack spacing={1.5} sx={{ flex: 1 }}>
+                <Typography variant="subtitle2">Cấu hình lời mời</Typography>
+                <Stack spacing={1}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="ticketSelectionType"
+                      checked={invitationSettings.letCustomerSelect}
+                      onChange={() => setInvitationSettings({ ...invitationSettings, letCustomerSelect: true })}
+                    />
+                    <Typography variant="body2">Cho phép khách tự chọn vé (Khách sẽ tự do chọn mua trong số các vé công khai)</Typography>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="ticketSelectionType"
+                      checked={!invitationSettings.letCustomerSelect}
+                      onChange={() => setInvitationSettings({ ...invitationSettings, letCustomerSelect: false })}
+                    />
+                    <Typography variant="body2">Chọn sẵn vé cho khách</Typography>
+                  </label>
+                </Stack>
+                {!invitationSettings.letCustomerSelect && (
+                  <Box sx={{ pl: 3.5 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={invitationSettings.allowTicketEdit}
+                        onChange={(e) => setInvitationSettings({ ...invitationSettings, allowTicketEdit: e.target.checked })}
+                      />
+                      <Typography variant="body2">Cho phép khách chỉnh sửa các vé đã được chọn sẵn (thêm, bớt số lượng vé)</Typography>
+                    </label>
+                  </Box>
+                )}
+              </Stack>
+            </Stack>
 
-            requestedCategoryModalId={requestedCategoryModalId}
-            onModalRequestHandled={() => setRequestedCategoryModalId(null)}
-            order={order}
-            setOrder={setOrder}
-            cartQuantitiesForActiveSchedule={cartQuantitiesForActiveSchedule}
-            cartAudienceQuantitiesForActiveSchedule={cartAudienceQuantitiesForActiveSchedule}
-            tt={tt}
-            onNext={() => {
-              if (validateStep1()) setActiveStep(1);
-            }}
+            {/* Chọn vé — chỉ hiện khi admin chọn sẵn vé cho khách */}
+            {!invitationSettings.letCustomerSelect && (
+              <Step1SelectTickets
+                source="event_studio"
+                shows={event?.shows}
+                selectedSchedules={selectedSchedules}
+                activeScheduleId={activeScheduleId}
+                onSelectionChange={handleSelectionChange}
+                onOpenSchedule={(show) => setActiveScheduleId(show ? show.id : null)}
+                totalSelectedTickets={totalSelectedTickets}
+                onOpenCart={() => setCartOpen(true)}
+                activeSchedule={activeSchedule}
+                qrOption={order.qrOption}
+                existingSeats={showSeats}
+                requestedCategoryModalId={requestedCategoryModalId}
+                onModalRequestHandled={() => setRequestedCategoryModalId(null)}
+                order={order}
+                setOrder={setOrder}
+                cartQuantitiesForActiveSchedule={cartQuantitiesForActiveSchedule}
+                cartAudienceQuantitiesForActiveSchedule={cartAudienceQuantitiesForActiveSchedule}
+                tt={tt}
+                onNext={() => {
+                  if (validateStep1()) setActiveStep(1);
+                }}
+                isCartOpen={cartOpen}
+                onCloseCart={() => setCartOpen(false)}
+                formatPrice={formatPrice}
+                subtotal={subtotal}
+                onUpdateConcessionQuantity={handleUpdateConcessionQuantity}
+                onEditCartItem={(showId, categoryId) => {
+                  setActiveScheduleId(showId);
+                  setRequestedCategoryModalId(categoryId);
+                  setCartOpen(false);
+                  setActiveStep(0);
+                }}
+                onRemoveCartItem={(showId, categoryId) => handleAddToCartQuantity(showId, categoryId, 0)}
+                eventLimitPerTransaction={event?.limitPerTransaction}
+                eventLimitPerCustomer={event?.limitPerCustomer}
+              />
+            )}
 
-            // Cart props
-            isCartOpen={cartOpen}
-            onCloseCart={() => setCartOpen(false)}
-            formatPrice={formatPrice}
-            subtotal={subtotal}
-            onUpdateConcessionQuantity={handleUpdateConcessionQuantity}
-            onEditCartItem={(showId, categoryId) => {
-              setActiveScheduleId(showId);
-              setRequestedCategoryModalId(categoryId);
-              setCartOpen(false);
-              // In linear mode, we might want to check step. For now, assuming step 0 is selection.
-              setActiveStep(0);
-            }}
-            onRemoveCartItem={(showId, categoryId) => handleAddToCartQuantity(showId, categoryId, 0)}
-            eventLimitPerTransaction={event?.limitPerTransaction}
-            eventLimitPerCustomer={event?.limitPerCustomer}
-            invitationSettings={invitationSettings}
-            setInvitationSettings={setInvitationSettings}
-          />
+            {/* Nút Tiếp tục khi khách tự chọn vé (không cần chọn vé ở đây) */}
+            {invitationSettings.letCustomerSelect && (
+              <Stack direction="row" justifyContent="flex-end">
+                <Button variant="contained" onClick={() => setActiveStep(1)}>
+                  {tt('Tiếp tục', 'Continue')}
+                </Button>
+              </Stack>
+            )}
+          </Stack>
         </Box>
 
         <Box sx={{ display: activeStep === 1 ? 'block' : 'none' }}>
-          <Step2Info
-            tt={tt}
-            locale={locale}
-            defaultTitle={defaultTitle}
-            paramsEventId={params.event_id}
-            formMenuAnchorEl={formMenuAnchorEl}
-            onOpenFormMenu={handleOpenFormMenu}
-            onCloseFormMenu={handleCloseFormMenu}
-            order={order}
-            setOrder={setOrder}
-            checkoutFormFields={checkoutFormFields}
-            customCheckoutFields={customCheckoutFields}
-            builtinInternalNames={builtinInternalNames}
-            checkoutCustomAnswers={checkoutCustomAnswers}
-            setCheckoutCustomAnswers={setCheckoutCustomAnswers}
+          <Stack spacing={3}>
+            {/* Cấu hình lời mời — thông tin */}
+            <Stack direction="row" spacing={2} sx={{ p: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 1, bgcolor: 'primary.50' }}>
+              <Stack spacing={1.5} sx={{ flex: 1 }}>
+                <Typography variant="subtitle2">Cấu hình lời mời</Typography>
+                <Stack spacing={1}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="infoSelectionType"
+                      checked={invitationSettings.letCustomerFillInfo}
+                      onChange={() => setInvitationSettings({ ...invitationSettings, letCustomerFillInfo: true })}
+                    />
+                    <Typography variant="body2">Cho phép khách tự điền thông tin</Typography>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="infoSelectionType"
+                      checked={!invitationSettings.letCustomerFillInfo}
+                      onChange={() => setInvitationSettings({ ...invitationSettings, letCustomerFillInfo: false })}
+                    />
+                    <Typography variant="body2">Điền sẵn thông tin cho khách</Typography>
+                  </label>
+                </Stack>
+                {!invitationSettings.letCustomerFillInfo && (
+                  <Box sx={{ pl: 3.5 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={invitationSettings.allowInfoEdit}
+                        onChange={(e) => setInvitationSettings({ ...invitationSettings, allowInfoEdit: e.target.checked })}
+                      />
+                      <Typography variant="body2">Cho phép khách chỉnh sửa thông tin đã được điền sẵn</Typography>
+                    </label>
+                  </Box>
+                )}
+              </Stack>
+            </Stack>
 
-            shows={event?.shows || []}
-            handleCustomerAvatarFile={handleCustomerAvatarFile}
-            handleTicketHolderAvatarFile={handleTicketHolderAvatarFile}
-            formatPrice={formatPrice}
-            setActiveScheduleId={(showId) => setActiveScheduleId(showId)}
-            setRequestedCategoryModalId={(categoryId) => setRequestedCategoryModalId(categoryId)}
-            onBack={() => setActiveStep(0)}
-            onNext={() => {
-              if (validateStep2()) setActiveStep(2);
-            }}
-            source="event-studio"
-            invitationSettings={invitationSettings}
-            setInvitationSettings={setInvitationSettings}
-          />
+            {/* Form thông tin — chỉ hiện khi admin điền sẵn cho khách */}
+            {!invitationSettings.letCustomerFillInfo && (
+              <Step2Info
+                tt={tt}
+                locale={locale}
+                defaultTitle={defaultTitle}
+                paramsEventId={params.event_id}
+                formMenuAnchorEl={formMenuAnchorEl}
+                onOpenFormMenu={handleOpenFormMenu}
+                onCloseFormMenu={handleCloseFormMenu}
+                order={order}
+                setOrder={setOrder}
+                checkoutFormFields={checkoutFormFields}
+                customCheckoutFields={customCheckoutFields}
+                builtinInternalNames={builtinInternalNames}
+                checkoutCustomAnswers={checkoutCustomAnswers}
+                setCheckoutCustomAnswers={setCheckoutCustomAnswers}
+                shows={event?.shows || []}
+                handleCustomerAvatarFile={handleCustomerAvatarFile}
+                handleTicketHolderAvatarFile={handleTicketHolderAvatarFile}
+                formatPrice={formatPrice}
+                setActiveScheduleId={(showId) => setActiveScheduleId(showId)}
+                setRequestedCategoryModalId={(categoryId) => setRequestedCategoryModalId(categoryId)}
+                onBack={() => setActiveStep(0)}
+                onNext={() => {
+                  if (validateStep2()) setActiveStep(2);
+                }}
+                source="event-studio"
+              />
+            )}
+
+            {/* Nút điều hướng khi khách tự điền thông tin */}
+            {invitationSettings.letCustomerFillInfo && (
+              <Stack direction="row" justifyContent="space-between">
+                <Button variant="outlined" onClick={() => setActiveStep(0)}>
+                  {tt('Quay lại', 'Back')}
+                </Button>
+                <Button variant="contained" onClick={() => setActiveStep(2)}>
+                  {tt('Tiếp tục', 'Continue')}
+                </Button>
+              </Stack>
+            )}
+          </Stack>
         </Box>
 
         <Box sx={{ display: activeStep === 2 ? 'block' : 'none' }}>

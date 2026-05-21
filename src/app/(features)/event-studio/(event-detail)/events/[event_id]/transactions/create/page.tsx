@@ -711,8 +711,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             email: t.holder.email,
             phone: holderPhoneE164,
             avatar: holderAvatar || undefined,
-            phoneCountry: phoneCountryIso2,
-            phoneNationalNumber: phoneDigits,
           };
         }
 
@@ -741,8 +739,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         name: customerData.name,
         email: customerData.email,
         phoneNumber: customerPhoneE164 || '',
-        phoneCountry: phoneCountryIso2,
-        phoneNationalNumber: phoneDigits,
         address: customerData.address,
         dob: customerData.dob,
         idcard_number: customerData.idcard_number,

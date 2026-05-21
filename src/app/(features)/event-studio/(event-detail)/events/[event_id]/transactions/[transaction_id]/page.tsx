@@ -508,11 +508,13 @@ export default function Page({ params }: { params: { event_id: number; transacti
         formAnswers[field.internalName] = checkoutCustomAnswers[field.internalName];
       });
 
+      const phoneCountryIso2 = formData.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2;
+      const phoneDigits = formData.phoneNumber.replace(/\D/g, '').replace(/^0+/, '');
+      const customerPhoneE164 = formatToE164(phoneCountryIso2, phoneDigits) || '';
+
       const payload: any = {
         name: formData.name,
-        phoneNumber: formData.phoneNumber,
-        phoneCountry: formData.phoneCountryIso2,
-        phoneNationalNumber: formData.phoneNumber.replace(/\D/g, '').replace(/^0(?!$)/, ''),
+        phoneNumber: customerPhoneE164,
         dob: formData.dob,
         title: formData.title || (locale === 'en' ? 'Mx.' : 'Bạn'),
         address: formData.address,

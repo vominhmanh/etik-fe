@@ -38,7 +38,7 @@ import { useEffect, useState } from 'react';
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
 import { Transaction, Ticket } from '@/app/(features)/(customer)/account/my-tickets/[transaction_id]/page';
-import { parseE164Phone, PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY } from '@/config/phone-countries';
+import { parseE164Phone, PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY, formatToE164 } from '@/config/phone-countries';
 
 interface Event {
   id: number;
@@ -269,10 +269,17 @@ export default function GiftTicketModal({
     try {
       const ticketIds = giftMode === 'all' ? null : selectedTicketIds;
 
-      // Process phone number: derive NSN from phone number (strip leading '0' if present)
+      // Process phone number to E.164 format and strip helper fields
       const phoneCountry = customerInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2;
       const digits = customerInfo.phone_number.replace(/\D/g, '');
       const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+      const e164Phone = formatToE164(phoneCountry, phoneNSN) || `+84${phoneNSN}`;
+
+      const customerPayload = { ...customerInfo };
+      customerPayload.phone_number = e164Phone;
+      delete (customerPayload as any).phoneCountryIso2;
+      delete (customerPayload as any).phone_country;
+      delete (customerPayload as any).phone_national_number;
 
       const response: AxiosResponse<{ message: string; newTransactionId: number }> =
         await baseHttpServiceInstance.post(
@@ -280,11 +287,7 @@ export default function GiftTicketModal({
           {
             giftMode,
             ticketIds,
-            customer: {
-              ...customerInfo,
-              phone_country: phoneCountry,
-              phone_national_number: phoneNSN,
-            },
+            customer: customerPayload,
             formAnswers,
           }
         );

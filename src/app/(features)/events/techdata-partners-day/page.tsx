@@ -48,7 +48,7 @@ import ReCAPTCHA from 'react-google-recaptcha';
 
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
-import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY, parseE164Phone } from '@/config/phone-countries';
+import { PHONE_COUNTRIES, DEFAULT_PHONE_COUNTRY, parseE164Phone, formatToE164 } from '@/config/phone-countries';
 
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { orange } from '@mui/material/colors';
@@ -584,16 +584,19 @@ export default function Page(): React.JSX.Element {
           const key = `${showId}-${categoryIdStr}`;
           const holders = ticketHoldersByCategory[key] || [];
 
-          // Convert phoneCountryIso2 to phoneCountry and phoneNationalNumber for holders
+          // Convert phone number to E.164 format and strip auxiliary fields for holders
           const processedHolders = holders.map((h: any) => {
             if (!h.phone) return h;
             // Derive NSN from phone number (strip leading '0' if present)
             const digits = h.phone.replace(/\D/g, '');
             const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+            const countryCode = h.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2;
+            const e164Phone = formatToE164(countryCode, phoneNSN) || `+84${phoneNSN}`;
+
+            const { phoneCountryIso2, phoneCountry, phoneNationalNumber, ...holderWithoutPhoneCountry } = h;
             return {
-              ...h,
-              phoneCountry: h.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2,
-              phoneNationalNumber: phoneNSN,
+              ...holderWithoutPhoneCountry,
+              phone: e164Phone,
             };
           });
 
@@ -606,15 +609,17 @@ export default function Page(): React.JSX.Element {
         })
       ));
 
-      // Convert phoneCountryIso2 to phoneCountry and phoneNationalNumber for customer
+      // Convert customer phone number to E.164 format and strip auxiliary fields
       const digits = customer.phoneNumber.replace(/\D/g, '');
       const phoneNSN = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+      const countryCode = customer.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2;
+      const e164Phone = formatToE164(countryCode, phoneNSN) || `+84${phoneNSN}`;
+
       const { phoneCountryIso2, ...customerWithoutPhoneCountryIso2 } = customer;
 
       const customerData: any = {
         ...customerWithoutPhoneCountryIso2,
-        phoneCountry: phoneCountryIso2,
-        phoneNationalNumber: phoneNSN,
+        phoneNumber: e164Phone,
       };
 
       const isFieldVisible = (name: string) =>

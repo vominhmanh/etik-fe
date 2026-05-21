@@ -8,6 +8,7 @@ import {
   Avatar,
   Box,
   Container,
+  Grid,
   IconButton,
   InputAdornment,
   Menu,
@@ -20,6 +21,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
+import dayjs from 'dayjs';
 import FormControl from '@mui/material/FormControl';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -29,13 +31,12 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
-import Grid from '@mui/material/Unstable_Grid2';
 import { alpha } from '@mui/material/styles';
 import { CaretDown, DotsThreeOutlineVertical, Pencil, Plus, Copy, User, EnvelopeSimple, Phone, MapPin, IdentificationCard, CalendarBlank, Armchair } from '@phosphor-icons/react/dist/ssr';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 
 import { LocalizedLink } from '@/components/homepage/localized-link';
-import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone } from '@/config/phone-countries';
+import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from '@/config/phone-countries';
 
 import { Order, TicketInfo, HolderInfo, CheckoutRuntimeField, Show } from './types';
 
@@ -72,6 +73,7 @@ export type Step2InfoProps = {
 
   source?: 'marketplace' | 'event-studio';
   readonly?: boolean;
+  invitation?: any;
 };
 
 export function Step2Info(props: Step2InfoProps): React.JSX.Element {
@@ -101,7 +103,10 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     onNext,
     source = 'marketplace',
     readonly = false,
+    invitation,
   } = props;
+
+  const [isEditingInfo, setIsEditingInfo] = React.useState<boolean>(false);
 
   // State to control expanded accordions
   const [expandedAccordions, setExpandedAccordions] = React.useState<Record<number, boolean>>(() => {
@@ -152,10 +157,226 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     return Object.values(groups);
   }, [order.tickets, shows]);
 
+  // Show invitation summary card only when invitation has pre-filled info AND guest hasn't chosen to re-enter
+  const hasPreFilledInfo = !!(invitation && invitation.preFilledInfo && (
+    invitation.preFilledInfo.customer?.name || invitation.preFilledInfo.customer?.email
+  ));
+  const showInvitationCard = hasPreFilledInfo && !isEditingInfo;
+
+  if (showInvitationCard) {
+    const pf = invitation.preFilledInfo; // pre-filled info shorthand
+    return (
+      <Card sx={{ borderRadius: '16px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)' }}>
+        <CardHeader
+          title={
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a3322' }}>
+              {tt('Thông tin đã được điền sẵn cho bạn', 'Information Pre-filled for You')}
+            </Typography>
+          }
+          subheader={
+            invitation.recipientName ? (
+              <Typography variant="body2" color="text.secondary">
+                {tt('Kính gửi:', 'Dear:')} <strong>{invitation.recipientTitle || ''} {invitation.recipientName}</strong>
+              </Typography>
+            ) : null
+          }
+          sx={{ backgroundColor: 'rgba(209, 249, 219, 0.3)', pb: 2 }}
+        />
+        <Divider />
+        <CardContent sx={{ p: 3 }}>
+          <Stack spacing={3}>
+            {/* Buyer Information */}
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, color: '#2e7d32' }}>
+                {tt('Thông tin người mua vé', 'Buyer Information')}
+              </Typography>
+              <Grid container spacing={2}>
+                {order.customer.name && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">{tt('Họ và tên:', 'Full Name:')}</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{order.customer.title} {order.customer.name}</Typography>
+                  </Grid>
+                )}
+                {order.customer.email && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">{tt('Email:', 'Email:')}</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{order.customer.email}</Typography>
+                  </Grid>
+                )}
+                {(order.customer.phoneNumber || order.customer.nationalPhone) && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">{tt('Số điện thoại:', 'Phone Number:')}</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                      {order.customer.phoneNumber || order.customer.nationalPhone}
+                    </Typography>
+                  </Grid>
+                )}
+                {order.customer.dob && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">{tt('Ngày sinh:', 'Date of Birth:')}</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{dayjs(order.customer.dob).format('DD/MM/YYYY')}</Typography>
+                  </Grid>
+                )}
+                {order.customer.idcard_number && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">{tt('Số CCCD/CMND:', 'ID Card Number:')}</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{order.customer.idcard_number}</Typography>
+                  </Grid>
+                )}
+                {order.customer.address && (
+                  <Grid item xs={12}>
+                    <Typography variant="body2" color="text.secondary">{tt('Địa chỉ:', 'Address:')}</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{order.customer.address}</Typography>
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
+
+            <Divider />
+
+            {/* Ticket Holders */}
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, color: '#2e7d32' }}>
+                {tt('Thông tin vé & người sử dụng', 'Ticket & Attendee Details')}
+              </Typography>
+              <Stack spacing={2}>
+                {order.tickets.map((ticket, idx) => {
+                  const show = shows.find(s => s.id === ticket.showId);
+                  const category = show?.ticketCategories.find(c => c.id === ticket.ticketCategoryId);
+                  const holder = ticket.holder;
+                  return (
+                    <Box key={idx} sx={{ p: 2, borderRadius: '12px', border: '1px solid #e0e0e0', bgcolor: '#fcfcfc' }}>
+                      <Stack spacing={1.5}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
+                            {tt(`Vé #${idx + 1}:`, `Ticket #${idx + 1}:`)} {category?.name || tt('Vé', 'Ticket')}
+                          </Typography>
+                          <Stack direction="row" spacing={1} flexWrap="wrap">
+                            {ticket.seatLabel && (
+                              <Box sx={{ px: 1, py: 0.25, bgcolor: '#e8f5e9', color: '#2e7d32', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                {tt('Ghế:', 'Seat:')} {ticket.seatLabel}
+                              </Box>
+                            )}
+                            {ticket.audienceName && (
+                              <Box sx={{ px: 1, py: 0.25, bgcolor: '#efebe9', color: '#5d4037', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                {tt('Đối tượng:', 'Audience:')} {ticket.audienceName}
+                              </Box>
+                            )}
+                          </Stack>
+                        </Stack>
+                        {show && (
+                          <Typography variant="caption" color="text.secondary">
+                            {tt('Suất diễn:', 'Showtime:')} {dayjs(show.startDateTime).format('HH:mm DD/MM/YYYY')}
+                          </Typography>
+                        )}
+                        {holder ? (
+                          <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
+                            {holder.name && (
+                              <Grid item xs={12} sm={4}>
+                                <Typography variant="caption" color="text.secondary">{tt('Người sử dụng:', 'Attendee Name:')}</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{holder.title} {holder.name}</Typography>
+                              </Grid>
+                            )}
+                            {holder.email && (
+                              <Grid item xs={12} sm={4}>
+                                <Typography variant="caption" color="text.secondary">{tt('Email:', 'Email:')}</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{holder.email}</Typography>
+                              </Grid>
+                            )}
+                            {(holder.phone || holder.nationalPhone) && (
+                              <Grid item xs={12} sm={4}>
+                                <Typography variant="caption" color="text.secondary">{tt('Số điện thoại:', 'Phone Number:')}</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {holder.phone || holder.nationalPhone}
+                                </Typography>
+                              </Grid>
+                            )}
+                          </Grid>
+                        ) : (
+                          <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
+                            {tt('Chưa có thông tin người sử dụng vé', 'No attendee info specified')}
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            </Box>
+
+            {/* Custom Form Answers */}
+            {customCheckoutFields.length > 0 && (
+              <>
+                <Divider />
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, color: '#2e7d32' }}>
+                    {tt('Thông tin bổ sung', 'Additional Information')}
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {customCheckoutFields.map((field) => {
+                      const value = checkoutCustomAnswers[field.internalName];
+                      let displayValue = '';
+                      if (Array.isArray(value)) displayValue = value.join(', ');
+                      else if (value !== undefined && value !== null) displayValue = String(value);
+                      if (!displayValue) return null;
+                      return (
+                        <Grid item xs={12} sm={6} key={field.internalName}>
+                          <Typography variant="body2" color="text.secondary">{field.label}:</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600 }}>{displayValue}</Typography>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
+                </Box>
+              </>
+            )}
+          </Stack>
+
+          {/* Actions */}
+          <Box sx={{ mt: 4, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Stack direction="row" spacing={2}>
+              {invitation.allowTicketEdit && (
+                <Button variant="outlined" color="secondary" onClick={onBack} sx={{ borderRadius: '8px', fontWeight: 600 }}>
+                  {tt('Quay lại', 'Back')}
+                </Button>
+              )}
+              {invitation.allowInfoEdit && (
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  onClick={() => {
+                    // Clear pre-filled customer & holder info so guest starts fresh
+                    setOrder(prev => ({
+                      ...prev,
+                      customer: { title: '', name: '', email: '', phoneNumber: '', nationalPhone: '', address: '', phoneCountryIso2: 'VN', dob: null, idcard_number: '', avatar: '' },
+                      tickets: prev.tickets.map(t => ({ ...t, holder: undefined }))
+                    }));
+                    setIsEditingInfo(true);
+                  }}
+                  sx={{ borderRadius: '8px', fontWeight: 600 }}
+                >
+                  {tt('Nhập lại thông tin', 'Re-enter Information')}
+                </Button>
+              )}
+            </Stack>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={onNext}
+              sx={{ px: 4, py: 1, borderRadius: '8px', fontWeight: 600 }}
+            >
+              {tt('Tiếp tục', 'Continue')}
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Stack spacing={3}>
       <Grid container spacing={3}>
-        <Grid xs={12} md={7}>
+        <Grid item xs={12} md={7}>
           <Stack spacing={3}>
             {/* Ticket holders input (accordion) */}
             {order.tickets.length > 0 && (
@@ -331,7 +552,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                 </AccordionSummary>
                                 <AccordionDetails sx={{ pt: 0, pb: 1.5 }}>
                                   <Grid container spacing={1.5} alignItems="center">
-                                    <Grid xs={12} md={2}>
+                                    <Grid item xs={12} md={2}>
                                       <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'center' }, width: 48 }}>
                                         <Box sx={{ position: 'relative', width: 48, height: 48, '&:hover .avatarUploadBtn': { opacity: 1, visibility: 'visible' } }}>
                                           <Avatar src={holderInfo.avatar || ''} sx={{ width: 48, height: 48 }} />
@@ -378,7 +599,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                       </Box>
                                     </Grid>
 
-                                    <Grid xs={12} md={4}>
+                                    <Grid item xs={12} md={4}>
                                       <FormControl fullWidth required size="small">
                                         <InputLabel>
                                           {tt(`Danh xưng*    Họ và tên`, `Title*    Full Name`)}
@@ -422,7 +643,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                       </FormControl>
                                     </Grid>
 
-                                    <Grid xs={12} md={3}>
+                                    <Grid item xs={12} md={3}>
                                       <FormControl fullWidth size="small">
                                         <InputLabel>{tt(`Email vé ${ticketIndex + 1}`, `Email ticket ${ticketIndex + 1}`)}</InputLabel>
                                         <OutlinedInput
@@ -437,7 +658,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                       </FormControl>
                                     </Grid>
 
-                                    <Grid xs={12} md={3}>
+                                    <Grid item xs={12} md={3}>
                                       <FormControl fullWidth size="small">
                                         <InputLabel>{tt(`SĐT vé ${ticketIndex + 1}`, `Phone ticket ${ticketIndex + 1}`)}</InputLabel>
                                         <OutlinedInput
@@ -487,7 +708,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
 
           </Stack>
         </Grid>
-        <Grid xs={12} md={5}>
+        <Grid item xs={12} md={5}>
           <Stack spacing={3}>
             {/* Customer Information Card */}
             <Card>
@@ -545,7 +766,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
               <CardContent sx={{ pt: 1.5, pb: 1.5 }}>
                 <Box sx={{ pointerEvents: readonly ? 'none' : 'auto', opacity: readonly ? 0.8 : 1 }}>
                   <Grid container spacing={2}>
-                    <Grid lg={12} xs={12}>
+                    <Grid item lg={12} xs={12}>
                       <FormControl fullWidth required size="small">
                         <InputLabel htmlFor="customer-name">{tt("Danh xưng*   Họ và tên", "Title*   Full Name")}</InputLabel>
                         <OutlinedInput
@@ -613,7 +834,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                       </FormControl>
                     </Grid>
 
-                    <Grid lg={6} xs={12}>
+                    <Grid item lg={6} xs={12}>
                       <FormControl fullWidth required size="small">
                         <InputLabel>{tt("Địa chỉ Email", "Email Address")}</InputLabel>
                         <OutlinedInput
@@ -628,7 +849,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                       </FormControl>
                     </Grid>
 
-                    <Grid lg={6} xs={12}>
+                    <Grid item lg={6} xs={12}>
                       <FormControl fullWidth required size="small">
                         <InputLabel>{tt("Số điện thoại", "Phone Number")}</InputLabel>
                         <OutlinedInput
@@ -671,7 +892,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                       const required = !!dobCfg?.required;
                       return (
                         visible && (
-                          <Grid lg={6} xs={12}>
+                          <Grid item lg={6} xs={12}>
                             <TextField
                               fullWidth
                               size="small"
@@ -702,7 +923,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                       const required = !!idCfg?.required;
                       return (
                         visible && (
-                          <Grid lg={6} xs={12}>
+                          <Grid item lg={6} xs={12}>
                             <FormControl fullWidth required={required} size="small">
                               <InputLabel>{tt("Số Căn cước công dân", "ID Card Number")}</InputLabel>
                               <OutlinedInput
@@ -729,7 +950,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                       const required = !!addrCfg?.required;
                       return (
                         visible && (
-                          <Grid lg={12} xs={12}>
+                          <Grid item lg={12} xs={12}>
                             <FormControl fullWidth required={required} size="small">
                               <InputLabel>{tt("Địa chỉ", "Address")}</InputLabel>
                               <OutlinedInput
@@ -753,7 +974,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
 
                     {/* Custom checkout fields */}
                     {customCheckoutFields.map((field) => (
-                      <Grid key={field.internalName} xs={12}>
+                      <Grid item key={field.internalName} xs={12}>
                         <Stack spacing={0.5}>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
                             {field.label}
