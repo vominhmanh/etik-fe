@@ -1569,6 +1569,9 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
                     size="small"
                     onClick={() => {
                       setOpenSuccessModal(false);
+                      const url = new URL(window.location.href);
+                      url.searchParams.delete('invitation');
+                      window.history.pushState({}, '', url.toString());
                       window.location.reload();
                     }}
                   >
