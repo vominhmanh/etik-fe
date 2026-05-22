@@ -111,6 +111,13 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
     }
   }, [invitation?.message]);
 
+  const hasActualMessage = React.useMemo(() => {
+    if (!invitation?.message) return false;
+    const plainText = invitation.message.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim();
+    const hasImage = invitation.message.includes('<img');
+    return plainText.length > 0 || hasImage;
+  }, [invitation?.message]);
+
   // Determine if we should show the invitation summary card:
   // invitation exists AND has pre-selected tickets AND guest hasn't chosen to re-pick
   const hasPreSelectedTickets = !!(invitation && !invitation.letCustomerSelect && (invitation.preSelectedTickets?.tickets?.length > 0));
@@ -512,7 +519,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
           </Typography>
         </Box>
       </Alert>
-      {invitation.message && (
+      {hasActualMessage && (
         <Box sx={{ p: 1.5, bgcolor: 'rgba(255,204,0,0.1)', borderRadius: '8px', borderLeft: '4px solid #ffcc00' }}>
           <Box sx={{ position: 'relative' }}>
             <Typography 
