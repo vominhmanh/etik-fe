@@ -84,7 +84,10 @@ interface TicketInvitation {
 			email?: string;
 			phoneNumber?: string;
 			address?: string;
+			dob?: string;
+			idcard_number?: string;
 		};
+		formAnswers?: Record<string, any>;
 	} | null;
 	allowInfoEdit: boolean;
 	voucherCode: string | null;
