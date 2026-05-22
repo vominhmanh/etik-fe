@@ -195,10 +195,15 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
                 seatLabel = `${seatRow}-${seatNumber}`;
               }
 
+              let resolvedShowName = t.showName;
+              let resolvedCategoryName = t.ticketCategoryName;
+
               const show = event.shows.find((s: Show) => s.id === showId);
               if (show) {
+                resolvedShowName = resolvedShowName || show.name;
                 const category = show.ticketCategories.find((c: any) => c.id === ticketCategoryId);
                 if (category) {
+                  resolvedCategoryName = resolvedCategoryName || category.name;
                   // Resolve audience Name
                   if (audienceId) {
                     const categoryAudience = category.categoryAudiences?.find((ca: any) => ca.audienceId === audienceId);
@@ -282,9 +287,9 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
 
               return {
                 showId: showId,
-                showName: t.showName,
+                showName: resolvedShowName || `Suất ID ${showId}`,
                 ticketCategoryId: ticketCategoryId,
-                ticketCategoryName: t.ticketCategoryName,
+                ticketCategoryName: resolvedCategoryName || `Loại vé ID ${ticketCategoryId}`,
                 price: price,
                 seatId: seatId,
                 seatRow: seatRow,

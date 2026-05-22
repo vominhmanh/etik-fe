@@ -156,16 +156,14 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
 
   // Group tickets for summary
   const ticketSummary = React.useMemo(() => {
-    const groups: Record<string, { show: Show, category: any, quantity: number, total: number, indices: number[] }> = {};
+    const groups: Record<string, { showId: number, categoryId: number, showName: string, categoryName: string, quantity: number, total: number, indices: number[] }> = {};
     order.tickets.forEach((t, index) => {
       const key = `${t.showId}-${t.ticketCategoryId}`;
       if (!groups[key]) {
-        const show = shows.find(s => s.id === t.showId);
-        const cat = show?.ticketCategories.find(c => c.id === t.ticketCategoryId);
-        groups[key] = { show: show!, category: cat, quantity: 0, total: 0, indices: [] };
+        groups[key] = { showId: t.showId, categoryId: t.ticketCategoryId, showName: t.showName || `Suất ID ${t.showId}`, categoryName: t.ticketCategoryName || `Loại vé ID ${t.ticketCategoryId}`, quantity: 0, total: 0, indices: [] };
       }
       groups[key].quantity += 1;
-      groups[key].total += (t.price ?? groups[key].category?.price ?? 0);
+      groups[key].total += (t.price ?? 0);
       groups[key].indices.push(index);
     });
     return Object.values(groups);
@@ -232,21 +230,17 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
               <Box>
                 <Stack spacing={1.5}>
                   {order.tickets.map((ticket, idx) => {
-                    const show = shows.find(s => s.id === ticket.showId);
-                    const category = show?.ticketCategories.find(c => c.id === ticket.ticketCategoryId);
                     const holder = ticket.holder;
                     return (
                       <Box key={idx} sx={{ p: 1.5, borderRadius: '8px', border: '1px dashed', borderColor: 'divider', bgcolor: 'background.paper' }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={1}>
                           <Box>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                              {tt(`Vé #${idx + 1}:`, `Ticket #${idx + 1}:`)} {category?.name || tt('Vé', 'Ticket')}
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                              {ticket.ticketCategoryName}
                             </Typography>
-                            {show && (
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                {show.name} • {dayjs(show.startDateTime).format('HH:mm DD/MM/YYYY')}
-                              </Typography>
-                            )}
+                            <Typography variant="caption" color="text.secondary">
+                              {ticket.showName}
+                            </Typography>
                           </Box>
                           <Stack direction="row" spacing={1} flexWrap="wrap">
                             {ticket.seatLabel && (
@@ -413,14 +407,14 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                           <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                             <TicketIcon fontSize="var(--icon-fontSize-md)" />
                             <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                              {group.show?.name || tt('Chưa xác định', 'Not specified')} - {group.category?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
+                              {group.showName} - {group.categoryName}
                             </Typography>
                             <IconButton
                               size="small"
                               sx={{ ml: 1, alignSelf: 'flex-start' }}
                               onClick={() => {
-                                setActiveScheduleId(group.show.id);
-                                setRequestedCategoryModalId(group.category?.id || 0);
+                                setActiveScheduleId(group.showId);
+                                setRequestedCategoryModalId(group.categoryId);
                               }}
                             >
                               <Pencil />

@@ -158,7 +158,9 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
     setOrder(prev => {
       const ticket: TicketInfo = {
         showId: activeSchedule.id,
+        showName: activeSchedule.name,
         ticketCategoryId: ticketCategory.id,
+        ticketCategoryName: ticketCategory.name,
         seatId: pendingSeat.id,
         seatRow: pendingSeat.rowLabel || undefined,
         seatNumber: pendingSeat.number ? String(pendingSeat.number) : undefined,
@@ -326,7 +328,9 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
 
         ticketsToAdd.push({
           showId: activeSchedule!.id,
+          showName: activeSchedule!.name,
           ticketCategoryId: catId,
+          ticketCategoryName: catConfig?.name || '',
           seatId: seat.id,
           seatRow: seatRow,
           seatNumber: seatNumber,
@@ -423,7 +427,9 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
 
           const newTickets: TicketInfo[] = Array.from({ length: toAdd }).map(() => ({
             showId: activeSchedule.id,
+            showName: activeSchedule.name,
             ticketCategoryId: categoryId,
+            ticketCategoryName: catConfig.name,
             price: defaultAudience ? defaultAudience.price : catConfig.price,
             audienceId: defaultAudience?.audienceId,
             audienceName: defaultAudience?.audience.name,
@@ -451,7 +457,9 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
             const audConfig = catConfig.categoryAudiences?.find(ca => ca.audienceId === audId);
             const newTickets: TicketInfo[] = Array.from({ length: toAdd }).map(() => ({
               showId: activeSchedule.id,
+              showName: activeSchedule.name,
               ticketCategoryId: categoryId,
+              ticketCategoryName: catConfig.name,
               price: audConfig ? audConfig.price : catConfig.price,
               audienceId: audId,
               audienceName: audConfig?.audience.name,
@@ -564,6 +572,8 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
               {order.tickets.map((ticket, index) => {
                 const show = shows?.find(s => s.id === ticket.showId);
                 const category = show?.ticketCategories.find(c => c.id === ticket.ticketCategoryId);
+                const displayCatName = category?.name || ticket.ticketCategoryName || tt('Vé', 'Ticket');
+                const displayShowName = show?.name || ticket.showName;
                 return (
                   <Box
                     key={index}
@@ -579,11 +589,11 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Box>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                          {category?.name || tt('Vé', 'Ticket')}
+                          {displayCatName}
                         </Typography>
-                        {show && (
+                        {displayShowName && (
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                            {show.name} • {formatDateTime(show.startDateTime)}
+                            {displayShowName} {show ? `• ${formatDateTime(show.startDateTime)}` : ''}
                           </Typography>
                         )}
                       </Box>

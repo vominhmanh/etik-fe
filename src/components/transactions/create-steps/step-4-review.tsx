@@ -90,12 +90,10 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
       const key = `${t.showId}-${t.ticketCategoryId}`;
       let g = groups.find(x => x.key === key);
       if (!g) {
-        const show = shows.find(s => s.id === t.showId);
-        const cat = show?.ticketCategories.find(c => c.id === t.ticketCategoryId);
         g = {
           key,
-          show,
-          category: cat,
+          showName: t.showName || `Suất ID ${t.showId}`,
+          categoryName: t.ticketCategoryName || `Loại vé ID ${t.ticketCategoryId}`,
           quantity: 0,
           total: 0,
           items: []
@@ -133,7 +131,7 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                       <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
                         <TicketIcon fontSize="var(--icon-fontSize-md)" />
                         <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {group.show?.name || tt('Chưa xác định', 'Not specified')} - {group.category?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
+                          {group.showName} - {group.categoryName}
                         </Typography>
                       </Stack>
                       <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>

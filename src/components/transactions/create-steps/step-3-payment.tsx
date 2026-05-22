@@ -157,7 +157,9 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
                           g = {
                             key,
                             showId: t.showId,
+                            showName: t.showName,
                             ticketCategoryId: t.ticketCategoryId,
+                            ticketCategoryName: t.ticketCategoryName,
                             audienceId: t.audienceId,
                             audienceName: t.audienceName,
                             quantity: 0,
@@ -179,9 +181,6 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
                       return (
                         <>
                           {groups.map((g) => {
-                            const show = shows?.find((s: any) => s.id === g.showId);
-                            const ticketCategory = show?.ticketCategories?.find((c: any) => c.id === g.ticketCategoryId);
-
                             return (
                               <Card key={g.key} variant="outlined" sx={{ borderRadius: 1, boxShadow: 'none', bgcolor: 'background.default' }}>
                                 <CardContent sx={{ px: 1.5, py: 1, '&:last-child': { pb: 1 } }}>
@@ -190,10 +189,10 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
                                       <TicketIcon size={18} weight="duotone" style={{ opacity: 0.7, flexShrink: 0 }} />
                                       <Box sx={{ minWidth: 0 }}>
                                         <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
-                                          {show?.name || tt('Chưa xác định', 'Not specified')}
+                                          {g.showName}
                                         </Typography>
                                         <Typography variant="caption" color="text.secondary" noWrap>
-                                          {ticketCategory?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
+                                          {g.ticketCategoryName}
                                           {g.audienceName && <span style={{ fontWeight: 'normal', color: 'var(--mui-palette-text-secondary)' }}> ({g.audienceName})</span>}
                                         </Typography>
                                       </Box>
