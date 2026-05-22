@@ -130,6 +130,8 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
   const [openNotifModal, setOpenNotifModal] = React.useState(false);
   const [prevent24h, setPrevent24h] = React.useState(false);
   const [responseTransaction, setResponseTransaction] = React.useState<any | null>(null);
+  
+  const [hasEditedTickets, setHasEditedTickets] = React.useState<boolean>(false);
 
   const [invitation, setInvitation] = React.useState<any | null>(null);
   const hasFetchedInvitation = React.useRef(false);
@@ -1338,6 +1340,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
                 if (validateStep1()) setActiveStep(1);
               }}
               invitation={invitation}
+              onClearAndReselect={() => setHasEditedTickets(true)}
 
               // Cart props
               isCartOpen={cartOpen}
@@ -1368,6 +1371,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               order={order}
               setOrder={setOrder}
               checkoutFormFields={checkoutFormFields}
+              forceEditInfo={hasEditedTickets}
               customCheckoutFields={customCheckoutFields}
               builtinInternalNames={builtinInternalNames}
               checkoutCustomAnswers={checkoutCustomAnswers}

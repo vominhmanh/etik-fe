@@ -383,14 +383,11 @@ export default function Page(): React.JSX.Element {
                     backgroundColor: '#d1f9db',
                     backgroundImage: `linear-gradient(356deg, #d1f9db 0%, #fffed9 100%)`,
                   }}>
-                    <CardHeader title={tt('Mã QR check-in', 'Check-in QR code')} subheader={tt('Vui lòng bảo mật mã QR check-in', 'Please keep your check-in QR code secure')} />
+                    <CardHeader title={tt('Mã QR check-in', 'Check-in QR code')} />
                     <Divider />
                     <CardContent>
                       <Stack spacing={1} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <div style={{ width: '100px' }}>
-                          <Box component="img" src={`https://api.qrserver.com/v1/create-qr-code/?margin=16&size=100x100&data=${eCode}`} />
-                        </div>
-                        <Typography sx={{ textAlign: 'center' }}>{eCode}</Typography>
+                        <Typography sx={{ textAlign: 'center' }}>Vui lòng kiểm tra email để nhận mã</Typography>
                       </Stack>
                     </CardContent>
                   </Card>

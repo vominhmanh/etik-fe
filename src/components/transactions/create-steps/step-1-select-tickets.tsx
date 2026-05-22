@@ -98,7 +98,18 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
 
   // isEditingTickets: only true if invitation has pre-selected tickets but user wants to re-pick.
   // When true, we show the normal ticket selection UI.
-  const [isEditingTickets, setIsEditingTickets] = React.useState<boolean>(false);
+  const [isEditingTickets, setIsEditingTickets] = React.useState(false);
+  const [isMessageExpanded, setIsMessageExpanded] = React.useState(false);
+  const [showMessageExpandBtn, setShowMessageExpandBtn] = React.useState(false);
+  const messageRef = React.useRef<HTMLElement>(null);
+
+  React.useEffect(() => {
+    if (messageRef.current) {
+      if (messageRef.current.scrollHeight > messageRef.current.clientHeight) {
+        setShowMessageExpandBtn(true);
+      }
+    }
+  }, [invitation?.message]);
 
   // Determine if we should show the invitation summary card:
   // invitation exists AND has pre-selected tickets AND guest hasn't chosen to re-pick
@@ -462,9 +473,79 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
     });
   };
 
+  const invitationBanner = invitation ? (
+    <Stack spacing={1}>
+      <Alert
+        severity="info"
+        sx={{ borderRadius: '12px' }}
+        action={
+          <Button
+            color="inherit"
+            size="small"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('invitationUuid');
+                window.location.href = url.toString();
+              }
+            }}
+            sx={{ fontWeight: 600, textTransform: 'none', whiteSpace: 'nowrap' }}
+          >
+            {tt('Thoát', 'Exit')}
+          </Button>
+        }
+      >
+        <Box>
+          <Typography variant="body2">
+            {tt('Người nhận:', 'Recipient:')} <strong>{invitation.recipientTitle || ''} {invitation.recipientName}</strong>.
+          </Typography>
+          <Typography variant="caption" sx={{ fontStyle: 'italic' }}>
+            {tt(' Bạn đang chọn vé theo thư mời.', ' You are selecting tickets via an invitation.')}
+          </Typography>
+        </Box>
+      </Alert>
+      {invitation.message && (
+        <Box sx={{ p: 1.5, bgcolor: 'rgba(255,204,0,0.1)', borderRadius: '8px', borderLeft: '4px solid #ffcc00' }}>
+          <Box sx={{ position: 'relative' }}>
+            <Typography 
+              ref={messageRef}
+              dangerouslySetInnerHTML={{ __html: invitation.message }} 
+              variant="body2" 
+              sx={{ 
+                color: '#555', 
+                fontStyle: 'italic',
+                display: '-webkit-box',
+                WebkitLineClamp: isMessageExpanded ? 'unset' : 10,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden'
+              }} 
+            />
+          </Box>
+          {showMessageExpandBtn && (
+            <Button 
+              size="small" 
+              variant="text" 
+              onClick={() => setIsMessageExpanded(!isMessageExpanded)}
+              sx={{ mt: 0.5, p: 0, minWidth: 0, fontSize: '0.75rem', textTransform: 'none', color: '#856600', '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' } }}
+            >
+              {isMessageExpanded ? tt('Thu gọn', 'Show less') : tt('Xem thêm...', 'Read more...')}
+            </Button>
+          )}
+        </Box>
+      )}
+      {invitation.expiresAt && (
+        <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 2, color: 'error.main' }}>
+          {tt('Lời mời có giá trị đến:', 'Invitation valid until:')}{" "}
+          {dayjs(invitation.expiresAt).format('DD/MM/YYYY HH:mm')}
+        </Typography>
+      )}
+    </Stack>
+  ) : null;
+
   if (showInvitationCard) {
     return (
       <Stack spacing={2} sx={{ width: '100%' }}>
+        {invitationBanner}
         <Card sx={{ borderRadius: '16px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)' }}>
           <CardHeader
             title={
@@ -472,27 +553,14 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
                 <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a3322' }}>
                   {tt('Vé đã được chọn sẵn cho bạn', 'Tickets Pre-selected for You')}
                 </Typography>
-
-                <Typography variant="body2" color="text.secondary">
-                  {tt('Người nhận:', 'Recipient:')} <strong>{invitation.recipientTitle || ''} {invitation.recipientName}</strong>
-                </Typography>
-
-                <Typography variant="caption" color="warning" sx={{ fontWeight: 600 }}>
-                  {tt('Lời mời có giá trị đến:', 'Invitation valid until:')}{' '}
-                  {invitation.expiresAt ? dayjs(invitation.expiresAt).format('DD/MM/YYYY HH:mm') : tt('Không giới hạn', 'No time limit')}
-                </Typography>
               </Stack>
             }
             sx={{ backgroundColor: 'rgba(209, 249, 219, 0.3)', pb: 2 }}
           />
           <Divider />
           <CardContent sx={{ p: 3 }}>
-            {invitation.message && (
-              <Box sx={{ mb: 3, p: 2, bgcolor: '#fffde6', borderRadius: '12px', borderLeft: '4px solid #ffcc00' }}>
-                <Typography dangerouslySetInnerHTML={{ __html: invitation.message }} variant="body2" sx={{ color: '#555' }} />
-              </Box>
-            )}
             <Stack spacing={2}>
+              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '12px', bgcolor: 'background.paper', px: 2, py: 0.5 }}>
               {order.tickets.map((ticket, index) => {
                 const show = shows?.find(s => s.id === ticket.showId);
                 const category = show?.ticketCategories.find(c => c.id === ticket.ticketCategoryId);
@@ -500,43 +568,45 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
                   <Box
                     key={index}
                     sx={{
-                      p: 2,
-                      borderRadius: '12px',
-                      border: '1px solid #e0e0e0',
-                      bgcolor: '#fcfcfc',
+                      py: 1.5,
+                      borderBottom: index < order.tickets.length - 1 ? '1px dashed' : 'none',
+                      borderColor: 'divider',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 1
+                      gap: 0.5
                     }}
                   >
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#2e7d32' }}>
-                        {category?.name || tt('Vé', 'Ticket')}
-                      </Typography>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                          {category?.name || tt('Vé', 'Ticket')}
+                        </Typography>
+                        {show && (
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                            {show.name} • {formatDateTime(show.startDateTime)}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', pl: 2, whiteSpace: 'nowrap' }}>
                         {props.formatPrice(ticket.price || 0)}
                       </Typography>
                     </Stack>
-                    {show && (
-                      <Typography variant="body2" color="text.secondary">
-                        {tt('Suất diễn:', 'Showtime:')} {formatDateTime(show.startDateTime)}
-                      </Typography>
-                    )}
                     <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 0.5 }}>
                       {ticket.seatLabel && (
-                        <Box sx={{ px: 1.5, py: 0.5, bgcolor: '#e8f5e9', color: '#2e7d32', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
+                        <Typography variant="caption" sx={{ px: 1, py: 0.25, bgcolor: 'primary.50', color: 'primary.main', borderRadius: '4px', fontWeight: 500 }}>
                           {tt('Ghế:', 'Seat:')} {ticket.seatLabel}
-                        </Box>
+                        </Typography>
                       )}
                       {ticket.audienceName && (
-                        <Box sx={{ px: 1.5, py: 0.5, bgcolor: '#efebe9', color: '#5d4037', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
+                        <Typography variant="caption" sx={{ px: 1, py: 0.25, bgcolor: 'grey.100', color: 'text.secondary', borderRadius: '4px', fontWeight: 500 }}>
                           {tt('Đối tượng:', 'Audience:')} {ticket.audienceName}
-                        </Box>
+                        </Typography>
                       )}
                     </Stack>
                   </Box>
                 );
               })}
+            </Box>
 
               {/* Concessions */}
               {order.concessions && order.concessions.length > 0 && (
@@ -592,74 +662,14 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
           </CardContent>
         </Card>
 
-        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-          <Button
-            variant="text"
-            color="inherit"
-            size="small"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                const url = new URL(window.location.href);
-                url.searchParams.delete('invitationUuid');
-                window.location.href = url.toString();
-              }
-            }}
-            sx={{
-              color: 'text.secondary',
-              fontWeight: 400,
-              fontSize: '0.75rem',
-              textTransform: 'none',
-              '&:hover': {
-                backgroundColor: 'transparent',
-                textDecoration: 'underline',
-                color: 'text.primary',
-              }
-            }}
-          >
-            {tt('Thoát chế độ mua vé bằng lời mời', 'Exit invitation ticket purchase mode')}
-          </Button>
-        </Box>
+
       </Stack>
     );
   }
 
   return (
     <Stack spacing={3}>
-      {invitation && (
-        <Alert
-          severity="info"
-          sx={{ borderRadius: '12px' }}
-          action={
-            <Button
-              color="inherit"
-              size="small"
-              onClick={() => {
-                if (typeof window !== 'undefined') {
-                  const url = new URL(window.location.href);
-                  url.searchParams.delete('invitationUuid');
-                  window.location.href = url.toString();
-                }
-              }}
-              sx={{ fontWeight: 600, textTransform: 'none', whiteSpace: 'nowrap' }}
-            >
-              {tt('Thoát lời mời', 'Exit invitation')}
-            </Button>
-          }
-        >
-          <Box>
-            <Typography variant="body2">
-              {tt('Người nhận:', 'Recipient:')} <strong>{invitation.recipientTitle || ''} {invitation.recipientName}</strong>.
-              {tt(' Bạn đang chọn vé theo thư mời.', ' You are selecting tickets via an invitation.')}
-            </Typography>
-            {invitation.expiresAt && (
-              <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mt: 0.5, color: 'error.main' }}>
-                {tt('Lời mời có giá trị đến:', 'Invitation valid until:')}{' '}
-                {dayjs(invitation.expiresAt).format('DD/MM/YYYY HH:mm')}
-              </Typography>
-            )}
-          </Box>
-        </Alert>
-      )}
+      {invitationBanner}
       <Grid container spacing={3}>
         <Grid lg={3} md={4} xs={12}>
           <Stack spacing={3}>

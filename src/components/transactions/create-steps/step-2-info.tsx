@@ -15,6 +15,7 @@ import {
   MenuItem,
   Stack,
   Typography,
+  Alert
 } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -74,6 +75,7 @@ export type Step2InfoProps = {
   source?: 'marketplace' | 'event-studio';
   readonly?: boolean;
   invitation?: any;
+  forceEditInfo?: boolean;
 };
 
 export function Step2Info(props: Step2InfoProps): React.JSX.Element {
@@ -104,9 +106,21 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     source = 'marketplace',
     readonly = false,
     invitation,
+    forceEditInfo = false,
   } = props;
 
   const [isEditingInfo, setIsEditingInfo] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (forceEditInfo && !isEditingInfo) {
+      setIsEditingInfo(true);
+      setOrder((prev: any) => ({
+        ...prev,
+        customer: { title: '', name: '', email: '', phoneNumber: '', nationalPhone: '', address: '', phoneCountryIso2: 'VN', dob: null, idcard_number: '', avatar: '' },
+        tickets: prev.tickets.map((t: any) => ({ ...t, holder: undefined }))
+      }));
+    }
+  }, [forceEditInfo, isEditingInfo, setOrder]);
 
   // State to control expanded accordions
   const [expandedAccordions, setExpandedAccordions] = React.useState<Record<number, boolean>>(() => {
@@ -166,206 +180,209 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
   if (showInvitationCard) {
     const pf = invitation.preFilledInfo; // pre-filled info shorthand
     return (
-      <Card sx={{ borderRadius: '16px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)' }}>
-        <CardHeader
-          title={
-            <Stack spacing={0.5}>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a3322' }}>
-                {tt('Vé đã được chọn sẵn cho bạn', 'Tickets Pre-selected for You')}
-              </Typography>
-
-              <Typography variant="body2" color="text.secondary">
-                {tt('Người nhận:', 'Recipient:')} <strong>{invitation.recipientTitle || ''} {invitation.recipientName}</strong>
-              </Typography>
-
-              <Typography variant="caption" color="warning" sx={{ fontWeight: 600 }}>
-                {tt('Lời mời có giá trị đến:', 'Invitation valid until:')}{' '}
-                {invitation.expiresAt ? dayjs(invitation.expiresAt).format('DD/MM/YYYY HH:mm') : tt('Không giới hạn', 'No time limit')}
-              </Typography>
-            </Stack>
-          }
-          sx={{ backgroundColor: 'rgba(209, 249, 219, 0.3)', pb: 2 }}
-        />
-        <Divider />
-        <CardContent sx={{ p: 3 }}>
-          <Stack spacing={3}>
-            {/* Buyer Information */}
+      <Stack spacing={2} sx={{ width: '100%' }}>
+        {invitation && (
+          <Alert
+            severity="info"
+            sx={{ borderRadius: '12px' }}
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('invitationUuid');
+                    window.location.href = url.toString();
+                  }
+                }}
+                sx={{ fontWeight: 600, textTransform: 'none', whiteSpace: 'nowrap' }}
+              >
+                {tt('Thoát', 'Exit')}
+              </Button>
+            }
+          >
             <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, color: '#2e7d32' }}>
-                {tt('Thông tin người mua vé', 'Buyer Information')}
+              <Typography variant="body2">
+                {tt('Người nhận:', 'Recipient:')} <strong>{invitation.recipientTitle || ''} {invitation.recipientName}</strong>.
               </Typography>
-              <Grid container spacing={2}>
-                {order.customer.name && (
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">{tt('Họ và tên:', 'Full Name:')}</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{order.customer.title} {order.customer.name}</Typography>
-                  </Grid>
-                )}
-                {order.customer.email && (
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">{tt('Email:', 'Email:')}</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{order.customer.email}</Typography>
-                  </Grid>
-                )}
-                {(order.customer.phoneNumber || order.customer.nationalPhone) && (
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">{tt('Số điện thoại:', 'Phone Number:')}</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                      {order.customer.phoneNumber || order.customer.nationalPhone}
-                    </Typography>
-                  </Grid>
-                )}
-                {order.customer.dob && (
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">{tt('Ngày sinh:', 'Date of Birth:')}</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{dayjs(order.customer.dob).format('DD/MM/YYYY')}</Typography>
-                  </Grid>
-                )}
-                {order.customer.idcard_number && (
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">{tt('Số CCCD/CMND:', 'ID Card Number:')}</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{order.customer.idcard_number}</Typography>
-                  </Grid>
-                )}
-                {order.customer.address && (
-                  <Grid item xs={12}>
-                    <Typography variant="body2" color="text.secondary">{tt('Địa chỉ:', 'Address:')}</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{order.customer.address}</Typography>
-                  </Grid>
-                )}
-              </Grid>
+              <Typography variant="caption" sx={{ fontStyle: 'italic' }}>
+                {tt(' Bạn đang điền thông tin theo thư mời.', ' You are entering info via an invitation.')}
+              </Typography>
             </Box>
-            {/* Custom Form Answers */}
-            {customCheckoutFields.length > 0 && (
-              <>
-                <Divider />
-                <Grid container spacing={2}>
-                  {customCheckoutFields.map((field) => {
-                    const value = checkoutCustomAnswers[field.internalName];
-                    let displayValue = '';
-                    if (Array.isArray(value)) displayValue = value.join(', ');
-                    else if (value !== undefined && value !== null) displayValue = String(value);
-                    if (!displayValue) return null;
+          </Alert>
+        )}
+
+        <Card sx={{ borderRadius: '16px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)' }}>
+          <CardHeader
+            title={
+              <Stack spacing={0.5}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a3322' }}>
+                  {tt('Thông tin đã được điền sẵn cho bạn', 'Information Pre-filled for You')}
+                </Typography>
+              </Stack>
+            }
+            sx={{ backgroundColor: 'rgba(209, 249, 219, 0.3)', pb: 2 }}
+          />
+          <Divider />
+          <CardContent sx={{ p: 3 }}>
+            <Stack spacing={3}>
+
+              {/* Ticket Holders */}
+              <Box>
+                <Stack spacing={1.5}>
+                  {order.tickets.map((ticket, idx) => {
+                    const show = shows.find(s => s.id === ticket.showId);
+                    const category = show?.ticketCategories.find(c => c.id === ticket.ticketCategoryId);
+                    const holder = ticket.holder;
                     return (
-                      <Grid item xs={12} sm={6} key={field.internalName}>
-                        <Typography variant="body2" color="text.secondary">{field.label}:</Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 600 }}>{displayValue}</Typography>
-                      </Grid>
-                    );
-                  })}
-                </Grid>
-              </>
-            )}
-
-            <Divider />
-
-            {/* Ticket Holders */}
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, color: '#2e7d32' }}>
-                {tt('Thông tin vé & người sử dụng', 'Ticket & Attendee Details')}
-              </Typography>
-              <Stack spacing={2}>
-                {order.tickets.map((ticket, idx) => {
-                  const show = shows.find(s => s.id === ticket.showId);
-                  const category = show?.ticketCategories.find(c => c.id === ticket.ticketCategoryId);
-                  const holder = ticket.holder;
-                  return (
-                    <Box key={idx} sx={{ p: 2, borderRadius: '12px', border: '1px solid #e0e0e0', bgcolor: '#fcfcfc' }}>
-                      <Stack spacing={1.5}>
-                        <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
-                            {tt(`Vé #${idx + 1}:`, `Ticket #${idx + 1}:`)} {category?.name || tt('Vé', 'Ticket')}
-                          </Typography>
+                      <Box key={idx} sx={{ p: 1.5, borderRadius: '8px', border: '1px dashed', borderColor: 'divider', bgcolor: 'background.paper' }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={1}>
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                              {tt(`Vé #${idx + 1}:`, `Ticket #${idx + 1}:`)} {category?.name || tt('Vé', 'Ticket')}
+                            </Typography>
+                            {show && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                {show.name} • {dayjs(show.startDateTime).format('HH:mm DD/MM/YYYY')}
+                              </Typography>
+                            )}
+                          </Box>
                           <Stack direction="row" spacing={1} flexWrap="wrap">
                             {ticket.seatLabel && (
-                              <Box sx={{ px: 1, py: 0.25, bgcolor: '#e8f5e9', color: '#2e7d32', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                              <Typography variant="caption" sx={{ px: 1, py: 0.25, bgcolor: 'primary.50', color: 'primary.main', borderRadius: '4px', fontWeight: 500 }}>
                                 {tt('Ghế:', 'Seat:')} {ticket.seatLabel}
-                              </Box>
+                              </Typography>
                             )}
                             {ticket.audienceName && (
-                              <Box sx={{ px: 1, py: 0.25, bgcolor: '#efebe9', color: '#5d4037', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                              <Typography variant="caption" sx={{ px: 1, py: 0.25, bgcolor: 'grey.100', color: 'text.secondary', borderRadius: '4px', fontWeight: 500 }}>
                                 {tt('Đối tượng:', 'Audience:')} {ticket.audienceName}
-                              </Box>
+                              </Typography>
                             )}
                           </Stack>
                         </Stack>
-                        {show && (
-                          <Typography variant="caption" color="text.secondary">
-                            {tt('Suất diễn:', 'Showtime:')} {dayjs(show.startDateTime).format('HH:mm DD/MM/YYYY')}
-                          </Typography>
-                        )}
-                        {holder ? (
+                        {holder && (holder.name || holder.email || holder.nationalPhone || holder.phone) && (
                           <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
                             {holder.name && (
                               <Grid item xs={12} sm={4}>
-                                <Typography variant="caption" color="text.secondary">{tt('Người sử dụng:', 'Attendee Name:')}</Typography>
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{holder.title} {holder.name}</Typography>
+                                <Typography variant="caption" color="text.secondary" display="block">{tt('Người sử dụng', 'Attendee')}</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{holder.title ? `${holder.title} ` : ''}{holder.name}</Typography>
                               </Grid>
                             )}
                             {holder.email && (
                               <Grid item xs={12} sm={4}>
-                                <Typography variant="caption" color="text.secondary">{tt('Email:', 'Email:')}</Typography>
+                                <Typography variant="caption" color="text.secondary" display="block">Email</Typography>
                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>{holder.email}</Typography>
                               </Grid>
                             )}
-                            {(holder.phone || holder.nationalPhone) && (
+                            {(holder.phone) && (
                               <Grid item xs={12} sm={4}>
-                                <Typography variant="caption" color="text.secondary">{tt('Số điện thoại:', 'Phone Number:')}</Typography>
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                  {holder.phone || holder.nationalPhone}
-                                </Typography>
+                                <Typography variant="caption" color="text.secondary" display="block">{tt('Số điện thoại', 'Phone')}</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{holder.phone}</Typography>
                               </Grid>
                             )}
                           </Grid>
-                        ) : (
-                          <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
-                            {tt('Chưa có thông tin người sử dụng vé', 'No attendee info specified')}
-                          </Typography>
                         )}
-                      </Stack>
-                    </Box>
-                  );
-                })}
-              </Stack>
-            </Box>
-          </Stack>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              </Box>
 
-          {/* Actions */}
-          <Box sx={{ mt: 4, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Stack direction="row" spacing={2}>
-              <Button variant="outlined" color="secondary" onClick={onBack} sx={{ borderRadius: '8px', fontWeight: 600 }}>
-                {tt('Quay lại', 'Back')}
-              </Button>
-              {invitation.allowInfoEdit && (
-                <Button
-                  variant="outlined"
-                  color="warning"
-                  onClick={() => {
-                    // Clear pre-filled customer & holder info so guest starts fresh
-                    setOrder(prev => ({
-                      ...prev,
-                      customer: { title: '', name: '', email: '', phoneNumber: '', nationalPhone: '', address: '', phoneCountryIso2: 'VN', dob: null, idcard_number: '', avatar: '' },
-                      tickets: prev.tickets.map(t => ({ ...t, holder: undefined }))
-                    }));
-                    setIsEditingInfo(true);
-                  }}
-                  sx={{ borderRadius: '8px', fontWeight: 600 }}
-                >
-                  {tt('Nhập lại thông tin', 'Re-enter Information')}
-                </Button>
-              )}
+              <Divider />
+
+              {/* Buyer Information */}
+              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '12px', bgcolor: 'background.paper', p: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'text.primary' }}>
+                  {tt('Thông tin người mua vé', 'Buyer Information')}
+                </Typography>
+                <Grid container spacing={1.5}>
+                  {order.customer.name && (
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="caption" color="text.secondary" display="block">{tt('Họ và tên', 'Full Name')}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{order.customer.title} {order.customer.name}</Typography>
+                    </Grid>
+                  )}
+                  {order.customer.email && (
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="caption" color="text.secondary" display="block">{tt('Email', 'Email')}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{order.customer.email}</Typography>
+                    </Grid>
+                  )}
+                  {(order.customer.phoneNumber || order.customer.nationalPhone) && (
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="caption" color="text.secondary" display="block">{tt('Số điện thoại', 'Phone Number')}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{order.customer.phoneNumber || order.customer.nationalPhone}</Typography>
+                    </Grid>
+                  )}
+                </Grid>
+
+                {/* Custom Form Answers */}
+                {customCheckoutFields.length > 0 && (
+                  <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px dashed', borderColor: 'divider' }}>
+                    <Grid container spacing={1.5}>
+                      {customCheckoutFields.map((field) => {
+                        const value = checkoutCustomAnswers[field.internalName];
+                        let displayValue = '';
+                        if (Array.isArray(value)) displayValue = value.join(', ');
+                        else if (value !== undefined && value !== null) displayValue = String(value);
+                        if (!displayValue) return null;
+                        return (
+                          <Grid item xs={12} sm={6} key={field.internalName}>
+                            <Typography variant="caption" color="text.secondary" display="block">{field.label}</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{displayValue}</Typography>
+                          </Grid>
+                        );
+                      })}
+                    </Grid>
+                  </Box>
+                )}
+              </Box>
+
+
+              <Stack spacing={2} sx={{ mt: 2, width: '100%' }}>
+                {invitation.allowInfoEdit && (
+                  <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-end' } }}>
+                    <Button
+                      variant="outlined"
+                      color="warning"
+                      onClick={() => {
+                        setOrder((prev: any) => ({
+                          ...prev,
+                          customer: { title: '', name: '', email: '', phoneNumber: '', nationalPhone: '', address: '', phoneCountryIso2: 'VN', dob: null, idcard_number: '', avatar: '' },
+                          tickets: prev.tickets.map((t: any) => ({ ...t, holder: undefined }))
+                        }));
+                        setIsEditingInfo(true);
+                      }}
+                      sx={{ borderRadius: '8px', fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}
+                    >
+                      {tt('Thay đổi thông tin', 'Change Information')}
+                    </Button>
+                  </Box>
+                )}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Button
+                    variant="text"
+                    color="inherit"
+                    onClick={onBack}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    {tt('Quay lại', 'Back')}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={onNext}
+                    sx={{ px: 4, py: 1, borderRadius: '8px', fontWeight: 600 }}
+                  >
+                    {tt('Tiếp tục', 'Continue')}
+                  </Button>
+                </Box>
+              </Stack>
             </Stack>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={onNext}
-              sx={{ px: 4, py: 1, borderRadius: '8px', fontWeight: 600 }}
-            >
-              {tt('Tiếp tục', 'Continue')}
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </Stack>
     );
   }
 
@@ -1091,18 +1108,14 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
         </Grid>
 
       </Grid>
-      <Box>
-        <Stack direction="row" justifyContent="space-between">
-          <Button variant="outlined" onClick={onBack}>
-            {tt('Quay lại', 'Back')}
-          </Button>
-          <Button variant="contained" onClick={onNext}>
-            {tt('Tiếp tục', 'Continue')}
-          </Button>
-        </Stack>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Button variant="outlined" onClick={onBack} sx={{ fontWeight: 600 }}>
+          {tt('Quay lại', 'Back')}
+        </Button>
+        <Button variant="contained" onClick={onNext} sx={{ px: 4, py: 1, borderRadius: '8px', fontWeight: 600 }}>
+          {tt('Tiếp tục', 'Next')}
+        </Button>
       </Box>
     </Stack>
   );
 }
-
-

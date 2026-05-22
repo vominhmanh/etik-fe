@@ -965,14 +965,11 @@ export default function Page({ params }: { params: { transaction_id: number } })
             </Card>
             {Boolean(eCode) && (
               <Card>
-                <CardHeader title={tt('Mã QR check-in', 'Check-in QR Code')} subheader={tt('Vui lòng bảo mật mã QR check-in', 'Please keep your check-in QR code secure')} />
+                <CardHeader title={tt('Mã QR check-in', 'Check-in QR Code')} />
                 <Divider />
                 <CardContent>
                   <Stack spacing={1} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <div style={{ width: '100px' }}>
-                      <Box component="img" src={`https://api.qrserver.com/v1/create-qr-code/?margin=16&size=100x100&data=${eCode}`} alt="Check-in QR code" />
-                    </div>
-                    <Typography sx={{ textAlign: 'center' }}>{eCode}</Typography>
+                    <Typography sx={{ textAlign: 'center' }}>Vui lòng kiểm tra email để nhận mã</Typography>
                   </Stack>
                 </CardContent>
               </Card>

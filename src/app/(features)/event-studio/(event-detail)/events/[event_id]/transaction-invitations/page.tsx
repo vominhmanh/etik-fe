@@ -171,6 +171,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 		return map;
 	}, [eventData]);
 
+	const checkoutFormFieldsMap = React.useMemo(() => {
+		const map = new Map<string, string>();
+		if (!eventData?.checkoutForm) return map;
+		try {
+			const fields = typeof eventData.checkoutForm === 'string' ? JSON.parse(eventData.checkoutForm) : eventData.checkoutForm;
+			if (Array.isArray(fields)) {
+				fields.forEach(f => {
+					if (f.internal_name && f.label) map.set(f.internal_name, f.label);
+				});
+			}
+		} catch (e) {
+			console.error("Failed to parse checkoutForm", e);
+		}
+		return map;
+	}, [eventData?.checkoutForm]);
+
 	// Actions
 	const handleResendEmail = async (id: number, e?: React.MouseEvent) => {
 		if (e) e.stopPropagation();
@@ -591,13 +607,38 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 											<Typography variant="caption" color={selectedInvitation.preFilledInfo?.customer ? 'primary.main' : 'text.secondary'} fontWeight="bold" display="block" mb={0.5}>
 												{tt('Thông tin người mua', 'Buyer Info')}
 											</Typography>
-											{selectedInvitation.preFilledInfo?.customer ? (
-												<Typography variant="body2" display="block">
-													👤 <strong>{selectedInvitation.preFilledInfo.customer.name || '---'}</strong>
-													{selectedInvitation.preFilledInfo.customer.email && ` • ✉️ ${selectedInvitation.preFilledInfo.customer.email}`}
-													{(selectedInvitation.preFilledInfo.customer.phoneNumber || selectedInvitation.preFilledInfo.customer.phone) && ` • 📞 ${selectedInvitation.preFilledInfo.customer.phoneNumber || selectedInvitation.preFilledInfo.customer.phone}`}
-												</Typography>
-											) : (
+											{selectedInvitation.preFilledInfo?.customer ? (() => {
+												const customerInfo = selectedInvitation.preFilledInfo.customer as any;
+												return (
+												<Stack spacing={0.75} mt={0.5}>
+													<Typography variant="body2" display="block">
+														👤 <strong>{customerInfo.title ? `${customerInfo.title} ` : ''}{customerInfo.name || '---'}</strong>
+														{customerInfo.email && ` • ✉️ ${customerInfo.email}`}
+														{(customerInfo.phoneNumber) && ` • 📞 ${customerInfo.phoneNumber}`}
+													</Typography>
+													{(customerInfo.dob || customerInfo.idcard_number || customerInfo.address) && (
+														<Typography variant="body2" display="block" color="text.secondary">
+															{customerInfo.dob && `📅 ${dayjs(customerInfo.dob).format('DD/MM/YYYY')} `}
+															{customerInfo.idcard_number && ` • 🪪 ${customerInfo.idcard_number} `}
+															{customerInfo.address && ` • 📍 ${customerInfo.address}`}
+														</Typography>
+													)}
+													{selectedInvitation.preFilledInfo?.formAnswers && Object.keys(selectedInvitation.preFilledInfo?.formAnswers).length > 0 && (
+														<Box sx={{ mt: 0.5, p: 1, bgcolor: 'rgba(255,255,255,0.6)', borderRadius: 1, border: '1px dashed', borderColor: 'primary.light' }}>
+															{Object.entries(selectedInvitation.preFilledInfo?.formAnswers).map(([key, val]) => {
+																const label = checkoutFormFieldsMap.get(key) || key;
+																const displayVal = Array.isArray(val) ? val.join(', ') : String(val);
+																return (
+																	<Typography key={key} variant="caption" display="block" color="text.secondary">
+																		<strong>{label}:</strong> {displayVal}
+																	</Typography>
+																);
+															})}
+														</Box>
+													)}
+												</Stack>
+												);
+											})() : (
 												<Typography variant="body2" color="text.secondary" fontStyle="italic">
 													{tt('Chưa điền thông tin', 'Not filled')}
 												</Typography>
