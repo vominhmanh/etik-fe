@@ -550,9 +550,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 									</Typography>
 									<Stack spacing={1.5} sx={{ bgcolor: 'action.hover', p: 2, borderRadius: 1.5, mb: 2 }}>
 										<div>
-											<Typography variant="caption" color="text.secondary" display="block">{tt('Vé được chọn sẵn', 'Pre-selected Tickets')}</Typography>
+											<Typography variant="caption" color="text.secondary" display="block" mb={1}>{tt('Vé được chọn sẵn', 'Pre-selected Tickets')}</Typography>
 											{selectedInvitation.preSelectedTickets?.tickets && selectedInvitation.preSelectedTickets.tickets.length > 0 ? (
-												<Stack spacing={0.5} mt={0.5}>
+												<Stack spacing={1}>
 													{selectedInvitation.preSelectedTickets.tickets.map((t, idx) => {
 														const catName = categoryMap.get(t.ticketCategoryId) || `Loại vé #${t.ticketCategoryId}`;
 														const showName = showMap.get(t.showId) || `Suất #${t.showId}`;
@@ -560,22 +560,60 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 														const seatLabelVal = t.seatLabel || ((t.seatRow && t.seatNumber) ? `${t.seatRow}-${t.seatNumber}` : '');
 														if (seatLabelVal) details += ` - Ghế ${seatLabelVal}`;
 														if (t.audienceName) details += ` (${t.audienceName})`;
+														const holder = (t as any).holder;
 														return (
-															<Typography key={idx} variant="body2" fontWeight="medium">
-																• {catName} (<em>{showName}</em>){details}: <strong>x{t.quantity}</strong>
-															</Typography>
+															<Box key={idx} sx={{ bgcolor: 'background.default', p: 1.5, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+																<Typography variant="body2" fontWeight="medium">
+																	{catName} (<em>{showName}</em>){details}: <strong>x{t.quantity}</strong>
+																</Typography>
+																{holder && (holder.name || holder.email || holder.nationalPhone || holder.phone) ? (
+																	<Typography variant="caption" color="text.secondary" display="block" mt={0.5}>
+																		👤 {holder.name || '---'}
+																		{(holder.email) && ` • ✉️ ${holder.email}`}
+																		{(holder.nationalPhone || holder.phone) && ` • 📞 ${holder.nationalPhone || holder.phone}`}
+																	</Typography>
+																) : (
+																	<Typography variant="caption" color="text.secondary" fontStyle="italic" display="block" mt={0.5}>
+																		{tt('Chưa điền thông tin cá nhân', 'No personal info filled')}
+																	</Typography>
+																)}
+															</Box>
 														);
 													})}
 												</Stack>
 											) : (
-												<Typography variant="body2">{tt('Khách hàng tự chọn loại vé và số lượng', 'Customer chooses ticket categories & quantity')}</Typography>
+												<Typography variant="body2" color="text.secondary" fontStyle="italic">{tt('Khách hàng tự chọn loại vé và số lượng', 'Customer chooses ticket categories & quantity')}</Typography>
 											)}
 										</div>
+
+
+										<Box sx={{ bgcolor: selectedInvitation.preFilledInfo?.customer ? 'primary.50' : 'background.default', p: 1.5, borderRadius: 1, border: '1px solid', borderColor: selectedInvitation.preFilledInfo?.customer ? 'primary.light' : 'divider' }}>
+											<Typography variant="caption" color={selectedInvitation.preFilledInfo?.customer ? 'primary.main' : 'text.secondary'} fontWeight="bold" display="block" mb={0.5}>
+												{tt('Thông tin người mua', 'Buyer Info')}
+											</Typography>
+											{selectedInvitation.preFilledInfo?.customer ? (
+												<Typography variant="body2" display="block">
+													👤 <strong>{selectedInvitation.preFilledInfo.customer.name || '---'}</strong>
+													{selectedInvitation.preFilledInfo.customer.email && ` • ✉️ ${selectedInvitation.preFilledInfo.customer.email}`}
+													{(selectedInvitation.preFilledInfo.customer.phoneNumber || selectedInvitation.preFilledInfo.customer.phone) && ` • 📞 ${selectedInvitation.preFilledInfo.customer.phoneNumber || selectedInvitation.preFilledInfo.customer.phone}`}
+												</Typography>
+											) : (
+												<Typography variant="body2" color="text.secondary" fontStyle="italic">
+													{tt('Chưa điền thông tin', 'Not filled')}
+												</Typography>
+											)}
+										</Box>
 
 										<div>
 											<Typography variant="caption" color="text.secondary" display="block">{tt('Cho phép chọn/sửa vé', 'Allow ticket editing')}</Typography>
 											<Typography variant="body2" fontWeight="medium">
 												{selectedInvitation.allowTicketEdit ? tt('Có', 'Yes') : tt('Không (Khóa theo vé chọn sẵn)', 'No (Locked to pre-selected tickets)')}
+											</Typography>
+										</div>
+										<div>
+											<Typography variant="caption" color="text.secondary" display="block">{tt('Cho phép sửa thông tin cá nhân', 'Allow guest information edit')}</Typography>
+											<Typography variant="body2" fontWeight="medium">
+												{selectedInvitation.allowInfoEdit ? tt('Có', 'Yes') : tt('Không (Khóa theo thông tin điền sẵn)', 'No (Locked to prefilled details)')}
 											</Typography>
 										</div>
 
@@ -587,22 +625,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 												) : tt('Không có', 'None')}
 											</Typography>
 										</div>
-
-										<div>
-											<Typography variant="caption" color="text.secondary" display="block">{tt('Cho phép sửa thông tin cá nhân', 'Allow guest information edit')}</Typography>
-											<Typography variant="body2" fontWeight="medium">
-												{selectedInvitation.allowInfoEdit ? tt('Có', 'Yes') : tt('Không (Khóa theo thông tin điền sẵn)', 'No (Locked to prefilled details)')}
-											</Typography>
-										</div>
-
-										{selectedInvitation.preFilledInfo?.customer && (
-											<div>
-												<Typography variant="caption" color="text.secondary" display="block">{tt('Thông tin cá nhân điền sẵn', 'Prefilled Customer Info')}</Typography>
-												<Typography variant="caption" display="block">
-													{selectedInvitation.preFilledInfo.customer.name} - {selectedInvitation.preFilledInfo.customer.email}
-												</Typography>
-											</div>
-										)}
 
 										<div>
 											<Typography variant="caption" color="text.secondary" display="block">{tt('Hạn sử dụng liên kết', 'Link Expiry Date')}</Typography>

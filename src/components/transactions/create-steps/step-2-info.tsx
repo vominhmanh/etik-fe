@@ -169,16 +169,20 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
       <Card sx={{ borderRadius: '16px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)' }}>
         <CardHeader
           title={
-            <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a3322' }}>
-              {tt('Thông tin đã được điền sẵn cho bạn', 'Information Pre-filled for You')}
-            </Typography>
-          }
-          subheader={
-            invitation.recipientName ? (
-              <Typography variant="body2" color="text.secondary">
-                {tt('Kính gửi:', 'Dear:')} <strong>{invitation.recipientTitle || ''} {invitation.recipientName}</strong>
+            <Stack spacing={0.5}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a3322' }}>
+                {tt('Vé đã được chọn sẵn cho bạn', 'Tickets Pre-selected for You')}
               </Typography>
-            ) : null
+
+              <Typography variant="body2" color="text.secondary">
+                {tt('Người nhận:', 'Recipient:')} <strong>{invitation.recipientTitle || ''} {invitation.recipientName}</strong>
+              </Typography>
+
+              <Typography variant="caption" color="warning" sx={{ fontWeight: 600 }}>
+                {tt('Lời mời có giá trị đến:', 'Invitation valid until:')}{' '}
+                {invitation.expiresAt ? dayjs(invitation.expiresAt).format('DD/MM/YYYY HH:mm') : tt('Không giới hạn', 'No time limit')}
+              </Typography>
+            </Stack>
           }
           sx={{ backgroundColor: 'rgba(209, 249, 219, 0.3)', pb: 2 }}
         />
@@ -231,6 +235,27 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                 )}
               </Grid>
             </Box>
+            {/* Custom Form Answers */}
+            {customCheckoutFields.length > 0 && (
+              <>
+                <Divider />
+                <Grid container spacing={2}>
+                  {customCheckoutFields.map((field) => {
+                    const value = checkoutCustomAnswers[field.internalName];
+                    let displayValue = '';
+                    if (Array.isArray(value)) displayValue = value.join(', ');
+                    else if (value !== undefined && value !== null) displayValue = String(value);
+                    if (!displayValue) return null;
+                    return (
+                      <Grid item xs={12} sm={6} key={field.internalName}>
+                        <Typography variant="body2" color="text.secondary">{field.label}:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>{displayValue}</Typography>
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+              </>
+            )}
 
             <Divider />
 
@@ -303,43 +328,14 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                 })}
               </Stack>
             </Box>
-
-            {/* Custom Form Answers */}
-            {customCheckoutFields.length > 0 && (
-              <>
-                <Divider />
-                <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, color: '#2e7d32' }}>
-                    {tt('Thông tin bổ sung', 'Additional Information')}
-                  </Typography>
-                  <Grid container spacing={2}>
-                    {customCheckoutFields.map((field) => {
-                      const value = checkoutCustomAnswers[field.internalName];
-                      let displayValue = '';
-                      if (Array.isArray(value)) displayValue = value.join(', ');
-                      else if (value !== undefined && value !== null) displayValue = String(value);
-                      if (!displayValue) return null;
-                      return (
-                        <Grid item xs={12} sm={6} key={field.internalName}>
-                          <Typography variant="body2" color="text.secondary">{field.label}:</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 600 }}>{displayValue}</Typography>
-                        </Grid>
-                      );
-                    })}
-                  </Grid>
-                </Box>
-              </>
-            )}
           </Stack>
 
           {/* Actions */}
           <Box sx={{ mt: 4, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
             <Stack direction="row" spacing={2}>
-              {invitation.allowTicketEdit && (
-                <Button variant="outlined" color="secondary" onClick={onBack} sx={{ borderRadius: '8px', fontWeight: 600 }}>
-                  {tt('Quay lại', 'Back')}
-                </Button>
-              )}
+              <Button variant="outlined" color="secondary" onClick={onBack} sx={{ borderRadius: '8px', fontWeight: 600 }}>
+                {tt('Quay lại', 'Back')}
+              </Button>
               {invitation.allowInfoEdit && (
                 <Button
                   variant="outlined"

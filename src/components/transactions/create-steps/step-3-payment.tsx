@@ -55,6 +55,8 @@ export type Step3PaymentProps = {
   showExtraFeeInput?: boolean;
   allowedPaymentMethods?: string[];
   invitation?: any;
+  /** When true, show the voucher/discount card even if finalTotal === 0 (invite flow) */
+  alwaysShowVoucher?: boolean;
 };
 
 export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
@@ -85,6 +87,7 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
     showExtraFeeInput = true, // Default to true
     allowedPaymentMethods,
     invitation,
+    alwaysShowVoucher = false,
   } = props;
 
   // Auto-apply invitation voucher code when entering this step
@@ -325,10 +328,14 @@ export function Step3Payment(props: Step3PaymentProps): React.JSX.Element {
             )}
 
             {/* Discount */}
-            {finalTotal > 0 && (
+            {(finalTotal > 0 || alwaysShowVoucher) && (
               <Card>
                 <CardHeader
                   title={tt("Khuyến mãi", "Discount")}
+                  subheader={alwaysShowVoucher ? tt(
+                    'Mã khuyến mãi được áp sẵn như một gợi ý, khách hoàn toàn có thể xoá mã được áp sẵn và chọn mã khác',
+                    'The discount code is pre-applied as a suggestion; the customer can always remove it and choose another.'
+                  ) : undefined}
                 />
                 {!appliedVoucher && (
                   <Box sx={{ px: 3, pb: 3, pt: 0 }}>

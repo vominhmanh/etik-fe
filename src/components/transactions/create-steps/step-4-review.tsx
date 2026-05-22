@@ -39,8 +39,10 @@ export type Step4ReviewProps = {
 
   // Captcha props
   enableCaptcha?: boolean;
-  captchaRef?: any; // Avoiding explicit ReCAPTCHA type import issues in interface for now, or use React.RefObject<any>
+  captchaRef?: any;
   captchaLang?: string;
+  /** Optional slot rendered before the review card — used by invite flow for recipient info & config summary */
+  headerSlot?: React.ReactNode;
 };
 
 export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
@@ -111,6 +113,7 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
 
   return (
     <Stack spacing={3}>
+      {props.headerSlot}
       <Box sx={{ px: { xs: 0, md: 20 } }} >
         <Card>
           <CardHeader title={tt("Xem lại đơn hàng", "Review Order")} />
@@ -126,144 +129,150 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
               </Box>
 
               <Stack spacing={2}>
-                {ticketGroups.map((group) => (
-                  <Box key={`review-${group.key}`}>
-                    {/* Group Header */}
-                    <Stack direction={{ xs: 'column', md: 'row' }} sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: 'rgba(0,0,0,0.03)', p: 1.5, borderRadius: 1, mb: 2 }}>
-                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {group.show?.name || tt('Chưa xác định', 'Not specified')} - {group.category?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
-                        </Typography>
+                {ticketGroups.length === 0 ? (
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', py: 1 }}>
+                    {tt("Chưa có vé nào được chọn", "No tickets selected")}
+                  </Typography>
+                ) : (
+                  ticketGroups.map((group) => (
+                    <Box key={`review-${group.key}`}>
+                      {/* Group Header */}
+                      <Stack direction={{ xs: 'column', md: 'row' }} sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: 'rgba(0,0,0,0.03)', p: 1.5, borderRadius: 1, mb: 2 }}>
+                        <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <TicketIcon fontSize="var(--icon-fontSize-md)" />
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                            {group.show?.name || tt('Chưa xác định', 'Not specified')} - {group.category?.name || tt('Chưa rõ loại vé', 'Unknown ticket category')}
+                          </Typography>
+                        </Stack>
+                        <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
+                          <Typography variant="caption">x {group.quantity}</Typography>
+                          <Typography variant="caption">= {formatPrice(group.total)}</Typography>
+                        </Stack>
                       </Stack>
-                      <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                        <Typography variant="caption">x {group.quantity}</Typography>
-                        <Typography variant="caption">= {formatPrice(group.total)}</Typography>
-                      </Stack>
-                    </Stack>
 
-                    {/* Tickets in this Group */}
-                    <Stack spacing={2} sx={{ pl: { md: 2 } }}>
-                      {group.items.map((item: any, i: number) => {
-                        const holderInfo = item.holder;
-                        const ticket = order.tickets[item.index];
-                        const ticketIndex = item.index;
+                      {/* Tickets in this Group */}
+                      <Stack spacing={2} sx={{ pl: { md: 2 } }}>
+                        {group.items.map((item: any, i: number) => {
+                          const holderInfo = item.holder;
+                          const ticket = order.tickets[item.index];
+                          const ticketIndex = item.index;
 
-                        return (
-                          <Box
-                            key={`${group.key}-${i}`}
-                            sx={{
-                              border: '1px solid',
-                              borderColor: 'divider',
-                              borderRadius: 1,
-                              backgroundColor: 'background.paper',
-                              backgroundImage: (theme) =>
-                                `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.06)}, ${alpha(theme.palette.secondary.main, 0.04)})`,
-                            }}
-                          >
-                            {/* Ticket Header */}
-                            <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-                              <Stack
-                                direction={{ xs: 'column', md: 'row' }}
-                                spacing={1}
-                                alignItems={{ xs: 'flex-start', md: 'center' }}
-                                sx={{ width: '100%', minWidth: 0 }}
-                              >
-                                <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-                                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                                    {tt(`Vé ${ticketIndex + 1}`, `Ticket ${ticketIndex + 1}`)}
-                                  </Typography>
-                                  {ticket?.seatLabel && (
-                                    <Stack direction="row" spacing={0.5} alignItems="center">
-                                      <Armchair size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
-                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        {ticket.seatLabel}
-                                      </Typography>
-                                    </Stack>
-                                  )}
-                                  {ticket?.audienceName && (
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                                      ({ticket.audienceName})
+                          return (
+                            <Box
+                              key={`${group.key}-${i}`}
+                              sx={{
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 1,
+                                backgroundColor: 'background.paper',
+                                backgroundImage: (theme) =>
+                                  `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.06)}, ${alpha(theme.palette.secondary.main, 0.04)})`,
+                              }}
+                            >
+                              {/* Ticket Header */}
+                              <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                                <Stack
+                                  direction={{ xs: 'column', md: 'row' }}
+                                  spacing={1}
+                                  alignItems={{ xs: 'flex-start', md: 'center' }}
+                                  sx={{ width: '100%', minWidth: 0 }}
+                                >
+                                  <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                      {tt(`Vé ${ticketIndex + 1}`, `Ticket ${ticketIndex + 1}`)}
                                     </Typography>
-                                  )}
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-                                    {holderInfo?.name ? `${holderInfo?.title || ''} ${holderInfo?.name}`.trim() : tt('Chưa có thông tin', 'No information')}
-                                  </Typography>
-                                  <Box sx={{ flexGrow: 1 }} />
-                                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                                    {formatPrice(ticket.price ?? 0)}
-                                  </Typography>
-                                </Stack>
-                              </Stack>
-                            </Box>
-
-                            {/* Ticket Body */}
-                            <Box sx={{ p: 2 }}>
-                              <Grid container spacing={2} alignItems="center">
-                                <Grid xs={12} md={2}>
-                                  <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'center' }, width: 48 }}>
-                                    {holderInfo?.avatar ? (
-                                      <Avatar src={holderInfo.avatar} sx={{ width: 48, height: 48 }} />
-                                    ) : (
-                                      <Avatar sx={{ width: 48, height: 48, bgcolor: 'action.disabledBackground' }}>
-                                        <User size={24} style={{ color: 'var(--mui-palette-text-disabled)' }} />
-                                      </Avatar>
+                                    {ticket?.seatLabel && (
+                                      <Stack direction="row" spacing={0.5} alignItems="center">
+                                        <Armchair size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          {ticket.seatLabel}
+                                        </Typography>
+                                      </Stack>
                                     )}
-                                  </Box>
-                                </Grid>
+                                    {ticket?.audienceName && (
+                                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                                        ({ticket.audienceName})
+                                      </Typography>
+                                    )}
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+                                      {holderInfo?.name ? `${holderInfo?.title || ''} ${holderInfo?.name}`.trim() : tt('Chưa có thông tin', 'No information')}
+                                    </Typography>
+                                    <Box sx={{ flexGrow: 1 }} />
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                                      {formatPrice(ticket.price ?? 0)}
+                                    </Typography>
+                                  </Stack>
+                                </Stack>
+                              </Box>
 
-                                <Grid xs={12} md={3}>
-                                  <Box>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                      {tt('Họ và tên', 'Full Name')}
-                                    </Typography>
-                                    <Typography variant="body2">
-                                      {holderInfo?.name ? `${holderInfo?.title || ''} ${holderInfo?.name}`.trim() : '-'}
-                                    </Typography>
-                                  </Box>
-                                </Grid>
+                              {/* Ticket Body */}
+                              <Box sx={{ p: 2 }}>
+                                <Grid container spacing={2} alignItems="center">
+                                  <Grid xs={12} md={2}>
+                                    <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'center' }, width: 48 }}>
+                                      {holderInfo?.avatar ? (
+                                        <Avatar src={holderInfo.avatar} sx={{ width: 48, height: 48 }} />
+                                      ) : (
+                                        <Avatar sx={{ width: 48, height: 48, bgcolor: 'action.disabledBackground' }}>
+                                          <User size={24} style={{ color: 'var(--mui-palette-text-disabled)' }} />
+                                        </Avatar>
+                                      )}
+                                    </Box>
+                                  </Grid>
 
-                                <Grid xs={12} md={4}>
-                                  <Box>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                      {tt('Email', 'Email')}
-                                    </Typography>
-                                    <Typography variant="body2">
-                                      {holderInfo?.email || '-'}
-                                    </Typography>
-                                  </Box>
-                                </Grid>
+                                  <Grid xs={12} md={3}>
+                                    <Box>
+                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                        {tt('Họ và tên', 'Full Name')}
+                                      </Typography>
+                                      <Typography variant="body2">
+                                        {holderInfo?.name ? `${holderInfo?.title || ''} ${holderInfo?.name}`.trim() : '-'}
+                                      </Typography>
+                                    </Box>
+                                  </Grid>
 
-                                <Grid xs={12} md={3}>
-                                  <Box>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                      {tt('Số điện thoại', 'Phone Number')}
-                                    </Typography>
-                                    <Typography variant="body2">
-                                      {(() => {
-                                        const rawPhone = holderInfo?.nationalPhone || holderInfo?.phone || '';
-                                        if (!rawPhone) return '-';
-                                        const parsed = parseE164Phone(rawPhone);
-                                        if (parsed) {
-                                          const country = PHONE_COUNTRIES.find((c) => c.iso2 === parsed.countryCode) || DEFAULT_PHONE_COUNTRY;
-                                          return `${country.dialCode} ${parsed.nationalNumber}`;
-                                        }
-                                        const holderPhoneCountry = PHONE_COUNTRIES.find((c) => c.iso2 === holderInfo?.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
-                                        const digits = rawPhone.replace(/\D/g, '');
-                                        const nsn = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
-                                        return `${holderPhoneCountry.dialCode} ${nsn}`;
-                                      })()}
-                                    </Typography>
-                                  </Box>
+                                  <Grid xs={12} md={4}>
+                                    <Box>
+                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                        {tt('Email', 'Email')}
+                                      </Typography>
+                                      <Typography variant="body2">
+                                        {holderInfo?.email || '-'}
+                                      </Typography>
+                                    </Box>
+                                  </Grid>
+
+                                  <Grid xs={12} md={3}>
+                                    <Box>
+                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                        {tt('Số điện thoại', 'Phone Number')}
+                                      </Typography>
+                                      <Typography variant="body2">
+                                        {(() => {
+                                          const rawPhone = holderInfo?.nationalPhone || holderInfo?.phone || '';
+                                          if (!rawPhone) return '-';
+                                          const parsed = parseE164Phone(rawPhone);
+                                          if (parsed) {
+                                            const country = PHONE_COUNTRIES.find((c) => c.iso2 === parsed.countryCode) || DEFAULT_PHONE_COUNTRY;
+                                            return `${country.dialCode} ${parsed.nationalNumber}`;
+                                          }
+                                          const holderPhoneCountry = PHONE_COUNTRIES.find((c) => c.iso2 === holderInfo?.phoneCountryIso2) || DEFAULT_PHONE_COUNTRY;
+                                          const digits = rawPhone.replace(/\D/g, '');
+                                          const nsn = digits.length > 1 && digits.startsWith('0') ? digits.slice(1) : digits;
+                                          return `${holderPhoneCountry.dialCode} ${nsn}`;
+                                        })()}
+                                      </Typography>
+                                    </Box>
+                                  </Grid>
                                 </Grid>
-                              </Grid>
+                              </Box>
                             </Box>
-                          </Box>
-                        );
-                      })}
-                    </Stack>
-                  </Box>
-                ))}
+                          );
+                        })}
+                      </Stack>
+                    </Box>
+                  ))
+                )}
               </Stack>
 
               {order.concessions && order.concessions.length > 0 && (

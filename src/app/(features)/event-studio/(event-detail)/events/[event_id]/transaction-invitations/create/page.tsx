@@ -4,11 +4,23 @@ import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import {
   Box,
   Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Checkbox,
+  Divider,
+  FormControl,
+  FormControlLabel,
   IconButton,
+  InputAdornment,
+  MenuItem,
+  OutlinedInput,
+  Select,
   Step,
   StepButton,
   Stepper
 } from '@mui/material';
+import Grid from '@mui/material/Unstable_Grid2';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { AxiosResponse } from 'axios';
@@ -23,14 +35,17 @@ import NotificationContext from '@/contexts/notification-context';
 
 import { Step1SelectTickets } from '@/components/transactions/create-steps/step-1-select-tickets';
 import { Step2Info } from '@/components/transactions/create-steps/step-2-info';
-import { Step3Payment } from '@/components/transactions/invite-steps/step-3-payment';
+import { Step3Payment } from '@/components/transactions/create-steps/step-3-payment';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, formatToE164 } from '@/config/phone-countries';
 import { getPaymentMethodLabel } from '@/utils/payment';
 import { calculateVoucherDiscount } from '@/utils/voucher-discount';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { Step4Review } from '@/components/transactions/invite-steps/step-4-review';
+import { Step4Review } from '@/components/transactions/create-steps/step-4-review';
+import dynamic from 'next/dynamic';
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false }) as any;
+import 'react-quill/dist/quill.snow.css';
 import {
   CheckoutRuntimeField,
   EventResponse,
@@ -655,6 +670,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const handleSubmit = async () => {
     try {
+      if (!invitationSettings.recipientName || !invitationSettings.recipientName.trim()) {
+        notificationCtx.warning(tt("Vui lòng nhập họ và tên người nhận lời mời", "Please enter the invitation recipient's full name"));
+        return;
+      }
+
       if (!invitationSettings.recipientEmail) {
         notificationCtx.warning(tt("Vui lòng nhập email người nhận lời mời", "Please enter the invitation recipient's email"));
         return;
@@ -763,7 +783,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           formAnswers: checkoutCustomAnswers
         } : null,
         allowInfoEdit: invitationSettings.allowInfoEdit,
-        voucherCode: invitationSettings.applyVoucherAsDefault && appliedVoucher ? appliedVoucher.code : undefined,
+        voucherCode: appliedVoucher ? appliedVoucher.code : undefined,
         sendEmail: invitationSettings.sendEmail
       };
 
@@ -838,7 +858,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       type="radio"
                       name="ticketSelectionType"
                       checked={invitationSettings.letCustomerSelect}
-                      onChange={() => setInvitationSettings({ ...invitationSettings, letCustomerSelect: true })}
+                      onChange={() => setInvitationSettings({ ...invitationSettings, letCustomerSelect: true, letCustomerFillInfo: true })}
                     />
                     <Typography variant="body2">Cho phép khách tự chọn vé (Khách sẽ tự do chọn mua trong số các vé công khai)</Typography>
                   </label>
@@ -860,7 +880,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                         checked={invitationSettings.allowTicketEdit}
                         onChange={(e) => setInvitationSettings({ ...invitationSettings, allowTicketEdit: e.target.checked })}
                       />
-                      <Typography variant="body2">Cho phép khách chỉnh sửa các vé đã được chọn sẵn (thêm, bớt số lượng vé)</Typography>
+                      <Typography variant="body2">Cho phép khách đổi sang vé khác (Khách chỉ có thể đổi sang vé công khai)</Typography>
                     </label>
                   </Box>
                 )}
@@ -935,14 +955,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                     />
                     <Typography variant="body2">Cho phép khách tự điền thông tin</Typography>
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: invitationSettings.letCustomerSelect ? 'not-allowed' : 'pointer', opacity: invitationSettings.letCustomerSelect ? 0.5 : 1 }}>
                     <input
                       type="radio"
                       name="infoSelectionType"
+                      disabled={invitationSettings.letCustomerSelect}
                       checked={!invitationSettings.letCustomerFillInfo}
                       onChange={() => setInvitationSettings({ ...invitationSettings, letCustomerFillInfo: false })}
                     />
-                    <Typography variant="body2">Điền sẵn thông tin cho khách</Typography>
+                    <Typography variant="body2">
+                      Điền sẵn thông tin cho khách
+                      {invitationSettings.letCustomerSelect && (
+                        <Typography variant="caption" display="block" color="error.main">
+                          (Không khả dụng khi chọn Khách tự chọn vé)
+                        </Typography>
+                      )}
+                    </Typography>
                   </label>
                 </Stack>
                 {!invitationSettings.letCustomerFillInfo && (
@@ -1033,42 +1061,227 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             onNext={() => {
               if (validateStep3()) setActiveStep(3);
             }}
-
-            // Voucher Modal props
             isVoucherModalOpen={voucherDetailModalOpen}
             onCloseVoucherModal={() => {
               setVoucherDetailModalOpen(false);
               setSelectedVoucherForDetail(null);
             }}
             selectedVoucherForDetail={selectedVoucherForDetail}
-            showExtraFeeInput={true}
-            invitationSettings={invitationSettings}
-            setInvitationSettings={setInvitationSettings}
+            showExtraFeeInput={false}
+            alwaysShowVoucher={true}
           />
         </Box>
 
         <Box sx={{ display: activeStep === 3 ? 'block' : 'none' }}>
-          <Step4Review
-            tt={tt}
-            order={order}
-            shows={event?.shows || []}
-            checkoutFormFields={checkoutFormFields}
-            builtinInternalNames={builtinInternalNames}
-            checkoutCustomAnswers={checkoutCustomAnswers}
+          <Stack spacing={3}>
+            {/* Thông tin người nhận lời mời */}
+            <Box sx={{ px: { xs: 0, md: 20 } }} >
+              <Card>
+                <CardHeader title={tt('Thông tin người nhận lời mời', 'Invitation Recipient Info')} />
+                <Divider />
+                <CardContent>
+                  <Grid container spacing={2}>
+                    <Grid xs={12} md={6}>
+                      <Stack spacing={0.5}>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{tt('Danh xưng và Họ tên *', 'Title & Full Name *')}</Typography>
+                        <FormControl fullWidth size="small">
+                          <OutlinedInput
+                            size="small"
+                            autoComplete="name"
+                            placeholder={tt('Họ và tên', 'Full Name')}
+                            value={invitationSettings.recipientName || ''}
+                            onChange={(e) => setInvitationSettings({ ...invitationSettings, recipientName: e.target.value })}
+                            sx={{ bgcolor: '#fff' }}
+                            startAdornment={
+                              <InputAdornment position="start">
+                                <Select
+                                  variant="standard"
+                                  disableUnderline
+                                  displayEmpty
+                                  value={invitationSettings.recipientTitle || ''}
+                                  onChange={(e) => setInvitationSettings({ ...invitationSettings, recipientTitle: e.target.value })}
+                                  sx={{ minWidth: 60, '& .MuiSelect-select': { py: 0 } }}
+                                >
+                                  <MenuItem value=""><em>...</em></MenuItem>
+                                  <MenuItem value="Anh">Anh</MenuItem>
+                                  <MenuItem value="Chị">Chị</MenuItem>
+                                  <MenuItem value="Ông">Ông</MenuItem>
+                                  <MenuItem value="Bà">Bà</MenuItem>
+                                  <MenuItem value="Bạn">Bạn</MenuItem>
+                                  <MenuItem value="Em">Em</MenuItem>
+                                </Select>
+                              </InputAdornment>
+                            }
+                          />
+                        </FormControl>
+                      </Stack>
+                    </Grid>
+                    <Grid xs={12} md={6}>
+                      <Stack spacing={0.5}>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>Email nhận lời mời *</Typography>
+                        <OutlinedInput
+                          fullWidth
+                          size="small"
+                          type="email"
+                          placeholder="email@example.com"
+                          value={invitationSettings.recipientEmail}
+                          onChange={(e) => setInvitationSettings({ ...invitationSettings, recipientEmail: e.target.value })}
+                        />
+                      </Stack>
+                    </Grid>
+                    <Grid xs={12} md={6}>
+                      <Stack spacing={0.5}>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>Số điện thoại (tuỳ chọn)</Typography>
+                        <FormControl fullWidth size="small">
+                          <OutlinedInput
+                            size="small"
+                            autoComplete="tel-national"
+                            type="tel"
+                            value={invitationSettings.recipientPhone || ''}
+                            onChange={(e) => setInvitationSettings({ ...invitationSettings, recipientPhone: e.target.value })}
+                            sx={{ bgcolor: '#fff' }}
+                            startAdornment={
+                              <InputAdornment position="start">
+                                <Select
+                                  variant="standard"
+                                  disableUnderline
+                                  value={invitationSettings.recipientPhoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
+                                  onChange={(e) => setInvitationSettings({ ...invitationSettings, recipientPhoneCountryIso2: e.target.value as string })}
+                                  sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                                  renderValue={(value) => {
+                                    const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                    return country.dialCode;
+                                  }}
+                                >
+                                  {PHONE_COUNTRIES.map((country) => (
+                                    <MenuItem key={country.iso2} value={country.iso2}>
+                                      {tt(country.nameVi, country.nameEn)} ({country.dialCode})
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </InputAdornment>
+                            }
+                          />
+                        </FormControl>
+                      </Stack>
+                    </Grid>
+                    <Grid xs={12} md={6}>
+                      <Stack spacing={0.5}>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>Ngày hết hạn (tuỳ chọn)</Typography>
+                        <input
+                          type="datetime-local"
+                          style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                          value={invitationSettings.expiresAt || ''}
+                          onChange={(e) => setInvitationSettings({ ...invitationSettings, expiresAt: e.target.value })}
+                        />
+                      </Stack>
+                    </Grid>
+                    <Grid xs={12}>
+                      <Stack spacing={0.5}>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>Lời nhắn (tuỳ chọn)</Typography>
+                        <ReactQuill
+                          value={invitationSettings.message || ''}
+                          onChange={(value: string) => setInvitationSettings({ ...invitationSettings, message: value })}
+                          placeholder={tt('Nhập lời nhắn...', 'Enter message...')}
+                        />
+                      </Stack>
+                    </Grid>
 
-            paymentMethodLabel={paymentMethodLabel}
-            extraFee={extraFee}
-            subtotal={subtotal}
-            discountAmount={discountAmount}
-            appliedVoucherCode={appliedVoucher && voucherValidation.valid ? appliedVoucher.code : null}
-            finalTotal={finalTotal}
-            formatPrice={formatPrice}
-            onBack={() => setActiveStep(2)}
-            onConfirm={handleSubmit}
-            confirmDisabled={isLoading}
-            invitationSettings={invitationSettings}
-            setInvitationSettings={setInvitationSettings}
-          />
+                    <Grid xs={12}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={invitationSettings.sendEmail}
+                            onChange={(e) => setInvitationSettings({ ...invitationSettings, sendEmail: e.target.checked })}
+                            size="small"
+                          />
+                        }
+                        label={tt('Gửi email thông báo đến người nhận', 'Send email notification to recipient')}
+                        sx={{ mt: 1 }}
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Box>
+            {/* Tóm tắt cấu hình lời mời */}
+            <Box sx={{ px: { xs: 0, md: 20 } }} >
+              <Card>
+                <CardHeader title={tt('Cấu hình lời mời', 'Invitation Settings')} />
+                <Divider />
+                <CardContent>
+                  <Stack spacing={1.5}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">{tt('Chọn vé', 'Ticket Selection')}</Typography>
+                      <Typography variant="body2">
+                        {invitationSettings.letCustomerSelect
+                          ? tt('Cho phép khách tự chọn vé (Khách sẽ tự do chọn mua trong số các vé công khai)', 'Allow customer to select tickets (Customer will freely select from public tickets)')
+                          : tt('Chọn sẵn vé cho khách', 'Tickets pre-selected for customer')}
+                      </Typography>
+                      {!invitationSettings.letCustomerSelect && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                          {invitationSettings.allowTicketEdit
+                            ? tt('✔ Cho phép khách đổi sang vé khác (Khách chỉ có thể đổi sang vé công khai)', '✔ Customer may edit pre-selected tickets (add, remove tickets)')
+                            : tt('✖ Không cho khách chỉnh sửa các vé đã được chọn sẵn', '✖ Customer cannot edit pre-selected tickets')}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Divider />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">{tt('Thông tin', 'Info')}</Typography>
+                      <Typography variant="body2">
+                        {invitationSettings.letCustomerFillInfo
+                          ? tt('Cho phép khách tự điền thông tin', 'Customer fills in their own info')
+                          : tt('Điền sẵn thông tin cho khách', 'Info pre-filled for customer')}
+                      </Typography>
+                      {!invitationSettings.letCustomerFillInfo && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                          {invitationSettings.allowInfoEdit
+                            ? tt('✔ Cho phép khách chỉnh sửa thông tin đã được điền sẵn', '✔ Customer may edit pre-filled info')
+                            : tt('✖ Không cho khách chỉnh sửa thông tin đã được điền sẵn', '✖ Customer cannot edit pre-filled info')}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Divider />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">{tt('Voucher', 'Voucher')}</Typography>
+                      <Typography variant="body2">
+                        {appliedVoucher
+                          ? tt(`Áp sẵn mã: ${appliedVoucher.code}`, `Pre-applied code: ${appliedVoucher.code}`)
+                          : tt('Không áp sẵn mã khuyến mãi', 'No pre-applied voucher')}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Box>
+            <Step4Review
+              tt={tt}
+              order={{
+                ...order,
+                tickets: invitationSettings.letCustomerSelect ? [] : (
+                  invitationSettings.letCustomerFillInfo 
+                    ? order.tickets.map(t => ({ ...t, holder: undefined }))
+                    : order.tickets
+                ),
+                customer: invitationSettings.letCustomerFillInfo ? ({} as any) : order.customer
+              }}
+              shows={event?.shows || []}
+              checkoutFormFields={checkoutFormFields}
+              builtinInternalNames={builtinInternalNames}
+              checkoutCustomAnswers={invitationSettings.letCustomerFillInfo ? {} : checkoutCustomAnswers}
+              paymentMethodLabel={paymentMethodLabel}
+              extraFee={extraFee}
+              subtotal={invitationSettings.letCustomerSelect ? 0 : subtotal}
+              discountAmount={invitationSettings.letCustomerSelect ? 0 : discountAmount}
+              appliedVoucherCode={appliedVoucher && voucherValidation.valid ? appliedVoucher.code : null}
+              finalTotal={invitationSettings.letCustomerSelect ? extraFee : finalTotal}
+              formatPrice={formatPrice}
+              onBack={() => setActiveStep(2)}
+              onConfirm={handleSubmit}
+              confirmDisabled={isLoading}
+            />
+          </Stack>
         </Box>
 
 

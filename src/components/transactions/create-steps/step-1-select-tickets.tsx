@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Stack, Typography, Card, CardHeader, CardContent, Divider } from '@mui/material';
+import { Box, Stack, Typography, Card, CardHeader, CardContent, Divider, Alert } from '@mui/material';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Unstable_Grid2';
 import { ShoppingCart as ShoppingCartIcon, Minus, Plus, Trash } from '@phosphor-icons/react/dist/ssr';
@@ -464,133 +464,202 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
 
   if (showInvitationCard) {
     return (
-      <Card sx={{ borderRadius: '16px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)' }}>
-        <CardHeader
-          title={
-            <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a3322' }}>
-              {tt('Vé đã được chọn sẵn cho bạn', 'Tickets Pre-selected for You')}
-            </Typography>
-          }
-          subheader={
-            invitation.recipientName ? (
-              <Typography variant="body2" color="text.secondary">
-                {tt('Kính gửi:', 'Dear:')} <strong>{invitation.recipientTitle || ''} {invitation.recipientName}</strong>
-              </Typography>
-            ) : null
-          }
-          sx={{ backgroundColor: 'rgba(209, 249, 219, 0.3)', pb: 2 }}
-        />
-        <Divider />
-        <CardContent sx={{ p: 3 }}>
-          {invitation.message && (
-            <Box sx={{ mb: 3, p: 2, bgcolor: '#fffde6', borderRadius: '12px', borderLeft: '4px solid #ffcc00' }}>
-              <Typography dangerouslySetInnerHTML={{ __html: invitation.message }} variant="body2" sx={{ fontStyle: 'italic', color: '#555' }} />
-            </Box>
-          )}
-          <Stack spacing={2}>
-            {order.tickets.map((ticket, index) => {
-              const show = shows?.find(s => s.id === ticket.showId);
-              const category = show?.ticketCategories.find(c => c.id === ticket.ticketCategoryId);
-              return (
-                <Box
-                  key={index}
-                  sx={{
-                    p: 2,
-                    borderRadius: '12px',
-                    border: '1px solid #e0e0e0',
-                    bgcolor: '#fcfcfc',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 1
-                  }}
-                >
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#2e7d32' }}>
-                      {category?.name || tt('Vé', 'Ticket')}
-                    </Typography>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                      {props.formatPrice(ticket.price || 0)}
-                    </Typography>
-                  </Stack>
-                  {show && (
-                    <Typography variant="body2" color="text.secondary">
-                      {tt('Suất diễn:', 'Showtime:')} {formatDateTime(show.startDateTime)}
-                    </Typography>
-                  )}
-                  <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 0.5 }}>
-                    {ticket.seatLabel && (
-                      <Box sx={{ px: 1.5, py: 0.5, bgcolor: '#e8f5e9', color: '#2e7d32', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
-                        {tt('Ghế:', 'Seat:')} {ticket.seatLabel}
-                      </Box>
-                    )}
-                    {ticket.audienceName && (
-                      <Box sx={{ px: 1.5, py: 0.5, bgcolor: '#efebe9', color: '#5d4037', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
-                        {tt('Đối tượng:', 'Audience:')} {ticket.audienceName}
-                      </Box>
-                    )}
-                  </Stack>
-                </Box>
-              );
-            })}
-
-            {/* Concessions */}
-            {order.concessions && order.concessions.length > 0 && (
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: '#333' }}>
-                  {tt('Dịch vụ đi kèm:', 'Add-ons:')}
+      <Stack spacing={2} sx={{ width: '100%' }}>
+        <Card sx={{ borderRadius: '16px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)' }}>
+          <CardHeader
+            title={
+              <Stack spacing={0.5}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a3322' }}>
+                  {tt('Vé đã được chọn sẵn cho bạn', 'Tickets Pre-selected for You')}
                 </Typography>
-                <Stack spacing={1}>
-                  {order.concessions.map((con, index) => {
-                    let concessionName = tt('Dịch vụ', 'Service');
-                    for (const s of shows || []) {
-                      const sc = s.showConcessions?.find(x => x.concessionId === con.concessionId);
-                      if (sc) { concessionName = sc.concession.name; break; }
-                    }
-                    return (
-                      <Stack key={index} direction="row" justifyContent="space-between">
-                        <Typography variant="body2">{concessionName} x{con.quantity}</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{props.formatPrice(con.price * con.quantity)}</Typography>
-                      </Stack>
-                    );
-                  })}
-                </Stack>
+
+                <Typography variant="body2" color="text.secondary">
+                  {tt('Người nhận:', 'Recipient:')} <strong>{invitation.recipientTitle || ''} {invitation.recipientName}</strong>
+                </Typography>
+
+                <Typography variant="caption" color="warning" sx={{ fontWeight: 600 }}>
+                  {tt('Lời mời có giá trị đến:', 'Invitation valid until:')}{' '}
+                  {invitation.expiresAt ? dayjs(invitation.expiresAt).format('DD/MM/YYYY HH:mm') : tt('Không giới hạn', 'No time limit')}
+                </Typography>
+              </Stack>
+            }
+            sx={{ backgroundColor: 'rgba(209, 249, 219, 0.3)', pb: 2 }}
+          />
+          <Divider />
+          <CardContent sx={{ p: 3 }}>
+            {invitation.message && (
+              <Box sx={{ mb: 3, p: 2, bgcolor: '#fffde6', borderRadius: '12px', borderLeft: '4px solid #ffcc00' }}>
+                <Typography dangerouslySetInnerHTML={{ __html: invitation.message }} variant="body2" sx={{ color: '#555' }} />
               </Box>
             )}
-          </Stack>
+            <Stack spacing={2}>
+              {order.tickets.map((ticket, index) => {
+                const show = shows?.find(s => s.id === ticket.showId);
+                const category = show?.ticketCategories.find(c => c.id === ticket.ticketCategoryId);
+                return (
+                  <Box
+                    key={index}
+                    sx={{
+                      p: 2,
+                      borderRadius: '12px',
+                      border: '1px solid #e0e0e0',
+                      bgcolor: '#fcfcfc',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1
+                    }}
+                  >
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#2e7d32' }}>
+                        {category?.name || tt('Vé', 'Ticket')}
+                      </Typography>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                        {props.formatPrice(ticket.price || 0)}
+                      </Typography>
+                    </Stack>
+                    {show && (
+                      <Typography variant="body2" color="text.secondary">
+                        {tt('Suất diễn:', 'Showtime:')} {formatDateTime(show.startDateTime)}
+                      </Typography>
+                    )}
+                    <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 0.5 }}>
+                      {ticket.seatLabel && (
+                        <Box sx={{ px: 1.5, py: 0.5, bgcolor: '#e8f5e9', color: '#2e7d32', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
+                          {tt('Ghế:', 'Seat:')} {ticket.seatLabel}
+                        </Box>
+                      )}
+                      {ticket.audienceName && (
+                        <Box sx={{ px: 1.5, py: 0.5, bgcolor: '#efebe9', color: '#5d4037', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
+                          {tt('Đối tượng:', 'Audience:')} {ticket.audienceName}
+                        </Box>
+                      )}
+                    </Stack>
+                  </Box>
+                );
+              })}
 
-          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            {invitation.allowTicketEdit && (
+              {/* Concessions */}
+              {order.concessions && order.concessions.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: '#333' }}>
+                    {tt('Dịch vụ đi kèm:', 'Add-ons:')}
+                  </Typography>
+                  <Stack spacing={1}>
+                    {order.concessions.map((con, index) => {
+                      let concessionName = tt('Dịch vụ', 'Service');
+                      for (const s of shows || []) {
+                        const sc = s.showConcessions?.find(x => x.concessionId === con.concessionId);
+                        if (sc) { concessionName = sc.concession.name; break; }
+                      }
+                      return (
+                        <Stack key={index} direction="row" justifyContent="space-between">
+                          <Typography variant="body2">{concessionName} x{con.quantity}</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>{props.formatPrice(con.price * con.quantity)}</Typography>
+                        </Stack>
+                      );
+                    })}
+                  </Stack>
+                </Box>
+              )}
+            </Stack>
+
+            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {invitation.allowTicketEdit && (
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  onClick={() => {
+                    // Clear all tickets so guest picks manually
+                    setOrder(prev => ({ ...prev, tickets: [], concessions: [] }));
+                    setIsEditingTickets(true);
+                    onClearAndReselect?.();
+                  }}
+                  sx={{ borderRadius: '8px', fontWeight: 600 }}
+                >
+                  {tt('Thay đổi vé', 'Change Tickets')}
+                </Button>
+              )}
+              <Box sx={{ flexGrow: 1 }} />
               <Button
-                variant="outlined"
-                color="warning"
-                onClick={() => {
-                  // Clear all tickets so guest picks manually
-                  setOrder(prev => ({ ...prev, tickets: [], concessions: [] }));
-                  setIsEditingTickets(true);
-                  onClearAndReselect?.();
-                }}
-                sx={{ borderRadius: '8px', fontWeight: 600 }}
+                variant="contained"
+                color="primary"
+                onClick={onNext}
+                sx={{ px: 4, py: 1, borderRadius: '8px', fontWeight: 600 }}
               >
-                {tt('Thay đổi vé', 'Change Tickets')}
+                {tt('Tiếp tục', 'Continue')}
               </Button>
-            )}
-            <Box sx={{ flexGrow: 1 }} />
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={onNext}
-              sx={{ px: 4, py: 1, borderRadius: '8px', fontWeight: 600 }}
-            >
-              {tt('Tiếp tục', 'Continue')}
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+          <Button
+            variant="text"
+            color="inherit"
+            size="small"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('invitationUuid');
+                window.location.href = url.toString();
+              }
+            }}
+            sx={{
+              color: 'text.secondary',
+              fontWeight: 400,
+              fontSize: '0.75rem',
+              textTransform: 'none',
+              '&:hover': {
+                backgroundColor: 'transparent',
+                textDecoration: 'underline',
+                color: 'text.primary',
+              }
+            }}
+          >
+            {tt('Thoát chế độ mua vé bằng lời mời', 'Exit invitation ticket purchase mode')}
+          </Button>
+        </Box>
+      </Stack>
     );
   }
 
   return (
     <Stack spacing={3}>
+      {invitation && (
+        <Alert
+          severity="info"
+          sx={{ borderRadius: '12px' }}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete('invitationUuid');
+                  window.location.href = url.toString();
+                }
+              }}
+              sx={{ fontWeight: 600, textTransform: 'none', whiteSpace: 'nowrap' }}
+            >
+              {tt('Thoát lời mời', 'Exit invitation')}
+            </Button>
+          }
+        >
+          <Box>
+            <Typography variant="body2">
+              {tt('Người nhận:', 'Recipient:')} <strong>{invitation.recipientTitle || ''} {invitation.recipientName}</strong>.
+              {tt(' Bạn đang chọn vé theo thư mời.', ' You are selecting tickets via an invitation.')}
+            </Typography>
+            {invitation.expiresAt && (
+              <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mt: 0.5, color: 'error.main' }}>
+                {tt('Lời mời có giá trị đến:', 'Invitation valid until:')}{' '}
+                {dayjs(invitation.expiresAt).format('DD/MM/YYYY HH:mm')}
+              </Typography>
+            )}
+          </Box>
+        </Alert>
+      )}
       <Grid container spacing={3}>
         <Grid lg={3} md={4} xs={12}>
           <Stack spacing={3}>
