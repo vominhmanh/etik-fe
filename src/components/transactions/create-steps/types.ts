@@ -120,7 +120,9 @@ export interface HolderInfo {
 
 export interface TicketInfo {
     showId: number;
+    showName?: string;
     ticketCategoryId: number;
+    ticketCategoryName?: string;
     seatId?: string;
     seatRow?: string | undefined;
     seatNumber?: string | undefined;

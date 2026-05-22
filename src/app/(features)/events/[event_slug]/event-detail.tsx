@@ -282,7 +282,9 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
 
               return {
                 showId: showId,
+                showName: t.showName,
                 ticketCategoryId: ticketCategoryId,
+                ticketCategoryName: t.ticketCategoryName,
                 price: price,
                 seatId: seatId,
                 seatRow: seatRow,
@@ -524,7 +526,9 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
           for (let i = 0; i < countToAdd; i++) {
             newTicketsForCategory.push({
               showId,
+              showName: show?.name || '',
               ticketCategoryId,
+              ticketCategoryName: cat?.name || '',
               price: cat?.price || 0,
               holder: undefined
             });
