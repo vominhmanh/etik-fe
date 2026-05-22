@@ -172,7 +172,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
   }, [order.tickets, shows]);
 
   // Show invitation summary card only when invitation has pre-filled info AND guest hasn't chosen to re-enter
-  const hasPreFilledInfo = !!(invitation && invitation.preFilledInfo && (
+  const hasPreFilledInfo = !!(invitation && !invitation.letCustomerFillInfo && invitation.preFilledInfo && (
     invitation.preFilledInfo.customer?.name || invitation.preFilledInfo.customer?.email
   ));
   const showInvitationCard = hasPreFilledInfo && !isEditingInfo;
@@ -350,7 +350,8 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                         setOrder((prev: any) => ({
                           ...prev,
                           customer: { title: '', name: '', email: '', phoneNumber: '', nationalPhone: '', address: '', phoneCountryIso2: 'VN', dob: null, idcard_number: '', avatar: '' },
-                          tickets: prev.tickets.map((t: any) => ({ ...t, holder: undefined }))
+                          tickets: prev.tickets.map((t: any) => ({ ...t, holder: undefined })),
+                          isInfoEdited: true
                         }));
                         setIsEditingInfo(true);
                       }}

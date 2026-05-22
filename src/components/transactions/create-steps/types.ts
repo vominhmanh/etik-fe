@@ -167,6 +167,8 @@ export interface Order {
     extraFee: number;
     formAnswers?: Record<string, any>;
     voucherCode?: string;
+    isTicketsEdited?: boolean;
+    isInfoEdited?: boolean;
 }
 
 export interface Transaction {

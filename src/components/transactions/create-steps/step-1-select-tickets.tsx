@@ -113,7 +113,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
 
   // Determine if we should show the invitation summary card:
   // invitation exists AND has pre-selected tickets AND guest hasn't chosen to re-pick
-  const hasPreSelectedTickets = !!(invitation && (invitation.preSelectedTickets?.tickets?.length > 0));
+  const hasPreSelectedTickets = !!(invitation && !invitation.letCustomerSelect && (invitation.preSelectedTickets?.tickets?.length > 0));
   const showInvitationCard = hasPreSelectedTickets && !isEditingTickets;
   const notificationCtx = React.useContext(NotificationContext);
 
@@ -640,7 +640,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
                   color="warning"
                   onClick={() => {
                     // Clear all tickets so guest picks manually
-                    setOrder(prev => ({ ...prev, tickets: [], concessions: [] }));
+                    setOrder(prev => ({ ...prev, tickets: [], concessions: [], isTicketsEdited: true }));
                     setIsEditingTickets(true);
                     onClearAndReselect?.();
                   }}

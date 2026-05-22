@@ -130,7 +130,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
   const [openNotifModal, setOpenNotifModal] = React.useState(false);
   const [prevent24h, setPrevent24h] = React.useState(false);
   const [responseTransaction, setResponseTransaction] = React.useState<any | null>(null);
-  
+
   const [hasEditedTickets, setHasEditedTickets] = React.useState<boolean>(false);
 
   const [invitation, setInvitation] = React.useState<any | null>(null);
@@ -1114,6 +1114,8 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
         extraFee: order.extraFee,
         formAnswers: checkoutCustomAnswers,
         concessions: order.concessions,
+        isTicketsEdited: order.isTicketsEdited ?? false,
+        isInfoEdited: order.isInfoEdited ?? false,
         // voucherCode: order.voucherCode // If we store it in order
       };
 

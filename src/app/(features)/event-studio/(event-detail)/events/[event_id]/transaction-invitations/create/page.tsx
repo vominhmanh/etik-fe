@@ -778,11 +778,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         expiresAt: invitationSettings.expiresAt ? new Date(invitationSettings.expiresAt).toISOString() : undefined,
         preSelectedTickets: !invitationSettings.letCustomerSelect ? preSelectedTickets : null,
         allowTicketEdit: invitationSettings.allowTicketEdit,
+        letCustomerSelect: invitationSettings.letCustomerSelect,
         preFilledInfo: !invitationSettings.letCustomerFillInfo ? {
           customer: apiCustomer,
           formAnswers: checkoutCustomAnswers
         } : null,
-        allowInfoEdit: invitationSettings.allowInfoEdit,
+        allowInfoEdit: invitationSettings.letCustomerFillInfo ? true : invitationSettings.allowInfoEdit,
+        letCustomerFillInfo: invitationSettings.letCustomerFillInfo,
         voucherCode: appliedVoucher ? appliedVoucher.code : undefined,
         sendEmail: invitationSettings.sendEmail
       };
@@ -1260,7 +1262,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               order={{
                 ...order,
                 tickets: invitationSettings.letCustomerSelect ? [] : (
-                  invitationSettings.letCustomerFillInfo 
+                  invitationSettings.letCustomerFillInfo
                     ? order.tickets.map(t => ({ ...t, holder: undefined }))
                     : order.tickets
                 ),
