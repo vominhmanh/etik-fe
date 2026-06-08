@@ -55,7 +55,16 @@ export function parseE164Phone(e164Phone: string | null | undefined): {
     const { PhoneNumberUtil, PhoneNumberFormat } = require('google-libphonenumber');
     const phoneUtil = PhoneNumberUtil.getInstance();
     
-    const parsed = phoneUtil.parse(e164Phone, null);
+    // If it doesn't start with '+', it's definitely not a valid E164 for phoneUtil without default region.
+    // We can try to parse it with DEFAULT_PHONE_COUNTRY.iso2 as fallback, or just let it fail gracefully.
+    let parsed;
+    if (!e164Phone.startsWith('+')) {
+       // Attempt to parse with default country (e.g. 'VN')
+       parsed = phoneUtil.parse(e164Phone, DEFAULT_PHONE_COUNTRY.iso2);
+    } else {
+       parsed = phoneUtil.parse(e164Phone, null);
+    }
+
     const countryCode = phoneUtil.getRegionCodeForNumber(parsed);
     const nationalNumber = phoneUtil.format(parsed, PhoneNumberFormat.NATIONAL);
     
@@ -68,7 +77,6 @@ export function parseE164Phone(e164Phone: string | null | undefined): {
       nationalNumber: nsn || '',
     };
   } catch (error) {
-    console.error('Failed to parse E.164 phone:', e164Phone, error);
     // Fallback: try to extract country code from known dial codes
     for (const country of PHONE_COUNTRIES) {
       if (e164Phone.startsWith(country.dialCode)) {

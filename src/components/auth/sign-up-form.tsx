@@ -169,7 +169,7 @@ export function SignUpForm(): React.JSX.Element {
               control={control}
               name="fullName"
               render={({ field }) => (
-                <FormControl error={Boolean(errors.fullName)}>
+                <FormControl error={Boolean(errors.fullName) || Boolean(errors.title)}>
                   <InputLabel>{tt('Danh xưng*    Họ và tên', 'Title*    Full Name')}</InputLabel>
                   <OutlinedInput 
                     {...field} 
@@ -191,21 +191,16 @@ export function SignUpForm(): React.JSX.Element {
                               <MenuItem value="Anh">Anh</MenuItem>
                               <MenuItem value="Chị">Chị</MenuItem>
                               <MenuItem value="Bạn">Bạn</MenuItem>
-                              <MenuItem value="Em">Em</MenuItem>
-                              <MenuItem value="Ông">Ông</MenuItem>
-                              <MenuItem value="Bà">Bà</MenuItem>
-                              <MenuItem value="Cô">Cô</MenuItem>
-                              <MenuItem value="Thầy">Thầy</MenuItem>
                               <MenuItem value="Mr.">Mr.</MenuItem>
                               <MenuItem value="Ms.">Ms.</MenuItem>
                               <MenuItem value="Mx.">Mx.</MenuItem>
-                              <MenuItem value="Miss">Miss</MenuItem>
                             </Select>
                           )}
                         />
                       </InputAdornment>
                     }
                   />
+                  {errors.title ? <FormHelperText>{errors.title.message}</FormHelperText> : null}
                   {errors.fullName ? <FormHelperText>{errors.fullName.message}</FormHelperText> : null}
                 </FormControl>
               )}
@@ -284,7 +279,7 @@ export function SignUpForm(): React.JSX.Element {
                     control={<Checkbox {...field} />}
                     label={
                       <React.Fragment>
-                        {tt('Tôi đã đọc và đồng ý với', 'I have read and agree to the')} <Link>{tt('điều khoản và điều kiện', 'terms and conditions')}</Link>
+                        {tt('Tôi đã đọc và đồng ý với', 'I have read and agree to the')} <Link href="https://etik.vn/policies/terms-and-regulations" target="_blank">{tt('điều khoản và điều kiện', 'terms and conditions')}</Link>
                       </React.Fragment>
                     }
                   />
