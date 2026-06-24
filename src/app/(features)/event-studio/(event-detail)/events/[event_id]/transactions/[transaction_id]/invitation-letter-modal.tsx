@@ -201,6 +201,9 @@ const InvitationLetterModal: React.FC<InvitationLetterModalProps> = ({ open, onC
         return transaction.email || '';
       case 'transactionId':
         return String(transaction.id ?? '');
+      case 'transactionECode':
+      case 'transactionECodeQr':
+        return transaction.eCode || '';
       case 'eCode':
       case 'eCodeQr':
         return ticket.eCode || transaction.eCode || '';
@@ -285,7 +288,7 @@ const InvitationLetterModal: React.FC<InvitationLetterModalProps> = ({ open, onC
       transformOrigin: 'center center',
     };
 
-    if (comp.key === 'eCodeQr') {
+    if (comp.key === 'eCodeQr' || comp.key === 'transactionECodeQr') {
       return (
         <div key={comp.id} style={style}>
           <img

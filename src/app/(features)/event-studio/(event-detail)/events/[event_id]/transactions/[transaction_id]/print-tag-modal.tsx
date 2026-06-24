@@ -266,6 +266,9 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
           return transaction.email || '';
         case 'transactionId':
           return String(transaction.id ?? '');
+        case 'transactionECode':
+        case 'transactionECodeQr':
+          return transaction.eCode || '';
         case 'eCode':
         case 'eCodeQr':
           return ticket.eCode || transaction.eCode || '';
@@ -358,8 +361,8 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
     let value: string;
     if (normalizedKey === 'customText' && comp.customText) {
       value = comp.customText;
-    } else if (normalizedKey === 'eCodeQr') {
-      value = resolveComponentValue('eCodeQr', ticket);
+    } else if (normalizedKey === 'eCodeQr' || normalizedKey === 'transactionECodeQr') {
+      value = resolveComponentValue(normalizedKey, ticket);
     } else if (normalizedKey === 'name') {
       // Always source "name" from transaction info, never ticket holder
       if (comp.includeTitle === false) {
@@ -403,7 +406,7 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
           overflow: 'hidden',
         }}
       >
-        {normalizedKey === 'eCodeQr' && value ? (
+        {(normalizedKey === 'eCodeQr' || normalizedKey === 'transactionECodeQr') && value ? (
           <img
             src={`https://api.qrserver.com/v1/create-qr-code/?margin=16&size=140x140&data=${encodeURIComponent(
               value

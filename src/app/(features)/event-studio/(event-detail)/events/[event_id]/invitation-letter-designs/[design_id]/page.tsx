@@ -483,8 +483,10 @@ export default function Page({ params }: { params: { event_id: number; design_id
     const vi = {
       eventName: 'Tên sự kiện',
       ticketsList: 'Danh sách vé',
-      eCode: 'Mã Check-in',
-      eCodeQr: 'Ảnh QR',
+      eCode: 'Mã Check-in từng vé',
+      eCodeQr: 'Ảnh QR từng vé',
+      transactionECode: 'Mã QR dùng chung',
+      transactionECodeQr: 'Ảnh QR dùng chung',
       startDateTime: 'Thời gian bắt đầu',
       endDateTime: 'Thời gian kết thúc',
       place: 'Địa điểm',
@@ -515,8 +517,10 @@ export default function Page({ params }: { params: { event_id: number; design_id
     const en = {
       eventName: 'Event Name',
       ticketsList: 'Tickets List',
-      eCode: 'Check-in Code',
-      eCodeQr: 'QR Image',
+      eCode: 'Check-in Code per Ticket',
+      eCodeQr: 'QR Image per Ticket',
+      transactionECode: 'Shared Code',
+      transactionECodeQr: 'Shared QR Image',
       startDateTime: 'Start Date Time',
       endDateTime: 'End Date Time',
       place: 'Place',
@@ -1074,11 +1078,11 @@ export default function Page({ params }: { params: { event_id: number; design_id
                 <ListItem button onClick={() => handleAddComponent('ticketsList', tt('Danh sách vé', 'Tickets List'))}>
                   <Typography variant="body2">{tt('Danh sách vé', 'Tickets List')}</Typography>
                 </ListItem>
-                <ListItem button onClick={() => handleAddComponent('eCode', tt('Mã Check-in', 'Check-in Code'))}>
-                  <Typography variant="body2">{tt('Mã Check-in', 'Check-in Code')}</Typography>
+                <ListItem button onClick={() => handleAddComponent('eCode', tt('Mã Check-in từng vé', 'Check-in Code per Ticket'))}>
+                  <Typography variant="body2">{tt('Mã Check-in từng vé', 'Check-in Code per Ticket')}</Typography>
                 </ListItem>
-                <ListItem button onClick={() => handleAddComponent('eCodeQr', tt('Ảnh QR', 'QR Image'))}>
-                  <Typography variant="body2">{tt('Ảnh QR', 'QR Image')}</Typography>
+                <ListItem button onClick={() => handleAddComponent('eCodeQr', tt('Ảnh QR từng vé', 'QR Image per Ticket'))}>
+                  <Typography variant="body2">{tt('Ảnh QR từng vé', 'QR Image per Ticket')}</Typography>
                 </ListItem>
                 <ListItem button onClick={() => handleAddComponent('startDateTime', tt('Thời gian bắt đầu', 'Start Date Time'))}>
                   <Typography variant="body2">{tt('Thời gian bắt đầu', 'Start Date Time')}</Typography>
@@ -1139,6 +1143,12 @@ export default function Page({ params }: { params: { event_id: number; design_id
                 </ListItem>
                 <ListItem button onClick={() => handleAddComponent('transactionId', tt('ID đơn hàng', 'Transaction ID'))}>
                   <Typography variant="body2">{tt('ID đơn hàng', 'Transaction ID')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('transactionECode', tt('Mã QR dùng chung', 'Shared Code'))}>
+                  <Typography variant="body2">{tt('Mã QR dùng chung', 'Shared Code')}</Typography>
+                </ListItem>
+                <ListItem button onClick={() => handleAddComponent('transactionECodeQr', tt('Ảnh QR dùng chung', 'Shared QR Image'))}>
+                  <Typography variant="body2">{tt('Ảnh QR dùng chung', 'Shared QR Image')}</Typography>
                 </ListItem>
                 {visibleBuiltinNames.has('name') && (
                   <ListItem button onClick={() => handleAddComponent('name', tt('Họ tên (đơn hàng)', 'Name (Trxn)'))}>
@@ -1345,7 +1355,7 @@ export default function Page({ params }: { params: { event_id: number; design_id
                                     : 'flex-start',
                             }}
                           >
-                            {comp.key === 'eCodeQr' ? (
+                            {comp.key === 'eCodeQr' || comp.key === 'transactionECodeQr' ? (
                               <img
                                 src={`https://api.qrserver.com/v1/create-qr-code/?margin=16&size=140x140&data=FMPJ8A`}
                                 alt="QR Code"
@@ -1905,7 +1915,7 @@ export default function Page({ params }: { params: { event_id: number; design_id
                   zIndex: comp.zIndex ?? 1,
                 }}
               >
-                {comp.key === 'eCodeQr' ? (
+                {comp.key === 'eCodeQr' || comp.key === 'transactionECodeQr' ? (
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?margin=16&size=140x140&data=FMPJ8A`}
                     alt="QR Code"
