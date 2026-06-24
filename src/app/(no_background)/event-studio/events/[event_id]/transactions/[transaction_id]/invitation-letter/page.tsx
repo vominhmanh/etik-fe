@@ -188,6 +188,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
       case 'eCode':
       case 'eCodeQr':
         return ticket?.eCode || transaction.eCode || '';
+      case 'transactionECode':
+      case 'transactionECodeQr':
+        return transaction.eCode || '';
       case 'startDateTime':
         return transaction.event?.startDateTime
           ? dayjs(transaction.event.startDateTime).format('HH:mm DD/MM/YYYY')
@@ -270,7 +273,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
       transformOrigin: 'center center',
     };
 
-    if (comp.key === 'eCodeQr') {
+    if (comp.key === 'eCodeQr' || comp.key === 'transactionECodeQr') {
       return (
         <div key={comp.id} style={style}>
           <img

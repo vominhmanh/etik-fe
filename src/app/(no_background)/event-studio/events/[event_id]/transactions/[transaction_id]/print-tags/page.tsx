@@ -111,6 +111,9 @@ const resolveComponentValue = (comp: ComponentData, transaction: any, ticket: Ti
     case 'eCode':
     case 'eCodeQr':
       return ticket.eCode || transaction.eCode || '';
+    case 'transactionECode':
+    case 'transactionECodeQr':
+      return transaction.eCode || '';
     case 'startDateTime':
       return transaction.event?.startDateTime
         ? dayjs(transaction.event.startDateTime).format('HH:mm DD/MM/YYYY')
@@ -194,7 +197,7 @@ const renderComponent = (comp: ComponentData, transaction: any, ticket: TicketRo
     transformOrigin: 'center center',
   };
 
-  if (comp.key === 'eCodeQr') {
+  if (comp.key === 'eCodeQr' || comp.key === 'transactionECodeQr') {
     return (
       <div key={comp.id} style={style}>
         <img
