@@ -214,6 +214,7 @@ export const useCustomerCanvasLoaderSynced = ({
         }
 
         const categoryMap = new Map(categories.map((c) => [String(c.id), c]));
+        const existingSeatsMap = new Map(existingSeats.map((s) => [s.canvasSeatId, s]));
 
         if ((layout as any).isLite) {
             const liteJson = layout as any;
@@ -221,6 +222,11 @@ export const useCustomerCanvasLoaderSynced = ({
             // Background
             canvas.backgroundColor = liteJson.settings?.background || '#f8fafc';
             setHasBgImage(false); // No background image supported in simple customer view yet, or can be added
+
+            // Turn off automatic rendering during bulk insert for massive performance gain
+            const originalRenderOnAddRemove = canvas.renderOnAddRemove;
+            canvas.renderOnAddRemove = false;
+            const objectsToAdd: fabric.Object[] = [];
 
             // Shapes
             (liteJson.shapes || []).forEach((shape: any) => {
@@ -236,7 +242,7 @@ export const useCustomerCanvasLoaderSynced = ({
                         evented: false,
                         hasControls: false
                     });
-                    canvas.add(rect);
+                    objectsToAdd.push(rect);
                 }
             });
 
@@ -252,7 +258,7 @@ export const useCustomerCanvasLoaderSynced = ({
                     evented: false,
                     hasControls: false
                 });
-                canvas.add(t);
+                objectsToAdd.push(t);
             });
 
             // Rows and Seats
@@ -271,7 +277,7 @@ export const useCustomerCanvasLoaderSynced = ({
                         evented: false,
                         hasControls: false
                     });
-                    canvas.add(t);
+                    objectsToAdd.push(t);
                 }
                 if (row.showLabelRight && row.labelRight) {
                     const t = new fabric.Text(row.name, {
@@ -286,7 +292,7 @@ export const useCustomerCanvasLoaderSynced = ({
                         evented: false,
                         hasControls: false
                     });
-                    canvas.add(t);
+                    objectsToAdd.push(t);
                 }
 
                 // Seats
@@ -295,7 +301,7 @@ export const useCustomerCanvasLoaderSynced = ({
                     let categoryId = null;
                     let status: SeatStatus = 'available';
 
-                    const dbSeat = existingSeats.find((s) => s.canvasSeatId === seatId);
+                    const dbSeat = existingSeatsMap.get(seatId);
                     if (dbSeat && dbSeat.ticketCategoryId && categoryMap.has(String(dbSeat.ticketCategoryId))) {
                         categoryId = String(dbSeat.ticketCategoryId);
                         status = dbSeat.status || 'available';
@@ -341,7 +347,7 @@ export const useCustomerCanvasLoaderSynced = ({
                          circle.set({ fill: 'transparent', stroke: 'black', strokeWidth: 1, opacity: 0.3 });
                     }
 
-                    canvas.add(circle);
+                    objectsToAdd.push(circle);
 
                     if (mergedStyle.showSeatNumbers) {
                         const label = new fabric.Text(seatData.number || '', {
@@ -355,11 +361,16 @@ export const useCustomerCanvasLoaderSynced = ({
                             excludeFromExport: true
                         });
                         (circle as any).labelObj = label;
-                        canvas.add(label);
+                        objectsToAdd.push(label);
                     }
                 });
             });
 
+            // Batch add all objects to canvas at once
+            canvas.add(...objectsToAdd);
+            
+            // Restore renderOnAddRemove and request single render
+            canvas.renderOnAddRemove = originalRenderOnAddRemove;
             canvas.selection = false;
             canvas.hoverCursor = 'default';
 
@@ -438,7 +449,7 @@ export const useCustomerCanvasLoaderSynced = ({
                             applyEmptySeatStyle(obj);
                             let categoryId = null;
                             let status: SeatStatus = 'available';
-                            const dbSeat = existingSeats.find((s) => s.canvasSeatId === obj.id);
+                            const dbSeat = existingSeatsMap.get(obj.id);
                             if (dbSeat && dbSeat.ticketCategoryId && categoryMap.has(String(dbSeat.ticketCategoryId))) {
                                 categoryId = String(dbSeat.ticketCategoryId);
                                 status = dbSeat.status || 'available';

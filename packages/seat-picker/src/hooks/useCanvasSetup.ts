@@ -49,34 +49,7 @@ const useCanvasSetup = (
     seat.angle = 45;
     // c.add(seat);
 
-    c.on('object:moving', (event) => {
-      const obj = event.target;
-      const { width: canvasWidth, height: canvasHeight } = c;
-
-      if (obj) {
-        obj.setCoords(); // Ensure bounding box is up to date
-        const rect = obj.getBoundingRect();
-        let dx = 0,
-          dy = 0;
-        // Clamp left/right
-        if (rect.left < 0) {
-          dx = -rect.left;
-        } else if (rect.left + rect.width > (canvasWidth ?? 0)) {
-          dx = (canvasWidth ?? 0) - (rect.left + rect.width);
-        }
-        // Clamp top/bottom
-        if (rect.top < 0) {
-          dy = -rect.top;
-        } else if (rect.top + rect.height > (canvasHeight ?? 0)) {
-          dy = (canvasHeight ?? 0) - (rect.top + rect.height);
-        }
-        if (dx !== 0 || dy !== 0) {
-          obj.left = (obj.left ?? 0) + dx;
-          obj.top = (obj.top ?? 0) + dy;
-          obj.setCoords();
-        }
-      }
-    });
+    // Object bounds clamping removed as per user request to allow moving objects outside the canvas.
 
     // Enforce strokeUniform: true for all supported objects on selection
     c.on('selection:created', (event) => {

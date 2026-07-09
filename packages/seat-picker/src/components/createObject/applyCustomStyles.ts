@@ -135,11 +135,16 @@ export function updateSeatVisuals(group: fabric.Group, updates: SeatVisualUpdate
   }
 
   // 4. Icon Management
+  let structureChanged = false;
+
   // Only update icons if status changed or explicit request (checked via updates presence)
   if (updates.status !== undefined || updates.fill !== undefined) {
     // Remove old icons
     const iconsToRemove = objects.filter((o: any) => o.name === 'status_icon');
-    iconsToRemove.forEach(icon => group.remove(icon));
+    if (iconsToRemove.length > 0) {
+      iconsToRemove.forEach(icon => group.remove(icon));
+      structureChanged = true;
+    }
 
     // Add new icon
     const iconPathData = SEAT_STYLE_CONFIG.icons[currentStatus as keyof typeof SEAT_STYLE_CONFIG.icons];
@@ -162,8 +167,18 @@ export function updateSeatVisuals(group: fabric.Group, updates: SeatVisualUpdate
       }
       path.set({ left: circle.left, top: circle.top });
       group.add(path);
+      structureChanged = true;
     }
   }
 
-  group.addWithUpdate();
+  // Geometry changes require bounds recalculation
+  if (updates.radius !== undefined || updates.fontSize !== undefined || updates.seatNumber !== undefined) {
+    structureChanged = true;
+  }
+
+  if (structureChanged) {
+    group.addWithUpdate();
+  } else {
+    group.set('dirty', true);
+  }
 }

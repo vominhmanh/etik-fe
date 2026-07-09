@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useEventGuiStore } from '@/zustand';
 import useClipboardActions from './useClipboardActions';
 import { CanvasObject } from '@/types/data.types';
+import { fabric } from 'fabric';
 import { exportCanvasToLiteJson } from '../utils/liteJsonExporter';
 
 const useKeyboardShortcuts = (onSave?: (json: any) => void) => {
@@ -15,6 +16,18 @@ const useKeyboardShortcuts = (onSave?: (json: any) => void) => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey) {
         switch (e.key.toLowerCase()) {
+          case 'a':
+            e.preventDefault();
+            const objects = canvas.getObjects().filter((obj: any) => obj.selectable && !obj.excludeFromExport && obj.id !== 'grid');
+            if (objects.length > 0) {
+              canvas.discardActiveObject();
+              const activeSelection = new fabric.ActiveSelection(objects, {
+                canvas: canvas,
+              });
+              canvas.setActiveObject(activeSelection);
+              canvas.requestRenderAll();
+            }
+            break;
           case 'c':
             e.preventDefault();
             copySelectedObjects();

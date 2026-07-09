@@ -235,6 +235,8 @@ export const useCanvasLoader = ({
             canvas.backgroundColor = liteJson.settings?.background || '#f8fafc';
 
             const objectsToAdd: any[] = [];
+            const originalRenderOnAddRemove = canvas.renderOnAddRemove;
+            canvas.renderOnAddRemove = false;
 
             (liteJson.rows || []).forEach((row: any) => {
                 (row.seats || []).forEach((seat: any) => {
@@ -292,6 +294,9 @@ export const useCanvasLoader = ({
             });
 
             canvas.add(...objectsToAdd);
+            canvas.renderOnAddRemove = originalRenderOnAddRemove;
+            canvas.requestRenderAll();
+            
             onLoadComplete();
         } else {
             console.warn("Unsupported legacy layout format detected. Please use Lite JSON.");

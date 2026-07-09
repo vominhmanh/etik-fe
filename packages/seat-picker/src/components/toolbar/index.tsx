@@ -548,8 +548,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
         tooltip="Zoom Out"
         onClick={handleZoomOut}
       />
-      <div className="flex h-8 w-12 items-center justify-center text-sm font-medium">
-        {zoomLevel}%
+      <div className="flex items-center gap-1 bg-white rounded-md border shadow-sm p-1">
+        <span className="text-xs font-medium w-12 text-center select-none">
+          {Math.round(zoomLevel)}%
+        </span>
       </div>
       <Button
         icon={<LuZoomIn className="h-4 w-4" />}

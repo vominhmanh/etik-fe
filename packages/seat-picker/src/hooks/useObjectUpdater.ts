@@ -278,19 +278,7 @@ export const useObjectUpdater = (
         }
       }
 
-      // Special handling for seatNumber in groups (sync to text object)
-      if ('seatNumber' in updates && selectedObject.type === 'group') {
-        const group = selectedObject as fabric.Group;
-        const objects = group.getObjects();
-        const textObj = objects.find(
-          (o) => o.type === 'text' || o.type === 'i-text'
-        ) as fabric.Text;
-
-        if (textObj) {
-          textObj.set('text', String(updates.seatNumber));
-          group.addWithUpdate(); // important to refresh group bounds/cache
-        }
-      }
+      // Note: seatNumber in groups is already synced to text object inside updateSeatVisuals
 
       selectedObject.set(updatedProperties);
 
@@ -302,39 +290,7 @@ export const useObjectUpdater = (
         });
       }
 
-      // --- Improved auto-snap to canvas edge after rotation ---
-      if (Object.prototype.hasOwnProperty.call(updates, 'angle')) {
-        selectedObject.setCoords(); // recalculate coords after rotation
-        const rect = selectedObject.getBoundingRect();
-        const canvasWidth = canvas.getWidth();
-        const canvasHeight = canvas.getHeight();
-        let dx = 0,
-          dy = 0;
-        // Snap left/right
-        if (rect.left < 0) {
-          dx = -rect.left;
-        } else if (rect.left + rect.width > canvasWidth) {
-          dx = canvasWidth - (rect.left + rect.width);
-        }
-        // Snap top/bottom
-        if (rect.top < 0) {
-          dy = -rect.top;
-        } else if (rect.top + rect.height > canvasHeight) {
-          dy = canvasHeight - (rect.top + rect.height);
-        }
-        if (dx !== 0 || dy !== 0) {
-          // Move by offset, using current origin
-          const originX = selectedObject.originX || 'center';
-          const originY = selectedObject.originY || 'center';
-          // Calculate new center position
-          const newCenter = new fabric.Point(
-            (selectedObject.left ?? 0) + dx,
-            (selectedObject.top ?? 0) + dy
-          );
-          selectedObject.setPositionByOrigin(newCenter, originX, originY);
-          selectedObject.setCoords();
-        }
-      }
+      // --- Improved auto-snap to canvas edge after rotation removed as per user request ---
 
       shouldRender = true;
       Object.assign(effectiveUpdates, updatedProperties);

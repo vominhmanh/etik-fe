@@ -156,65 +156,92 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   }), [style, canvasDimensions.width, canvasDimensions.height]);
 
 
+  // Globally prevent browser zoom
+  useEffect(() => {
+    const preventBrowserZoomWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+      }
+    };
+    const preventBrowserZoomKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && (e.key === '=' || e.key === '-' || e.key === '0')) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener('wheel', preventBrowserZoomWheel, { passive: false });
+    document.addEventListener('keydown', preventBrowserZoomKey, { passive: false });
+    return () => {
+      document.removeEventListener('wheel', preventBrowserZoomWheel);
+      document.removeEventListener('keydown', preventBrowserZoomKey);
+    };
+  }, []);
+
   // Handle Ctrl+Scroll Zoom
   useEffect(() => {
-    if (!canvas) return;
+    const parent = canvasParent.current;
+    if (!parent) return;
 
-    const handleWheel = (opt: fabric.IEvent) => {
-      const evt = opt.e as WheelEvent;
+    const handleWheel = (evt: WheelEvent) => {
       if (evt.ctrlKey) {
         evt.preventDefault();
         evt.stopPropagation();
 
         const delta = evt.deltaY;
-        let newZoom = zoomLevel;
+        const currentZoom = useEventGuiStore.getState().zoomLevel;
+        
+        // Use 0.999 geometric scaling factor with deltaY to support both fast mouse wheels and high-frequency trackpads
+        const zoomRatio = 0.999 ** delta;
+        let newZoom = currentZoom * zoomRatio;
 
-        if (delta > 0) {
-          // Zoom out
-          newZoom = Math.max(zoomLevel - 10, 50);
-        } else {
-          // Zoom in
-          newZoom = Math.min(zoomLevel + 10, 250);
-        }
+        // Calculate Min Zoom based on 70% of viewport
+        const rect = parent.getBoundingClientRect();
+        const minScaleX = rect.width / mergedStyle.width;
+        const minScaleY = rect.height / mergedStyle.height;
+        const minScale = Math.min(minScaleX, minScaleY) * 0.7; // Minimum zoom is 70% of viewport fit
+        const minZoomLimit = minScale * 100;
+        
+        newZoom = Math.max(newZoom, minZoomLimit);
+        // Max zoom is unlimited
 
-        if (newZoom !== zoomLevel) {
-          useEventGuiStore.getState().setZoomLevel(newZoom);
+        if (newZoom !== currentZoom) {
+          const wrapper = parent.firstElementChild as HTMLElement;
+          if (wrapper) {
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const mouseXRelativeToWrapper = evt.clientX - wrapperRect.left;
+            const mouseYRelativeToWrapper = evt.clientY - wrapperRect.top;
+
+            const ratio = newZoom / currentZoom;
+            
+            useEventGuiStore.getState().setZoomLevel(newZoom);
+            
+            // Compensate scroll to keep cursor pointed at the same spot
+            requestAnimationFrame(() => {
+              const parentRect = parent.getBoundingClientRect();
+              const newScrollLeft = (mouseXRelativeToWrapper * ratio) - (evt.clientX - parentRect.left);
+              const newScrollTop = (mouseYRelativeToWrapper * ratio) - (evt.clientY - parentRect.top);
+              
+              parent.scrollLeft = Math.max(0, newScrollLeft);
+              parent.scrollTop = Math.max(0, newScrollTop);
+            });
+          }
         }
       }
     };
 
-    canvas.on('mouse:wheel', handleWheel);
+    // Use passive: false to ensure preventDefault() works and stops browser zoom
+    parent.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
-      canvas.off('mouse:wheel', handleWheel);
+      parent.removeEventListener('wheel', handleWheel);
     };
-  }, [canvas, zoomLevel]);
+  }, [mergedStyle.width, mergedStyle.height]);
 
-  // Handle zoom changes
+  // Tell fabric to update its offset calculations after zoom layout shifts
   useEffect(() => {
-    if (!canvas) return;
-
-    // Fabric can throw if its internal canvas DOM elements are not ready (or after dispose)
-    const anyCanvas = canvas as any;
-    if (!anyCanvas.lowerCanvasEl || !anyCanvas.upperCanvasEl) return;
-
-    const scale = zoomLevel / 100;
-    try {
-      canvas.setDimensions(
-        {
-          width: mergedStyle.width * scale,
-          height: mergedStyle.height * scale,
-        },
-        { cssOnly: false }
-      );
-      canvas.setZoom(scale);
-      canvas.requestRenderAll();
-    } catch (err) {
-      // Avoid crashing the app; next effect tick / re-init will apply correct dimensions.
-      // eslint-disable-next-line no-console
-      console.warn("[seat-picker] setDimensions failed (canvas not ready?)", err);
+    if (canvas) {
+      canvas.calcOffset();
     }
-  }, [canvas, zoomLevel, mergedStyle.width, mergedStyle.height]);
+  }, [zoomLevel, canvas]);
 
   // Toast State (Lifted from Toolbar)
   const [showToast, setShowToast] = useState(false);
@@ -237,6 +264,17 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     !readOnly,
     false
   );
+
+  // Synchronize actual Fabric canvas dimensions with React state
+  useEffect(() => {
+    if (canvas) {
+      canvas.setDimensions({
+        width: mergedStyle.width,
+        height: mergedStyle.height,
+      });
+      canvas.requestRenderAll();
+    }
+  }, [canvas, mergedStyle.width, mergedStyle.height]);
   useSelectionHandler(canvas);
   useMultipleSeatCreator(canvas, toolMode, setToolMode);
   useRowLabelRenderer(canvas);
@@ -412,18 +450,29 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
         <div className="flex h-0 min-h-0 w-full flex-1 overflow-hidden relative">
           {/* Canvas Area */}
           <div
-            className="block flex-1 overflow-auto bg-gray-100 p-[2%] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:w-1"
+            className="block flex-1 overflow-auto bg-gray-100 p-[40px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2"
             ref={canvasParent}
             style={{ scrollbarWidth: 'thin' }}
           >
-            <div
-              className="mx-auto relative shadow-lg bg-white"
+            {/* Scroll Container */}
+            <div 
+              className="mx-auto relative flex-shrink-0 transition-all duration-75"
               style={{
                 width: mergedStyle.width * (zoomLevel / 100),
                 height: mergedStyle.height * (zoomLevel / 100),
               }}
             >
-              <canvas ref={canvasRef} />
+              {/* Transform Wrapper */}
+              <div
+                className="absolute top-0 left-0 shadow-lg bg-white origin-top-left"
+                style={{
+                  width: mergedStyle.width,
+                  height: mergedStyle.height,
+                  transform: `scale(${zoomLevel / 100})`,
+                }}
+              >
+                <canvas ref={canvasRef} />
+              </div>
             </div>
           </div>
           <Sidebar categories={categories} />
