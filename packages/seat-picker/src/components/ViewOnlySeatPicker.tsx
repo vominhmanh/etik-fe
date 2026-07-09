@@ -10,7 +10,6 @@ import useCanvasSetup from '@/hooks/useCanvasSetup';
 // import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 // import useUndoRedo from '@/hooks/useUndoRedo';
 import { useCustomerCanvasLoaderSynced } from '@/hooks/useCustomerCanvasLoaderSynced';
-import useRowLabelRenderer from '@/hooks/useRowLabelRenderer';
 import { LuX, LuList, LuMenu } from 'react-icons/lu';
 import { useSeatMetadata } from '@/hooks/useSeatMetadata';
 import '@/index.css';
@@ -461,8 +460,6 @@ const ViewOnlySeatPicker: React.FC<SeatCanvasProps> = ({
       canvas.requestRenderAll();
     }
   }, [canvas, mergedStyle.width, mergedStyle.height]);
-
-  useRowLabelRenderer(canvas);
 
   // Canvas Loader Hook (Customer specific: strict read-only, hover pointers)
   useCustomerCanvasLoaderSynced({
