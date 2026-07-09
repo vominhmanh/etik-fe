@@ -37,9 +37,19 @@ const RectangleProperties: React.FC<RectanglePropertiesProps> = ({
   updateObject,
   Select,
 }) => {
-  const [lockAspect, setLockAspect] = useState(true);
   const { canvas } = useEventGuiStore();
+  const [lockAspect, setLockAspect] = useState(false);
 
+  // Sync state when selection changes
+  useEffect(() => {
+    if (!canvas) return;
+    const activeObject = canvas.getActiveObject && canvas.getActiveObject();
+    if (activeObject && activeObject.type === 'rect') {
+      setLockAspect(activeObject.get('lockUniScaling') || false);
+    }
+  }, [canvas, properties]);
+
+  // Apply state when it changes
   useEffect(() => {
     if (!canvas) return;
     const activeObject = canvas.getActiveObject && canvas.getActiveObject();
@@ -51,7 +61,7 @@ const RectangleProperties: React.FC<RectanglePropertiesProps> = ({
         ml: !lockAspect,
         mr: !lockAspect,
       });
-      canvas.renderAll && canvas.renderAll();
+      canvas.requestRenderAll && canvas.requestRenderAll();
     }
   }, [lockAspect, canvas]);
 

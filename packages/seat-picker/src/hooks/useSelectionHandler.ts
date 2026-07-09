@@ -3,7 +3,7 @@ import { fabric } from 'fabric';
 import { useEventGuiStore } from '@/zustand/store/eventGuiStore';
 
 const useSelectionHandler = (canvas: fabric.Canvas | null) => {
-  const { selectedRowId, setSelectedRowId, toolMode, setToolMode } =
+  const { selectedRowIds, setSelectedRowIds, toolMode, setToolMode } =
     useEventGuiStore();
   const ignoreNextSelectionRef = useRef(false);
 
@@ -13,7 +13,7 @@ const useSelectionHandler = (canvas: fabric.Canvas | null) => {
     const handleMouseDown = (e: fabric.IEvent) => {
       // Clear selection if clicked on empty space
       if (!e.target) {
-        setSelectedRowId(null);
+        setSelectedRowIds([]);
         // Auto-revert to Row Selection mode when clearing selection
         if (toolMode === 'select-seat') {
           setToolMode('select');
@@ -30,7 +30,7 @@ const useSelectionHandler = (canvas: fabric.Canvas | null) => {
       if (
         activeObject &&
         activeObject.type === 'activeSelection' &&
-        selectedRowId
+        selectedRowIds.length > 0
       ) {
         // Set flag to ignore the immediate selection event triggered by setActiveObject below
         ignoreNextSelectionRef.current = true;
@@ -39,7 +39,7 @@ const useSelectionHandler = (canvas: fabric.Canvas | null) => {
         canvas.discardActiveObject();
 
         // Hide Row Panel
-        setSelectedRowId(null);
+        setSelectedRowIds([]);
 
         // Find the specific object under the mouse
         const target = canvas.findTarget(e.e, false);
@@ -65,61 +65,132 @@ const useSelectionHandler = (canvas: fabric.Canvas | null) => {
         return;
       }
 
-      // If in 'select-seat' mode, allow granular selection without row grouping
       if (toolMode === 'select-seat') {
-        if (selectedRowId) setSelectedRowId(null);
-        return;
-      }
+        if (selectedRowIds.length > 0) setSelectedRowIds([]);
+      } else if (toolMode === 'select') {
+        const selectedEventObjects = (e as any).selected || [];
+        const deselectedEventObjects = (e as any).deselected || [];
 
-      // Check if it's a single seat selection
-      if (
-        selected.length === 1 &&
-        typeof (selected[0] as any).rowId === 'string'
-      ) {
-        const obj = selected[0] as any;
-        const currentRowId = obj.rowId;
+        const isSingleClickInteraction = 
+          (selectedEventObjects.length === 1 && deselectedEventObjects.length === 0) ||
+          (deselectedEventObjects.length === 1 && selectedEventObjects.length === 0) ||
+          (selectedEventObjects.length === 0 && deselectedEventObjects.length === 0 && selected.length === 1);
 
-        // If newly selected row (different from previous), select the whole row
-        if (selectedRowId !== currentRowId) {
-          const rowObjects = canvas
-            .getObjects()
-            .filter((o: any) => o.rowId === currentRowId);
-
-          if (rowObjects.length > 1) {
-            const selection = new fabric.ActiveSelection(rowObjects, {
-              canvas: canvas,
+        if (isSingleClickInteraction) {
+            const newlySelectedRowIds = new Set<string>();
+            selectedEventObjects.forEach((o: any) => {
+              if (o.rowId) newlySelectedRowIds.add(o.rowId);
             });
-            canvas.setActiveObject(selection);
-            setSelectedRowId(currentRowId);
-            canvas.requestRenderAll();
-            return;
-          } else {
-            setSelectedRowId(currentRowId);
-          }
-        }
-      } else {
-        // Multi selection
-        const rowIds = new Set(
-          selected.map((o: any) => o.rowId).filter(Boolean)
-        );
-        if (rowIds.size === 1) {
-          const id = Array.from(rowIds)[0] as string;
-
-          // Check if FULL row is selected (exclude labels)
-          const allRowObjects = canvas
-            .getObjects()
-            .filter((o: any) => o.rowId === id && !o.isRowLabel);
-          const selectedSeats = selected.filter((o: any) => !o.isRowLabel);
-
-          if (selectedSeats.length === allRowObjects.length) {
-            if (selectedRowId !== id) {
-              setSelectedRowId(id);
+            if (newlySelectedRowIds.size === 0 && selected.length === 1 && selected[0].rowId) {
+                newlySelectedRowIds.add(selected[0].rowId);
             }
-          } else {
-            setSelectedRowId(null);
+
+            const newlyDeselectedRowIds = new Set<string>();
+            deselectedEventObjects.forEach((o: any) => {
+              if (o.rowId) newlyDeselectedRowIds.add(o.rowId);
+            });
+
+            let needsReselection = false;
+            const newSelectionObjects = new Set(selected);
+
+            const objectsByRow = new Map<string, any[]>();
+            const processedObjs1 = new Set<any>();
+
+            const addToRow1 = (o: any) => {
+              if (o.rowId) {
+                if (!objectsByRow.has(o.rowId)) objectsByRow.set(o.rowId, []);
+                objectsByRow.get(o.rowId)!.push(o);
+              }
+            };
+
+            canvas.getObjects().forEach((o: any) => {
+              if (!processedObjs1.has(o)) {
+                processedObjs1.add(o);
+                addToRow1(o);
+              }
+            });
+            selected.forEach((o: any) => {
+              if (!processedObjs1.has(o)) {
+                processedObjs1.add(o);
+                addToRow1(o);
+              }
+            });
+
+            newlyDeselectedRowIds.forEach(id => {
+              const allRowObjects = objectsByRow.get(id as string) || [];
+              allRowObjects.forEach(obj => {
+                 if (newSelectionObjects.has(obj)) {
+                     newSelectionObjects.delete(obj);
+                     needsReselection = true;
+                 }
+              });
+            });
+
+            newlySelectedRowIds.forEach(id => {
+              const allRowObjects = objectsByRow.get(id as string) || [];
+              allRowObjects.forEach(obj => {
+                 if (!newSelectionObjects.has(obj)) {
+                     newSelectionObjects.add(obj);
+                     needsReselection = true;
+                 }
+              });
+            });
+
+            if (needsReselection) {
+              canvas.discardActiveObject();
+              if (newSelectionObjects.size > 0) {
+                const selection = new fabric.ActiveSelection(Array.from(newSelectionObjects), {
+                  canvas: canvas,
+                });
+                canvas.setActiveObject(selection);
+              }
+              canvas.requestRenderAll();
+              return;
+            }
+        }
+
+        // Common Logic: Identify fully selected rows for Sidebar properties
+        const objectsByRow = new Map<string, any[]>();
+        const processedObjs2 = new Set<any>();
+
+        const addToRow2 = (o: any) => {
+          if (o.rowId && !o.isRowLabel) {
+            if (!objectsByRow.has(o.rowId)) objectsByRow.set(o.rowId, []);
+            objectsByRow.get(o.rowId)!.push(o);
           }
-        } else {
-          setSelectedRowId(null);
+        };
+
+        canvas.getObjects().forEach((o: any) => {
+          if (!processedObjs2.has(o)) {
+            processedObjs2.add(o);
+            addToRow2(o);
+          }
+        });
+        selected.forEach((o: any) => {
+          if (!processedObjs2.has(o)) {
+            processedObjs2.add(o);
+            addToRow2(o);
+          }
+        });
+
+        const selectedSeatsByRow = new Map<string, any[]>();
+        selected.forEach((o: any) => {
+          if (o.rowId && !o.isRowLabel) {
+            if (!selectedSeatsByRow.has(o.rowId)) selectedSeatsByRow.set(o.rowId, []);
+            selectedSeatsByRow.get(o.rowId)!.push(o);
+          }
+        });
+
+        const fullySelectedRowIds: string[] = [];
+        selectedSeatsByRow.forEach((selSeats, rowId) => {
+           const allRowSeats = objectsByRow.get(rowId) || [];
+           if (allRowSeats.length > 0 && selSeats.length === allRowSeats.length) {
+               fullySelectedRowIds.push(rowId);
+           }
+        });
+
+        if (selectedRowIds.length !== fullySelectedRowIds.length || !fullySelectedRowIds.every(id => selectedRowIds.includes(id))) {
+          setSelectedRowIds(fullySelectedRowIds);
         }
       }
 
@@ -161,7 +232,7 @@ const useSelectionHandler = (canvas: fabric.Canvas | null) => {
       canvas.off('selection:created', handleSelection);
       canvas.off('selection:updated', handleSelection);
     };
-  }, [canvas, selectedRowId, setSelectedRowId, toolMode, setToolMode]);
+  }, [canvas, selectedRowIds, setSelectedRowIds, toolMode, setToolMode]);
 };
 
 export default useSelectionHandler;

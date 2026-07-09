@@ -3,6 +3,7 @@ import { fabric } from 'fabric';
 import { v4 as uuidv4 } from 'uuid';
 import { createSeat } from '../components/createObject';
 import { Mode, useEventGuiStore } from '@/zustand/store/eventGuiStore';
+import { getExcelAlpha, getAlphaIndex } from '@/utils';
 
 const useMultipleSeatCreator = (
   canvas: fabric.Canvas | null,
@@ -14,29 +15,6 @@ const useMultipleSeatCreator = (
   const infoTextRef = useRef<fabric.Text | null>(null);
 
   const { addRow, rows: existingRows } = useEventGuiStore();
-
-  function getExcelAlpha(n: number) {
-    let ordA = 'A'.charCodeAt(0);
-    let ordZ = 'Z'.charCodeAt(0);
-    let len = ordZ - ordA + 1;
-    let s = '';
-    while (n >= 0) {
-      s = String.fromCharCode((n % len) + ordA) + s;
-      n = Math.floor(n / len) - 1;
-    }
-    return s;
-  }
-
-  function getAlphaIndex(s: string) {
-    // Basic validation to ensure it's an alpha string
-    if (!/^[A-Z]+$/i.test(s)) return -1;
-    const upper = s.toUpperCase();
-    let n = 0;
-    for (let i = 0; i < upper.length; i++) {
-      n = n * 26 + (upper.charCodeAt(i) - 'A'.charCodeAt(0) + 1);
-    }
-    return n - 1;
-  }
 
   useEffect(() => {
     if (!canvas) return;

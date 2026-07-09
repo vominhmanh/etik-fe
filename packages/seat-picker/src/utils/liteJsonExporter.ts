@@ -100,6 +100,6 @@ export const exportCanvasToLiteJson = (
         }
     });
 
-    liteJson.rows = Array.from(rowsMap.values());
+    liteJson.rows = Array.from(rowsMap.values()).filter(row => row.seats && row.seats.length > 0);
     return liteJson;
 };

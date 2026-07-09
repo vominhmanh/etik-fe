@@ -57,8 +57,8 @@ interface EventGuiState {
   addRow: (row: Row) => void;
   updateRow: (id: string, updates: Partial<Row>) => void;
   deleteRow: (id: string) => void;
-  selectedRowId: string | null;
-  setSelectedRowId: (id: string | null) => void;
+  selectedRowIds: string[];
+  setSelectedRowIds: (ids: string[]) => void;
 
   seats: Seat[];
   addSeat: (seat: Seat) => void;
@@ -155,8 +155,8 @@ export const useEventGuiStore = create<EventGuiState>((set, get) => ({
     set((state) => ({
       rows: state.rows.filter((row) => row.id !== id),
     })),
-  selectedRowId: null,
-  setSelectedRowId: (id) => set({ selectedRowId: id }),
+  selectedRowIds: [],
+  setSelectedRowIds: (ids) => set({ selectedRowIds: ids }),
 
   // ::::::::::::::::::: Seat states
   seats: [],

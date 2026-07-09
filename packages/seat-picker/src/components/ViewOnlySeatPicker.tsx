@@ -216,7 +216,7 @@ const ViewOnlySeatPicker: React.FC<SeatCanvasProps> = ({
 
         const delta = evt.deltaY;
         const currentZoom = useEventGuiStore.getState().zoomLevel;
-        
+
         // Use 0.999 geometric scaling factor with deltaY to support both fast mouse wheels and high-frequency trackpads
         const zoomRatio = 0.999 ** delta;
         let newZoom = currentZoom * zoomRatio;
@@ -227,7 +227,7 @@ const ViewOnlySeatPicker: React.FC<SeatCanvasProps> = ({
         const minScaleY = rect.height / mergedStyle.height;
         const minScale = Math.min(minScaleX, minScaleY) * 0.7; // Minimum zoom is 70% of viewport fit
         const minZoomLimit = minScale * 100;
-        
+
         newZoom = Math.max(newZoom, minZoomLimit);
         // Max zoom is unlimited
 
@@ -239,15 +239,15 @@ const ViewOnlySeatPicker: React.FC<SeatCanvasProps> = ({
             const mouseYRelativeToWrapper = evt.clientY - wrapperRect.top;
 
             const ratio = newZoom / currentZoom;
-            
+
             useEventGuiStore.getState().setZoomLevel(newZoom);
-            
+
             // Compensate scroll to keep cursor pointed at the same spot
             requestAnimationFrame(() => {
               const parentRect = parent.getBoundingClientRect();
               const newScrollLeft = (mouseXRelativeToWrapper * ratio) - (evt.clientX - parentRect.left);
               const newScrollTop = (mouseYRelativeToWrapper * ratio) - (evt.clientY - parentRect.top);
-              
+
               parent.scrollLeft = Math.max(0, newScrollLeft);
               parent.scrollTop = Math.max(0, newScrollTop);
             });
@@ -461,9 +461,9 @@ const ViewOnlySeatPicker: React.FC<SeatCanvasProps> = ({
       canvas.requestRenderAll();
     }
   }, [canvas, mergedStyle.width, mergedStyle.height]);
-  
+
   useRowLabelRenderer(canvas);
-  
+
   // Canvas Loader Hook (Customer specific: strict read-only, hover pointers)
   useCustomerCanvasLoaderSynced({
     canvas,
@@ -506,12 +506,12 @@ const ViewOnlySeatPicker: React.FC<SeatCanvasProps> = ({
           const scale = Math.min(scaleX, scaleY);
 
           let targetZoom = Math.floor(scale * 100);
-          
+
           const minScale = Math.min(scaleX, scaleY) * 0.7;
           const minZoom = minScale * 100;
-          
+
           targetZoom = Math.max(targetZoom, minZoom);  // Respect min zoom
-          
+
           useEventGuiStore.getState().setZoomLevel(targetZoom);
         }
       }, 100);
@@ -598,7 +598,7 @@ const ViewOnlySeatPicker: React.FC<SeatCanvasProps> = ({
             style={{ scrollbarWidth: 'thin' }}
           >
             {/* Scroll Container */}
-            <div 
+            <div
               className="mx-auto relative flex-shrink-0 transition-all duration-75"
               style={{
                 width: mergedStyle.width * (zoomLevel / 100),

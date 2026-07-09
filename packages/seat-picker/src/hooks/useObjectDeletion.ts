@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { fabric } from 'fabric';
-import { Action } from '@/zustand/store/eventGuiStore';
+import { useEventGuiStore, Action } from '@/zustand/store/eventGuiStore';
 
 const useObjectDeletion = (
   canvas: fabric.Canvas | null,
@@ -50,8 +50,29 @@ const useObjectDeletion = (
       }
 
       if (deletableObjects.length > 0) {
-        deletableObjects.forEach((obj) => canvas.remove(obj));
+        const deletedRowIds = new Set<string>();
+
+        deletableObjects.forEach((obj: any) => {
+          if (obj.rowId) deletedRowIds.add(obj.rowId);
+          canvas.remove(obj);
+        });
+
         canvas.discardActiveObject();
+
+        if (deletedRowIds.size > 0) {
+          const remainingObjects = canvas.getObjects();
+          const { deleteRow } = useEventGuiStore.getState();
+
+          deletedRowIds.forEach(rowId => {
+            const hasSeatsLeft = remainingObjects.some((o: any) => o.rowId === rowId && !o.isRowLabel);
+            if (!hasSeatsLeft) {
+              deleteRow(rowId);
+              const labelsToRemove = remainingObjects.filter((o: any) => o.isRowLabel && o.rowId === rowId);
+              labelsToRemove.forEach(label => canvas.remove(label));
+            }
+          });
+        }
+
         canvas.renderAll();
       }
     };

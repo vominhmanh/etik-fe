@@ -1,14 +1,29 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { fabric } from 'fabric';
 import { useEventGuiStore } from '@/zustand/store/eventGuiStore';
 import { CustomFabricObject } from '@/types/fabric-types';
 
 const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
     const { rows, updateRow } = useEventGuiStore();
+    const dirtyRowIdsRef = useRef(new Set<string>());
 
-    const syncLabels = useCallback((snapToDefault = false) => {
+    const syncLabels = useCallback((snapToDefault = false, dirtyRowIds = new Set<string>()) => {
         if (!canvas) return;
         const allObjects = canvas.getObjects() as CustomFabricObject[];
+
+        let activeObjects: fabric.Object[] = [];
+        let wasActiveSelection = false;
+
+        if (snapToDefault) {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj?.type === 'activeSelection') {
+                wasActiveSelection = true;
+                activeObjects = canvas.getActiveObjects();
+                canvas.discardActiveObject();
+                // Ensure matrix is cleared
+                activeObjects.forEach(obj => obj.setCoords());
+            }
+        }
 
         // Group Seats and Labels by RowId for O(1) lookup
         const seatsByRow: Record<string, CustomFabricObject[]> = {};
@@ -39,14 +54,22 @@ const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
                 return;
             }
 
-            // Find Edge Seats
+            // Find Edge Seats using Absolute Coordinates
             let minLeftSeat = rowSeats[0];
             let maxLeftSeat = rowSeats[0];
+            let minLeftRect = minLeftSeat.getBoundingRect();
+            let maxLeftRect = maxLeftSeat.getBoundingRect();
 
             rowSeats.forEach((seat) => {
-                const sLeft = seat.left || 0;
-                if (sLeft < (minLeftSeat.left || 0)) minLeftSeat = seat;
-                if (sLeft > (maxLeftSeat.left || 0)) maxLeftSeat = seat;
+                const rect = seat.getBoundingRect();
+                if (rect.left < minLeftRect.left) {
+                    minLeftSeat = seat;
+                    minLeftRect = rect;
+                }
+                if (rect.left > maxLeftRect.left) {
+                    maxLeftSeat = seat;
+                    maxLeftRect = rect;
+                }
             });
 
             const createLabel = (id: string, originX: string) => new fabric.IText(row.name, {
@@ -66,6 +89,8 @@ const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
                 rowId: row.id
             } as any) as unknown as CustomFabricObject;
 
+            const shouldSnap = snapToDefault && (dirtyRowIds.has(row.id) || dirtyRowIds.has('*'));
+
             // Find ALL labels for this row
             const rowLabels = labelsByRow[row.id] || [];
 
@@ -83,15 +108,16 @@ const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
                 (leftLabel as any).id = leftId;
             }
 
-            if (!leftLabel || snapToDefault) {
-                const leftSeatCenterY =
-                    (minLeftSeat.top || 0) +
-                    ((minLeftSeat.height || 0) * (minLeftSeat.scaleY || 1)) / 2;
-                const defaultLeftX = (minLeftSeat.left || 0) - 10;
+            if (!leftLabel || shouldSnap) {
+                const leftSeatCenterY = minLeftRect.top + minLeftRect.height / 2;
+                const defaultLeftX = minLeftRect.left - 10;
 
                 if (!leftLabel) {
                     leftLabel = createLabel(leftId, 'right');
                     canvas.add(leftLabel as any);
+                    if (wasActiveSelection && activeObjects.some((o: any) => o.rowId === row.id)) {
+                        activeObjects.push(leftLabel as any);
+                    }
                 }
 
                 leftLabel.set({
@@ -104,6 +130,7 @@ const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
                     lockMovementX: false,
                     lockMovementY: false,
                 });
+                leftLabel.setCoords();
             } else {
                 leftLabel.set({
                     text: row.name,
@@ -126,18 +153,16 @@ const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
                 (rightLabel as any).id = rightId;
             }
 
-            if (!rightLabel || snapToDefault) {
-                const rightSeatWidth =
-                    (maxLeftSeat.width || 0) * (maxLeftSeat.scaleX || 1);
-                const rightSeatCenterY =
-                    (maxLeftSeat.top || 0) +
-                    ((maxLeftSeat.height || 0) * (maxLeftSeat.scaleY || 1)) / 2;
-                const defaultRightX =
-                    (maxLeftSeat.left || 0) + rightSeatWidth + 10;
+            if (!rightLabel || shouldSnap) {
+                const rightSeatCenterY = maxLeftRect.top + maxLeftRect.height / 2;
+                const defaultRightX = maxLeftRect.left + maxLeftRect.width + 10;
 
                 if (!rightLabel) {
                     rightLabel = createLabel(rightId, 'left');
                     canvas.add(rightLabel as any);
+                    if (wasActiveSelection && activeObjects.some((o: any) => o.rowId === row.id)) {
+                        activeObjects.push(rightLabel as any);
+                    }
                 }
 
                 rightLabel.set({
@@ -150,6 +175,7 @@ const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
                     lockMovementX: false,
                     lockMovementY: false,
                 });
+                rightLabel.setCoords();
             } else {
                 rightLabel.set({
                     text: row.name,
@@ -165,6 +191,10 @@ const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
                 labelsByRow[rId].forEach(l => canvas.remove(l as any));
             }
         });
+
+        if (wasActiveSelection && activeObjects.length > 0) {
+            canvas.setActiveObject(new fabric.ActiveSelection(activeObjects, { canvas }));
+        }
 
         canvas.requestRenderAll();
 
@@ -184,13 +214,17 @@ const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
         let debounceTimer: NodeJS.Timeout;
 
         const handleTopologyChange = (e: fabric.IEvent) => {
+            const target = e.target as CustomFabricObject;
+            if (target && target.rowId) {
+                dirtyRowIdsRef.current.add(target.rowId);
+            }
+
             // Debounce the heavy label sync
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
-                // Inspecting 'e' inside timeout might be stale if we relied on it, 
-                // but syncLabels scans everything.
-                // We generally assume if topology changed (add/remove), we should snap labels (true).
-                syncLabels(true);
+                const dirtyIds = new Set(dirtyRowIdsRef.current);
+                dirtyRowIdsRef.current.clear();
+                syncLabels(true, dirtyIds);
             }, 10);
         };
 
@@ -210,6 +244,7 @@ const useRowLabelRenderer = (canvas: fabric.Canvas | null) => {
         syncLabels(false); // Initial render
 
         return () => {
+            clearTimeout(debounceTimer);
             canvas.off('object:modified', handleModified);
             canvas.off('object:added', handleTopologyChange);
             canvas.off('object:removed', handleTopologyChange);

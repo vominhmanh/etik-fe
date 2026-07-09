@@ -239,6 +239,8 @@ export const useCanvasLoader = ({
             canvas.renderOnAddRemove = false;
 
             (liteJson.rows || []).forEach((row: any) => {
+                if (!row.seats || row.seats.length === 0) return; // Skip empty rows
+
                 (row.seats || []).forEach((seat: any) => {
                     const seatObj = createSeat(seat.x, seat.y, row.id, seat.number, canvas, { radius: mergedStyle.seatStyle?.radius, fontSize: mergedStyle.seatNumberStyle?.fontSize });
                     const customSeat = seatObj as any;

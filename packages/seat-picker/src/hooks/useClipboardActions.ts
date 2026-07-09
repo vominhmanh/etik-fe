@@ -2,6 +2,7 @@ import { useEventGuiStore } from '@/zustand';
 import { fabric } from 'fabric';
 import { v4 as uuidv4 } from 'uuid';
 import { applyCustomStyles } from '@/components/createObject/applyCustomStyles';
+import { getExcelAlpha, getAlphaIndex } from '@/utils';
 
 const useClipboardActions = () => {
   const {
@@ -88,8 +89,28 @@ const useClipboardActions = () => {
     }
     setClipboard(clonedObjects);
 
+    const deletedRowIds = new Set<string>();
+    activeObjects.forEach((obj: any) => {
+      if (obj.rowId) deletedRowIds.add(obj.rowId);
+    });
+
     canvas.remove(...activeObjects);
     canvas.discardActiveObject();
+
+    if (deletedRowIds.size > 0) {
+      const remainingObjects = canvas.getObjects();
+      const { deleteRow } = useEventGuiStore.getState();
+
+      deletedRowIds.forEach(rowId => {
+        const hasSeatsLeft = remainingObjects.some((o: any) => o.rowId === rowId && !o.isRowLabel);
+        if (!hasSeatsLeft) {
+          deleteRow(rowId);
+          const labelsToRemove = remainingObjects.filter((o: any) => o.isRowLabel && o.rowId === rowId);
+          labelsToRemove.forEach(label => canvas.remove(label));
+        }
+      });
+    }
+
     canvas.renderAll();
   };
 
@@ -101,6 +122,23 @@ const useClipboardActions = () => {
 
     const rowIdMap = new Map<string, string>();
     const pendingClones: Promise<fabric.Object | null>[] = [];
+
+    // Calculate the next row name based on existing labels
+    const canvasObjects = canvas.getObjects() as any[];
+    const usedRowNames = new Set<string>();
+
+    canvasObjects.forEach(obj => {
+      if (obj.isRowLabel && obj.text) {
+        usedRowNames.add(obj.text);
+      }
+    });
+
+    const existingIndices = Array.from(usedRowNames)
+      .map((name) => getAlphaIndex(name))
+      .filter((n) => n >= 0);
+
+    const maxIndex = existingIndices.length > 0 ? Math.max(...existingIndices) : -1;
+    let nextRowIndex = maxIndex + 1;
 
     // 1. Create Clones first
     for (const obj of clipboard) {
@@ -116,15 +154,20 @@ const useClipboardActions = () => {
                 const newRowId = uuidv4();
                 rowIdMap.set(oldRowId, newRowId);
 
+                const newRowName = getExcelAlpha(nextRowIndex);
+                nextRowIndex++;
+
                 const oldRowData = rows.find((r) => r.id === oldRowId);
                 if (oldRowData) {
                   addRow({
                     ...oldRowData,
                     id: newRowId,
-                    name: oldRowData.name,
+                    name: newRowName,
+                    showLabelLeft: true,
+                    showLabelRight: true,
                   });
                 } else {
-                  addRow({ id: newRowId, name: 'Row' });
+                  addRow({ id: newRowId, name: newRowName, showLabelLeft: true, showLabelRight: true });
                 }
               }
               cloned.rowId = rowIdMap.get(oldRowId);
@@ -327,6 +370,45 @@ export default useClipboardActions;
 //     pastedObjects.forEach((obj) => {
 //       obj.set({
 //         left: (obj.left || 0) + actualOffsetX,
+//         top: (obj.top || 0) + actualOffsetY,
+//         evented: true,
+//         selectable: true,
+//       });
+//       canvas.add(obj);
+//     });
+//     // Select pasted objects
+//     canvas.discardActiveObject();
+//     if (pastedObjects.length === 1) {
+//       canvas.setActiveObject(pastedObjects[0]);
+//     } else if (pastedObjects.length > 1) {
+//       const group = new fabric.ActiveSelection(pastedObjects, { canvas });
+//       canvas.setActiveObject(group);
+//     }
+//     canvas.requestRenderAll();
+//     pasteCountRef.current += 1;
+//   };
+
+//   // Helper: get bounding box
+//   const getBoundingBox = (objects: fabric.Object[]) => {
+//     let minX = Infinity,
+//       minY = Infinity,
+//       maxX = -Infinity,
+//       maxY = -Infinity;
+//     objects.forEach((obj) => {
+//       const rect = obj.getBoundingRect();
+//       minX = Math.min(minX, rect.left);
+//       minY = Math.min(minY, rect.top);
+//       maxX = Math.max(maxX, rect.left + rect.width);
+//       maxY = Math.max(maxY, rect.top + rect.height);
+//     });
+//     return { left: minX, top: minY, width: maxX - minX, height: maxY - minY };
+//   };
+
+//   return { copySelectedObjects, cutSelectedObjects, pasteObjects };
+// };
+
+// export default useClipboardActions;
+// export { useRegisterFabricCustomClasses };
 //         top: (obj.top || 0) + actualOffsetY,
 //         evented: true,
 //         selectable: true,

@@ -29,3 +29,25 @@ export const formatPrice = (price: string | number) => {
   if (isNaN(num)) return '';
   return num.toLocaleString('vi-VN').replace(/,/g, '.') + ' đ';
 };
+
+export function getExcelAlpha(n: number) {
+  let ordA = 'A'.charCodeAt(0);
+  let ordZ = 'Z'.charCodeAt(0);
+  let len = ordZ - ordA + 1;
+  let s = '';
+  while (n >= 0) {
+    s = String.fromCharCode((n % len) + ordA) + s;
+    n = Math.floor(n / len) - 1;
+  }
+  return s;
+}
+
+export function getAlphaIndex(s: string) {
+  if (!/^[A-Z]+$/i.test(s)) return -1;
+  const upper = s.toUpperCase();
+  let n = 0;
+  for (let i = 0; i < upper.length; i++) {
+    n = n * 26 + (upper.charCodeAt(i) - 'A'.charCodeAt(0) + 1);
+  }
+  return n - 1;
+}

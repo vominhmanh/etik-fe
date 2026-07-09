@@ -25,12 +25,8 @@ const createRect = (left: number, top: number) => {
     ry: 0,
   } as any);
 
-  rect.setControlsVisibility({
-    mt: false,
-    mb: false,
-    ml: false,
-    mr: false,
-  });
+  // Controls are fully visible by default so w and h can be edited independently.
+  // The RectangleProperties sidebar can optionally lock the aspect ratio.
 
   return rect;
 };

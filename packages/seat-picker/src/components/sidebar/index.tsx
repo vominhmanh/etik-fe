@@ -33,7 +33,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ categories }) => {
-  const { canvas, selectedRowId } = useEventGuiStore();
+  const { canvas, selectedRowIds } = useEventGuiStore();
   const [selectedObjects, setSelectedObjects] = useState<CustomFabricObject[]>(
     []
   );
@@ -212,7 +212,7 @@ const Sidebar: React.FC<SidebarProps> = ({ categories }) => {
 
   return (
     <div className="h-full w-[20rem] space-y-4 overflow-y-auto border-0 border-l border-solid border-gray-200 bg-gray-50 p-4 scrollbar-thin">
-      {selectedRowId && (
+      {selectedRowIds && selectedRowIds.length > 0 && (
         <RowProperties />
       )}
       {selectedObjects.length > 1 &&

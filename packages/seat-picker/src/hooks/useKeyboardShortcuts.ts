@@ -18,7 +18,7 @@ const useKeyboardShortcuts = (onSave?: (json: any) => void) => {
         switch (e.key.toLowerCase()) {
           case 'a':
             e.preventDefault();
-            const objects = canvas.getObjects().filter((obj: any) => obj.selectable && !obj.excludeFromExport && obj.id !== 'grid');
+            const objects = canvas.getObjects().filter((obj: any) => obj.selectable && obj.id !== 'grid' && (!obj.excludeFromExport || obj.isRowLabel));
             if (objects.length > 0) {
               canvas.discardActiveObject();
               const activeSelection = new fabric.ActiveSelection(objects, {

@@ -218,7 +218,7 @@ export const useCustomerCanvasLoaderSynced = ({
 
         if ((layout as any).isLite) {
             const liteJson = layout as any;
-            
+
             // Background
             canvas.backgroundColor = liteJson.settings?.background || '#f8fafc';
             setHasBgImage(false); // No background image supported in simple customer view yet, or can be added
@@ -263,6 +263,8 @@ export const useCustomerCanvasLoaderSynced = ({
 
             // Rows and Seats
             (liteJson.rows || []).forEach((row: any) => {
+                if (!row.seats || row.seats.length === 0) return; // Skip empty rows
+
                 // Labels
                 if (row.showLabelLeft && row.labelLeft) {
                     const t = new fabric.Text(row.name, {
@@ -344,7 +346,7 @@ export const useCustomerCanvasLoaderSynced = ({
                         const darkColor = getDarkenColor(color);
                         circle.set({ fill: darkColor, stroke: '#999999' });
                     } else if (!categoryId) {
-                         circle.set({ fill: 'transparent', stroke: 'black', strokeWidth: 1, opacity: 0.3 });
+                        circle.set({ fill: 'transparent', stroke: 'black', strokeWidth: 1, opacity: 0.3 });
                     }
 
                     objectsToAdd.push(circle);
@@ -368,7 +370,7 @@ export const useCustomerCanvasLoaderSynced = ({
 
             // Batch add all objects to canvas at once
             canvas.add(...objectsToAdd);
-            
+
             // Restore renderOnAddRemove and request single render
             canvas.renderOnAddRemove = originalRenderOnAddRemove;
             canvas.selection = false;
