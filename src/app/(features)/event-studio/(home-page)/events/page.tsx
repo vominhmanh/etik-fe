@@ -11,6 +11,8 @@ import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Storefront } from '@phosphor-icons/react/dist/ssr';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
@@ -52,14 +54,16 @@ export default function Page(): React.JSX.Element {
   }, [tt]);
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [tabValue, setTabValue] = useState<'upcoming' | 'past'>('upcoming');
   const notificationCtx = React.useContext(NotificationContext);
 
-  // Fetch all events on component mount
+  // Fetch all events on component mount or tab change
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         setIsLoading(true);
-        const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get('/event-studio/events');
+        const endpoint = tabValue === 'past' ? '/event-studio/events/past' : '/event-studio/events';
+        const response: AxiosResponse<EventResponse[]> = await baseHttpServiceInstance.get(endpoint);
         setEvents(response.data);
       } catch (error) {
         notificationCtx.error(tt('Lỗi:', 'Error:'), error);
@@ -69,7 +73,7 @@ export default function Page(): React.JSX.Element {
     };
 
     fetchEvents();
-  }, [notificationCtx, tt]);
+  }, [notificationCtx, tt, tabValue]);
 
   return (
     <Stack spacing={3}>
@@ -99,6 +103,24 @@ export default function Page(): React.JSX.Element {
         </div>
       </Stack>
 
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={(_, newValue) => setTabValue(newValue)}
+          aria-label="event tabs"
+        >
+          <Tab value="upcoming" label={tt('Sắp tới', 'Upcoming')} />
+          <Tab value="past" label={tt('Đã qua', 'Past')} />
+        </Tabs>
+      </Box>
+
+      {!isLoading && events.length === 0 ? (
+        <Box sx={{ p: 5, textAlign: 'center' }}>
+          <Typography color="text.secondary">
+            {tt('Không có sự kiện nào, hãy tạo sự kiện ngay.', 'No events found, let\'s create one now.')}
+          </Typography>
+        </Box>
+      ) : (
       <Grid container spacing={2}>
         {events.map((event) => (
           <Grid key={event.id} xs={12} sm={6} md={4} lg={3}>
@@ -225,6 +247,7 @@ export default function Page(): React.JSX.Element {
           </Grid>
         ))}
       </Grid>
+      )}
     </Stack>
   );
 }

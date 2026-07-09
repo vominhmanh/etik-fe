@@ -45,13 +45,19 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
   const router = useRouter();
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [eventData, setEventData] = useState<any>(null);
 
-  // Fetch existing show details
+  // Fetch existing show details and event details
   useEffect(() => {
     const fetchShowDetails = async () => {
       try {
         setIsLoading(true);
-        const response = await baseHttpServiceInstance.get(`/event-studio/events/${eventId}/shows/${showId}`);
+        const [eventRes, showRes] = await Promise.all([
+          baseHttpServiceInstance.get(`/event-studio/events/${eventId}`),
+          baseHttpServiceInstance.get(`/event-studio/events/${eventId}/shows/${showId}`)
+        ]);
+        setEventData(eventRes.data);
+        const response = showRes;
         setFormData({
           name: response.data.name,
           type: response.data.type,
@@ -130,6 +136,16 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
       if (new Date(formData.startDateTime) > new Date(formData.endDateTime)) {
         notificationCtx.warning(tt('Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc', 'Start time must be less than end time'));
         return;
+      }
+      if (eventData) {
+        if (eventData.startDateTime && new Date(formData.startDateTime) < new Date(eventData.startDateTime)) {
+          notificationCtx.warning(tt('Thời gian bắt đầu của suất diễn không được sớm hơn thời gian bắt đầu sự kiện', 'Show start time cannot be earlier than event start time'));
+          return;
+        }
+        if (eventData.endDateTime && new Date(formData.endDateTime) > new Date(eventData.endDateTime)) {
+          notificationCtx.warning(tt('Thời gian kết thúc của suất diễn không được trễ hơn thời gian kết thúc sự kiện', 'Show end time cannot be later than event end time'));
+          return;
+        }
       }
       setIsLoading(true);
       const response = await baseHttpServiceInstance.put(
