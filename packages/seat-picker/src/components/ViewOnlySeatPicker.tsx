@@ -9,7 +9,7 @@ import useCanvasSetup from '@/hooks/useCanvasSetup';
 // import useObjectCreator from '@/hooks/useObjectCreator';
 // import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 // import useUndoRedo from '@/hooks/useUndoRedo';
-import { useCustomerCanvasLoaderSynced } from '@/hooks/useCustomerCanvasLoaderSynced_copy';
+import { useCustomerCanvasLoaderSynced } from '@/hooks/useCustomerCanvasLoaderSynced';
 import useRowLabelRenderer from '@/hooks/useRowLabelRenderer';
 import { LuX, LuList, LuMenu } from 'react-icons/lu';
 import { useSeatMetadata } from '@/hooks/useSeatMetadata';
@@ -109,7 +109,7 @@ const ViewOnlySeatPicker: React.FC<SeatCanvasProps> = ({
         const raw = obj.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']);
 
         const catId = raw.category || '';
-        const categoryInfo = categories.find((c: any) => c.id === catId) || {
+        const categoryInfo = categories.find((c: any) => String(c.id) === String(catId)) || {
           id: catId,
           name: 'Unknown Category',
           price: 0,
@@ -637,7 +637,7 @@ const ViewOnlySeatPicker: React.FC<SeatCanvasProps> = ({
 
               <div className="space-y-1.5">
                 {selectedSeats.map((seat: SeatData) => {
-                  const categoryInfo = categories.find(cat => cat.id === seat.category);
+                  const categoryInfo = categories.find(cat => String(cat.id) === String(seat.category));
 
                   return (
                     <div key={seat.id} className="flex items-center p-2 bg-gray-50 rounded border border-gray-100 items-stretch group relative">

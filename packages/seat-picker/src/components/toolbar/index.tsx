@@ -35,8 +35,10 @@ import {
 } from 'react-icons/ri';
 import { ExportModal, OpenFileModal } from '@/components/modals';
 import Toast from '@/components/ui/Toast';
-import { applyCustomStyles } from '@/components/createObject/applyCustomStyles';
+import { applyCustomStyles, updateSeatVisuals } from '@/components/createObject/applyCustomStyles';
+import { createSeat, createRect, createText } from '@/components/createObject';
 import { CanvasObject } from '@/types/data.types';
+import { exportCanvasToLiteJson } from '../../utils/liteJsonExporter';
 
 interface ToolbarProps {
   onSave?: (json: any) => void;
@@ -46,6 +48,9 @@ interface ToolbarProps {
   categories?: any[];
   onSaveCategories?: (categories: any[]) => void;
   notify?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+  canvasWidth?: number;
+  canvasHeight?: number;
+  onDimensionsChange?: (width: number, height: number) => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -56,6 +61,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
   categories,
   onSaveCategories,
   notify,
+  canvasWidth,
+  canvasHeight,
+  onDimensionsChange,
 }) => {
   const {
     toolMode,
@@ -85,46 +93,109 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [openFile, setOpenFile] = useState<File | null>(null);
   const [openFileError, setOpenFileError] = useState('');
 
-  // Export handler
+  // Export handler (LITE MODE)
   const handleExport = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canvas) return;
 
-    const canvasJson = canvas.toJSON([
-      'id',
-      'rowId',
-      'seatNumber',
-      'isRowLabel',
-      'selectable',
-      'evented',
-      'lockMovementX',
-      'lockMovementY',
-      'lockScalingX',
-      'lockScalingY',
-      'lockRotation',
-      'category',
-      'status',
-      'price',
-      'hasTooltip',
-      'seatData',
-      'zoneData',
-      'customType'
-    ]);
+    const canvasObjects = canvas.getObjects();
+    const rowsLiteMap = new Map();
+
+    rows.forEach(r => {
+      rowsLiteMap.set(r.id, {
+        id: r.id,
+        name: r.name,
+        showLabelLeft: r.showLabelLeft,
+        showLabelRight: r.showLabelRight,
+        fontSize: r.fontSize,
+        seats: []
+      });
+    });
+
+    const shapes: any[] = [];
+    const texts: any[] = [];
+
+    canvasObjects.forEach((obj: any) => {
+      if (obj.isRowLabel) {
+        const rowId = obj.rowId;
+        if (rowId && rowsLiteMap.has(rowId)) {
+          const labelInfo = {
+            id: obj.id,
+            x: obj.left,
+            y: obj.top,
+            fontSize: obj.fontSize,
+            fill: obj.fill,
+            angle: obj.angle,
+          };
+          if (obj.originX === 'right') {
+            rowsLiteMap.get(rowId).labelLeft = labelInfo;
+          } else {
+            rowsLiteMap.get(rowId).labelRight = labelInfo;
+          }
+        }
+      } else if (obj.customType === 'seat') {
+        const rowId = obj.rowId;
+        const seatLite = {
+          id: obj.id,
+          number: obj.seatNumber,
+          categoryId: obj.category,
+          price: obj.price,
+          status: obj.status,
+          x: obj.left,
+          y: obj.top,
+        };
+        if (rowId && rowsLiteMap.has(rowId)) {
+          rowsLiteMap.get(rowId).seats.push(seatLite);
+        } else {
+          if (!rowsLiteMap.has('unassigned')) {
+             rowsLiteMap.set('unassigned', { id: 'unassigned', name: '', seats: [] });
+          }
+          rowsLiteMap.get('unassigned').seats.push(seatLite);
+        }
+      } else if (obj.type === 'rect') {
+        shapes.push({
+          id: obj.id,
+          type: 'rect',
+          x: obj.left,
+          y: obj.top,
+          width: obj.width * (obj.scaleX || 1),
+          height: obj.height * (obj.scaleY || 1),
+          fill: obj.fill,
+          angle: obj.angle,
+        });
+      } else if (obj.type === 'i-text' || obj.type === 'text') {
+        texts.push({
+          id: obj.id,
+          text: obj.text,
+          x: obj.left,
+          y: obj.top,
+          fontSize: obj.fontSize,
+          fill: obj.fill,
+          angle: obj.angle,
+        });
+      }
+    });
 
     const exportData = {
-      rows,
+      isLite: true,
       categories,
-      canvas: canvasJson,
+      rows: Array.from(rowsLiteMap.values()),
+      shapes,
+      texts,
+      settings: {
+        background: canvas.backgroundColor || '#f8fafc',
+        width: canvasWidth || 800,
+        height: canvasHeight || 600
+      }
     };
 
-    const json = JSON.stringify(exportData);
+    const json = JSON.stringify(exportData, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = exportFileName.endsWith('.json')
-      ? exportFileName
-      : exportFileName + '.json';
+    const baseFileName = exportFileName.endsWith('.json') ? exportFileName.replace(/\.json$/, '') : exportFileName;
+    a.download = baseFileName + '_lite.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -162,101 +233,162 @@ const Toolbar: React.FC<ToolbarProps> = ({
       const text = await openFile.text();
       const json = JSON.parse(text);
 
-      let canvasData = json;
-
-      // Handle extended JSON with rows
-      if (json.rows && Array.isArray(json.rows)) {
-        setRows(json.rows);
-        if (json.canvas) canvasData = json.canvas;
-      }
-
-      // Handle extended JSON with categories
-      // Merge Strategy: API IDs are source of truth, but JSON Colors take priority.
       let mergedCategories = [...(categories || [])];
 
       if (json.categories && Array.isArray(json.categories)) {
         const jsonColorMap = new Map(json.categories.map((c: any) => [c.id.toString(), c.color]));
-
         mergedCategories = mergedCategories.map(cat => {
           if (jsonColorMap.has(cat.id.toString())) {
             return { ...cat, color: jsonColorMap.get(cat.id.toString()) };
           }
           return cat;
         });
-
         if (onSaveCategories) {
           onSaveCategories(mergedCategories);
         }
       }
 
-      canvas.loadFromJSON(canvasData, () => {
+      if (json.isLite) {
+        const pureRows = (json.rows || []).map((r: any) => {
+          const { seats, ...rest } = r;
+          return rest;
+        }).filter((r: any) => r.id !== 'unassigned');
+        
+        setRows(pureRows);
+        canvas.clear();
+        canvas.backgroundColor = json.settings?.background || '#f8fafc';
+        
+        if (json.settings?.width && json.settings?.height && onDimensionsChange) {
+           onDimensionsChange(json.settings.width, json.settings.height);
+        }
+
+        const objectsToAdd: any[] = [];
+        (json.rows || []).forEach((row: any) => {
+           (row.seats || []).forEach((seat: any) => {
+              const seatObj = createSeat(seat.x, seat.y, row.id, seat.number);
+              const customSeat = seatObj as any;
+              customSeat.id = seat.id;
+              customSeat.category = seat.categoryId;
+              customSeat.price = seat.price;
+              customSeat.status = seat.status || 'available';
+              objectsToAdd.push(seatObj);
+           });
+
+           if (row.labelLeft && row.showLabelLeft) {
+              const labelLeft = createText(row.labelLeft.x, row.labelLeft.y, row.name);
+              const customLeft = labelLeft as any;
+              customLeft.set({
+                fontSize: row.labelLeft.fontSize || 16,
+                fill: row.labelLeft.fill || '#666',
+                selectable: true,
+                evented: true,
+                lockMovementX: false,
+                lockMovementY: false,
+                hasControls: false,
+                hasBorders: true,
+                excludeFromExport: true,
+                originY: 'center',
+                originX: 'right',
+                angle: row.labelLeft.angle || 0
+              });
+              customLeft.id = row.labelLeft.id || `label-left-${row.id}`;
+              customLeft.isRowLabel = true;
+              customLeft.rowId = row.id;
+              objectsToAdd.push(labelLeft);
+           }
+           if (row.labelRight && row.showLabelRight) {
+              const labelRight = createText(row.labelRight.x, row.labelRight.y, row.name);
+              const customRight = labelRight as any;
+              customRight.set({
+                fontSize: row.labelRight.fontSize || 16,
+                fill: row.labelRight.fill || '#666',
+                selectable: true,
+                evented: true,
+                lockMovementX: false,
+                lockMovementY: false,
+                hasControls: false,
+                hasBorders: true,
+                excludeFromExport: true,
+                originY: 'center',
+                originX: 'left',
+                angle: row.labelRight.angle || 0
+              });
+              customRight.id = row.labelRight.id || `label-right-${row.id}`;
+              customRight.isRowLabel = true;
+              customRight.rowId = row.id;
+              objectsToAdd.push(labelRight);
+           }
+        });
+
+        (json.shapes || []).forEach((shape: any) => {
+           if (shape.type === 'rect') {
+             const rect = createRect(shape.x, shape.y);
+             (rect as any).set({ width: shape.width, height: shape.height, fill: shape.fill, angle: shape.angle });
+             (rect as any).id = shape.id;
+             objectsToAdd.push(rect);
+           }
+        });
+
+        (json.texts || []).forEach((t: any) => {
+           const textObj = createText(t.x, t.y, t.text);
+           (textObj as any).set({ fontSize: t.fontSize, fill: t.fill, angle: t.angle });
+           (textObj as any).id = t.id;
+           objectsToAdd.push(textObj);
+        });
+
+        canvas.add(...objectsToAdd);
+
         const validCategoryIds = new Set(mergedCategories.map((c: any) => c.id.toString()));
         const categoryMap = new Map(mergedCategories.map((c: any) => [c.id.toString(), c]));
 
-        const validateObject = (obj: any) => {
-          console.log(`DEBUG: Visiting object ${obj.type} ${obj.id}`);
-          // Normalize ID
-          if (!obj.id) obj.id = Math.random().toString(36).substr(2, 9);
-
-          // Recursive handling for groups
-          if (obj.type === 'group' && obj.getObjects) {
-            console.log('DEBUG: Recursing into Group', obj.id);
-            obj.getObjects().forEach((child: any) => validateObject(child));
-            obj.dirty = true; // Mark group as dirty
-            return;
-          }
-
-          // Check for seat types
-          const isSeat = obj.type === 'circle' || obj.customType === 'seat';
-          if (isSeat) {
-            const categoryId = obj.category?.toString();
-
-            if (categoryId && validCategoryIds.has(categoryId)) {
-              // Valid category -> Ensure color sync
-              const cat = categoryMap.get(categoryId);
-              if (cat && cat.color) {
-                obj.set('fill', cat.color);
-                obj.set('stroke', cat.color);
-                obj.dirty = true;
-              }
-            } else {
-              // Invalid OR Missing Category -> Clear & Transparent
-              // This strips "zombie colors" from seats that have no valid category.
-              obj.set({
-                category: null,
-                status: 'available',
-                fill: 'transparent',
-              });
-
-              // Keep stroke consistent (e.g. black or dark gray for available seats) if needed, 
-              // or just leave it if it's already correct. 
-              // Using 'transparent' fill usually requires a visible stroke.
-              // Assuming existing stroke is fine, or forcing a default:
-              // obj.set('stroke', '#333'); 
-
-              obj.dirty = true;
-            }
-          }
-
-          if (
-            obj.type === 'circle' ||
-            obj.type === 'rect' ||
-            obj.type === 'i-text' ||
-            obj.customType === 'seat'
-          ) {
-            applyCustomStyles(obj);
-          }
-        };
-
         canvas.getObjects().forEach((obj: any) => {
-          validateObject(obj);
+           if (obj.customType === 'seat') {
+             const categoryId = obj.category?.toString();
+             let fillColor = 'transparent';
+             if (categoryId && validCategoryIds.has(categoryId)) {
+               const cat = categoryMap.get(categoryId);
+               if (cat && cat.color) {
+                 fillColor = cat.color;
+               }
+             } else {
+               (obj as any).category = null;
+               (obj as any).status = 'available';
+             }
+
+             updateSeatVisuals(obj, {
+               fill: fillColor,
+               stroke: fillColor,
+               status: obj.status || 'available'
+             });
+
+             applyCustomStyles(obj);
+           } else if (obj.type === 'rect' || obj.type === 'i-text' || obj.type === 'circle') {
+             applyCustomStyles(obj);
+           }
         });
 
         canvas.renderAll();
         setShowOpenModal(false);
         setOpenFile(null);
+        if (notify) notify('Lite seating arrangement loaded!', 'success');
+        return;
+      }
+
+      let canvasData = json;
+      if (json.rows && Array.isArray(json.rows)) {
+        setRows(json.rows);
+        if (json.canvas) canvasData = json.canvas;
+        if (json.settings?.width && json.settings?.height && onDimensionsChange) {
+           onDimensionsChange(json.settings.width, json.settings.height);
+        }
+        canvas.renderAll();
+        setShowOpenModal(false);
+        setOpenFile(null);
         if (notify) notify('Seating arrangement loaded!', 'success');
-      });
+      } else {
+        setOpenFileError('Unsupported legacy layout format. Please use Lite JSON.');
+        if (notify) notify('Unsupported legacy format.', 'error');
+      }
     } catch (err) {
       setOpenFileError(
         'Invalid JSON file. Please select a valid seating arrangement file.'
@@ -281,41 +413,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
         tooltip: 'Save',
         onClick: () => {
           if (canvas && onSave) {
-            // Ensure all objects have IDs before export
-            canvas.getObjects().forEach((obj: any) => {
-              if (!obj.id) {
-                obj.id = Math.random().toString(36).substr(2, 9);
-              }
-            });
-
-            const canvasJson = canvas.toJSON([
-              'customType',
-              'seatData',
-              'zoneData',
-              'id',
-              'rowId',
-              'seatNumber',
-              'isRowLabel',
-              'selectable',
-              'evented',
-              'lockMovementX',
-              'lockMovementY',
-              'lockScalingX',
-              'lockScalingY',
-              'lockRotation',
-              'category',
-              'status',
-              'price',
-              'hasTooltip',
-            ]);
-
-            const json = {
-              type: 'canvas',
-              rows,
-              categories,
-              canvas: canvasJson,
-            } as unknown as CanvasObject;
-            onSave(json);
+            const liteJson = exportCanvasToLiteJson(canvas, rows, canvasWidth || 800, canvasHeight || 600);
+            onSave(liteJson as unknown as CanvasObject);
           }
         },
         state: false,

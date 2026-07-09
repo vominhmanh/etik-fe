@@ -109,7 +109,7 @@ const useCanvasSetup = (
       c.dispose();
       setCanvas(null);
     };
-  }, [canvasRef, canvasParent, setCanvas, width, height, responsive]);
+  }, [canvasRef, canvasParent, setCanvas, allowSelection, responsive]);
 };
 
 export default useCanvasSetup;

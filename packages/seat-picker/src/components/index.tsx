@@ -15,6 +15,7 @@ import useRowLabelRenderer from '@/hooks/useRowLabelRenderer';
 import '@/index.css';
 import '../fabricCustomRegistration';
 import { SeatCanvasProps, CategoryStats, Layout, SeatData } from '@/types/data.types';
+import { exportCanvasToLiteJson } from '../utils/liteJsonExporter';
 
 // Add onBack to Props since it might not be in the imported type yet
 // Ideally we update the type definition, but if it's external/shared, we might need to extend it here or assume it's added.
@@ -32,8 +33,9 @@ import { SeatCanvasProps, CategoryStats, Layout, SeatData } from '@/types/data.t
 // Now let's implement the back button click.
 import Toast from '@/components/ui/Toast';
 import { TicketCategoryModal } from './ui/TicketCategoryModal';
+import { CanvasSettingsModal } from './ui/CanvasSettingsModal';
 import { IconButton, Stack, Tooltip } from '@mui/material';
-import { LuArmchair, LuArrowLeft, LuTicket } from 'react-icons/lu';
+import { LuArmchair, LuArrowLeft, LuTicket, LuSettings } from 'react-icons/lu';
 import { EMPTY_OBJECT, SERIALIZABLE_PROPERTIES } from '@/utils/constants';
 import { useCanvasBackground } from '@/hooks/useCanvasBackground';
 import { useSeatAppearance } from '@/hooks/useSeatAppearance';
@@ -82,7 +84,21 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
     useEventGuiStore();
   const [selectedSeat, setSelectedSeat] = useState<SeatData | null>(null);
   const [openTicketModal, setOpenTicketModal] = useState(false);
+  const [openSettingsModal, setOpenSettingsModal] = useState(false);
   const [categoryStats, setCategoryStats] = useState<Record<number, CategoryStats>>({});
+
+  const initialWidth = layout?.settings?.width || (style as any)?.width || defaultStyle.width;
+  const initialHeight = layout?.settings?.height || (style as any)?.height || defaultStyle.height;
+  const [canvasDimensions, setCanvasDimensions] = useState({ width: initialWidth, height: initialHeight });
+
+  useEffect(() => {
+    if (layout?.settings) {
+      setCanvasDimensions({
+        width: layout.settings.width || defaultStyle.width,
+        height: layout.settings.height || defaultStyle.height,
+      });
+    }
+  }, [layout]);
 
   // Background Image Hook
   const {
@@ -127,6 +143,8 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
   const mergedStyle = useMemo(() => ({
     ...defaultStyle,
     ...style,
+    width: canvasDimensions.width,
+    height: canvasDimensions.height,
     seatNumberStyle: {
       ...defaultStyle.seatNumberStyle,
       ...(style as any).seatNumberStyle,
@@ -135,7 +153,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
       ...defaultStyle.seatStyle,
       ...(style as any).seatStyle,
     },
-  }), [style]);
+  }), [style, canvasDimensions.width, canvasDimensions.height]);
 
 
   // Handle Ctrl+Scroll Zoom
@@ -276,14 +294,8 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
 
       // Fallback for shortcuts or external calls
       const rows = useEventGuiStore.getState().rows;
-      const fabricJson = canvas.toJSON(SERIALIZABLE_PROPERTIES);
-      const canvasJson = {
-        type: 'canvas',
-        rows,
-        categories,
-        canvas: fabricJson,
-      } as unknown as Layout;
-      onSave(canvasJson);
+      const liteJson = exportCanvasToLiteJson(canvas, rows, mergedStyle.width, mergedStyle.height);
+      onSave(liteJson as unknown as Layout);
     }
   };
 
@@ -366,6 +378,11 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
                 <LuArmchair size={20} />
               </IconButton>
             </Tooltip>
+            <Tooltip title="Cài đặt" placement="right">
+              <IconButton onClick={() => setOpenSettingsModal(true)} size="small">
+                <LuSettings size={20} />
+              </IconButton>
+            </Tooltip>
 
           </Stack>
         </div>
@@ -387,17 +404,20 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
           categories={categories}
           onSaveCategories={onSaveCategories}
           notify={notify}
+          canvasWidth={canvasDimensions.width}
+          canvasHeight={canvasDimensions.height}
+          onDimensionsChange={(width, height) => setCanvasDimensions({ width, height })}
         />
 
         <div className="flex h-0 min-h-0 w-full flex-1 overflow-hidden relative">
           {/* Canvas Area */}
           <div
-            className="flex flex-1 overflow-auto bg-gray-100 p-[2%] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:w-1"
+            className="block flex-1 overflow-auto bg-gray-100 p-[2%] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:w-1"
             ref={canvasParent}
             style={{ scrollbarWidth: 'thin' }}
           >
             <div
-              className="m-auto relative shadow-lg bg-white"
+              className="mx-auto relative shadow-lg bg-white"
               style={{
                 width: mergedStyle.width * (zoomLevel / 100),
                 height: mergedStyle.height * (zoomLevel / 100),
@@ -417,6 +437,17 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
         onSave={(newCategories) => onSaveCategories?.(newCategories)}
         stats={categoryStats}
         createCategoryUrl={createCategoryUrl}
+      />
+
+      <CanvasSettingsModal
+        open={openSettingsModal}
+        onClose={() => setOpenSettingsModal(false)}
+        width={canvasDimensions.width}
+        height={canvasDimensions.height}
+        onSave={(width, height) => {
+          setCanvasDimensions({ width, height });
+          notify('Kích thước thiết kế đã được thay đổi!', 'success');
+        }}
       />
 
       {/* Global Toast */}

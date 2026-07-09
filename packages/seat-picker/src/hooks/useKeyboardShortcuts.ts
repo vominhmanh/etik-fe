@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useEventGuiStore } from '@/zustand';
 import useClipboardActions from './useClipboardActions';
 import { CanvasObject } from '@/types/data.types';
+import { exportCanvasToLiteJson } from '../utils/liteJsonExporter';
 
 const useKeyboardShortcuts = (onSave?: (json: any) => void) => {
   const { canvas, setLastClickedPoint, undo, redo } = useEventGuiStore();
@@ -41,11 +42,12 @@ const useKeyboardShortcuts = (onSave?: (json: any) => void) => {
           case 's':
             e.preventDefault();
             if (onSave) {
-              const json = {
-                type: 'canvas',
-                ...canvas.toJSON(['customType', 'seatData', 'zoneData']),
-              } as unknown as CanvasObject;
-              onSave(json);
+              const rows = useEventGuiStore.getState().rows;
+              // Assuming default size if width/height is not passed, ideally we should pass it or get it from style.
+              // For shortcuts, we might need a way to get the current canvas dimensions or we can just pass default.
+              // We'll pass 800, 600 as default, or we can get it from the canvas wrapper. For now, 800x600.
+              const liteJson = exportCanvasToLiteJson(canvas, rows, 800, 600);
+              onSave(liteJson as unknown as CanvasObject);
             }
             break;
         }

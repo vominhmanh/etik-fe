@@ -213,146 +213,286 @@ export const useCustomerCanvasLoaderSynced = ({
             if ((layout as any).canvas) layoutCanvas = (layout as any).canvas;
         }
 
+        const categoryMap = new Map(categories.map((c) => [String(c.id), c]));
 
-        canvas.loadFromJSON(
-            layoutCanvas,
-            () => {
-                const categoryMap = new Map(
-                    categories.map((c) => [c.id, c])
-                );
+        if ((layout as any).isLite) {
+            const liteJson = layout as any;
+            
+            // Background
+            canvas.backgroundColor = liteJson.settings?.background || '#f8fafc';
+            setHasBgImage(false); // No background image supported in simple customer view yet, or can be added
 
-                canvas.getObjects().forEach((obj: any) => {
-                    // Ensure ID exists for ALL objects
-                    if (!obj.id) {
-                        obj.id = Math.random().toString(36).substr(2, 9);
+            // Shapes
+            (liteJson.shapes || []).forEach((shape: any) => {
+                if (shape.type === 'rect') {
+                    const rect = new fabric.Rect({
+                        left: shape.x,
+                        top: shape.y,
+                        width: shape.width,
+                        height: shape.height,
+                        fill: shape.fill,
+                        angle: shape.angle || 0,
+                        selectable: false,
+                        evented: false,
+                        hasControls: false
+                    });
+                    canvas.add(rect);
+                }
+            });
+
+            // Texts
+            (liteJson.texts || []).forEach((text: any) => {
+                const t = new fabric.Text(text.text, {
+                    left: text.x,
+                    top: text.y,
+                    fontSize: text.fontSize,
+                    fill: text.fill,
+                    angle: text.angle || 0,
+                    selectable: false,
+                    evented: false,
+                    hasControls: false
+                });
+                canvas.add(t);
+            });
+
+            // Rows and Seats
+            (liteJson.rows || []).forEach((row: any) => {
+                // Labels
+                if (row.showLabelLeft && row.labelLeft) {
+                    const t = new fabric.Text(row.name, {
+                        left: row.labelLeft.x,
+                        top: row.labelLeft.y,
+                        fontSize: row.labelLeft.fontSize || 16,
+                        fill: row.labelLeft.fill || '#000',
+                        angle: row.labelLeft.angle || 0,
+                        originX: 'right',
+                        originY: 'center',
+                        selectable: false,
+                        evented: false,
+                        hasControls: false
+                    });
+                    canvas.add(t);
+                }
+                if (row.showLabelRight && row.labelRight) {
+                    const t = new fabric.Text(row.name, {
+                        left: row.labelRight.x,
+                        top: row.labelRight.y,
+                        fontSize: row.labelRight.fontSize || 16,
+                        fill: row.labelRight.fill || '#000',
+                        angle: row.labelRight.angle || 0,
+                        originX: 'left',
+                        originY: 'center',
+                        selectable: false,
+                        evented: false,
+                        hasControls: false
+                    });
+                    canvas.add(t);
+                }
+
+                // Seats
+                (row.seats || []).forEach((seatData: any) => {
+                    const seatId = String(seatData.id);
+                    let categoryId = null;
+                    let status: SeatStatus = 'available';
+
+                    const dbSeat = existingSeats.find((s) => s.canvasSeatId === seatId);
+                    if (dbSeat && dbSeat.ticketCategoryId && categoryMap.has(String(dbSeat.ticketCategoryId))) {
+                        categoryId = String(dbSeat.ticketCategoryId);
+                        status = dbSeat.status || 'available';
+                    } else if (seatData.categoryId && categoryMap.has(String(seatData.categoryId))) {
+                        categoryId = String(seatData.categoryId);
+                        status = seatData.status || 'available';
                     }
 
-                    if (obj.customType === 'seat') {
-                        // 1. Reset UI
-                        applyEmptySeatStyle(obj);
+                    const categoryInfo = categoryId ? categoryMap.get(categoryId) : null;
+                    const color = categoryInfo?.color || 'rgba(209, 193, 193, 0.7)';
+                    const price = categoryInfo?.price || 0;
+                    const isAvailable = status === 'available';
 
-                        let categoryId = null;
-                        let status: SeatStatus = 'available';
+                    const circle = new fabric.Circle({
+                        id: seatId,
+                        customType: 'seat',
+                        left: seatData.x,
+                        top: seatData.y,
+                        radius: mergedStyle.seatStyle.radius || 10,
+                        fill: color,
+                        stroke: mergedStyle.seatStyle.stroke || '#000',
+                        strokeWidth: mergedStyle.seatStyle.strokeWidth || 1,
+                        selectable: false,
+                        evented: !!categoryId && isAvailable,
+                        hasControls: false,
+                        hoverCursor: (!!categoryId && isAvailable) ? 'pointer' : 'default',
+                    } as any);
 
-                        // Check DB Seat
-                        const dbSeat = existingSeats.find((s) => s.canvasSeatId === obj.id);
-                        if (dbSeat && dbSeat.ticketCategoryId && categoryMap.has(dbSeat.ticketCategoryId)) {
-                            categoryId = dbSeat.ticketCategoryId;
-                            status = dbSeat.status || 'available';
-                            const categoryData = categoryMap.get(categoryId);
-                            const color = categoryData?.color || 'rgba(209, 193, 193, 0.7)';
+                    // Explicitly assign custom data so FabricJS doesn't strip it
+                    (circle as any).category = categoryId;
+                    (circle as any).price = price;
+                    (circle as any).status = status;
+                    (circle as any).rowId = String(row.id);
+                    (circle as any).rowLabel = row.name;
+                    (circle as any).seatNumber = seatData.number;
+                    (circle as any)._hasValidCategory = !!categoryId;
+                    (circle as any)._isAvailable = isAvailable;
 
-                            // Update Object Data with authoritative DB info
-                            obj.set({
-                                category: categoryId,
-                                price: categoryData?.price || 0,
-                                status: status
-                            });
+                    if (!isAvailable && !!categoryId) {
+                        const darkColor = getDarkenColor(color);
+                        circle.set({ fill: darkColor, stroke: '#999999' });
+                    } else if (!categoryId) {
+                         circle.set({ fill: 'transparent', stroke: 'black', strokeWidth: 1, opacity: 0.3 });
+                    }
 
-                            obj._hasValidCategory = true;
-                            obj._isAvailable = status === 'available';
+                    canvas.add(circle);
 
-                            // 2. Apply Visuals using shared function
-                            if (obj.type === 'group') {
-                                updateSeatVisuals(obj as fabric.Group, {
-                                    fill: color,
-                                    status: status
-                                });
-                            } else {
-                                // Fallback for single objects (though we mostly use groups now)
-                                obj.set('fill', color);
-                                // Ensure single objects are also darkened if needed
-                                if (['blocked', 'sold', 'held'].includes(status)) {
-                                    applyDarkenStyle(obj, color);
-                                }
-                            }
-                        } else {
-                            obj._hasValidCategory = false;
-                            obj._isAvailable = false;
-                            applyEmptySeatStyle(obj);
-                        }
+                    if (mergedStyle.showSeatNumbers) {
+                        const label = new fabric.Text(seatData.number || '', {
+                            left: seatData.x + (mergedStyle.seatStyle.radius || 10),
+                            top: seatData.y + (mergedStyle.seatStyle.radius || 10),
+                            ...mergedStyle.seatNumberStyle,
+                            originX: 'center',
+                            originY: 'center',
+                            selectable: false,
+                            evented: false,
+                            excludeFromExport: true
+                        });
+                        (circle as any).labelObj = label;
+                        canvas.add(label);
                     }
                 });
+            });
 
+            canvas.selection = false;
+            canvas.hoverCursor = 'default';
 
-                if (true) { // Always enforce strict customer view (only selection, no moving)
-                    // Check for background image object and send to back
-                    const bgObj = canvas
-                        .getObjects()
-                        .find((obj: any) => obj.customType === 'layout-background');
+            // Initial Application of Selected Seat IDs
+            if (selectedSeatIdsRef.current && selectedSeatIdsRef.current.length > 0) {
+                const idsSet = new Set(selectedSeatIdsRef.current);
+                canvas.getObjects().forEach((obj: any) => {
+                    if (obj.customType === 'seat' && obj.id && idsSet.has(obj.id) && obj.evented) {
+                        selectSeat(obj, canvas);
+                    }
+                });
+            }
+
+            readOnlyMouseDownHandler = (options) => {
+                if (!options.target) return;
+                const target = options.target as any;
+                if (target.customType !== 'seat' || !target.evented) return;
+
+                const currentSelectedIdsProp = selectedSeatIdsRef.current;
+                const onSelectionChangeProp = onSelectionChangeRef.current;
+                const currentCategories = categoriesRef.current;
+                const isControlled = currentSelectedIdsProp !== undefined;
+                const willBeSelected = !target._customSelected;
+
+                if (!isControlled) {
+                    if (willBeSelected) selectSeat(target, canvas);
+                    else deselectSeat(target, canvas);
+                    canvas.requestRenderAll();
+                }
+
+                if (onSelectionChangeProp) {
+                    let currentIds = currentSelectedIdsProp || [];
+                    if (!isControlled) {
+                        currentIds = canvas.getObjects()
+                            .filter((o: any) => o.customType === 'seat' && o._customSelected)
+                            .map((o: any) => o.id);
+                    }
+
+                    let newIds: string[] = [];
+                    if (willBeSelected) newIds = [...new Set([...currentIds, target.id])];
+                    else newIds = currentIds.filter(id => id !== target.id);
+
+                    const selectedSeatsData = canvas.getObjects()
+                        .filter((o: any) => newIds.includes(o.id) && o.customType === 'seat')
+                        .map((o: any) => {
+                            const category = o.category || '';
+                            return {
+                                id: String(o.id || ''),
+                                number: o.seatNumber || '',
+                                price: o.price || 0,
+                                rowLabel: o.rowLabel || '-',
+                                category: category,
+                                status: o.status || '',
+                                categoryInfo: currentCategories.find((c: any) => String(c.id) === String(category)) || {
+                                    id: category,
+                                    name: 'Unknown Category',
+                                    price: 0,
+                                    color: '#999999'
+                                },
+                            };
+                        });
+                    onSelectionChangeProp(newIds, selectedSeatsData);
+                }
+            };
+            canvas.on('mouse:down', readOnlyMouseDownHandler);
+            canvas.renderAll();
+
+        } else {
+            // Legacy loadFromJSON block
+            canvas.loadFromJSON(
+                layoutCanvas,
+                () => {
+                    canvas.getObjects().forEach((obj: any) => {
+                        if (!obj.id) obj.id = Math.random().toString(36).substr(2, 9);
+                        if (obj.customType === 'seat') {
+                            applyEmptySeatStyle(obj);
+                            let categoryId = null;
+                            let status: SeatStatus = 'available';
+                            const dbSeat = existingSeats.find((s) => s.canvasSeatId === obj.id);
+                            if (dbSeat && dbSeat.ticketCategoryId && categoryMap.has(String(dbSeat.ticketCategoryId))) {
+                                categoryId = String(dbSeat.ticketCategoryId);
+                                status = dbSeat.status || 'available';
+                                const categoryData = categoryMap.get(categoryId);
+                                const color = categoryData?.color || 'rgba(209, 193, 193, 0.7)';
+                                obj.set({ category: categoryId, price: categoryData?.price || 0, status: status });
+                                obj._hasValidCategory = true;
+                                obj._isAvailable = status === 'available';
+                                if (obj.type === 'group') {
+                                    updateSeatVisuals(obj as fabric.Group, { fill: color, status: status });
+                                } else {
+                                    obj.set('fill', color);
+                                    if (['blocked', 'sold', 'held'].includes(status)) applyDarkenStyle(obj, color);
+                                }
+                            } else {
+                                obj._hasValidCategory = false;
+                                obj._isAvailable = false;
+                                applyEmptySeatStyle(obj);
+                            }
+                        }
+                    });
+
+                    const bgObj = canvas.getObjects().find((obj: any) => obj.customType === 'layout-background');
                     if (bgObj) {
                         setHasBgImage(true);
                         bgObj.sendToBack();
-                        bgObj.set({
-                            selectable: false,
-                            evented: false, // Background not evented for customer to avoid interference
-                            hasControls: false,
-                            lockRotation: true,
-                            lockMovementX: true,
-                            lockMovementY: true,
-                            hoverCursor: 'default',
-                        });
+                        bgObj.set({ selectable: false, evented: false, hasControls: false, lockRotation: true, lockMovementX: true, lockMovementY: true, hoverCursor: 'default' });
                     } else {
                         setHasBgImage(false);
                     }
 
-                    // Label each seat by number if enabled
                     if (mergedStyle.showSeatNumbers) {
                         canvas.getObjects('circle').forEach((seat: any) => {
-                            // Remove any previous label
-                            if (seat.labelObj) {
-                                canvas.remove(seat.labelObj);
-                                seat.labelObj = null;
-                            }
-                            const label = new fabric.Text(
-                                seat.seatNumber ||
-                                '',
-                                {
-                                    left:
-                                        (seat.left ?? 0) +
-                                        (seat.radius ?? mergedStyle.seatStyle.radius),
-                                    top:
-                                        (seat.top ?? 0) +
-                                        (seat.radius ?? mergedStyle.seatStyle.radius),
-                                    ...mergedStyle.seatNumberStyle,
-                                    originX: 'center',
-                                    originY: 'center',
-                                    selectable: false,
-                                    evented: false,
-                                    excludeFromExport: true
-                                }
-                            );
+                            if (seat.labelObj) { canvas.remove(seat.labelObj); seat.labelObj = null; }
+                            const label = new fabric.Text(seat.seatNumber || '', {
+                                left: (seat.left ?? 0) + (seat.radius ?? mergedStyle.seatStyle.radius),
+                                top: (seat.top ?? 0) + (seat.radius ?? mergedStyle.seatStyle.radius),
+                                ...mergedStyle.seatNumberStyle, originX: 'center', originY: 'center', selectable: false, evented: false, excludeFromExport: true
+                            });
                             seat.labelObj = label;
                             canvas.add(label);
                             canvas.bringToFront(label);
                         });
                     }
 
-                    // Make all objects not selectable/editable, only seats (circles) are clickable
-                    // STRICT CUSTOMER INTERACTION SETUP
                     canvas.getObjects().forEach((obj: any) => {
                         const isSeat = obj.customType === 'seat';
-
-                        // Disable controls and locking for everything
-                        obj.set({
-                            selectable: false, // Explicitly disable native selection box
-                            hasControls: false,
-                            hasBorders: false,
-                            lockMovementX: true,
-                            lockMovementY: true,
-                            lockRotation: true,
-                            lockScalingX: true,
-                            lockScalingY: true,
-                        });
-
-                        // Only seats with valid category AND available status are evented (clickable)
+                        obj.set({ selectable: false, hasControls: false, hasBorders: false, lockMovementX: true, lockMovementY: true, lockRotation: true, lockScalingX: true, lockScalingY: true });
                         obj.evented = isSeat && !!obj._hasValidCategory && !!obj._isAvailable;
                     });
 
-                    canvas.selection = false; // Disable global drag selection
+                    canvas.selection = false;
                     canvas.hoverCursor = 'default';
 
-                    // Initial Application of Selected Seat IDs (if any provided on mount)
                     if (selectedSeatIdsRef.current && selectedSeatIdsRef.current.length > 0) {
                         const idsSet = new Set(selectedSeatIdsRef.current);
                         canvas.getObjects().forEach((obj: any) => {
@@ -363,33 +503,22 @@ export const useCustomerCanvasLoaderSynced = ({
                         });
                     }
 
-
-                    // Custom Click Handler for Toggle Selection (Multi-select)
                     readOnlyMouseDownHandler = (options) => {
                         if (!options.target) return;
                         const target = options.target as any;
-
-                        // STRICT CHECK: Only allow click if seat is evented (interactable)
                         if (target.customType !== 'seat' || !target.evented) return;
-
                         const currentSelectedIdsProp = selectedSeatIdsRef.current;
                         const onSelectionChangeProp = onSelectionChangeRef.current;
                         const currentCategories = categoriesRef.current;
-
                         const isControlled = currentSelectedIdsProp !== undefined;
                         const willBeSelected = !target._customSelected;
 
-                        // Update Local Visuals ONLY if uncontrolled
                         if (!isControlled) {
-                            if (willBeSelected) {
-                                selectSeat(target, canvas);
-                            } else {
-                                deselectSeat(target, canvas);
-                            }
+                            if (willBeSelected) selectSeat(target, canvas);
+                            else deselectSeat(target, canvas);
                             canvas.requestRenderAll();
                         }
 
-                        // Always notify parent
                         if (onSelectionChangeProp) {
                             let currentIds = currentSelectedIdsProp || [];
                             if (!isControlled) {
@@ -397,23 +526,16 @@ export const useCustomerCanvasLoaderSynced = ({
                                     .filter((o: any) => o.customType === 'seat' && o._customSelected)
                                     .map((o: any) => o.id);
                             }
-
                             let newIds: string[] = [];
-                            if (willBeSelected) {
-                                newIds = [...new Set([...currentIds, target.id])];
-                            } else {
-                                newIds = currentIds.filter(id => id !== target.id);
-                            }
+                            if (willBeSelected) newIds = [...new Set([...currentIds, target.id])];
+                            else newIds = currentIds.filter(id => id !== target.id);
 
-                            // Construct seat data
                             const selectedSeatsData = canvas.getObjects()
                                 .filter((o: any) => newIds.includes(o.id) && o.customType === 'seat')
                                 .map((o: any) => {
                                     enrichSeatRowLabel(o);
-
                                     const raw = o.toJSON ? o.toJSON(['id', 'category', 'price', 'rowLabel', 'rowId', 'seatNumber', 'customType', 'status']) : {};
                                     const category = o.category ?? raw.category ?? '';
-
                                     return {
                                         id: String(o.id ?? ''),
                                         number: o.seatNumber ?? raw.seatNumber ?? '',
@@ -421,23 +543,19 @@ export const useCustomerCanvasLoaderSynced = ({
                                         rowLabel: o.rowLabel || raw.rowLabel || '-',
                                         category: category,
                                         status: o.status ?? raw.status ?? '',
-                                        categoryInfo: currentCategories.find((c: any) => c.id === category) || {
-                                            id: category,
-                                            name: 'Unknown Category',
-                                            price: 0,
-                                            color: '#999999'
+                                        categoryInfo: currentCategories.find((c: any) => String(c.id) === String(category)) || {
+                                            id: category, name: 'Unknown Category', price: 0, color: '#999999'
                                         },
                                     };
                                 });
-
                             onSelectionChangeProp(newIds, selectedSeatsData);
                         }
                     };
                     canvas.on('mouse:down', readOnlyMouseDownHandler);
                     canvas.renderAll();
                 }
-            }
-        );
+            );
+        }
 
         return () => {
             if (canvas && readOnlyMouseDownHandler) {

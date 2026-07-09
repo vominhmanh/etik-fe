@@ -18,12 +18,19 @@ export interface CanvasObject {
   objects: ObjectProperties[];
 }
 
+export interface CanvasSettings {
+  width: number;
+  height: number;
+  background?: string;
+}
+
 // Base type for all canvas objects
 export interface Layout {
   type: string;
   categories?: CategoryInfo[];
   rows: Row[];
   canvas: CanvasObject;
+  settings?: CanvasSettings;
 }
 
 // Types for different object properties
