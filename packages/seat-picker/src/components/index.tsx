@@ -34,7 +34,8 @@ import { exportCanvasToLiteJson } from '../utils/liteJsonExporter';
 import Toast from '@/components/ui/Toast';
 import { TicketCategoryModal } from './ui/TicketCategoryModal';
 import { CanvasSettingsModal } from './ui/CanvasSettingsModal';
-import { IconButton, Stack, Tooltip, Backdrop, CircularProgress, Typography, Box } from '@mui/material';
+import { LoadingBackdrop } from './ui/LoadingBackdrop';
+import { IconButton, Stack, Tooltip } from '@mui/material';
 import { LuArmchair, LuArrowLeft, LuTicket, LuSettings } from 'react-icons/lu';
 import { EMPTY_OBJECT, SERIALIZABLE_PROPERTIES } from '@/utils/constants';
 import { useCanvasBackground } from '@/hooks/useCanvasBackground';
@@ -499,20 +500,7 @@ const SeatPicker: React.FC<SeatCanvasProps> = ({
         }}
       />
 
-      <Backdrop
-        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 9999, flexDirection: 'column' }}
-        open={loading}
-      >
-        <CircularProgress color="inherit" size={60} />
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
-          <Typography variant="h6" fontWeight="bold">
-            Đang tải sơ đồ...
-          </Typography>
-          <Typography variant="body1" sx={{ mt: 1 }}>
-            {loadingProgress}%
-          </Typography>
-        </Box>
-      </Backdrop>
+      <LoadingBackdrop open={loading} progress={loadingProgress} />
 
       {/* Global Toast */}
       {/* Assuming Toast is exported from somewhere, need to import it */}
