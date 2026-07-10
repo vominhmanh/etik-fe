@@ -495,13 +495,13 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
 
                                 {/* Zoom Controls */}
                                 <div className="absolute bottom-6 left-6 z-20 flex flex-col bg-white/90 backdrop-blur-md rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.1)] border border-gray-200/50 overflow-hidden">
-                                    <button onClick={() => zoomIn(0.3, 400)} className="p-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 active:bg-blue-100 transition-all focus:outline-none flex items-center justify-center border-b border-gray-100" aria-label="Zoom In" title="Phóng to">
+                                    <button type="button" onClick={() => zoomIn(0.3, 400)} className="p-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 active:bg-blue-100 transition-all focus:outline-none flex items-center justify-center border-b border-gray-100" aria-label="Zoom In" title="Phóng to">
                                         <LuPlus size={18} strokeWidth={2.5} />
                                     </button>
-                                    <button onClick={() => zoomOut(0.3, 400)} className="p-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 active:bg-blue-100 transition-all focus:outline-none flex items-center justify-center border-b border-gray-100" aria-label="Zoom Out" title="Thu nhỏ">
+                                    <button type="button" onClick={() => zoomOut(0.3, 400)} className="p-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 active:bg-blue-100 transition-all focus:outline-none flex items-center justify-center border-b border-gray-100" aria-label="Zoom Out" title="Thu nhỏ">
                                         <LuMinus size={18} strokeWidth={2.5} />
                                     </button>
-                                    <button onClick={() => resetTransform(400)} className="px-3 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 active:bg-blue-100 transition-all focus:outline-none flex items-center justify-center font-bold text-[11px] uppercase tracking-wider" title="Khôi phục">
+                                    <button type="button" onClick={() => resetTransform(400)} className="px-3 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 active:bg-blue-100 transition-all focus:outline-none flex items-center justify-center font-bold text-[11px] uppercase tracking-wider" title="Khôi phục">
                                         Reset
                                     </button>
                                 </div>
@@ -511,6 +511,7 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
 
                     {/* Mobile Panel Toggle & Overlay */}
                     <button
+                        type="button"
                         onClick={() => setIsMobilePanelOpen(true)}
                         className="md:hidden absolute top-4 right-4 z-20 bg-white p-2 rounded-md shadow-md border border-gray-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors"
                     >
@@ -535,7 +536,7 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
                         {/* Legend Section */}
                         <div className="p-3 border-b border-gray-100 flex-shrink-0 flex justify-between items-center">
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ticket Categories</h3>
-                            <button onClick={() => setIsMobilePanelOpen(false)} className="md:hidden text-gray-400 hover:text-gray-600">
+                            <button type="button" onClick={() => setIsMobilePanelOpen(false)} className="md:hidden text-gray-400 hover:text-gray-600">
                                 <LuX size={16} />
                             </button>
                         </div>
@@ -592,6 +593,7 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
 
                                             {/* Delete Button */}
                                             <button
+                                                type="button"
                                                 onClick={() => handleRemoveSeat(seat.id)}
                                                 className="ml-1 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                                                 title="Remove ticket"
