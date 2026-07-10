@@ -68,6 +68,10 @@ export const useCanvasLoader = ({
                 categoriesRef.current.map((c) => [c.id.toString(), c])
             );
 
+            const existingSeatsMap = new Map(
+                existingSeatsRef.current.map((s) => [s.canvasSeatId, s])
+            );
+
             canvas.getObjects().forEach((obj: any) => {
                 // Ensure ID exists for ALL objects
                 if (!obj.id) {
@@ -83,7 +87,7 @@ export const useCanvasLoader = ({
                     // For isLite, obj.status and obj.category are already set on the fabric object.
                     let status: SeatStatus = obj.status || jsonSeat?.status || 'available';
 
-                    const dbSeat = existingSeatsRef.current.find((s) => s.canvasSeatId === obj.id);
+                    const dbSeat = existingSeatsMap.get(obj.id);
 
                     if (dbSeat && dbSeat.ticketCategoryId && categoryMap.has(dbSeat.ticketCategoryId.toString())) {
                         categoryId = dbSeat.ticketCategoryId;
@@ -224,72 +228,129 @@ export const useCanvasLoader = ({
             const liteJson = layout as any;
             canvas.backgroundColor = liteJson.settings?.background || '#f8fafc';
 
-            const objectsToAdd: any[] = [];
-            const originalRenderOnAddRemove = canvas.renderOnAddRemove;
-            canvas.renderOnAddRemove = false;
+            const itemsToCreate: any[] = [];
 
             (liteJson.rows || []).forEach((row: any) => {
                 if (!row.seats || row.seats.length === 0) return; // Skip empty rows
 
                 (row.seats || []).forEach((seat: any) => {
-                    const seatObj = createSeat(seat.x, seat.y, row.id, seat.number, canvas, { radius: mergedStyle.seatStyle?.radius, fontSize: mergedStyle.seatNumberStyle?.fontSize });
-                    const customSeat = seatObj as any;
-                    customSeat.id = seat.id;
-                    customSeat.category = seat.categoryId;
-                    customSeat.price = seat.price;
-                    customSeat.status = seat.status || 'available';
-                    objectsToAdd.push(seatObj);
+                    itemsToCreate.push({ type: 'seat', data: seat, row });
                 });
 
                 if (row.labelLeft && row.showLabelLeft) {
-                    const labelLeft = createText(row.labelLeft.x, row.labelLeft.y, row.name);
-                    const customLeft = labelLeft as any;
-                    customLeft.set({
-                        fontSize: row.labelLeft.fontSize || 16, fill: row.labelLeft.fill || '#666',
-                        selectable: true, evented: true, lockMovementX: false, lockMovementY: false, hasControls: false, hasBorders: true, excludeFromExport: true,
-                        originY: 'center', originX: 'right', angle: row.labelLeft.angle || 0
-                    });
-                    customLeft.id = row.labelLeft.id || `label-left-${row.id}`;
-                    customLeft.isRowLabel = true;
-                    customLeft.rowId = row.id;
-                    objectsToAdd.push(labelLeft);
+                    itemsToCreate.push({ type: 'labelLeft', row });
                 }
                 if (row.labelRight && row.showLabelRight) {
-                    const labelRight = createText(row.labelRight.x, row.labelRight.y, row.name);
-                    const customRight = labelRight as any;
-                    customRight.set({
-                        fontSize: row.labelRight.fontSize || 16, fill: row.labelRight.fill || '#666',
-                        selectable: true, evented: true, lockMovementX: false, lockMovementY: false, hasControls: false, hasBorders: true, excludeFromExport: true,
-                        originY: 'center', originX: 'left', angle: row.labelRight.angle || 0
-                    });
-                    customRight.id = row.labelRight.id || `label-right-${row.id}`;
-                    customRight.isRowLabel = true;
-                    customRight.rowId = row.id;
-                    objectsToAdd.push(labelRight);
+                    itemsToCreate.push({ type: 'labelRight', row });
                 }
             });
 
             (liteJson.shapes || []).forEach((shape: any) => {
-                if (shape.type === 'rect') {
-                    const rect = createRect(shape.x, shape.y);
-                    (rect as any).set({ width: shape.width, height: shape.height, fill: shape.fill, angle: shape.angle });
-                    (rect as any).id = shape.id;
-                    objectsToAdd.push(rect);
-                }
+                if (shape.type === 'rect') itemsToCreate.push({ type: 'rect', data: shape });
             });
 
             (liteJson.texts || []).forEach((t: any) => {
-                const textObj = createText(t.x, t.y, t.text);
-                (textObj as any).set({ fontSize: t.fontSize, fill: t.fill, angle: t.angle });
-                (textObj as any).id = t.id;
-                objectsToAdd.push(textObj);
+                itemsToCreate.push({ type: 'text', data: t });
             });
 
-            canvas.add(...objectsToAdd);
-            canvas.renderOnAddRemove = originalRenderOnAddRemove;
-            canvas.requestRenderAll();
+            useEventGuiStore.getState().setLoading(true);
+            useEventGuiStore.getState().setLoadingProgress(0);
 
-            onLoadComplete();
+            const objectsToAdd: any[] = [];
+            let currentIndex = 0;
+            const totalItems = itemsToCreate.length;
+
+            if (totalItems === 0) {
+                useEventGuiStore.getState().setLoading(false);
+                onLoadComplete();
+                return;
+            }
+
+            const processChunk = () => {
+                const startTime = performance.now();
+                // 15ms time budget per frame for smooth 60fps UI
+                while (currentIndex < totalItems && performance.now() - startTime < 15) {
+                    const item = itemsToCreate[currentIndex];
+
+                    try {
+                        if (item.type === 'seat') {
+                            const { data: seat, row } = item;
+                            const seatObj = createSeat(seat.x, seat.y, row.id, seat.number, canvas, { radius: mergedStyle.seatStyle?.radius, fontSize: mergedStyle.seatNumberStyle?.fontSize });
+                            const customSeat = seatObj as any;
+                            customSeat.id = seat.id;
+                            customSeat.category = seat.categoryId;
+                            customSeat.price = seat.price;
+                            customSeat.status = seat.status || 'available';
+                            objectsToAdd.push(seatObj);
+                        } else if (item.type === 'labelLeft') {
+                            const { row } = item;
+                            const labelLeft = createText(row.labelLeft?.x || 0, row.labelLeft?.y || 0, row.name);
+                            const customLeft = labelLeft as any;
+                            customLeft.set({
+                                fontSize: row.labelLeft?.fontSize || 16, fill: row.labelLeft?.fill || '#666',
+                                selectable: true, evented: true, lockMovementX: false, lockMovementY: false, hasControls: false, hasBorders: true, excludeFromExport: true,
+                                originY: 'center', originX: 'right', angle: row.labelLeft?.angle || 0
+                            });
+                            customLeft.id = row.labelLeft?.id || `label-left-${row.id}`;
+                            customLeft.isRowLabel = true;
+                            customLeft.rowId = row.id;
+                            objectsToAdd.push(labelLeft);
+                        } else if (item.type === 'labelRight') {
+                            const { row } = item;
+                            const labelRight = createText(row.labelRight?.x || 0, row.labelRight?.y || 0, row.name);
+                            const customRight = labelRight as any;
+                            customRight.set({
+                                fontSize: row.labelRight?.fontSize || 16, fill: row.labelRight?.fill || '#666',
+                                selectable: true, evented: true, lockMovementX: false, lockMovementY: false, hasControls: false, hasBorders: true, excludeFromExport: true,
+                                originY: 'center', originX: 'left', angle: row.labelRight?.angle || 0
+                            });
+                            customRight.id = row.labelRight?.id || `label-right-${row.id}`;
+                            customRight.isRowLabel = true;
+                            customRight.rowId = row.id;
+                            objectsToAdd.push(labelRight);
+                        } else if (item.type === 'rect') {
+                            const shape = item.data;
+                            const rect = createRect(shape.x || 0, shape.y || 0);
+                            (rect as any).set({ width: shape.width, height: shape.height, fill: shape.fill, angle: shape.angle });
+                            (rect as any).id = shape.id;
+                            objectsToAdd.push(rect);
+                        } else if (item.type === 'text') {
+                            const t = item.data;
+                            const textObj = createText(t.x || 0, t.y || 0, t.text);
+                            (textObj as any).set({ fontSize: t.fontSize, fill: t.fill, angle: t.angle });
+                            (textObj as any).id = t.id;
+                            objectsToAdd.push(textObj);
+                        }
+                    } catch (err) {
+                        console.error('Error creating canvas object:', err, item);
+                    }
+
+                    currentIndex++;
+                }
+
+                if (currentIndex < totalItems) {
+                    useEventGuiStore.getState().setLoadingProgress(Math.round((currentIndex / totalItems) * 100));
+                    requestAnimationFrame(processChunk);
+                } else {
+                    // Bypass canvas.add overhead for massive speedup
+                    objectsToAdd.forEach(obj => {
+                        obj.setCoords();
+                        obj.canvas = canvas;
+                    });
+                    (canvas as any)._objects.push(...objectsToAdd);
+                    
+                    canvas.requestRenderAll();
+                    
+                    useEventGuiStore.getState().setLoadingProgress(100);
+                    
+                    // Call onLoadComplete to apply colors, which is now O(1) using Map
+                    onLoadComplete();
+
+                    setTimeout(() => useEventGuiStore.getState().setLoading(false), 300);
+                }
+            };
+            
+            requestAnimationFrame(processChunk);
         } else {
             console.warn("Unsupported legacy layout format detected. Please use Lite JSON.");
             onLoadComplete(); // Call this to at least set up the empty canvas handlers

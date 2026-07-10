@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { LuList, LuX, LuPlus, LuMinus } from 'react-icons/lu';
+import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 import { SeatCanvasProps, SeatData, CategoryStats, CategoryInfo, ShowSeat } from '@/types/data.types';
 import { EMPTY_OBJECT } from '@/utils/constants';
 import { SEAT_STYLE_CONFIG } from './createObject/applyCustomStyles';
@@ -50,11 +51,7 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
     const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
 
     // Viewport State
-    const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [hoveredSeatId, setHoveredSeatId] = useState<string | null>(null);
-    const animationRef = useRef<number | null>(null);
 
     const mergedStyle = useMemo(() => ({
         ...defaultStyle,
@@ -140,12 +137,12 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
             if (dbSeat && dbSeat.ticketCategoryId) {
                 catId = String(dbSeat.ticketCategoryId);
                 const dbStatus = dbSeat.status as string;
-                
+
                 // User requirement: existingSeat is only responsible for held and sold. 
                 // Blocked is already handled by JSON.
                 if (dbStatus === 'sold' || dbStatus === 'held') {
                     status = dbStatus as any;
-                } 
+                }
             }
 
             const catInfo = catId ? catMap.get(catId) : null;
@@ -197,7 +194,7 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
         });
     }, [parsedData, existingSeats, categories, selectedSeatIds, readOnly, catMap]);
 
-    // Calculate minimum scale to fit 70% of container
+    // Calculate minimum scale to fit 95% of container
     const getMinScale = useCallback(() => {
         const parent = containerRef.current;
         if (!parent) return 0.1;
@@ -205,25 +202,8 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
         const style = mergedStyleRef.current;
         const scaleX = rect.width / style.width;
         const scaleY = rect.height / style.height;
-        return Math.min(scaleX, scaleY) * 0.9; // Occupies 90% of container
+        return Math.min(scaleX, scaleY) * 0.95; // Occupies 95% of container, minimal padding
     }, []);
-
-    // Setup Center Initial View
-    useEffect(() => {
-        if (containerRef.current) {
-            const rect = containerRef.current.getBoundingClientRect();
-            const fitScale = getMinScale(); // Start at the max zoom out (70% fit)
-
-            const paddingX = (rect.width - mergedStyle.width * fitScale) / 2;
-            const paddingY = (rect.height - mergedStyle.height * fitScale) / 2;
-
-            setTransform({
-                scale: Math.max(fitScale, 0.01),
-                x: paddingX,
-                y: paddingY
-            });
-        }
-    }, [mergedStyle.width, mergedStyle.height, getMinScale]);
 
     // Render Loop
     useEffect(() => {
@@ -236,21 +216,16 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
 
         const render = () => {
             const dpr = window.devicePixelRatio || 1;
-            const rect = containerRef.current?.getBoundingClientRect();
-            if (!rect) return;
 
-            canvas.width = rect.width * dpr;
-            canvas.height = rect.height * dpr;
+            canvas.width = mergedStyle.width * dpr;
+            canvas.height = mergedStyle.height * dpr;
 
-            ctx.scale(dpr, dpr);
+            ctx.save();
+            ctx.scale(dpr, dpr); // Map logical pixels to physical pixels
 
             // Clear
             ctx.fillStyle = mergedStyle.backgroundColor;
-            ctx.fillRect(0, 0, rect.width, rect.height);
-
-            ctx.save();
-            ctx.translate(transform.x, transform.y);
-            ctx.scale(transform.scale, transform.scale);
+            ctx.fillRect(0, 0, mergedStyle.width, mergedStyle.height);
 
             // Draw Rects
             parsedData.renderRects.forEach(rect => {
@@ -368,32 +343,16 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
         animationFrameId = requestAnimationFrame(render);
 
         return () => cancelAnimationFrame(animationFrameId);
-    }, [parsedData, finalSeats, transform, mergedStyle, hoveredSeatId]);
+    }, [parsedData, finalSeats, mergedStyle, hoveredSeatId]);
 
     // Event Handlers
-    const handlePointerDown = (e: React.PointerEvent) => {
-        if (animationRef.current) cancelAnimationFrame(animationRef.current);
-        if (e.pointerType === 'mouse' && e.button !== 0) return;
-        setIsDragging(true);
-        // Capture target to prevent losing drag event when mouse moves out
-        if (containerRef.current) containerRef.current.setPointerCapture(e.pointerId);
-        setDragStart({ x: e.clientX - transform.x, y: e.clientY - transform.y });
-    };
-
     const handlePointerMove = (e: React.PointerEvent) => {
-        if (isDragging) {
-            setTransform(prev => applyBounds(e.clientX - dragStart.x, e.clientY - dragStart.y, prev.scale));
-            return;
-        }
-
         // Hit Detection for Hover
-        if (!containerRef.current) return;
-        const rect = containerRef.current.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
+        if (!canvasRef.current) return;
 
-        const worldX = (mouseX - transform.x) / transform.scale;
-        const worldY = (mouseY - transform.y) / transform.scale;
+        // CSS transforms applied by react-zoom-pan-pinch mean offsetX/offsetY are naturally scaled correctly
+        const mouseX = e.nativeEvent.offsetX;
+        const mouseY = e.nativeEvent.offsetY;
 
         const radius = mergedStyle.seatStyle.radius || 10;
         const hitRadius = radius * 1.5; // Slightly larger hit area
@@ -402,8 +361,8 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
         for (let i = finalSeats.length - 1; i >= 0; i--) {
             const seat = finalSeats[i];
             if (!seat.evented) continue;
-            const dx = seat.x - worldX;
-            const dy = seat.y - worldY;
+            const dx = seat.x - mouseX;
+            const dy = seat.y - mouseY;
             if (dx * dx + dy * dy <= hitRadius * hitRadius) {
                 found = seat.id;
                 break;
@@ -415,26 +374,32 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
         }
     };
 
-    const handlePointerUp = (e: React.PointerEvent) => {
-        if (isDragging) {
-            setIsDragging(false);
-            if (containerRef.current) containerRef.current.releasePointerCapture(e.pointerId);
-            // Check if it was a tiny drag (basically a click)
-            const dx = e.clientX - transform.x - dragStart.x;
-            const dy = e.clientY - transform.y - dragStart.y;
-            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) return; // It was a drag
+    const handleClick = (e: React.MouseEvent) => {
+        // Handle Click - react-zoom-pan-pinch prevents this from firing if dragging!
+        const mouseX = e.nativeEvent.offsetX;
+        const mouseY = e.nativeEvent.offsetY;
+
+        const radius = mergedStyle.seatStyle.radius || 10;
+        const hitRadius = radius * 1.5;
+
+        let foundSeat: typeof finalSeats[0] | null = null;
+        for (let i = finalSeats.length - 1; i >= 0; i--) {
+            const seat = finalSeats[i];
+            if (!seat.evented) continue;
+            const dx = seat.x - mouseX;
+            const dy = seat.y - mouseY;
+            if (dx * dx + dy * dy <= hitRadius * hitRadius) {
+                foundSeat = seat;
+                break;
+            }
         }
 
-        // Handle Click
-        if (hoveredSeatId) {
-            const target = finalSeats.find(s => s.id === hoveredSeatId);
-            if (!target || !target.evented) return;
-
+        if (foundSeat) {
             let newIds = [...selectedSeatIds];
-            if (newIds.includes(target.id)) {
-                newIds = newIds.filter(id => id !== target.id);
+            if (newIds.includes(foundSeat.id)) {
+                newIds = newIds.filter(id => id !== foundSeat.id);
             } else {
-                newIds.push(target.id);
+                newIds.push(foundSeat.id);
             }
 
             if (onSelectionChange) {
@@ -452,253 +417,17 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
 
             if (onSeatClick) {
                 onSeatClick({
-                    id: target.id,
-                    number: target.number,
-                    price: target.price,
-                    rowLabel: target.rowLabel,
-                    category: target.catId,
-                    status: target.status,
-                    categoryInfo: target.catInfo || { id: target.catId, name: 'Unknown', price: 0, color: '#999' }
+                    id: foundSeat.id,
+                    number: foundSeat.number,
+                    price: foundSeat.price,
+                    rowLabel: foundSeat.rowLabel,
+                    category: foundSeat.catId,
+                    status: foundSeat.status,
+                    categoryInfo: foundSeat.catInfo || { id: foundSeat.catId, name: 'Unknown', price: 0, color: '#999' }
                 } as any);
             }
         }
     };
-
-    const applyBounds = useCallback((x: number, y: number, scale: number) => {
-        const parent = containerRef.current;
-        if (!parent) return { x, y, scale };
-        const rect = parent.getBoundingClientRect();
-        
-        const style = mergedStyleRef.current;
-        const contentW = style.width * scale;
-        const contentH = style.height * scale;
-        
-        const paddingX = rect.width * 0.3;
-        const paddingY = rect.height * 0.3;
-
-        let maxX = paddingX;
-        let minX = rect.width - paddingX - contentW;
-        
-        let maxY = paddingY;
-        let minY = rect.height - paddingY - contentH;
-
-        if (minX > maxX) {
-             const mid = (minX + maxX) / 2;
-             minX = maxX = mid;
-        }
-        if (minY > maxY) {
-             const mid = (minY + maxY) / 2;
-             minY = maxY = mid;
-        }
-
-        const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(val, max));
-        return { x: clamp(x, minX, maxX), y: clamp(y, minY, maxY), scale };
-    }, []);
-
-    useEffect(() => {
-        const parent = containerRef.current;
-        if (!parent) return;
-
-        const onWheel = (e: WheelEvent) => {
-            if (animationRef.current) cancelAnimationFrame(animationRef.current);
-            e.preventDefault();
-
-            if (e.ctrlKey) {
-                // Use exponential scaling for smooth zoom that never hits zero
-                const zoomRatio = Math.exp(-e.deltaY * 0.002);
-                
-                setTransform(prev => {
-                    let newScale = prev.scale * zoomRatio;
-                    const minScale = getMinScale();
-                    if (newScale < minScale) newScale = minScale; 
-
-                    if (newScale === prev.scale) return prev;
-
-                    const rect = parent.getBoundingClientRect();
-                    const mouseX = e.clientX - rect.left;
-                    const mouseY = e.clientY - rect.top;
-                    const ratio = newScale / prev.scale;
-
-                    return applyBounds(
-                        mouseX - (mouseX - prev.x) * ratio,
-                        mouseY - (mouseY - prev.y) * ratio,
-                        newScale
-                    );
-                });
-            } else {
-                // Pan
-                setTransform(prev => applyBounds(prev.x - e.deltaX, prev.y - e.deltaY, prev.scale));
-            }
-        };
-
-        parent.addEventListener('wheel', onWheel, { passive: false });
-        
-        return () => {
-            parent.removeEventListener('wheel', onWheel);
-        };
-    }, []);
-
-    const animateToTransform = useCallback((targetX: number, targetY: number, targetScale: number, duration = 300) => {
-        if (animationRef.current) cancelAnimationFrame(animationRef.current);
-
-        setTransform(prev => {
-            const startX = prev.x;
-            const startY = prev.y;
-            const startScale = prev.scale;
-
-            if (Math.abs(startX - targetX) < 0.1 && Math.abs(startY - targetY) < 0.1 && Math.abs(startScale - targetScale) < 0.01) {
-                return { x: targetX, y: targetY, scale: targetScale };
-            }
-
-            const startTime = performance.now();
-
-            const animate = (currentTime: number) => {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const ease = 1 - Math.pow(1 - progress, 4); // easeOutQuart
-
-                setTransform({
-                    x: startX + (targetX - startX) * ease,
-                    y: startY + (targetY - startY) * ease,
-                    scale: startScale + (targetScale - startScale) * ease
-                });
-
-                if (progress < 1) {
-                    animationRef.current = requestAnimationFrame(animate);
-                } else {
-                    animationRef.current = null;
-                    setTransform({ x: targetX, y: targetY, scale: targetScale });
-                }
-            };
-            
-            animationRef.current = requestAnimationFrame(animate);
-            return prev;
-        });
-    }, []);
-
-    const handleZoomIn = () => {
-        setTransform(prev => {
-            let newScale = prev.scale * 1.5;
-            const container = containerRef.current;
-            if (!container) return prev;
-            const rect = container.getBoundingClientRect();
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const ratio = newScale / prev.scale;
-            
-            const target = applyBounds(
-                centerX - (centerX - prev.x) * ratio,
-                centerY - (centerY - prev.y) * ratio,
-                newScale
-            );
-            
-            animateToTransform(target.x, target.y, target.scale);
-            return prev;
-        });
-    };
-
-    const handleZoomOut = () => {
-        setTransform(prev => {
-            let newScale = prev.scale / 1.5;
-            const minScale = getMinScale();
-            if (newScale < minScale) newScale = minScale;
-            if (newScale === prev.scale) return prev;
-            const container = containerRef.current;
-            if (!container) return prev;
-            const rect = container.getBoundingClientRect();
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const ratio = newScale / prev.scale;
-            
-            const target = applyBounds(
-                centerX - (centerX - prev.x) * ratio,
-                centerY - (centerY - prev.y) * ratio,
-                newScale
-            );
-            
-            animateToTransform(target.x, target.y, target.scale);
-            return prev;
-        });
-    };
-
-    const handleResetZoom = () => {
-        const minScale = getMinScale();
-        const parent = containerRef.current;
-        if (!parent) return;
-        const rect = parent.getBoundingClientRect();
-        const style = mergedStyleRef.current;
-        const paddingX = (rect.width - style.width * minScale) / 2;
-        const paddingY = (rect.height - style.height * minScale) / 2;
-        
-        const target = applyBounds(paddingX, paddingY, minScale);
-        animateToTransform(target.x, target.y, target.scale, 400); // slightly slower for reset
-    };
-
-    // Touch Pinch-to-Zoom setup
-    useEffect(() => {
-        const parent = containerRef.current;
-        if (!parent) return;
-
-        let startDist = 0;
-        let initialScale = 1;
-        let initialTransform = { x: 0, y: 0 };
-        let initialCenter = { x: 0, y: 0 };
-
-        const onTouchStart = (e: TouchEvent) => {
-            if (animationRef.current) cancelAnimationFrame(animationRef.current);
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                const dx = e.touches[0].clientX - e.touches[1].clientX;
-                const dy = e.touches[0].clientY - e.touches[1].clientY;
-                startDist = Math.hypot(dx, dy);
-                initialScale = transform.scale;
-                initialTransform = { x: transform.x, y: transform.y };
-
-                const rect = parent.getBoundingClientRect();
-                initialCenter = {
-                    x: (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left,
-                    y: (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top
-                };
-            }
-        };
-
-        const onTouchMove = (e: TouchEvent) => {
-            if (e.touches.length === 2 && startDist > 0) {
-                e.preventDefault();
-                const dx = e.touches[0].clientX - e.touches[1].clientX;
-                const dy = e.touches[0].clientY - e.touches[1].clientY;
-                const currentDist = Math.hypot(dx, dy);
-
-                const ratio = currentDist / startDist;
-                let newScale = initialScale * ratio;
-                
-                const minScale = getMinScale();
-                if (newScale < minScale) newScale = minScale;
-
-                const scaleRatio = newScale / initialScale;
-
-                setTransform(applyBounds(
-                    initialCenter.x - (initialCenter.x - initialTransform.x) * scaleRatio,
-                    initialCenter.y - (initialCenter.y - initialTransform.y) * scaleRatio,
-                    newScale
-                ));
-            }
-        };
-
-        const onTouchEnd = () => {
-            startDist = 0;
-        };
-
-        parent.addEventListener('touchstart', onTouchStart, { passive: false });
-        parent.addEventListener('touchmove', onTouchMove, { passive: false });
-        parent.addEventListener('touchend', onTouchEnd);
-
-        return () => {
-            parent.removeEventListener('touchstart', onTouchStart);
-            parent.removeEventListener('touchmove', onTouchMove);
-            parent.removeEventListener('touchend', onTouchEnd);
-        };
-    }, [transform]);
 
     const selectedSeatsData = useMemo(() => {
         return finalSeats.filter(s => s.isSelected);
@@ -715,41 +444,60 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
         <div className={`relative flex h-[600px] w-full flex-row bg-gray-200`}>
             {/* Main Content Area (Canvas) */}
             <div className="flex flex-col flex-1 h-full min-w-0 overflow-hidden">
-                <div className="flex h-0 min-h-0 w-full flex-1 overflow-hidden relative">
+                <div className="flex h-0 min-h-0 w-full flex-1 overflow-hidden relative" ref={containerRef}>
 
                     {/* Canvas Wrapper */}
-                    <div
-                        ref={containerRef}
-                        className="flex-1 w-full h-full relative overflow-hidden bg-gray-100"
-                        style={{ touchAction: 'none' }}
-                        onPointerDown={handlePointerDown}
-                        onPointerMove={handlePointerMove}
-                        onPointerUp={handlePointerUp}
-                        onPointerLeave={() => { setIsDragging(false); setHoveredSeatId(null); }}
-                    >
-                        <canvas
-                            ref={canvasRef}
-                            style={{
-                                display: 'block',
-                                width: '100%',
-                                height: '100%',
-                                cursor: hoveredSeatId ? 'pointer' : (isDragging ? 'grabbing' : 'grab')
-                            }}
-                        />
-                    </div>
+                    <TransformWrapper
+                        initialScale={getMinScale()}
+                        minScale={getMinScale()}
+                        maxScale={4}
+                        centerOnInit={true}
+                        limitToBounds={false}
+                        wheel={{ step: 0.002 }}
+                        zoomAnimation={{ animationTime: 400, animationType: "easeOutCubic" }}
 
-                    {/* Zoom Controls */}
-                    <div className="absolute bottom-6 left-6 z-20 flex flex-col bg-white/90 backdrop-blur-md rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.1)] border border-gray-200/50 overflow-hidden">
-                        <button onClick={handleZoomIn} className="p-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 active:bg-blue-100 transition-all focus:outline-none flex items-center justify-center border-b border-gray-100" aria-label="Zoom In" title="Phóng to">
-                            <LuPlus size={18} strokeWidth={2.5} />
-                        </button>
-                        <button onClick={handleZoomOut} className="p-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 active:bg-blue-100 transition-all focus:outline-none flex items-center justify-center border-b border-gray-100" aria-label="Zoom Out" title="Thu nhỏ">
-                            <LuMinus size={18} strokeWidth={2.5} />
-                        </button>
-                        <button onClick={handleResetZoom} className="px-3 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 active:bg-blue-100 transition-all focus:outline-none flex items-center justify-center font-bold text-[11px] uppercase tracking-wider" title="Khôi phục">
-                            Reset
-                        </button>
-                    </div>
+                        doubleClick={{ disabled: true }}
+                    >
+                        {({ zoomIn, zoomOut, resetTransform }) => (
+                            <>
+                                <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
+                                    <div style={{
+                                        width: mergedStyle.width,
+                                        height: mergedStyle.height,
+                                        border: '2px dashed #94a3b8',
+                                        backgroundColor: mergedStyle.backgroundColor,
+                                        boxSizing: 'border-box'
+                                    }}>
+                                        <canvas
+                                            ref={canvasRef}
+                                            onClick={handleClick}
+                                            onPointerMove={handlePointerMove}
+                                            onPointerLeave={() => setHoveredSeatId(null)}
+                                            style={{
+                                                display: 'block',
+                                                width: '100%',
+                                                height: '100%',
+                                                cursor: hoveredSeatId ? 'pointer' : 'grab'
+                                            }}
+                                        />
+                                    </div>
+                                </TransformComponent>
+
+                                {/* Zoom Controls */}
+                                <div className="absolute bottom-6 left-6 z-20 flex flex-col bg-white/90 backdrop-blur-md rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.1)] border border-gray-200/50 overflow-hidden">
+                                    <button onClick={() => zoomIn(0.3, 400)} className="p-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 active:bg-blue-100 transition-all focus:outline-none flex items-center justify-center border-b border-gray-100" aria-label="Zoom In" title="Phóng to">
+                                        <LuPlus size={18} strokeWidth={2.5} />
+                                    </button>
+                                    <button onClick={() => zoomOut(0.3, 400)} className="p-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 active:bg-blue-100 transition-all focus:outline-none flex items-center justify-center border-b border-gray-100" aria-label="Zoom Out" title="Thu nhỏ">
+                                        <LuMinus size={18} strokeWidth={2.5} />
+                                    </button>
+                                    <button onClick={() => resetTransform(400)} className="px-3 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 active:bg-blue-100 transition-all focus:outline-none flex items-center justify-center font-bold text-[11px] uppercase tracking-wider" title="Khôi phục">
+                                        Reset
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </TransformWrapper>
 
                     {/* Mobile Panel Toggle & Overlay */}
                     <button

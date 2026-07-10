@@ -46,6 +46,9 @@ export type Action = null | 'delete' | 'copy' | 'cut' | 'paste';
 interface EventGuiState {
   // ::::::::::: Loading state
   loading: boolean;
+  setLoading: (loading: boolean) => void;
+  loadingProgress: number;
+  setLoadingProgress: (progress: number) => void;
 
   // ::::::::::: Canvas
   canvas: fabric.Canvas | null;
@@ -136,6 +139,9 @@ export const PROPERTIES_TO_INCLUDE = [
 export const useEventGuiStore = create<EventGuiState>((set, get) => ({
   // ::::::::::::::::::: Loading state
   loading: false,
+  setLoading: (loading) => set({ loading }),
+  loadingProgress: 0,
+  setLoadingProgress: (loadingProgress) => set({ loadingProgress }),
 
   // ::::::::::::::::::: Canvas state
   canvas: null,
