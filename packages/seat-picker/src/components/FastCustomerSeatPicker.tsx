@@ -217,11 +217,21 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
         const render = () => {
             const dpr = window.devicePixelRatio || 1;
 
-            canvas.width = mergedStyle.width * dpr;
-            canvas.height = mergedStyle.height * dpr;
+            // Mobile browsers (especially iOS) have a strict limit on maximum canvas pixels (usually ~16 million).
+            // E.g., iOS max is 16.7 megapixels. We cap it slightly below to be safe.
+            const MAX_CANVAS_PIXELS = 16000000; 
+            const totalCssPixels = mergedStyle.width * mergedStyle.height;
+            let safeDpr = dpr;
+            if (totalCssPixels * safeDpr * safeDpr > MAX_CANVAS_PIXELS) {
+                safeDpr = Math.sqrt(MAX_CANVAS_PIXELS / totalCssPixels);
+            }
+            safeDpr = Math.max(0.1, safeDpr);
+
+            canvas.width = mergedStyle.width * safeDpr;
+            canvas.height = mergedStyle.height * safeDpr;
 
             ctx.save();
-            ctx.scale(dpr, dpr); // Map logical pixels to physical pixels
+            ctx.scale(safeDpr, safeDpr); // Map logical pixels to physical pixels
 
             // Clear
             ctx.fillStyle = mergedStyle.backgroundColor;
