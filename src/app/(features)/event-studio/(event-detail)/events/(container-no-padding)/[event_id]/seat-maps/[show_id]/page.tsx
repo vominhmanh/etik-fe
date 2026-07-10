@@ -112,44 +112,53 @@ export default function Page() {
 
       console.log('Saving Layout - Rows:', rows.length, 'Objects:', json.canvas?.objects?.length);
 
-      const targetObjects = json.canvas?.objects || [];
+      let refinedSeats: any[] = [];
 
-      // Debug: Log all object types and IDs to diagnose why they are being filtered out
-      console.log('DEBUG: Objects found in JSON:', targetObjects.map((o: any) => ({
-        type: o.type,
-        customType: o.customType,
-        id: o.id,
-        category: o.category
-      })));
-
-      // Helper to flatten groups, including the group itself and its children
-      const flattenObjects = (objects: any[]): any[] => {
-        let result: any[] = [];
-        objects.forEach(obj => {
-          result.push(obj);
-          if (obj.type === 'group' && obj.objects) {
-            result = result.concat(flattenObjects(obj.objects));
+      if (json.isLite && json.rows) {
+        // Extract seats directly from the new liteJson format
+        json.rows.forEach((row: any) => {
+          if (row.seats && Array.isArray(row.seats)) {
+            row.seats.forEach((seat: any) => {
+              if (seat.id && seat.categoryId) {
+                refinedSeats.push({
+                  canvasSeatId: seat.id,
+                  rowLabel: row.name || null,
+                  seatNumber: seat.number ? seat.number.toString() : null,
+                  ticketCategoryId: seat.categoryId,
+                  status: seat.status || 'available'
+                });
+              }
+            });
           }
         });
-        return result;
-      };
+      } else {
+        // Legacy canvas.objects format
+        const targetObjects = json.canvas?.objects || [];
+        const flattenObjects = (objects: any[]): any[] => {
+          let result: any[] = [];
+          objects.forEach(obj => {
+            result.push(obj);
+            if (obj.type === 'group' && obj.objects) {
+              result = result.concat(flattenObjects(obj.objects));
+            }
+          });
+          return result;
+        };
 
-      const allObjects = flattenObjects(targetObjects);
-      console.log('DEBUG: Flattened Objects count:', allObjects.length);
-
-      const refinedSeats = allObjects
-        .filter((obj: any) => {
-          const isSeatType = obj.type === 'circle' || obj.customType === 'seat' || obj.type === 'group';
-          // User requirement: Only send seats that have a ticket category assigned
-          return isSeatType && obj.id && obj.category;
-        })
-        .map((obj: any) => ({
-          canvasSeatId: obj.id,
-          rowLabel: rowMap.get(obj.rowId) || null,
-          seatNumber: obj.seatNumber ? obj.seatNumber.toString() : null,
-          ticketCategoryId: obj.category, // Verified by filter
-          status: obj.status || 'available'
-        }));
+        const allObjects = flattenObjects(targetObjects);
+        refinedSeats = allObjects
+          .filter((obj: any) => {
+            const isSeatType = obj.type === 'circle' || obj.customType === 'seat' || obj.type === 'group';
+            return isSeatType && obj.id && obj.category;
+          })
+          .map((obj: any) => ({
+            canvasSeatId: obj.id,
+            rowLabel: rowMap.get(obj.rowId) || null,
+            seatNumber: obj.seatNumber ? obj.seatNumber.toString() : null,
+            ticketCategoryId: obj.category,
+            status: obj.status || 'available'
+          }));
+      }
 
       console.log('Refined Seats count:', refinedSeats.length);
 

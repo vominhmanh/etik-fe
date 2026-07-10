@@ -26,6 +26,9 @@ const useClipboardActions = () => {
     'customType',
     'stroke',
     'strokeWidth',
+    'category',
+    'price',
+    'status',
   ];
 
   // :::::::::::::::::::::::::: Function: copy objects

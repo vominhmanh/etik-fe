@@ -469,12 +469,12 @@ const ViewOnlySeatPicker: React.FC<SeatCanvasProps> = ({
     existingSeats,
     categories,
     mergedStyle,
-    onSeatClick: undefined,
+    onSeatClick,
     setHasBgImage, // Pass the setter from useCanvasBackground
     onChange: undefined,
     onSave: undefined,
-    selectedSeatIds: undefined,
-    onSelectionChange: undefined,
+    selectedSeatIds,
+    onSelectionChange,
   });
 
   // Seat Appearance Hook (Sync colors)

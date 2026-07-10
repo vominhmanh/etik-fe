@@ -23,6 +23,7 @@ interface UseCanvasLoaderProps {
 export const useCustomerCanvasLoaderSynced = ({
     canvas,
     layout,
+    readOnly,
     existingSeats,
     categories,
     mergedStyle,
@@ -301,15 +302,16 @@ export const useCustomerCanvasLoaderSynced = ({
                 (row.seats || []).forEach((seatData: any) => {
                     const seatId = String(seatData.id);
                     let categoryId = null;
-                    let status: SeatStatus = 'available';
+                    let status: SeatStatus = seatData.status || 'available';
 
                     const dbSeat = existingSeatsMap.get(seatId);
                     if (dbSeat && dbSeat.ticketCategoryId && categoryMap.has(String(dbSeat.ticketCategoryId))) {
                         categoryId = String(dbSeat.ticketCategoryId);
-                        status = dbSeat.status || 'available';
+                        if (dbSeat.status === 'sold' || dbSeat.status === 'held') {
+                            status = dbSeat.status;
+                        }
                     } else if (seatData.categoryId && categoryMap.has(String(seatData.categoryId))) {
                         categoryId = String(seatData.categoryId);
-                        status = seatData.status || 'available';
                     }
 
                     const categoryInfo = categoryId ? categoryMap.get(categoryId) : null;
@@ -327,9 +329,9 @@ export const useCustomerCanvasLoaderSynced = ({
                         stroke: mergedStyle.seatStyle.stroke || '#000',
                         strokeWidth: mergedStyle.seatStyle.strokeWidth || 1,
                         selectable: false,
-                        evented: !!categoryId && isAvailable,
+                        evented: !!categoryId && (readOnly || isAvailable),
                         hasControls: false,
-                        hoverCursor: (!!categoryId && isAvailable) ? 'pointer' : 'default',
+                        hoverCursor: (!!categoryId && (readOnly || isAvailable)) ? 'pointer' : 'default',
                     } as any);
 
                     // Explicitly assign custom data so FabricJS doesn't strip it
@@ -450,11 +452,15 @@ export const useCustomerCanvasLoaderSynced = ({
                         if (obj.customType === 'seat') {
                             applyEmptySeatStyle(obj);
                             let categoryId = null;
-                            let status: SeatStatus = 'available';
+                            const jsonSeat = layoutCanvas?.objects?.find((o: any) => o.id === obj.id);
+                            let status: SeatStatus = jsonSeat?.status || 'available';
+                            
                             const dbSeat = existingSeatsMap.get(obj.id);
                             if (dbSeat && dbSeat.ticketCategoryId && categoryMap.has(String(dbSeat.ticketCategoryId))) {
                                 categoryId = String(dbSeat.ticketCategoryId);
-                                status = dbSeat.status || 'available';
+                                if (dbSeat.status === 'sold' || dbSeat.status === 'held') {
+                                    status = dbSeat.status;
+                                }
                                 const categoryData = categoryMap.get(categoryId);
                                 const color = categoryData?.color || 'rgba(209, 193, 193, 0.7)';
                                 obj.set({ category: categoryId, price: categoryData?.price || 0, status: status });
@@ -500,7 +506,7 @@ export const useCustomerCanvasLoaderSynced = ({
                     canvas.getObjects().forEach((obj: any) => {
                         const isSeat = obj.customType === 'seat';
                         obj.set({ selectable: false, hasControls: false, hasBorders: false, lockMovementX: true, lockMovementY: true, lockRotation: true, lockScalingX: true, lockScalingY: true });
-                        obj.evented = isSeat && !!obj._hasValidCategory && !!obj._isAvailable;
+                        obj.evented = isSeat && !!obj._hasValidCategory && (readOnly || !!obj._isAvailable);
                     });
 
                     canvas.selection = false;

@@ -6,6 +6,9 @@ export const exportCanvasToLiteJson = (
     canvasWidth?: number,
     canvasHeight?: number
 ) => {
+    // Discard active selection so all objects recalculate their absolute left/top coordinates relative to the canvas
+    canvas.discardActiveObject();
+
     const objects = canvas.getObjects();
     
     // Initialize structure

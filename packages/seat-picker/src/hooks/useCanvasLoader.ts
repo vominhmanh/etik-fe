@@ -79,62 +79,52 @@ export const useCanvasLoader = ({
                     applyEmptySeatStyle(obj);
 
                     let categoryId = null;
-                    let status: SeatStatus = 'available';
+                    const jsonSeat = layoutCanvas?.objects?.find((o: any) => o.id === obj.id);
+                    // For isLite, obj.status and obj.category are already set on the fabric object.
+                    let status: SeatStatus = obj.status || jsonSeat?.status || 'available';
 
                     const dbSeat = existingSeatsRef.current.find((s) => s.canvasSeatId === obj.id);
+
                     if (dbSeat && dbSeat.ticketCategoryId && categoryMap.has(dbSeat.ticketCategoryId.toString())) {
                         categoryId = dbSeat.ticketCategoryId;
-                        status = dbSeat.status || 'available';
+                        if (dbSeat.status === 'sold' || dbSeat.status === 'held') {
+                            status = dbSeat.status as any;
+                        }
+                    } else if (obj.category && categoryMap.has(obj.category.toString())) {
+                        categoryId = obj.category;
+                    } else if (jsonSeat && jsonSeat.category && categoryMap.has(jsonSeat.category.toString())) {
+                        categoryId = jsonSeat.category;
+                    }
 
+                    if (categoryId) {
                         const categoryData = categoryMap.get(categoryId.toString());
                         const color = categoryData?.color || 'rgba(209, 193, 193, 0.7)';
 
-                        // Update Object Data with authoritative DB info
                         obj.set({
                             category: categoryId,
                             price: categoryData?.price || 0,
                             status: status
                         });
-
-                        // Also set property on object instance directly for safety
                         obj.category = categoryId;
                         obj.price = categoryData?.price || 0;
                         obj.status = status;
 
-                        // 2. Apply Visuals using shared function
                         if (obj.type === 'group') {
-                            updateSeatVisuals(obj as fabric.Group, {
-                                fill: color,
-                                status: status
-                            });
+                            updateSeatVisuals(obj as fabric.Group, { fill: color, status: status });
                         } else {
-                            // Fallback for single objects
                             obj.set('fill', color);
                             if (['blocked', 'sold', 'held'].includes(status)) {
                                 applyDarkenStyle(obj, color);
                             }
                         }
                     } else {
-                        const jsonSeat = layoutCanvas?.objects?.find((o: any) => o.id === obj.id);
-                        if (jsonSeat) {
-                            obj.category = jsonSeat.category;
-                            obj.status = jsonSeat.status || 'available';
-                            obj.price = jsonSeat.price || 0;
-                        }
-                        
-                        if (obj.category && categoryMap.has(obj.category.toString())) {
-                            const catData = categoryMap.get(obj.category.toString());
-                            const color = catData?.color || 'rgba(209, 193, 193, 0.7)';
-                            if (obj.type === 'group') {
-                                updateSeatVisuals(obj as fabric.Group, { fill: color, status: obj.status });
-                            } else {
-                                obj.set('fill', color);
-                                if (['blocked', 'sold', 'held'].includes(obj.status)) {
-                                    applyDarkenStyle(obj, color);
-                                }
-                            }
-                        } else {
-                            applyEmptySeatStyle(obj);
+                        // Inherit status from json if possible, otherwise available
+                        obj.status = status;
+                        applyEmptySeatStyle(obj);
+                        if (obj.type === 'group' && ['blocked', 'sold', 'held'].includes(status)) {
+                            updateSeatVisuals(obj as fabric.Group, { fill: 'rgba(209, 193, 193, 0.7)', status: status });
+                        } else if (['blocked', 'sold', 'held'].includes(status)) {
+                            applyDarkenStyle(obj, 'rgba(209, 193, 193, 0.7)');
                         }
                     }
                 }
@@ -193,7 +183,7 @@ export const useCanvasLoader = ({
                     if (!options.target || (options.target.type !== 'circle' && options.target.type !== 'group')) return;
                     const seat = options.target as any;
                     if (seat.customType !== 'seat') return;
-                    
+
                     const catId = seat.category ?? 0;
                     const categoryInfo = categoriesRef.current.find((c: any) => c.id === catId) || {
                         id: catId, name: 'Unknown Category', price: 0, color: '#999999'
@@ -298,7 +288,7 @@ export const useCanvasLoader = ({
             canvas.add(...objectsToAdd);
             canvas.renderOnAddRemove = originalRenderOnAddRemove;
             canvas.requestRenderAll();
-            
+
             onLoadComplete();
         } else {
             console.warn("Unsupported legacy layout format detected. Please use Lite JSON.");
@@ -320,9 +310,9 @@ export const useCanvasLoader = ({
             if (onChange) {
                 const currentRows = useEventGuiStore.getState().rows;
                 const json = exportCanvasToLiteJson(
-                    canvas, 
-                    currentRows, 
-                    mergedStyle.width, 
+                    canvas,
+                    currentRows,
+                    mergedStyle.width,
                     mergedStyle.height
                 ) as unknown as Layout;
                 onChange(json);

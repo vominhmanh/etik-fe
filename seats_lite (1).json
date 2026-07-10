@@ -1,0 +1,91 @@
+{
+  "isLite": true,
+  "categories": [
+    {
+      "id": 275,
+      "name": "Vé Fanzone",
+      "price": 0,
+      "color": "#25ef25"
+    },
+    {
+      "id": 276,
+      "name": "Vé tiêu chuẩn",
+      "price": 5000,
+      "color": "#009688"
+    }
+  ],
+  "rows": [
+    {
+      "id": "e7336605-602e-4aab-bb47-6f9ecb9df99f",
+      "name": "A",
+      "showLabelLeft": true,
+      "showLabelRight": true,
+      "fontSize": 14,
+      "seats": [
+        {
+          "id": "06b12415-3534-48c5-bb5d-244394dfc858",
+          "number": "1",
+          "categoryId": 275,
+          "price": 0,
+          "x": 380,
+          "y": 141
+        },
+        {
+          "id": "1571733f-9446-4131-b795-996529fe6dc2",
+          "number": "2",
+          "categoryId": 276,
+          "price": 5000,
+          "x": 405,
+          "y": 141
+        },
+        {
+          "id": "079e43b5-b54b-469d-ab9f-8fedba0fd56b",
+          "number": "3",
+          "status": "blocked",
+          "x": 430,
+          "y": 141
+        },
+        {
+          "id": "db3d8da5-0e9c-4ee6-924b-7189bae57864",
+          "number": "4",
+          "x": 455,
+          "y": 141
+        }
+      ],
+      "labelLeft": {
+        "id": "label-left-e7336605-602e-4aab-bb47-6f9ecb9df99f",
+        "x": 368,
+        "y": 151,
+        "fontSize": 14,
+        "fill": "#666",
+        "angle": 0
+      },
+      "labelRight": {
+        "id": "label-right-e7336605-602e-4aab-bb47-6f9ecb9df99f",
+        "x": 487,
+        "y": 151,
+        "fontSize": 14,
+        "fill": "#666",
+        "angle": 0
+      }
+    }
+  ],
+  "shapes": [
+    {
+      "id": "0207b874-2500-4730-bb52-a7f5e4dfa4ed",
+      "type": "rect",
+      "x": 197,
+      "y": 15.199996948242188,
+      "width": 458,
+      "height": 26,
+      "fill": "#cccccc",
+      "angle": 0
+    }
+  ],
+  "texts": [],
+  "settings": {
+    "background": "#f8fafc",
+    "width": 800,
+    "height": 700
+  }
+}
