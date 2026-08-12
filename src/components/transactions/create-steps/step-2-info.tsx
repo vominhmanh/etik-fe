@@ -940,6 +940,9 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                               nationalPhone: firstHolder.nationalPhone || '',
                               phoneCountryIso2: firstHolder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2,
                               avatar: firstHolder.avatar || '',
+                              ...(firstHolder.dob ? { dob: firstHolder.dob } : {}),
+                              ...(firstHolder.address ? { address: firstHolder.address } : {}),
+                              ...(firstHolder.idcard_number ? { idcard_number: firstHolder.idcard_number } : {}),
                             });
                           }
                         }}

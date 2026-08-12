@@ -259,15 +259,42 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
 
                                 <Grid xs={12} md={12}>
                                   <Grid container spacing={2}>
-                                    {(holderInfo?.idcard_number || holderInfo?.dob || holderInfo?.address) && (
-                                      <Grid xs={12}>
-                                        <Typography variant="body2" sx={{ color: 'text.secondary', display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                                          {holderInfo.idcard_number && <span>CCCD: {holderInfo.idcard_number}</span>}
-                                          {holderInfo.dob && <span>DOB: {holderInfo.dob}</span>}
-                                          {holderInfo.address && <span>Địa chỉ: {holderInfo.address}</span>}
-                                        </Typography>
-                                      </Grid>
-                                    )}
+                                    {holderInfo?.idcard_number && (
+                                        <Grid xs={12} md={3}>
+                                          <Box>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                              {tt('CCCD', 'ID Card')}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                              {holderInfo.idcard_number}
+                                            </Typography>
+                                          </Box>
+                                        </Grid>
+                                      )}
+                                      {holderInfo?.dob && (
+                                        <Grid xs={12} md={3}>
+                                          <Box>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                              {tt('Ngày sinh', 'DOB')}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                              {holderInfo.dob}
+                                            </Typography>
+                                          </Box>
+                                        </Grid>
+                                      )}
+                                      {holderInfo?.address && (
+                                        <Grid xs={12} md={3}>
+                                          <Box>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                              {tt('Địa chỉ', 'Address')}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                              {holderInfo.address}
+                                            </Typography>
+                                          </Box>
+                                        </Grid>
+                                      )}
                                     {ticketFormFields.filter(f => !builtinInternalNames.has(f.internalName) && f.visible).map((field, idx) => {
                                       const answer = ticket.formAnswers ? ticket.formAnswers[field.internalName] : undefined;
                                       if (answer === undefined || answer === null || answer === '') return null;
