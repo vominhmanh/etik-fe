@@ -148,7 +148,7 @@ export default function Page(): React.JSX.Element {
     if (lang === 'en') {
       return [
         { value: 'Mr.', label: 'Mr.' },
-        { value: 'Ms', label: 'Ms' },
+        { value: 'Ms.', label: 'Ms.' },
         { value: 'Mx.', label: 'Mx.' },
       ];
     }
@@ -965,8 +965,8 @@ export default function Page(): React.JSX.Element {
                         );
                       })()}
 
-                      
-{(() => {
+
+                      {(() => {
                         const idCfg = checkoutFormFields.find(
                           (f) => f.internal_name === 'idcard_number'
                         );
@@ -1195,7 +1195,7 @@ export default function Page(): React.JSX.Element {
                   </Card>
                 )}
 
-                
+
                 {/* Submit Button */}
                 <Grid spacing={3} container sx={{ alignItems: 'center', mt: '3' }}>
                   <Grid item sm={9} xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', }}>

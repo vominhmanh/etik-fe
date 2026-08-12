@@ -113,7 +113,7 @@ export default function GiftTicketModal({
     if (lang === 'en') {
       return [
         { value: 'Mr.', label: 'Mr.' },
-        { value: 'Ms', label: 'Ms' },
+        { value: 'Ms.', label: 'Ms.' },
         { value: 'Mx.', label: 'Mx.' },
       ];
     }
