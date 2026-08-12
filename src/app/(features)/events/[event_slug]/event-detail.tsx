@@ -249,7 +249,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               }
 
               let holderObj = undefined;
-              const holder = t.holder || t.holder_info;
+              const holder = t.holderInfo || (t as any).holder_info;
               if (holder) {
                 let holderPhone = holder.phone || holder.phoneNumber || holder.phone_number || '';
                 let holderNationalPhone = holder.phoneNationalNumber || holder.phone_national_number || holder.nationalPhone || '';
@@ -297,7 +297,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
                 seatLabel: seatLabel,
                 audienceId: audienceId,
                 audienceName: audienceName,
-                holder: holderObj
+                holderInfo: holderObj
               };
             });
 
@@ -535,7 +535,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               ticketCategoryId,
               ticketCategoryName: cat?.name || '',
               price: cat?.price || 0,
-              holder: undefined
+              holderInfo: undefined
             });
           }
         }
@@ -612,8 +612,8 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
         if (newTickets[index]) {
           newTickets[index] = {
             ...newTickets[index],
-            holder: {
-              ...newTickets[index].holder || { title: 'Bạn', name: '' },
+            holderInfo: {
+              ...newTickets[index].holderInfo || { title: 'Bạn', name: '' },
               avatar: previewUrl
             } as HolderInfo
           };
@@ -982,7 +982,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
     if (true) {
       for (let i = 0; i < order.tickets.length; i++) {
         const t = order.tickets[i];
-        const holder = t.holder;
+        const holder = t.holderInfo;
         if (!holder || !holder.name) {
           notificationCtx.warning(tt(`Vui lòng nhập tên cho vé thứ ${i + 1}`, `Please enter name for ticket #${i + 1}`));
           return false;
@@ -1054,29 +1054,29 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
 
       // Upload holder avatars & prepare tickets
       const tickets = await Promise.all(order.tickets.map(async (t) => {
-        let holderAvatar = t.holder?.avatar;
+        let holderAvatar = t.holderInfo?.avatar;
         if (holderAvatar?.startsWith('blob:')) {
           holderAvatar = await uploadBlob(holderAvatar);
         }
 
         // Prepare holder data with E.164 formatted phone
         let holderData = undefined;
-        if (t.holder) {
+        if (t.holderInfo) {
           // Format phone to E.164
           let holderPhoneE164: string | undefined = undefined;
-          let phoneCountry = t.holder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2;
+          let phoneCountry = t.holderInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2;
           let phoneNationalNumber = '';
 
-          if (t.holder.nationalPhone) {
-            const phoneDigits = t.holder.nationalPhone.replace(/\D/g, '').replace(/^0+/, '');
+          if (t.holderInfo.nationalPhone) {
+            const phoneDigits = t.holderInfo.nationalPhone.replace(/\D/g, '').replace(/^0+/, '');
             holderPhoneE164 = formatToE164(phoneCountry, phoneDigits) || undefined;
             phoneNationalNumber = phoneDigits;
           }
 
           holderData = {
-            title: t.holder.title,
-            name: t.holder.name,
-            email: t.holder.email,
+            title: t.holderInfo.title,
+            name: t.holderInfo.name,
+            email: t.holderInfo.email,
             phone: holderPhoneE164,
             avatar: holderAvatar || undefined,
           };
@@ -1090,6 +1090,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
           amount: t.price, // Optional strictly, but helpful for debugging
           audienceId: t.audienceId,
           quantity: 1, // API expects quantity, we are unwinding to 1 per ticket for separate holders
+          formAnswers: t.formAnswers || undefined,
         };
       }));
 
@@ -1382,6 +1383,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               order={order}
               setOrder={setOrder}
               checkoutFormFields={checkoutFormFields}
+              ticketFormFields={event?.ticketFormFields}
               forceEditInfo={hasEditedTickets}
               customCheckoutFields={customCheckoutFields}
               builtinInternalNames={builtinInternalNames}
@@ -1449,6 +1451,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               order={order}
               shows={event?.shows || []}
               checkoutFormFields={checkoutFormFields}
+              ticketFormFields={event?.ticketFormFields}
               builtinInternalNames={builtinInternalNames}
               checkoutCustomAnswers={checkoutCustomAnswers}
               paymentMethodLabel={paymentMethodLabel}

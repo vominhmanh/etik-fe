@@ -34,9 +34,9 @@ import { Step4Review } from '@/components/transactions/create-steps/step-4-revie
 import {
   CheckoutRuntimeField,
   EventResponse,
-  HolderInfo,
   Order,
   Show,
+  TicketHolderInfo,
   TicketInfo
 } from '@/components/transactions/create-steps/types';
 
@@ -90,10 +90,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [activeScheduleId, setActiveScheduleId] = React.useState<number | null>(null);
   const [requestedCategoryModalId, setRequestedCategoryModalId] = React.useState<number | null>(null);
 
-  const requireGuestAvatar: boolean = true;
+
   const [cartOpen, setCartOpen] = React.useState<boolean>(false);
 
   const [checkoutFormFields, setCheckoutFormFields] = React.useState<CheckoutRuntimeField[]>([]);
+  const [ticketFormFields, setTicketFormFields] = React.useState<CheckoutRuntimeField[]>([]);
   const [checkoutCustomAnswers, setCheckoutCustomAnswers] = React.useState<Record<string, any>>({});
   const [availableVouchers, setAvailableVouchers] = React.useState<any[]>([]);
   const [appliedVoucher, setAppliedVoucher] = React.useState<any | null>(null);
@@ -135,6 +136,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           );
           setEvent(response.data);
           setCheckoutFormFields(response.data.checkoutFormFields || []);
+          setTicketFormFields(response.data.ticketFormFields || []);
           // setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
           notificationCtx.error(error);
@@ -274,7 +276,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               // For now, assume this is for non-seatmap or general admission helper.
               // If seated, quantity usually managed by picking seats.
               // But if we use this for "X" button on cart, quantity=0 works fine for seated too.
-              holder: undefined
+              holderInfo: undefined
             });
           }
         }
@@ -367,10 +369,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         if (newTickets[index]) {
           newTickets[index] = {
             ...newTickets[index],
-            holder: {
-              ...newTickets[index].holder || { title: '', name: '' },
+            holderInfo: {
+              ...(newTickets[index].holderInfo || { title: '', name: '' }),
               avatar: previewUrl
-            } as HolderInfo
+            } as TicketHolderInfo
           };
         }
         return { ...prev, tickets: newTickets };
@@ -637,19 +639,65 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     if (true) {
       for (let i = 0; i < order.tickets.length; i++) {
         const t = order.tickets[i];
-        const holder = t.holder;
-        if (!holder || !holder.name) {
-          notificationCtx.warning(tt(`Vui lòng nhập tên cho vé thứ ${i + 1}`, `Please enter name for ticket #${i + 1}`));
-          return false;
-        }
+        const holder = t.holderInfo;
+
         if (order.qrOption === 'separate') {
-          if (!holder.email) {
+          if (!holder || !holder.email) {
             notificationCtx.warning(tt(`Vui lòng nhập email cho vé thứ ${i + 1}`, `Please enter email for ticket #${i + 1}`));
             return false;
           }
-          if (!holder.nationalPhone) {
+          if (!holder || !holder.nationalPhone) {
             notificationCtx.warning(tt(`Vui lòng nhập số điện thoại cho vé thứ ${i + 1}`, `Please enter phone number for ticket #${i + 1}`));
             return false;
+          }
+        }
+
+        // Use ticketFormFields config
+        for (const field of ticketFormFields) {
+          if (!field.visible || !field.required) continue;
+
+          // Built-in fields
+          if (field.internalName === 'title' && (!holder || !holder.title)) {
+            notificationCtx.warning(tt(`Vui lòng chọn danh xưng cho vé thứ ${i + 1}`, `Please select title for ticket #${i + 1}`));
+            return false;
+          }
+          if (field.internalName === 'name' && (!holder || !holder.name)) {
+            notificationCtx.warning(tt(`Vui lòng nhập tên cho vé thứ ${i + 1}`, `Please enter name for ticket #${i + 1}`));
+            return false;
+          }
+          if (field.internalName === 'email' && (!holder || !holder.email)) {
+            notificationCtx.warning(tt(`Vui lòng nhập email cho vé thứ ${i + 1}`, `Please enter email for ticket #${i + 1}`));
+            return false;
+          }
+          if (field.internalName === 'phone_number' && (!holder || !holder.nationalPhone)) {
+            notificationCtx.warning(tt(`Vui lòng nhập số điện thoại cho vé thứ ${i + 1}`, `Please enter phone number for ticket #${i + 1}`));
+            return false;
+          }
+          if (field.internalName === 'address' && (!holder || !holder.address)) {
+            notificationCtx.warning(tt(`Vui lòng nhập địa chỉ cho vé thứ ${i + 1}`, `Please enter address for ticket #${i + 1}`));
+            return false;
+          }
+          if (field.internalName === 'dob' && (!holder || !holder.dob)) {
+            notificationCtx.warning(tt(`Vui lòng nhập ngày sinh cho vé thứ ${i + 1}`, `Please enter date of birth for ticket #${i + 1}`));
+            return false;
+          }
+          if (field.internalName === 'idcard_number' && (!holder || !holder.idcard_number)) {
+            notificationCtx.warning(tt(`Vui lòng nhập số CCCD cho vé thứ ${i + 1}`, `Please enter ID card for ticket #${i + 1}`));
+            return false;
+          }
+
+          // Custom fields
+          if (!builtinInternalNames.has(field.internalName)) {
+            const value = t.formAnswers ? t.formAnswers[field.internalName] : undefined;
+            if (field.fieldType === 'checkbox') {
+              if (!Array.isArray(value) || value.length === 0) {
+                notificationCtx.warning(tt(`Vui lòng chọn ít nhất một lựa chọn cho "${field.label}" tại vé thứ ${i + 1}`, `Please choose at least one option for "${field.label}" on ticket #${i + 1}`));
+                return false;
+              }
+            } else if (value === undefined || value === null || value === '') {
+              notificationCtx.warning(tt(`Vui lòng nhập thông tin cho "${field.label}" tại vé thứ ${i + 1}`, `Please fill in "${field.label}" on ticket #${i + 1}`));
+              return false;
+            }
           }
         }
       }
@@ -688,30 +736,33 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
       // Upload holder avatars & prepare tickets
       const tickets = await Promise.all(order.tickets.map(async (t) => {
-        let holderAvatar = t.holder?.avatar;
+        let holderAvatar = t.holderInfo?.avatar;
         if (holderAvatar?.startsWith('blob:')) {
           holderAvatar = await uploadBlob(holderAvatar);
         }
 
         // Prepare holder data with E.164 formatted phone
         let holderData = undefined;
-        if (t.holder) {
+        if (t.holderInfo) {
           // Format phone to E.164
           let holderPhoneE164: string | undefined = undefined;
-          let phoneCountryIso2 = t.holder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2;
+          let phoneCountryIso2 = t.holderInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2;
           let phoneDigits = '';
 
-          if (t.holder.nationalPhone) {
-            phoneDigits = t.holder.nationalPhone.replace(/\D/g, '').replace(/^0+/, '');
+          if (t.holderInfo.nationalPhone) {
+            phoneDigits = t.holderInfo.nationalPhone.replace(/\D/g, '').replace(/^0+/, '');
             holderPhoneE164 = formatToE164(phoneCountryIso2, phoneDigits) || undefined;
           }
 
           holderData = {
-            title: t.holder.title,
-            name: t.holder.name,
-            email: t.holder.email,
+            title: t.holderInfo.title,
+            name: t.holderInfo.name,
+            email: t.holderInfo.email,
             phone: holderPhoneE164,
             avatar: holderAvatar || undefined,
+            address: t.holderInfo.address,
+            dob: t.holderInfo.dob,
+            idcard_number: t.holderInfo.idcard_number,
           };
         }
 
@@ -722,7 +773,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           amount: t.price,
           audienceId: t.audienceId,
           holder: holderData,
-          quantity: 1
+          quantity: 1,
+          form_answers: t.formAnswers
         };
       }));
 
@@ -884,6 +936,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             order={order}
             setOrder={setOrder}
             checkoutFormFields={checkoutFormFields}
+                          ticketFormFields={ticketFormFields}
             customCheckoutFields={customCheckoutFields}
             builtinInternalNames={builtinInternalNames}
             checkoutCustomAnswers={checkoutCustomAnswers}
@@ -949,6 +1002,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             order={order}
             shows={event?.shows || []}
             checkoutFormFields={checkoutFormFields}
+                          ticketFormFields={ticketFormFields}
             builtinInternalNames={builtinInternalNames}
             checkoutCustomAnswers={checkoutCustomAnswers}
 

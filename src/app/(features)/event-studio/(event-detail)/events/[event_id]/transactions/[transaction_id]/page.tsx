@@ -12,6 +12,7 @@ import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
+import { alpha } from '@mui/material/styles';
 import { Bank as BankIcon, CaretDoubleRight, CaretLeft, Check, CheckFat, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, Gift, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X, Chair, CalendarBlank, IdentificationCard, CheckCircle, User as UserIcon, Users, CirclesThreePlus, Trash } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import { LocalizedLink } from '@/components/homepage/localized-link';
 
@@ -197,6 +198,10 @@ export interface Ticket {
   audienceCode?: string;
   price?: number;
   addOns?: TicketAddOn[];
+  holderAddress?: string;
+  holderDob?: string | null;
+  holderIdcardNumber?: string;
+  formAnswers?: Record<string, any>;
 }
 
 export interface Show {
@@ -341,6 +346,7 @@ export interface Transaction {
   // Dynamic checkout form answers (ETIK Forms)
   formAnswers: Record<string, any>;
   checkoutFormFields?: CheckoutRuntimeField[];
+  ticketFormFields?: CheckoutRuntimeField[];
   transactionFlow?: Record<string, any>;
 }
 
@@ -397,7 +403,18 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [selectedStatus, setSelectedStatus] = useState<string>(formData.status || '');
   const [editTicketModalOpen, setEditTicketModalOpen] = useState<boolean>(false);
   const [editingTicket, setEditingTicket] = useState<{ categoryIndex: number; ticketIndex: number } | null>(null);
-  const [editingHolderInfo, setEditingHolderInfo] = useState<{ title: string; name: string; email: string; phone: string; phoneCountryIso2?: string; avatar?: string; } | null>(null);
+  const [editingHolderInfo, setEditingHolderInfo] = useState<{
+    title: string;
+    name: string;
+    email: string;
+    phone: string;
+    phoneCountryIso2?: string;
+    avatar?: string;
+    address?: string;
+    dob?: string | null;
+    idcardNumber?: string;
+    formAnswers?: Record<string, any>;
+  } | null>(null);
   const [ticketMenuAnchorEl, setTicketMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [activeMenuTicket, setActiveMenuTicket] = useState<{ categoryIndex: number; ticketIndex: number } | null>(null);
   const [pendingHolderAvatarFile, setPendingHolderAvatarFile] = useState<File | null>(null);
@@ -405,6 +422,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const [invitationLetterModalOpen, setInvitationLetterModalOpen] = useState<boolean>(false);
   const [giftTicketModalOpen, setGiftTicketModalOpen] = useState<boolean>(false);
   const [checkoutFormFields, setCheckoutFormFields] = useState<CheckoutRuntimeField[]>([]);
+  const [ticketFormFields, setTicketFormFields] = useState<CheckoutRuntimeField[]>([]);
   const [checkoutCustomAnswers, setCheckoutCustomAnswers] = useState<Record<string, any>>({});
   const [audiences, setAudiences] = useState<Audience[]>([]);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
@@ -441,6 +459,11 @@ export default function Page({ params }: { params: { event_id: number; transacti
   const customCheckoutFields = React.useMemo(
     () => checkoutFormFields.filter((f) => !builtinInternalNames.has(f.internalName)),
     [checkoutFormFields, builtinInternalNames]
+  );
+
+  const customTicketFields = React.useMemo(
+    () => ticketFormFields.filter((f) => !builtinInternalNames.has(f.internalName)),
+    [ticketFormFields, builtinInternalNames]
   );
 
   const uploadImageToS3 = async (file: File): Promise<string | null> => {
@@ -606,8 +629,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
       setCheckoutCustomAnswers(answersDict);
 
 
-      // Load checkout form fields
+      // Load checkout and ticket form fields
       setCheckoutFormFields(response.data?.checkoutFormFields || []);
+      setTicketFormFields(response.data?.ticketFormFields || []);
     } catch (error) {
       notificationCtx.error(tt('Lỗi:', 'Error:'), error);
     } finally {
@@ -916,6 +940,19 @@ export default function Page({ params }: { params: { event_id: number; transacti
     const phoneNumber = parsedPhone?.nationalNumber || ticket.holderPhone || '';
 
     setEditingTicket(activeMenuTicket);
+    // Initialize custom field answers
+    const formAnswersData = ticket.formAnswers;
+    const answersDict: Record<string, any> = {};
+    if (Array.isArray(formAnswersData)) {
+      formAnswersData.forEach((item: any) => {
+        if (item.internalName) {
+          answersDict[item.internalName] = item.value;
+        }
+      });
+    } else if (formAnswersData) {
+      Object.assign(answersDict, formAnswersData);
+    }
+
     setEditingHolderInfo({
       title: ticket.holderTitle || (locale === 'en' ? 'Mx.' : 'Bạn'),
       name: ticket.holderName || '',
@@ -923,6 +960,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
       phone: phoneNumber,
       phoneCountryIso2: phoneCountryIso2,
       avatar: ticket.holderAvatar || undefined,
+      address: ticket.holderAddress || '',
+      dob: ticket.holderDob || null,
+      idcardNumber: ticket.holderIdcardNumber || '',
+      formAnswers: answersDict,
     });
     setEditTicketModalOpen(true);
     setTicketMenuAnchorEl(null);
@@ -934,6 +975,36 @@ export default function Page({ params }: { params: { event_id: number; transacti
     if (!editingHolderInfo.title || !editingHolderInfo.name) {
       notificationCtx.warning(tt('Vui lòng điền đủ Danh xưng và Họ tên.', 'Please fill in Title and Full Name.'));
       return;
+    }
+
+    // Validate built-in required fields
+    const idcardCfg = ticketFormFields.find((f) => f.internalName === 'idcard_number');
+    if (idcardCfg?.visible && idcardCfg?.required && !editingHolderInfo.idcardNumber) {
+      notificationCtx.warning(tt('Vui lòng nhập Số Căn cước công dân.', 'Please enter ID Card Number.'));
+      return;
+    }
+
+    const dobCfg = ticketFormFields.find((f) => f.internalName === 'dob');
+    if (dobCfg?.visible && dobCfg?.required && !editingHolderInfo.dob) {
+      notificationCtx.warning(tt('Vui lòng nhập Ngày sinh.', 'Please enter Date of Birth.'));
+      return;
+    }
+
+    const addrCfg = ticketFormFields.find((f) => f.internalName === 'address');
+    if (addrCfg?.visible && addrCfg?.required && !editingHolderInfo.address) {
+      notificationCtx.warning(tt('Vui lòng nhập Địa chỉ.', 'Please enter Address.'));
+      return;
+    }
+
+    // Validate custom required fields
+    for (const field of customTicketFields) {
+      if (field.required) {
+        const value = editingHolderInfo.formAnswers?.[field.internalName];
+        if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
+          notificationCtx.warning(tt(`Vui lòng nhập/chọn: ${field.label}`, `Please enter/select: ${field.label}`));
+          return;
+        }
+      }
     }
 
     try {
@@ -963,6 +1034,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
         // holderEmail cannot be changed
         holderPhone: e164Phone || null,
         holderAvatar: avatarUrl || editingHolderInfo.avatar || null,
+        holderAddress: editingHolderInfo.address || null,
+        holderDob: editingHolderInfo.dob || null,
+        holderIdcardNumber: editingHolderInfo.idcardNumber || null,
+        formAnswers: editingHolderInfo.formAnswers || {},
       };
 
       await baseHttpServiceInstance.patch(
@@ -977,6 +1052,17 @@ export default function Page({ params }: { params: { event_id: number; transacti
         const category = updatedCategories[editingTicket.categoryIndex];
         if (category && category.tickets[editingTicket.ticketIndex]) {
           const updatedTickets = [...category.tickets];
+
+          // Re-format formAnswers array for local state update
+          const newFormAnswersArray = Object.keys(editingHolderInfo.formAnswers || {}).map(key => {
+            const fieldDef = customTicketFields.find(f => f.internalName === key);
+            return {
+              internalName: key,
+              label: fieldDef?.label || key,
+              value: editingHolderInfo.formAnswers![key]
+            };
+          });
+
           updatedTickets[editingTicket.ticketIndex] = {
             ...updatedTickets[editingTicket.ticketIndex],
             holderTitle: editingHolderInfo.title,
@@ -984,6 +1070,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
             // holderEmail cannot be changed
             holderPhone: e164Phone || updatedTickets[editingTicket.ticketIndex].holderPhone,
             holderAvatar: avatarUrl || editingHolderInfo.avatar || updatedTickets[editingTicket.ticketIndex].holderAvatar,
+            holderAddress: editingHolderInfo.address || updatedTickets[editingTicket.ticketIndex].holderAddress,
+            holderDob: editingHolderInfo.dob || updatedTickets[editingTicket.ticketIndex].holderDob,
+            holderIdcardNumber: editingHolderInfo.idcardNumber || updatedTickets[editingTicket.ticketIndex].holderIdcardNumber,
+            formAnswers: newFormAnswersArray,
           };
           updatedCategories[editingTicket.categoryIndex] = {
             ...category,
@@ -1761,11 +1851,94 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                   borderRadius: 1.5,
                                   borderColor: 'divider',
                                   boxShadow: 'none',
+                                  backgroundColor: 'background.paper',
+                                  backgroundImage: (theme) =>
+                                    `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.04)}, ${alpha(theme.palette.secondary.main, 0.02)})`,
                                 }}
                               >
-                                <Box sx={{ p: 1.5, position: 'relative' }}>
+                                {/* Ticket Header */}
+                                <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', position: 'relative' }}>
+                                  <Stack
+                                    direction={{ xs: 'column', md: 'row' }}
+                                    spacing={1}
+                                    alignItems={{ xs: 'flex-start', md: 'center' }}
+                                    sx={{ width: '100%', minWidth: 0, pr: 8 }}
+                                  >
+                                    <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, flexWrap: 'wrap' }}>
+                                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                        {tt(`Vé ${ticketIndex + 1}`, `Ticket ${ticketIndex + 1}`)}
+                                      </Typography>
+
+                                      {/* Show */}
+                                      <Tooltip title={tt('Suất diễn', 'Show')}>
+                                        <Stack direction="row" spacing={0.5} alignItems="center">
+                                          <CalendarBlank size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                            {transactionTicketCategory.ticketCategory.show.name}
+                                          </Typography>
+                                        </Stack>
+                                      </Tooltip>
+
+                                      {/* Ticket Category */}
+                                      <Tooltip title={tt('Hạng vé', 'Ticket Category')}>
+                                        <Stack direction="row" spacing={0.5} alignItems="center">
+                                          <TagIcon size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                            {transactionTicketCategory.ticketCategory.name}
+                                          </Typography>
+                                        </Stack>
+                                      </Tooltip>
+
+                                      {/* Seat (icon + tên ghế, không text Ghế/Hàng/Số) */}
+                                      {ticket.showSeat && (
+                                        <Tooltip
+                                          title={tt(
+                                            `Ghế: ${ticket.showSeat.rowLabel || ''}${ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : ''
+                                            }${ticket.showSeat.seatNumber || ''} (ID: ${ticket.showSeat.id})`,
+                                            `Seat: ${ticket.showSeat.rowLabel || ''}${ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : ''
+                                            }${ticket.showSeat.seatNumber || ''} (ID: ${ticket.showSeat.id})`,
+                                          )}
+                                        >
+                                          <Stack direction="row" spacing={0.5} alignItems="center">
+                                            <Chair size={14} style={{ color: 'var(--mui-palette-primary-main)' }} />
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                              {(ticket.showSeat.rowLabel || '') +
+                                                (ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : '') +
+                                                (ticket.showSeat.seatNumber || '') ||
+                                                `#${ticket.showSeat.id}`}
+                                            </Typography>
+                                          </Stack>
+                                        </Tooltip>
+                                      )}
+
+                                      {/* Audience Name */}
+                                      {ticket.audienceId && (
+                                        (() => {
+                                          const audience = audiences.find(a => a.id === ticket.audienceId);
+                                          return audience ? (
+                                            <Tooltip title={tt('Đối tượng', 'Audience')}>
+                                              <Stack direction="row" spacing={0.5} alignItems="center">
+                                                <Users size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                                                  {audience.name}
+                                                </Typography>
+                                              </Stack>
+                                            </Tooltip>
+                                          ) : null;
+                                        })()
+                                      )}
+
+                                      {/* Individual Price */}
+                                      {ticket.price !== undefined && (
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', ml: 'auto' }}>
+                                          {formatPrice(ticket.price)}
+                                        </Typography>
+                                      )}
+                                    </Stack>
+                                  </Stack>
+
                                   {/* TID và Check-in icon ở góc phải trên */}
-                                  <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                                  <Box sx={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 0.5, alignItems: 'center' }}>
                                     {/* Check-in icon */}
                                     <Tooltip
                                       title={
@@ -1793,124 +1966,117 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                       />
                                     </Tooltip>
                                   </Box>
+                                </Box>
 
-                                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                                    <Avatar
-                                      src={ticket.holderAvatar || undefined}
-                                      sx={{ width: 32, height: 32, mt: 0.5 }}
-                                    >
-                                      {!ticket.holderAvatar && <UserIcon size={24} />}
-                                    </Avatar>
+                                {/* Ticket Body */}
+                                <Box sx={{ p: 2 }}>
+                                  <Grid container spacing={2} alignItems="center">
+                                    <Grid xs={12} md={2}>
+                                      <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'center' }, width: 48 }}>
+                                        {ticket.holderAvatar ? (
+                                          <Avatar src={ticket.holderAvatar} sx={{ width: 48, height: 48 }} />
+                                        ) : (
+                                          <Avatar sx={{ width: 48, height: 48, bgcolor: 'action.disabledBackground' }}>
+                                            <UserIcon size={24} style={{ color: 'var(--mui-palette-text-disabled)' }} />
+                                          </Avatar>
+                                        )}
+                                      </Box>
+                                    </Grid>
 
-                                    <Stack spacing={0.5} flex={1}>
-                                      {/* Holder name + index */}
-                                      <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
-                                        {ticketIndex + 1}.{' '}
-                                        {ticket.holderName
-                                          ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim()
-                                          : tt('Chưa có thông tin', 'No information')}
-                                      </Typography>
-
-                                      {/* Contact info */}
-                                      {transaction.qrOption === 'separate' && (
+                                    <Grid xs={12} md={3}>
+                                      <Box>
                                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          {tt('Họ và tên', 'Full Name')}
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                          {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : '-'}
+                                        </Typography>
+                                      </Box>
+                                    </Grid>
+
+                                    <Grid xs={12} md={4}>
+                                      <Box>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          {tt('Email', 'Email')}
+                                        </Typography>
+                                        <Typography variant="body2">
+                                          {ticket.holderEmail || '-'}
+                                        </Typography>
+                                      </Box>
+                                    </Grid>
+
+                                    <Grid xs={12} md={3}>
+                                      <Box>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          {tt('Số điện thoại', 'Phone Number')}
+                                        </Typography>
+                                        <Typography variant="body2">
                                           {(() => {
-                                            const email = ticket.holderEmail || tt('Chưa có email', 'No email');
-                                            if (!ticket.holderPhone) {
-                                              return `${email} - ${tt('Chưa có SĐT', 'No phone number')}`;
-                                            }
-                                            const parsedPhone = parseE164Phone(ticket.holderPhone);
+                                            const rawPhone = ticket.holderPhone || '';
+                                            if (!rawPhone) return '-';
+                                            const parsedPhone = parseE164Phone(rawPhone);
                                             if (parsedPhone) {
-                                              const country =
-                                                PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) ||
-                                                DEFAULT_PHONE_COUNTRY;
-                                              return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
+                                              const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
+                                              return `${country.dialCode} ${parsedPhone.nationalNumber}`;
                                             }
-                                            return `${email} - ${ticket.holderPhone}`;
+                                            return rawPhone;
                                           })()}
                                         </Typography>
-                                      )}
+                                      </Box>
+                                    </Grid>
 
-                                      {/* Suất diễn, hạng vé, tên ghế */}
-                                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                                        {/* Show */}
-                                        <Tooltip title={tt('Suất diễn', 'Show')}>
-                                          <Stack direction="row" spacing={0.5} alignItems="center">
-                                            <CalendarBlank size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
-                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                              {transactionTicketCategory.ticketCategory.show.name}
-                                            </Typography>
-                                          </Stack>
-                                        </Tooltip>
-
-                                        {/* Ticket Category */}
-                                        <Tooltip title={tt('Hạng vé', 'Ticket Category')}>
-                                          <Stack direction="row" spacing={0.5} alignItems="center">
-                                            <TagIcon size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
-                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                              {transactionTicketCategory.ticketCategory.name}
-                                            </Typography>
-                                          </Stack>
-                                        </Tooltip>
-
-                                        {/* Seat (icon + tên ghế, không text Ghế/Hàng/Số) */}
-                                        {ticket.showSeat && (
-                                          <Tooltip
-                                            title={tt(
-                                              `Ghế: ${ticket.showSeat.rowLabel || ''}${ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : ''
-                                              }${ticket.showSeat.seatNumber || ''} (ID: ${ticket.showSeat.id})`,
-                                              `Seat: ${ticket.showSeat.rowLabel || ''}${ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : ''
-                                              }${ticket.showSeat.seatNumber || ''} (ID: ${ticket.showSeat.id})`,
-                                            )}
-                                          >
-                                            <Stack direction="row" spacing={0.5} alignItems="center">
-                                              <Chair size={14} style={{ color: 'var(--mui-palette-primary-main)' }} />
-                                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                                {(ticket.showSeat.rowLabel || '') +
-                                                  (ticket.showSeat.rowLabel && ticket.showSeat.seatNumber ? '-' : '') +
-                                                  (ticket.showSeat.seatNumber || '') ||
-                                                  `#${ticket.showSeat.id}`}
-                                              </Typography>
-                                            </Stack>
-
-
-                                          </Tooltip>
+                                    <Grid xs={12} md={12}>
+                                      <Grid container spacing={2}>
+                                        {ticket.holderIdcardNumber && (
+                                          <Grid xs={12} md={3}>
+                                            <Box>
+                                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>CCCD</Typography>
+                                              <Typography variant="body2">{ticket.holderIdcardNumber}</Typography>
+                                            </Box>
+                                          </Grid>
                                         )}
-                                      </Stack>
-
-                                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                                        {/* Audience Name */}
-                                        {ticket.audienceId && (
-                                          (() => {
-                                            const audience = audiences.find(a => a.id === ticket.audienceId);
-                                            return audience ? (
-                                              <Tooltip title={tt('Đối tượng', 'Audience')}>
-                                                <Stack direction="row" spacing={0.5} alignItems="center">
-                                                  <Users size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
-                                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                                    {audience.name}
-                                                  </Typography>
-                                                </Stack>
-                                              </Tooltip>
-                                            ) : null;
-                                          })()
+                                        {ticket.holderDob && (
+                                          <Grid xs={12} md={3}>
+                                            <Box>
+                                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>DOB</Typography>
+                                              <Typography variant="body2">{ticket.holderDob}</Typography>
+                                            </Box>
+                                          </Grid>
+                                        )}
+                                        {ticket.holderAddress && (
+                                          <Grid xs={12} md={3}>
+                                            <Box>
+                                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Địa chỉ</Typography>
+                                              <Typography variant="body2">{ticket.holderAddress}</Typography>
+                                            </Box>
+                                          </Grid>
                                         )}
 
-                                        {/* Individual Price */}
-                                        {ticket.price !== undefined && (
-                                          <Tooltip title={tt('Giá vé', 'Ticket Price')}>
-                                            <Stack direction="row" spacing={0.5} alignItems="center">
-                                              <MoneyIcon size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
-                                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                                {formatPrice(ticket.price)}
-                                              </Typography>
-                                            </Stack>
-                                          </Tooltip>
+                                        {ticket.formAnswers && (Array.isArray(ticket.formAnswers) ? ticket.formAnswers : Object.keys(ticket.formAnswers)).length > 0 && (
+                                          <>
+                                            {(Array.isArray(ticket.formAnswers) ? ticket.formAnswers : Object.entries(ticket.formAnswers).map(([k, v]) => ({ label: k, value: v }))).map((item: any, idx: number) => {
+                                              const key = item.label || item.internal_name || item.internalName;
+                                              const value = item.value;
+                                              if (value === undefined || value === null || value === '') return null;
+                                              return (
+                                                <Grid xs={12} md={3} key={idx}>
+                                                  <Box>
+                                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{key}</Typography>
+                                                    <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
+                                                      {Array.isArray(value) ? value.join(', ') : String(value)}
+                                                    </Typography>
+                                                  </Box>
+                                                </Grid>
+                                              )
+                                            })}
+                                          </>
                                         )}
-                                      </Stack>
+                                      </Grid>
+                                    </Grid>
 
-                                      {/* Add-ons */}
-                                      {ticket.addOns && ticket.addOns.length > 0 && (
+                                    {/* Add-ons */}
+                                    {ticket.addOns && ticket.addOns.length > 0 && (
+                                      <Grid xs={12}>
                                         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                                           {ticket.addOns.map((addOnItem, addOnIdx) => (
                                             <Chip
@@ -1938,11 +2104,12 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                             />
                                           ))}
                                         </Stack>
-                                      )}
+                                      </Grid>
+                                    )}
 
-                                      {/* Status + menu */}
+                                    {/* Status + menu */}
+                                    <Grid xs={12}>
                                       <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mt: 0.5 }}>
-
                                         {ticket.status && ticket.status !== 'normal' && (
                                           <Chip
                                             size="small"
@@ -1960,8 +2127,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                           <DotsThreeOutline size={16} />
                                         </IconButton>
                                       </Stack>
-                                    </Stack>
-                                  </Stack>
+                                    </Grid>
+                                  </Grid>
                                 </Box>
                               </Card>
                             ))}
@@ -2644,6 +2811,171 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                 />
                               </FormControl>
                             </Grid>
+
+                            {(() => {
+                              const idcardCfg = ticketFormFields.find((f) => f.internalName === 'idcard_number');
+                              const visible = !!idcardCfg && idcardCfg.visible;
+                              const required = !!idcardCfg?.required;
+                              return (
+                                visible && (
+                                  <Grid xs={12}>
+                                    <FormControl fullWidth required={required} size="small">
+                                      <InputLabel>{tt("Số Căn cước công dân", "ID Card Number")}</InputLabel>
+                                      <OutlinedInput
+                                        label={tt("Số Căn cước công dân", "ID Card Number")}
+                                        size="small"
+                                        value={editingHolderInfo.idcardNumber || ''}
+                                        onChange={(e) => setEditingHolderInfo(prev => prev ? { ...prev, idcardNumber: e.target.value } : null)}
+                                      />
+                                    </FormControl>
+                                  </Grid>
+                                )
+                              );
+                            })()}
+
+                            {(() => {
+                              const dobCfg = ticketFormFields.find((f) => f.internalName === 'dob');
+                              const visible = !!dobCfg && dobCfg.visible;
+                              const required = !!dobCfg?.required;
+                              return (
+                                visible && (
+                                  <Grid xs={12}>
+                                    <FormControl fullWidth required={required} size="small">
+                                      <TextField
+                                        label={tt("Ngày sinh", "Date of Birth")}
+                                        type="date"
+                                        size="small"
+                                        InputLabelProps={{ shrink: true }}
+                                        required={required}
+                                        value={editingHolderInfo.dob || ''}
+                                        onChange={(e) => setEditingHolderInfo(prev => prev ? { ...prev, dob: e.target.value } : null)}
+                                      />
+                                    </FormControl>
+                                  </Grid>
+                                )
+                              );
+                            })()}
+
+                            {(() => {
+                              const addrCfg = ticketFormFields.find((f) => f.internalName === 'address');
+                              const visible = !!addrCfg && addrCfg.visible;
+                              const required = !!addrCfg?.required;
+                              return (
+                                visible && (
+                                  <Grid xs={12}>
+                                    <FormControl fullWidth required={required} size="small">
+                                      <InputLabel>{tt("Địa chỉ", "Address")}</InputLabel>
+                                      <OutlinedInput
+                                        label={tt("Địa chỉ", "Address")}
+                                        size="small"
+                                        value={editingHolderInfo.address || ''}
+                                        onChange={(e) => setEditingHolderInfo(prev => prev ? { ...prev, address: e.target.value } : null)}
+                                      />
+                                    </FormControl>
+                                  </Grid>
+                                )
+                              );
+                            })()}
+
+                            {/* Ticket Custom Fields */}
+                            {customTicketFields.map((field) => (
+                              <Grid xs={12} key={field.internalName}>
+                                <Stack spacing={0.5}>
+                                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                    {field.label}
+                                    {field.required && ' *'}
+                                  </Typography>
+                                  {field.note && (
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                      {field.note}
+                                    </Typography>
+                                  )}
+
+                                  {['text', 'number'].includes(field.fieldType) && (
+                                    <TextField
+                                      fullWidth
+                                      size="small"
+                                      type={field.fieldType === 'number' ? 'number' : 'text'}
+                                      value={(editingHolderInfo.formAnswers?.[field.internalName]) ?? ''}
+                                      onChange={(e) => setEditingHolderInfo(prev => prev ? { ...prev, formAnswers: { ...prev.formAnswers, [field.internalName]: e.target.value } } : null)}
+                                    />
+                                  )}
+
+                                  {['date', 'time', 'datetime'].includes(field.fieldType) && (
+                                    <TextField
+                                      fullWidth
+                                      size="small"
+                                      type={
+                                        field.fieldType === 'date'
+                                          ? 'date'
+                                          : field.fieldType === 'time'
+                                            ? 'time'
+                                            : 'datetime-local'
+                                      }
+                                      InputLabelProps={{ shrink: true }}
+                                      value={(editingHolderInfo.formAnswers?.[field.internalName]) ?? ''}
+                                      onChange={(e) => setEditingHolderInfo(prev => prev ? { ...prev, formAnswers: { ...prev.formAnswers, [field.internalName]: e.target.value } } : null)}
+                                    />
+                                  )}
+
+                                  {field.fieldType === 'radio' && field.options && (
+                                    <FormControl component="fieldset" variant="standard">
+                                      <Stack spacing={0.5}>
+                                        {field.options.map((opt) => (
+                                          <FormControlLabel
+                                            key={opt.value}
+                                            value={opt.value}
+                                            control={
+                                              <Radio
+                                                size="small"
+                                                sx={{ p: 0.5 }}
+                                                checked={(editingHolderInfo.formAnswers?.[field.internalName]) === opt.value}
+                                                onChange={() => setEditingHolderInfo(prev => prev ? { ...prev, formAnswers: { ...prev.formAnswers, [field.internalName]: opt.value } } : null)}
+                                              />
+                                            }
+                                            label={opt.label}
+                                            componentsProps={{ typography: { variant: 'body2', fontSize: '0.875rem' } }}
+                                          />
+                                        ))}
+                                      </Stack>
+                                    </FormControl>
+                                  )}
+
+                                  {field.fieldType === 'checkbox' && field.options && (
+                                    <FormControl component="fieldset" variant="standard">
+                                      <FormGroup>
+                                        <Stack spacing={0.5}>
+                                          {field.options.map((opt) => {
+                                            const currentAnswers = (editingHolderInfo.formAnswers?.[field.internalName] as string[]) || [];
+                                            const isChecked = currentAnswers.includes(opt.value);
+                                            return (
+                                              <FormControlLabel
+                                                key={opt.value}
+                                                control={
+                                                  <Checkbox
+                                                    size="small"
+                                                    sx={{ p: 0.5 }}
+                                                    checked={isChecked}
+                                                    onChange={(e) => {
+                                                      const newAnswers = e.target.checked
+                                                        ? [...currentAnswers, opt.value]
+                                                        : currentAnswers.filter((v: string) => v !== opt.value);
+                                                      setEditingHolderInfo(prev => prev ? { ...prev, formAnswers: { ...prev.formAnswers, [field.internalName]: newAnswers } } : null);
+                                                    }}
+                                                  />
+                                                }
+                                                label={opt.label}
+                                                componentsProps={{ typography: { variant: 'body2', fontSize: '0.875rem' } }}
+                                              />
+                                            );
+                                          })}
+                                        </Stack>
+                                      </FormGroup>
+                                    </FormControl>
+                                  )}
+                                </Stack>
+                              </Grid>
+                            ))}
                           </Grid>
                         </Stack>
                       )}

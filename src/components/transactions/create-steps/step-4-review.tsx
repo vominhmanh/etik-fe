@@ -13,7 +13,7 @@ import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { Armchair, User } from '@phosphor-icons/react/dist/ssr';
 import ReCAPTCHA from "react-google-recaptcha";
 
-import type { CheckoutRuntimeField, Show, TicketHolderInfo, Order, TicketInfo, HolderInfo } from './types';
+import type { CheckoutRuntimeField, Show, TicketHolderInfo, Order, TicketInfo } from './types';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone } from '@/config/phone-countries';
 
 export type Step4ReviewProps = {
@@ -23,6 +23,7 @@ export type Step4ReviewProps = {
   shows: Show[];
 
   checkoutFormFields: CheckoutRuntimeField[];
+  ticketFormFields?: CheckoutRuntimeField[];
   builtinInternalNames: Set<string>;
   checkoutCustomAnswers: Record<string, any>;
   paymentMethodLabel: string;
@@ -49,6 +50,7 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
     order,
     shows,
     checkoutFormFields,
+    ticketFormFields = [],
     builtinInternalNames,
     checkoutCustomAnswers,
 
@@ -102,7 +104,7 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
       }
       g.quantity++;
       g.total += (t.price ?? 0); // Accumulate correct price
-      g.items.push({ index, holder: t.holder });
+      g.items.push({ index, holderInfo: t.holderInfo });
     });
     return groups;
   }, [order.tickets, shows]);
@@ -143,7 +145,7 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                     {/* Tickets in this Group */}
                     <Stack spacing={2} sx={{ pl: { md: 2 } }}>
                       {group.items.map((item: any, i: number) => {
-                        const holderInfo = item.holder;
+                        const holderInfo = item.holderInfo;
                         const ticket = order.tickets[item.index];
                         const ticketIndex = item.index;
 
@@ -253,6 +255,42 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                                       })()}
                                     </Typography>
                                   </Box>
+                                </Grid>
+
+                                <Grid xs={12} md={12}>
+                                  <Grid container spacing={2}>
+                                    {(holderInfo?.idcard_number || holderInfo?.dob || holderInfo?.address) && (
+                                      <Grid xs={12}>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                                          {holderInfo.idcard_number && <span>CCCD: {holderInfo.idcard_number}</span>}
+                                          {holderInfo.dob && <span>DOB: {holderInfo.dob}</span>}
+                                          {holderInfo.address && <span>Địa chỉ: {holderInfo.address}</span>}
+                                        </Typography>
+                                      </Grid>
+                                    )}
+                                    {ticketFormFields.filter(f => !builtinInternalNames.has(f.internalName) && f.visible).map((field, idx) => {
+                                      const answer = ticket.formAnswers ? ticket.formAnswers[field.internalName] : undefined;
+                                      if (answer === undefined || answer === null || answer === '') return null;
+
+                                      let displayValue = answer;
+                                      if (field.fieldType === 'checkbox') {
+                                        displayValue = Array.isArray(answer) ? answer.join(', ') : answer;
+                                      }
+
+                                      return (
+                                        <Grid xs={12} md={3} key={`custom-field-${idx}`}>
+                                          <Box>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                              {field.label}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                              {displayValue}
+                                            </Typography>
+                                          </Box>
+                                        </Grid>
+                                      );
+                                    })}
+                                  </Grid>
                                 </Grid>
                               </Grid>
                             </Box>

@@ -39,7 +39,7 @@ import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { LocalizedLink } from '@/components/homepage/localized-link';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from '@/config/phone-countries';
 
-import { Order, TicketInfo, HolderInfo, CheckoutRuntimeField, Show } from './types';
+import { Order, TicketInfo, TicketHolderInfo, CheckoutRuntimeField, Show } from './types';
 
 export type Step2InfoProps = {
   tt: (vi: string, en: string) => string;
@@ -55,6 +55,7 @@ export type Step2InfoProps = {
   setOrder: React.Dispatch<React.SetStateAction<Order>>;
 
   checkoutFormFields: CheckoutRuntimeField[];
+  ticketFormFields?: CheckoutRuntimeField[];
   customCheckoutFields: CheckoutRuntimeField[];
   builtinInternalNames: Set<string>;
   checkoutCustomAnswers: Record<string, any>;
@@ -90,6 +91,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     order,
     setOrder,
     checkoutFormFields,
+    ticketFormFields = [],
     customCheckoutFields,
     builtinInternalNames,
     checkoutCustomAnswers,
@@ -117,7 +119,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
       setOrder((prev: any) => ({
         ...prev,
         customer: { title: '', name: '', email: '', phoneNumber: '', nationalPhone: '', address: '', phoneCountryIso2: 'VN', dob: null, idcard_number: '', avatar: '' },
-        tickets: prev.tickets.map((t: any) => ({ ...t, holder: undefined }))
+        tickets: prev.tickets.map((t: any) => ({ ...t, holderInfo: undefined }))
       }));
     }
   }, [forceEditInfo, isEditingInfo, setOrder]);
@@ -154,6 +156,20 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     setOrder(prev => ({ ...prev, customer: { ...prev.customer, ...patch } }));
   };
 
+  const setTicketFormAnswer = (ticketIndex: number, internalName: string, value: any) => {
+    setOrder(prev => {
+      const newTickets = [...prev.tickets];
+      const currentAnswers = newTickets[ticketIndex].formAnswers || {};
+      newTickets[ticketIndex] = {
+        ...newTickets[ticketIndex],
+        formAnswers: { ...currentAnswers, [internalName]: value }
+      };
+      return { ...prev, tickets: newTickets };
+    });
+  };
+
+  const customTicketFields = ticketFormFields.filter(f => !builtinInternalNames.has(f.internalName));
+
   // Group tickets for summary
   const ticketSummary = React.useMemo(() => {
     const groups: Record<string, { showId: number, categoryId: number, showName: string, categoryName: string, quantity: number, total: number, indices: number[] }> = {};
@@ -177,7 +193,10 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
 
   if (showInvitationCard) {
     const pf = invitation.preFilledInfo; // pre-filled info shorthand
-    return (
+    
+
+
+                            return (
       <Stack spacing={2} sx={{ width: '100%' }}>
         {invitation && (
           <Alert
@@ -230,7 +249,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
               <Box>
                 <Stack spacing={1.5}>
                   {order.tickets.map((ticket, idx) => {
-                    const holder = ticket.holder;
+                    const holder = ticket.holderInfo;
                     return (
                       <Box key={idx} sx={{ p: 1.5, borderRadius: '8px', border: '1px dashed', borderColor: 'divider', bgcolor: 'background.paper' }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={1}>
@@ -344,7 +363,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                         setOrder((prev: any) => ({
                           ...prev,
                           customer: { title: '', name: '', email: '', phoneNumber: '', nationalPhone: '', address: '', phoneCountryIso2: 'VN', dob: null, idcard_number: '', avatar: '' },
-                          tickets: prev.tickets.map((t: any) => ({ ...t, holder: undefined })),
+                          tickets: prev.tickets.map((t: any) => ({ ...t, holderInfo: undefined })),
                           isInfoEdited: true
                         }));
                         setIsEditingInfo(true);
@@ -430,7 +449,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                         <Stack spacing={2} sx={{ pl: { md: 2 } }}>
                           {group.indices.map((ticketIndex, i) => {
                             const ticket = order.tickets[ticketIndex];
-                            const holderInfo = ticket.holder || {
+                            const holderInfo = ticket.holderInfo || {
                               title: '',
                               name: '',
                               email: '',
@@ -440,12 +459,13 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                               avatar: '',
                             };
 
-                            const setHolderInfo = (patch: Partial<HolderInfo>) => {
+                            const setHolderInfo = (patch: Partial<TicketHolderInfo>) => {
                               setOrder(prev => {
                                 const newTickets = [...prev.tickets];
                                 newTickets[ticketIndex] = {
                                   ...newTickets[ticketIndex],
-                                  holder: { ...holderInfo, ...patch } as HolderInfo
+                                  holderInfo: { ...holderInfo, ...patch } as any,
+                                  formAnswers: ticket.formAnswers || {}
                                 };
                                 return { ...prev, tickets: newTickets };
                               });
@@ -531,7 +551,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                             setExpandedAccordions(prev => ({ ...prev, [ticketIndex]: true }));
                                             // Copy from ticket 1 (index 0)
                                             const firstTicket = order.tickets[0];
-                                            const firstHolder = firstTicket.holder || {
+                                            const firstHolder = firstTicket.holderInfo || {
                                               title: '',
                                               name: '',
                                               email: '',
@@ -539,6 +559,9 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                               nationalPhone: '',
                                               phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
                                               avatar: '',
+                                              address: '',
+                                              dob: '',
+                                              idcard_number: '',
                                             };
 
                                             // Copy from ticket 1 - copy nationalPhone and phoneCountryIso2
@@ -549,7 +572,22 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                               nationalPhone: firstHolder.nationalPhone || '',
                                               phoneCountryIso2: firstHolder.phoneCountryIso2,
                                               avatar: firstHolder.avatar,
+                                              address: firstHolder.address,
+                                              dob: firstHolder.dob,
+                                              idcard_number: firstHolder.idcard_number,
                                             });
+
+                                            // Copy custom form answers from ticket 1
+                                            if (firstTicket.formAnswers) {
+                                              setOrder(prev => {
+                                                const newTickets = [...prev.tickets];
+                                                newTickets[ticketIndex] = {
+                                                  ...newTickets[ticketIndex],
+                                                  formAnswers: { ...firstTicket.formAnswers }
+                                                };
+                                                return { ...prev, tickets: newTickets };
+                                              });
+                                            }
                                           }}
                                         >
                                           {tt('Copy từ vé 1', 'Copy from ticket 1')}
@@ -631,15 +669,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                                 <MenuItem value="Anh">Anh</MenuItem>
                                                 <MenuItem value="Chị">Chị</MenuItem>
                                                 <MenuItem value="Bạn">Bạn</MenuItem>
-                                                {source !== 'marketplace' && (
-                                                  <>
-                                                    <MenuItem value="Em">Em</MenuItem>
-                                                    <MenuItem value="Ông">Ông</MenuItem>
-                                                    <MenuItem value="Bà">Bà</MenuItem>
-                                                    <MenuItem value="Cô">Cô</MenuItem>
-                                                    <MenuItem value="Thầy">Thầy</MenuItem>
-                                                  </>
-                                                )}
+                                                {source !== 'marketplace' && <MenuItem value="Em">Em</MenuItem>}
+                                                {source !== 'marketplace' && <MenuItem value="Ông">Ông</MenuItem>}
+                                                {source !== 'marketplace' && <MenuItem value="Bà">Bà</MenuItem>}
+                                                {source !== 'marketplace' && <MenuItem value="Cô">Cô</MenuItem>}
+                                                {source !== 'marketplace' && <MenuItem value="Thầy">Thầy</MenuItem>}
                                                 <MenuItem value="Mr.">Mr.</MenuItem>
                                                 <MenuItem value="Ms.">Ms.</MenuItem>
                                                 <MenuItem value="Mx.">Mx.</MenuItem>
@@ -700,6 +734,171 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                         />
                                       </FormControl>
                                     </Grid>
+
+                                    
+                                    {/* Additional Built-in Fields */}
+                                    {(() => {
+                                      const idcardCfg = ticketFormFields.find((f) => f.internalName === 'idcard_number');
+                                      const visible = !!idcardCfg && idcardCfg.visible;
+                                      const required = !!idcardCfg?.required;
+                                      return (
+                                        visible && (
+                                          <Grid item xs={12}>
+                                            <FormControl fullWidth required={required} size="small">
+                                              <InputLabel>{tt("Số Căn cước công dân", "ID Card Number")}</InputLabel>
+                                              <OutlinedInput
+                                                label={tt("Số Căn cước công dân", "ID Card Number")}
+                                                size="small"
+                                                value={holderInfo.idcard_number || ''}
+                                                onChange={(e) => setHolderInfo({ idcard_number: e.target.value })}
+                                              />
+                                            </FormControl>
+                                          </Grid>
+                                        )
+                                      );
+                                    })()}
+
+                                    {(() => {
+                                      const dobCfg = ticketFormFields.find((f) => f.internalName === 'dob');
+                                      const visible = !!dobCfg && dobCfg.visible;
+                                      const required = !!dobCfg?.required;
+                                      return (
+                                        visible && (
+                                          <Grid item xs={12}>
+                                            <FormControl fullWidth required={required} size="small">
+                                              <TextField
+                                                label={tt("Ngày sinh", "Date of Birth")}
+                                                type="date"
+                                                size="small"
+                                                InputLabelProps={{ shrink: true }}
+                                                required={required}
+                                                value={holderInfo.dob || ''}
+                                                onChange={(e) => setHolderInfo({ dob: e.target.value })}
+                                              />
+                                            </FormControl>
+                                          </Grid>
+                                        )
+                                      );
+                                    })()}
+
+                                    {(() => {
+                                      const addrCfg = ticketFormFields.find((f) => f.internalName === 'address');
+                                      const visible = !!addrCfg && addrCfg.visible;
+                                      const required = !!addrCfg?.required;
+                                      return (
+                                        visible && (
+                                          <Grid item xs={12}>
+                                            <FormControl fullWidth required={required} size="small">
+                                              <InputLabel>{tt("Địa chỉ", "Address")}</InputLabel>
+                                              <OutlinedInput
+                                                label={tt("Địa chỉ", "Address")}
+                                                size="small"
+                                                value={holderInfo.address || ''}
+                                                onChange={(e) => setHolderInfo({ address: e.target.value })}
+                                              />
+                                            </FormControl>
+                                          </Grid>
+                                        )
+                                      );
+                                    })()}
+
+                                    {/* Ticket Custom Fields */}
+                                    {customTicketFields.map((field) => (
+                                      <Grid item xs={12} key={field.internalName}>
+                                        <Stack spacing={0.5}>
+                                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                            {field.label}
+                                            {field.required && ' *'}
+                                          </Typography>
+                                          {field.note && (
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                              {field.note}
+                                            </Typography>
+                                          )}
+
+                                          {['text', 'number'].includes(field.fieldType) && (
+                                            <TextField
+                                              fullWidth
+                                              size="small"
+                                              type={field.fieldType === 'number' ? 'number' : 'text'}
+                                              value={(ticket.formAnswers?.[field.internalName]) ?? ''}
+                                              onChange={(e) => setTicketFormAnswer(ticketIndex, field.internalName, e.target.value)}
+                                            />
+                                          )}
+
+                                          {['date', 'time', 'datetime'].includes(field.fieldType) && (
+                                            <TextField
+                                              fullWidth
+                                              size="small"
+                                              type={
+                                                field.fieldType === 'date'
+                                                  ? 'date'
+                                                  : field.fieldType === 'time'
+                                                    ? 'time'
+                                                    : 'datetime-local'
+                                              }
+                                              InputLabelProps={{ shrink: true }}
+                                              value={(ticket.formAnswers?.[field.internalName]) ?? ''}
+                                              onChange={(e) => setTicketFormAnswer(ticketIndex, field.internalName, e.target.value)}
+                                            />
+                                          )}
+
+                                          {field.fieldType === 'radio' && field.options && (
+                                            <FormControl component="fieldset" variant="standard">
+                                              <Stack spacing={0.5}>
+                                                {field.options.map((opt) => (
+                                                  <FormControlLabel
+                                                    key={opt.value}
+                                                    value={opt.value}
+                                                    control={
+                                                      <Radio
+                                                        size="small"
+                                                        sx={{ p: 0.5 }}
+                                                        checked={(ticket.formAnswers?.[field.internalName]) === opt.value}
+                                                        onChange={() => setTicketFormAnswer(ticketIndex, field.internalName, opt.value)}
+                                                      />
+                                                    }
+                                                    label={opt.label}
+                                                    componentsProps={{ typography: { variant: 'body2', fontSize: '0.875rem' } }}
+                                                  />
+                                                ))}
+                                              </Stack>
+                                            </FormControl>
+                                          )}
+
+                                          {field.fieldType === 'checkbox' && field.options && (
+                                            <FormGroup>
+                                              <Stack spacing={0.5}>
+                                                {field.options.map((opt) => {
+                                                  const current: string[] = ticket.formAnswers?.[field.internalName] ?? [];
+                                                  const checked = current.includes(opt.value);
+                                                  return (
+                                                    <FormControlLabel
+                                                      key={opt.value}
+                                                      control={
+                                                        <Checkbox
+                                                          size="small"
+                                                          sx={{ p: 0.5 }}
+                                                          checked={checked}
+                                                          onChange={(e) => {
+                                                            const nextArr = e.target.checked
+                                                              ? Array.from(new Set([...current, opt.value]))
+                                                              : current.filter((v) => v !== opt.value);
+                                                            setTicketFormAnswer(ticketIndex, field.internalName, nextArr);
+                                                          }}
+                                                        />
+                                                      }
+                                                      label={opt.label}
+                                                      componentsProps={{ typography: { variant: 'body2', fontSize: '0.875rem' } }}
+                                                    />
+                                                  );
+                                                })}
+                                              </Stack>
+                                            </FormGroup>
+                                          )}
+                                        </Stack>
+                                      </Grid>
+                                    ))}
                                   </Grid>
                                 </AccordionDetails>
                               </Accordion>
@@ -732,7 +931,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                         sx={{ mr: 1, textTransform: 'none' }}
                         onClick={() => {
                           const firstTicket = order.tickets[0];
-                          const firstHolder = firstTicket?.holder;
+                          const firstHolder = firstTicket?.holderInfo;
                           if (firstHolder) {
                             setCustomer({
                               title: firstHolder.title || '',
@@ -792,11 +991,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                             if (order.tickets.length > 0) {
                               setOrder(prev => {
                                 const newTickets = [...prev.tickets];
-                                const firstHolder = newTickets[0].holder;
+                                const firstHolder = newTickets[0].holderInfo;
                                 if (firstHolder && (!firstHolder.name || firstHolder.name === prev.customer.name)) {
                                   newTickets[0] = {
                                     ...newTickets[0],
-                                    holder: { ...firstHolder, name: e.target.value } as HolderInfo
+                                      holderInfo: { ...firstHolder, name: e.target.value } as any
                                   };
                                 }
                                 // Or if undefined holder, init it? Usually step 1 creates holder undefined.
@@ -822,15 +1021,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                 <MenuItem value="Anh">Anh</MenuItem>
                                 <MenuItem value="Chị">Chị</MenuItem>
                                 <MenuItem value="Bạn">Bạn</MenuItem>
-                                {source !== 'marketplace' && (
-                                  <>
-                                    <MenuItem value="Em">Em</MenuItem>
-                                    <MenuItem value="Ông">Ông</MenuItem>
-                                    <MenuItem value="Bà">Bà</MenuItem>
-                                    <MenuItem value="Cô">Cô</MenuItem>
-                                    <MenuItem value="Thầy">Thầy</MenuItem>
-                                  </>
-                                )}
+                                {source !== 'marketplace' && <MenuItem value="Em">Em</MenuItem>}
+                                {source !== 'marketplace' && <MenuItem value="Ông">Ông</MenuItem>}
+                                {source !== 'marketplace' && <MenuItem value="Bà">Bà</MenuItem>}
+                                {source !== 'marketplace' && <MenuItem value="Cô">Cô</MenuItem>}
+                                {source !== 'marketplace' && <MenuItem value="Thầy">Thầy</MenuItem>}
                                 <MenuItem value="Mr.">Mr.</MenuItem>
                                 <MenuItem value="Ms.">Ms.</MenuItem>
                                 <MenuItem value="Mx.">Mx.</MenuItem>

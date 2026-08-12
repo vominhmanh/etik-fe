@@ -175,7 +175,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
         price: selectedAudience.price,
         audienceId: audienceId,
         audienceName: selectedAudience.audience.name,
-        holder: undefined
+        holderInfo: undefined
       };
       return {
         ...prev,
@@ -345,7 +345,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
           price: singleAudience ? singleAudience.price : (catConfig?.price || 0),
           audienceId: singleAudience?.audienceId,
           audienceName: singleAudience?.audience.name,
-          holder: undefined
+          holderInfo: undefined
         });
       });
 
@@ -440,7 +440,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
             price: defaultAudience ? defaultAudience.price : catConfig.price,
             audienceId: defaultAudience?.audienceId,
             audienceName: defaultAudience?.audience.name,
-            holder: undefined
+            holderInfo: undefined
           }));
           newCategoryTickets = [...newCategoryTickets, ...newTickets];
         } else if (totalQuantity < currentQty) {
@@ -470,7 +470,7 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
               price: audConfig ? audConfig.price : catConfig.price,
               audienceId: audId,
               audienceName: audConfig?.audience.name,
-              holder: undefined
+              holderInfo: undefined
             }));
             newCategoryTickets.push(...existing, ...newTickets);
           } else if (qty < currentQty) {

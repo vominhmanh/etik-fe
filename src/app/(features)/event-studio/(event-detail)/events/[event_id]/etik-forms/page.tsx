@@ -112,13 +112,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [openEventAgencyRegistrationModal, setOpenEventAgencyRegistrationModal] = useState(false);
   const [openConfirmSubmitEventApprovalModal, setOpenConfirmSubmitEventApprovalModal] = useState(false);
 
-  type Survey = {
-    id: number;
-    title: string;
-    description: string;
-  };
-
-  const surveys: Survey[] = [
+  const surveys = [
     {
       id: 1,
       title: tt('Form mua vé', 'Ticket purchase form'),
@@ -126,6 +120,16 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         'Bảng câu hỏi khách hàng phải trả lời khi mua vé',
         'Questionnaire customers must answer when buying tickets'
       ),
+      path: 'checkout-form',
+    },
+    {
+      id: 2,
+      title: tt('Form thông tin vé', 'Ticket info form'),
+      description: tt(
+        'Bảng câu hỏi điền thông tin cho từng tấm vé',
+        'Questionnaire to fill info for each ticket'
+      ),
+      path: 'ticket-form',
     },
   ];
 
@@ -370,7 +374,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               <Card>
                 <CardActionArea
                   component={LocalizedLink}
-                  href={`/event-studio/events/${event_id}/etik-forms/checkout-form`}
+                  href={`/event-studio/events/${event_id}/etik-forms/${survey.path}`}
                 >
                   <CardHeader title={survey.title} subheader={survey.description} />
                   <CardActions sx={{ justifyContent: 'flex-end', width: '100%', pt: 0, pb: 2, px: 3 }}>

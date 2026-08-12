@@ -74,8 +74,10 @@ export type EventResponse = {
     avatarUrl?: string; // Optional in some contexts? Marketplace has it.
     slug: string;
     locationInstruction: string | null;
-    shows: Show[];
+    useCheckInFace: boolean;
     checkoutFormFields: CheckoutRuntimeField[];
+    ticketFormFields: CheckoutRuntimeField[];
+    shows: Show[];
     displayOption?: string;
     timeInstruction?: string;
     limitPerTransaction?: number | null;
@@ -85,11 +87,20 @@ export type EventResponse = {
 export type TicketHolderInfo = {
     title: string;
     name: string;
-    email: string;
-    phone: string;
+    email?: string;
+    phone?: string;           // E.164 format for BE
+    nationalPhone?: string;   // National number for display/state
     phoneCountryIso2?: string;
     avatar?: string;
+    address?: string;
+    dob?: string | null;
+    idcard_number?: string;
+    gender?: string;
+    nationality?: string;
 };
+
+/** Alias for backward compatibility */
+export type HolderInfo = TicketHolderInfo;
 
 export interface CustomerInfo {
     title: string;
@@ -98,25 +109,12 @@ export interface CustomerInfo {
     phoneNumber: string; // E.164 format for BE
     nationalPhone: string; // National number for state/copy
     address: string;
-    phoneCountryIso2?: string; // Country code for state/copy
+    phoneCountryIso2?: string;
     dob?: string | null;
     idcard_number?: string;
     avatar?: string;
 }
 
-export interface HolderInfo {
-    title: string;
-    name: string;
-    email?: string;
-    phone?: string; // E.164 format for BE
-    nationalPhone?: string; // National number for state/copy
-    avatar?: string;
-    address?: string;
-    gender?: string;
-    nationality?: string;
-    idcard_number?: string;
-    phoneCountryIso2?: string; // Country code for state/copy
-}
 
 export interface TicketInfo {
     showId: number;
@@ -127,7 +125,8 @@ export interface TicketInfo {
     seatRow?: string | undefined;
     seatNumber?: string | undefined;
     seatLabel?: string | undefined;
-    holder?: HolderInfo;
+    holderInfo?: TicketHolderInfo;
+    formAnswers?: Record<string, any>;
     price?: number;
     audienceId?: number;
     audienceName?: string;
