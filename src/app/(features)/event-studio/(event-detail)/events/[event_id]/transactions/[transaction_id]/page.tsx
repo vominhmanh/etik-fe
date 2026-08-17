@@ -395,6 +395,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
     phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
     address: transaction?.address || '',
     dob: transaction?.dob || null,
+    idcardNumber: (transaction as any)?.idcardNumber || '',
     status: ''
   });
   // grab ?checkInCode=… from the browser URL
@@ -539,6 +540,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         name: formData.name,
         phoneNumber: customerPhoneE164,
         dob: formData.dob,
+        idcardNumber: formData.idcardNumber,
         title: formData.title || (locale === 'en' ? 'Mx.' : 'Bạn'),
         address: formData.address,
       };
@@ -612,6 +614,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
         phoneCountryIso2: parsedPhone?.countryCode || DEFAULT_PHONE_COUNTRY.iso2,
         dob: response.data?.dob || null,
         address: response.data?.address || '',
+        idcardNumber: (response.data as any)?.idcardNumber || '',
         status: '',
       });
 
@@ -2372,8 +2375,9 @@ export default function Page({ params }: { params: { event_id: number; transacti
                             <FormControl fullWidth required={!!idCfg?.required}>
                               <InputLabel>{label}</InputLabel>
                               <OutlinedInput
-                                value={(transaction as any).idcardNumber || ''}
-                                disabled
+                                name="idcardNumber"
+                                value={formData.idcardNumber}
+                                onChange={(event: any) => handleFormChange(event)}
                                 label={label}
                               />
                             </FormControl>

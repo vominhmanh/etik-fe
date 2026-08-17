@@ -722,6 +722,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             email: t.holder.email,
             phone: holderPhoneE164,
             avatar: holderAvatar || undefined,
+            address: t.holder.address,
+            dob: t.holder.dob,
+            idcard_number: t.holder.idcard_number,
           };
         }
 

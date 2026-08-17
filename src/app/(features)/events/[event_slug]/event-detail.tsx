@@ -249,11 +249,11 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               }
 
               let holderObj = undefined;
-              const holder = t.holderInfo || (t as any).holder_info;
+              const holder = t.holderInfo;
               if (holder) {
-                let holderPhone = holder.phone || holder.phoneNumber || holder.phone_number || '';
-                let holderNationalPhone = holder.phoneNationalNumber || holder.phone_national_number || holder.nationalPhone || '';
-                let holderPhoneCountry = holder.phoneCountry || holder.phone_country || holder.phoneCountryIso2 || holder.phone_country_iso2 || DEFAULT_PHONE_COUNTRY.iso2;
+                let holderPhone = holder.phone || holder.phoneNumber || '';
+                let holderNationalPhone = holder.nationalPhone || holder.phoneNationalNumber || '';
+                let holderPhoneCountry = holder.phoneCountryIso2 || holder.phoneCountry || DEFAULT_PHONE_COUNTRY.iso2;
 
                 let parsed = parseE164Phone(holderPhone);
                 if (!parsed && holderPhone) {
@@ -1079,6 +1079,9 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
             email: t.holderInfo.email,
             phone: holderPhoneE164,
             avatar: holderAvatar || undefined,
+            address: t.holderInfo.address,
+            dob: t.holderInfo.dob,
+            idcard_number: t.holderInfo.idcard_number,
           };
         }
 

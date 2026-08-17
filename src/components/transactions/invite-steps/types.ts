@@ -115,6 +115,7 @@ export interface HolderInfo {
     gender?: string;
     nationality?: string;
     idcard_number?: string;
+    dob?: string | null;
     phoneCountryIso2?: string; // Country code for state/copy
 }
 
