@@ -529,14 +529,14 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
         </Box>
       )}
 
-      <Stack spacing={1}>
-        <Stack direction="row" alignItems="flex-start" spacing={1}>
-          <Box sx={{ pt: 0.5 }}>
+      <Stack spacing={1} alignItems="center">
+        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <input 
               type="checkbox" 
               checked={receiveMarketingEmails} 
               onChange={(e) => setReceiveMarketingEmails(e.target.checked)} 
-              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+              style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }}
             />
           </Box>
           <Typography variant="body2">
