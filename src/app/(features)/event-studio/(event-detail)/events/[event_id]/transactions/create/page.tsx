@@ -716,7 +716,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return true;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (options?: { receiveMarketingEmails?: boolean }) => {
     try {
       setIsLoading(true);
 
@@ -795,7 +795,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         address: customerData.address,
         dob: customerData.dob,
         idcard_number: customerData.idcard_number,
-        avatar: customerData.avatar
+        avatar: customerData.avatar,
+        receiveMarketingEmails: options?.receiveMarketingEmails ?? true
       };
 
       const transactionData = {

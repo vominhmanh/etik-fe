@@ -668,7 +668,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     return true;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (options?: { receiveMarketingEmails?: boolean }) => {
     try {
       if (!invitationSettings.recipientName || !invitationSettings.recipientName.trim()) {
         notificationCtx.warning(tt("Vui lòng nhập họ và tên người nhận lời mời", "Please enter the invitation recipient's full name"));
@@ -755,7 +755,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         address: customerData.address,
         dob: customerData.dob,
         idcard_number: customerData.idcard_number,
-        avatar: customerData.avatar
+        avatar: customerData.avatar,
+        receiveMarketingEmails: options?.receiveMarketingEmails ?? true
       };
 
       const preSelectedTickets = {

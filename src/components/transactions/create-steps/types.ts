@@ -113,6 +113,7 @@ export interface CustomerInfo {
     dob?: string | null;
     idcard_number?: string;
     avatar?: string;
+    receive_marketing_emails?: boolean;
 }
 
 

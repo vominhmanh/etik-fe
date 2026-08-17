@@ -35,7 +35,7 @@ export type Step4ReviewProps = {
   formatPrice: (price: number) => string;
 
   onBack: () => void;
-  onConfirm: () => void | Promise<void>;
+  onConfirm: (options?: { receiveMarketingEmails: boolean }) => void | Promise<void>;
   confirmDisabled?: boolean;
 
   // Captcha props
@@ -65,6 +65,8 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
     onConfirm,
     confirmDisabled,
   } = props;
+
+  const [receiveMarketingEmails, setReceiveMarketingEmails] = React.useState(true);
 
   const customer = order.customer;
   // Format phone number from nationalPhone and phoneCountryIso2
@@ -527,13 +529,40 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
         </Box>
       )}
 
+      <Stack spacing={1}>
+        <Stack direction="row" alignItems="flex-start" spacing={1}>
+          <Box sx={{ pt: 0.5 }}>
+            <input 
+              type="checkbox" 
+              checked={receiveMarketingEmails} 
+              onChange={(e) => setReceiveMarketingEmails(e.target.checked)} 
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+          </Box>
+          <Typography variant="body2">
+            {tt("Nhận thông báo về sự kiện hot và các mã giảm giá độc quyền từ ETIK.", "Receive notifications about hot events and exclusive discount codes from ETIK.")}
+          </Typography>
+        </Stack>
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+          {tt("Bằng việc nhấn xác nhận, bạn đồng ý với ", "By clicking confirm, you agree to ETIK's ")}
+          <a href="/policies/terms-and-regulations" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--mui-palette-primary-main)', textDecoration: 'underline' }}>
+            {tt("Điều khoản Dịch vụ", "Terms of Service")}
+          </a>
+          {tt(" và ", " and ")}
+          <a href="/policies/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--mui-palette-primary-main)', textDecoration: 'underline' }}>
+            {tt("Chính sách Bảo mật", "Privacy Policy")}
+          </a>
+          {tt(" của ETIK.", ".")}
+        </Typography>
+      </Stack>
+
       <Stack direction="row" justifyContent="space-between">
         <Button variant="outlined" onClick={onBack}>
           {tt('Quay lại', 'Back')}
         </Button>
         <Button variant="contained" onClick={async () => {
           try {
-            await onConfirm();
+            await onConfirm({ receiveMarketingEmails });
           } finally {
             if (props.captchaRef?.current?.reset) {
               props.captchaRef.current.reset();

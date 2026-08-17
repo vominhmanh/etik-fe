@@ -1027,7 +1027,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (options?: { receiveMarketingEmails?: boolean }) => {
     // Validate captcha
     const captchaValue = captchaRef.current?.getValue();
     if (!captchaValue) {
@@ -1111,7 +1111,8 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
         address: customerData.address,
         dob: customerData.dob,
         idcard_number: customerData.idcard_number,
-        avatar: customerData.avatar
+        avatar: customerData.avatar,
+        receiveMarketingEmails: options?.receiveMarketingEmails ?? true
       };
 
       const transactionData: any = {
