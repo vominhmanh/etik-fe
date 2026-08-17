@@ -539,10 +539,10 @@ export default function Page({ params }: { params: { event_id: number; transacti
       const payload: any = {
         name: formData.name,
         phoneNumber: customerPhoneE164,
-        dob: formData.dob,
-        idcardNumber: formData.idcardNumber,
+        dob: formData.dob || null,
+        idcardNumber: formData.idcardNumber || null,
         title: formData.title || (locale === 'en' ? 'Mx.' : 'Bạn'),
-        address: formData.address,
+        address: formData.address || null,
       };
 
       if (Object.keys(formAnswers).length > 0) {
@@ -2030,30 +2030,42 @@ export default function Page({ params }: { params: { event_id: number; transacti
 
                                     <Grid xs={12} md={12}>
                                       <Grid container spacing={2}>
-                                        {ticket.holderIdcardNumber && (
-                                          <Grid xs={12} md={3}>
-                                            <Box>
-                                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>CCCD</Typography>
-                                              <Typography variant="body2">{ticket.holderIdcardNumber}</Typography>
-                                            </Box>
-                                          </Grid>
-                                        )}
-                                        {ticket.holderDob && (
-                                          <Grid xs={12} md={3}>
-                                            <Box>
-                                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>DOB</Typography>
-                                              <Typography variant="body2">{ticket.holderDob}</Typography>
-                                            </Box>
-                                          </Grid>
-                                        )}
-                                        {ticket.holderAddress && (
-                                          <Grid xs={12} md={3}>
-                                            <Box>
-                                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Địa chỉ</Typography>
-                                              <Typography variant="body2">{ticket.holderAddress}</Typography>
-                                            </Box>
-                                          </Grid>
-                                        )}
+                                        {(() => {
+                                          const idcardCfg = ticketFormFields.find((f) => f.internalName === 'idcard_number');
+                                          if (!idcardCfg?.visible) return null;
+                                          return (
+                                            <Grid xs={12} md={3}>
+                                              <Box>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{idcardCfg?.label || 'CCCD'}</Typography>
+                                                <Typography variant="body2">{ticket.holderIdcardNumber || '-'}</Typography>
+                                              </Box>
+                                            </Grid>
+                                          );
+                                        })()}
+                                        {(() => {
+                                          const dobCfg = ticketFormFields.find((f) => f.internalName === 'dob');
+                                          if (!dobCfg?.visible) return null;
+                                          return (
+                                            <Grid xs={12} md={3}>
+                                              <Box>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{dobCfg?.label || 'DOB'}</Typography>
+                                                <Typography variant="body2">{ticket.holderDob || '-'}</Typography>
+                                              </Box>
+                                            </Grid>
+                                          );
+                                        })()}
+                                        {(() => {
+                                          const addressCfg = ticketFormFields.find((f) => f.internalName === 'address');
+                                          if (!addressCfg?.visible) return null;
+                                          return (
+                                            <Grid xs={12} md={3}>
+                                              <Box>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{addressCfg?.label || 'Địa chỉ'}</Typography>
+                                                <Typography variant="body2">{ticket.holderAddress || '-'}</Typography>
+                                              </Box>
+                                            </Grid>
+                                          );
+                                        })()}
 
                                         {ticket.formAnswers && (Array.isArray(ticket.formAnswers) ? ticket.formAnswers : Object.keys(ticket.formAnswers)).length > 0 && (
                                           <>
@@ -2332,7 +2344,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                 label={label}
                                 name="dob"
                                 type="date"
-                                value={formData.dob}
+                                value={formData.dob || ''}
                                 onChange={(event: any) => handleFormChange(event)}
                                 inputProps={{ max: new Date().toISOString().slice(0, 10) }}
                               />
