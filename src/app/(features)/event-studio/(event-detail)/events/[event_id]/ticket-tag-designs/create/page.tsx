@@ -94,7 +94,6 @@ interface VisibleField {
   internalName: string;
   label: string;
   fieldType: string;
-  builtinKey?: string | null;
   options?: VisibleFieldOption[] | null;
 }
 

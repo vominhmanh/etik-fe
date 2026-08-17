@@ -94,7 +94,6 @@ interface VisibleField {
   internalName: string;
   label: string;
   fieldType: string;
-  builtinKey?: string | null;
   options?: VisibleFieldOption[] | null;
 }
 
@@ -901,13 +900,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const buildPreviewValueForField = (f: VisibleField): string => {
     // Builtin samples
     const today = new Date(2025, 0, 1);
-    const builtinKey = f.builtinKey;
-    if (builtinKey === 'name') return 'Nguyễn Văn A';
-    if (builtinKey === 'email') return 'nguyenvana@example.com';
-    if (builtinKey === 'phone_number') return '0901234567';
-    if (builtinKey === 'address') return '123 Đường ABC, Q1, TP.HCM';
-    if (builtinKey === 'idcard_number') return '012345678901';
-    if (builtinKey === 'dob') return tt(formatDateVi(today), formatDateEn(today));
+    const internalName = f.internalName;
+    if (internalName === 'name') return 'Nguyễn Văn A';
+    if (internalName === 'email') return 'nguyenvana@example.com';
+    if (internalName === 'phone_number') return '0901234567';
+    if (internalName === 'address') return '123 Đường ABC, Q1, TP.HCM';
+    if (internalName === 'idcard_number') return '012345678901';
+    if (internalName === 'dob') return tt(formatDateVi(today), formatDateEn(today));
 
     // By field type
     const fieldType = f.fieldType;

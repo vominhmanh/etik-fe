@@ -60,7 +60,6 @@ interface VisibleField {
   id: number;
   label: string;
   internalName?: string;
-  builtinKey?: string;
 }
 
 const formats = [
