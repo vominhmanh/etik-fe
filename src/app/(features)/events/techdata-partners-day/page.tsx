@@ -66,6 +66,9 @@ export type TicketCategory = {
   quantity: number;
   sold: number;
   disabled: boolean;
+  limitPerTransaction: number | null;
+  minPerTransaction: number | null;
+  limitPerCustomer: number | null;
 };
 
 export type Show = {
@@ -77,6 +80,9 @@ export type Show = {
   startDateTime: string; // backend response provides date as string
   endDateTime: string; // backend response provides date as string
   ticketCategories: TicketCategory[];
+  limitPerTransaction: number | null;
+  minPerTransaction: number | null;
+  limitPerCustomer: number | null;
 };
 
 export type EventResponse = {

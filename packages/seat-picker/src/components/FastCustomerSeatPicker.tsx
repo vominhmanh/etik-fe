@@ -194,16 +194,7 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
         });
     }, [parsedData, existingSeats, categories, selectedSeatIds, readOnly, catMap]);
 
-    // Calculate minimum scale to fit 95% of container
-    const getMinScale = useCallback(() => {
-        const parent = containerRef.current;
-        if (!parent) return 0.1;
-        const rect = parent.getBoundingClientRect();
-        const style = mergedStyleRef.current;
-        const scaleX = rect.width / style.width;
-        const scaleY = rect.height / style.height;
-        return Math.min(scaleX, scaleY) * 0.95; // Occupies 95% of container, minimal padding
-    }, []);
+    // Remove getMinScale as user requested fixed 80% initial scale
 
     // Render Loop
     useEffect(() => {
@@ -219,7 +210,7 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
 
             // Mobile browsers (especially iOS) have a strict limit on maximum canvas pixels (usually ~16 million).
             // E.g., iOS max is 16.7 megapixels. We cap it slightly below to be safe.
-            const MAX_CANVAS_PIXELS = 16000000; 
+            const MAX_CANVAS_PIXELS = 16000000;
             const totalCssPixels = mergedStyle.width * mergedStyle.height;
             let safeDpr = dpr;
             if (totalCssPixels * safeDpr * safeDpr > MAX_CANVAS_PIXELS) {
@@ -458,8 +449,8 @@ const FastCustomerSeatPicker: React.FC<SeatCanvasProps> = ({
 
                     {/* Canvas Wrapper */}
                     <TransformWrapper
-                        initialScale={getMinScale()}
-                        minScale={getMinScale()}
+                        initialScale={0.8}
+                        minScale={0.1}
                         maxScale={4}
                         centerOnInit={true}
                         limitToBounds={false}

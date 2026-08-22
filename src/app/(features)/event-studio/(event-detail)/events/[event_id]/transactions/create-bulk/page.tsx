@@ -577,6 +577,41 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       return;
     }
 
+    // Validate Event minPerTransaction
+    const totalSelectedTickets = Object.values(selectedCategories).reduce((sum, catMap) => {
+      return sum + Object.values(catMap || {}).reduce((s, q) => s + (q || 0), 0);
+    }, 0);
+
+    if (event?.minPerTransaction && totalSelectedTickets < event.minPerTransaction) {
+      notificationCtx.warning(tt(`Vui lòng chọn tối thiểu ${event.minPerTransaction} vé cho sự kiện này`, `Please select at least ${event.minPerTransaction} tickets for this event`));
+      return;
+    }
+
+    // Validate Show minPerTransaction
+    for (const [showIdStr, categories] of Object.entries(selectedCategories)) {
+      const showId = Number(showIdStr);
+      const show = event?.shows.find(s => s.id === showId);
+      const showQuantity = Object.values(categories || {}).reduce((s, q) => s + (q || 0), 0);
+
+      if (show?.minPerTransaction && showQuantity > 0 && showQuantity < show.minPerTransaction) {
+        notificationCtx.warning(tt(`Vui lòng chọn tối thiểu ${show.minPerTransaction} vé cho suất diễn "${show.name}"`, `Please select at least ${show.minPerTransaction} tickets for show "${show.name}"`));
+        return;
+      }
+
+      // Validate Category minPerTransaction
+      for (const [categoryIdStr, qty] of Object.entries(categories || {})) {
+        const categoryId = Number(categoryIdStr);
+        const quantity = qty || 0;
+        if (quantity > 0) {
+          const category = show?.ticketCategories.find(c => c.id === categoryId);
+          if (category?.minPerTransaction && quantity < category.minPerTransaction) {
+            notificationCtx.warning(tt(`Vui lòng chọn tối thiểu ${category.minPerTransaction} vé cho loại vé "${category.name}" (Suất diễn "${show?.name}")`, `Please select at least ${category.minPerTransaction} tickets for category "${category.name}" (Show "${show?.name}")`));
+            return;
+          }
+        }
+      }
+    }
+
     setConfirmOpen(true);
   };
 

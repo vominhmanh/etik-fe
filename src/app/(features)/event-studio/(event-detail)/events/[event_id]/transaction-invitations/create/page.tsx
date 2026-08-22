@@ -578,6 +578,65 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       notificationCtx.warning(tt('Vui lòng chọn ít nhất 1 loại vé', 'Please select at least 1 ticket category'));
       return false;
     }
+
+    // Validate Event minPerTransaction
+    if (event?.minPerTransaction && order.tickets.length < event.minPerTransaction) {
+      notificationCtx.warning(tt(`Vui lòng chọn tối thiểu ${event.minPerTransaction} vé cho sự kiện này`, `Please select at least ${event.minPerTransaction} tickets for this event`));
+      return false;
+    }
+
+    // Group tickets by show and category
+    const showQuantities: Record<number, number> = {};
+    const categoryQuantities: Record<number, number> = {};
+
+    for (const ticket of order.tickets) {
+      showQuantities[ticket.showId] = (showQuantities[ticket.showId] || 0) + 1;
+      categoryQuantities[ticket.categoryId] = (categoryQuantities[ticket.categoryId] || 0) + 1;
+    }
+
+    // Validate Show minPerTransaction
+    for (const [showIdStr, quantity] of Object.entries(showQuantities)) {
+      const showId = Number(showIdStr);
+      const show = event?.shows.find(s => s.id === showId);
+      if (show?.minPerTransaction && quantity < show.minPerTransaction) {
+        notificationCtx.warning(tt(`Vui lòng chọn tối thiểu ${show.minPerTransaction} vé cho suất diễn "${show.name}"`, `Please select at least ${show.minPerTransaction} tickets for show "${show.name}"`));
+        return false;
+      }
+    }
+
+    // Validate Category minPerTransaction
+    for (const [categoryIdStr, quantity] of Object.entries(categoryQuantities)) {
+      const categoryId = Number(categoryIdStr);
+      let cat = null;
+      let showName = '';
+      if (event?.shows) {
+        for (const show of event.shows) {
+          const found = show.ticketCategories?.find(c => c.id === categoryId);
+          if (found) {
+            cat = found;
+            showName = show.name;
+            break;
+          }
+        }
+      }
+
+      if (cat?.minPerTransaction && quantity < cat.minPerTransaction) {
+        notificationCtx.warning(tt(`Vui lòng chọn tối thiểu ${cat.minPerTransaction} vé cho loại vé "${cat.name}" (Suất diễn "${showName}")`, `Please select at least ${cat.minPerTransaction} tickets for category "${cat.name}" (Show "${showName}")`));
+        return false;
+      }
+    }
+
+    // Validate that seated tickets have seatId
+    for (const ticket of order.tickets) {
+      const show = event?.shows.find(s => s.id === ticket.showId);
+      const isSeated = show?.seatmapMode === 'seatings_selection' || show?.seatmapMode === 'ticket_categories_selection';
+
+      if (isSeated && !ticket.seatId) {
+        notificationCtx.warning(tt('Vui lòng chọn ghế cho vé', 'Please select a seat for the ticket'));
+        return false;
+      }
+    }
+
     return true;
   };
 

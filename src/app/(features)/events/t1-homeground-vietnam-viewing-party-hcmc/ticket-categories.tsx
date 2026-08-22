@@ -187,7 +187,11 @@ export function TicketCategories({ show, onCategorySelect }: TicketCategoriesPro
                     Chưa có mô tả
                   </Typography>
                 )}
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  Số vé tối thiểu mỗi đơn hàng:{" "}
+                  {selectedTicketCategory?.minPerTransaction || "Không giới hạn"}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
                   Số vé tối đa mỗi đơn hàng:{" "}
                   {selectedTicketCategory?.limitPerTransaction || "Không giới hạn"}
                 </Typography>

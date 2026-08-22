@@ -64,8 +64,8 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
     if (!target) return;
     setSelectedTicketCategory(target);
     setTicketCategoryDescriptionModalOpen(true);
-    const maxAllowed = getMaxAllowedForCategory(target);
-    const initialQty = Math.max(1, Math.min(maxAllowed, ticketQuantities[target.id] || 1));
+    const minAllowed = target.minPerTransaction || 1;
+    const initialQty = Math.max(minAllowed, Math.min(getMaxAllowedForCategory(target), cartQuantities[target.id] || minAllowed));
     setTicketQuantities((prev) => ({ ...prev, [target.id]: initialQty }));
     const saved = ticketHolderInfosByCategory[target.id] || [];
     const next = Array.from({ length: initialQty }, (_, i) => saved[i] || { title: 'Bạn', name: '', email: '', phone: '' });
@@ -104,6 +104,8 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
     return Math.max(1, Math.min(remaining || 1, perTransactionLimit));
   };
 
+  const getDefaultTitle = () => 'Bạn';
+
   const handleOpenDescriptionModal = (ticketCategory: any) => {
     setSelectedTicketCategory(ticketCategory);
     setTicketCategoryDescriptionModalOpen(true);
@@ -112,12 +114,14 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
       const current = prev[ticketCategory.id];
       if (current && current > 0) return prev;
       const maxAllowed = getMaxAllowedForCategory(ticketCategory);
-      return { ...prev, [ticketCategory.id]: Math.min(1, maxAllowed) };
+      const minAllowed = ticketCategory.minPerTransaction || 1;
+      return { ...prev, [ticketCategory.id]: Math.min(minAllowed, maxAllowed) };
     });
-    // Initialize holder infos to match current quantity (default 1)
-    const initialQty = Math.max(1, Math.min(getMaxAllowedForCategory(ticketCategory), ticketQuantities[ticketCategory.id] || 1));
+    // Initialize holder infos to match current quantity
+    const minAllowed = ticketCategory.minPerTransaction || 1;
+    const initialQty = Math.max(minAllowed, Math.min(getMaxAllowedForCategory(ticketCategory), ticketQuantities[ticketCategory.id] || minAllowed));
     const saved = ticketHolderInfosByCategory[ticketCategory.id] || [];
-    const next = Array.from({ length: initialQty }, (_, i) => saved[i] || { title: 'Bạn', name: '', email: '', phone: '' });
+    const next = Array.from({ length: initialQty }, (_, i) => saved[i] || { title: getDefaultTitle(), name: '', email: '', phone: '' });
     setTicketHolderInfos(next);
   };
 
@@ -321,8 +325,10 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                       {showMore && (
                         <>
                           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                            Số vé tối đa mỗi đơn hàng:{" "}
-                            {selectedTicketCategory?.limitPerTransaction || "Không giới hạn"}
+                            Số lượng tối thiểu mỗi đơn hàng: {selectedTicketCategory?.minPerTransaction || "Không giới hạn"}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                            Số lượng tối đa mỗi đơn hàng: {selectedTicketCategory?.limitPerTransaction || "Không giới hạn"}
                           </Typography>
                           <Typography variant="caption" sx={{ color: "text.secondary" }}>
                             Số vé tối đa mỗi khách hàng:{" "}
@@ -339,8 +345,10 @@ export function TicketCategories({ show, qrOption, requestedCategoryModalId, onM
                   ) : (
                     <>
                       <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                        Số vé tối đa mỗi đơn hàng:{" "}
-                        {selectedTicketCategory?.limitPerTransaction || "Không giới hạn"}
+                        Số lượng tối thiểu mỗi đơn hàng: {selectedTicketCategory?.minPerTransaction || "Không giới hạn"}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                        Số lượng tối đa mỗi đơn hàng: {selectedTicketCategory?.limitPerTransaction || "Không giới hạn"}
                       </Typography>
                       <Typography variant="caption" sx={{ color: "text.secondary" }}>
                         Số vé tối đa mỗi khách hàng:{" "}

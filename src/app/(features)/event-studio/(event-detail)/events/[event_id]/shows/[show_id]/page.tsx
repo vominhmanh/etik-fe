@@ -12,10 +12,11 @@ import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
-import { Box, Checkbox, FormControlLabel } from '@mui/material';
+import { Box, Checkbox, FormControlLabel, IconButton, Avatar } from '@mui/material';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
+import { Pencil as PencilIcon } from '@phosphor-icons/react/dist/ssr/Pencil';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
@@ -38,9 +39,12 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
     endDateTime: '',
     startDateTime: '',
     limitPerTransaction: null as number | null,
+    minPerTransaction: null as number | null,
     limitPerCustomer: null as number | null,
+    avatar: '',
   });
   const [isTransactionLimitUnlimited, setIsTransactionLimitUnlimited] = useState(false);
+  const [isMinTransactionLimitUnlimited, setIsMinTransactionLimitUnlimited] = useState(false);
   const [isCustomerLimitUnlimited, setIsCustomerLimitUnlimited] = useState(false);
   const router = useRouter();
   const notificationCtx = React.useContext(NotificationContext);
@@ -65,9 +69,12 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
           startDateTime: response.data.startDateTime,
           endDateTime: response.data.endDateTime,
           limitPerTransaction: response.data.limitPerTransaction,
+          minPerTransaction: response.data.minPerTransaction,
           limitPerCustomer: response.data.limitPerCustomer,
+          avatar: response.data.avatar || '',
         });
         setIsTransactionLimitUnlimited(response.data.limitPerTransaction === null);
+        setIsMinTransactionLimitUnlimited(response.data.minPerTransaction === null);
         setIsCustomerLimitUnlimited(response.data.limitPerCustomer === null);
       } catch (error) {
         notificationCtx.error(tt('Không thể tải thông tin suất diễn.', 'Unable to load show information.'), error);
@@ -94,6 +101,13 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
     }));
   };
 
+  const handleMinTransactionLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      minPerTransaction: e.target.value ? parseFloat(e.target.value.replace(/\./g, '')) : 0
+    }));
+  };
+
   const handleCustomerLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
       ...prev,
@@ -110,12 +124,49 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
     }
   };
 
+  const handleMinTransactionLimitCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsMinTransactionLimitUnlimited(e.target.checked);
+    if (e.target.checked) {
+      setFormData((prev) => ({ ...prev, minPerTransaction: null }));
+    } else {
+      setFormData((prev) => ({ ...prev, minPerTransaction: 1 })); // Reset to default value
+    }
+  };
+
   const handleCustomerLimitCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsCustomerLimitUnlimited(e.target.checked);
     if (e.target.checked) {
       setFormData((prev) => ({ ...prev, limitPerCustomer: null }));
     } else {
       setFormData((prev) => ({ ...prev, limitPerCustomer: 4 })); // Reset to default value
+    }
+  };
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      try {
+        setIsLoading(true);
+        const presignedResponse = await baseHttpServiceInstance.post('/common/s3/generate_presigned_url', {
+          filename: file.name,
+          content_type: file.type,
+        });
+        const { presignedUrl, fileUrl } = presignedResponse.data;
+
+        await fetch(presignedUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type,
+          },
+        });
+
+        setFormData((prev) => ({ ...prev, avatar: fileUrl }));
+      } catch (error) {
+        notificationCtx.error(tt('Lỗi tải ảnh:', 'Image upload error:'), error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -157,7 +208,9 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
           startDateTime: formData.startDateTime,
           endDateTime: formData.endDateTime,
           limitPerTransaction: formData.limitPerTransaction,
+          minPerTransaction: formData.minPerTransaction,
           limitPerCustomer: formData.limitPerCustomer,
+          avatar: formData.avatar || null,
         }
       );
       notificationCtx.success(tt('Đã cập nhật suất diễn thành công.', 'Show updated successfully.'));
@@ -195,7 +248,46 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
               <Divider />
               <CardContent>
                 <Grid container spacing={3}>
-                  <Grid md={6} xs={12}>
+                  <Grid md={1} xs={3} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                      <div style={{ position: 'relative' }}>
+                        {formData.avatar ? (
+                          <Box
+                            component="img"
+                            src={formData.avatar}
+                            sx={{
+                              height: '80px',
+                              width: '80px',
+                              borderRadius: 2,
+                              objectFit: 'cover',
+                            }}
+                          />
+                        ) : (
+                          <Avatar variant="rounded" sx={{ height: '80px', width: '80px', borderRadius: 2, fontSize: '2rem' }}>
+                            {formData.name ? formData.name[0].toUpperCase() : 'S'}
+                          </Avatar>
+                        )}
+                        <IconButton
+                          component="label"
+                          sx={{
+                            position: 'absolute',
+                            bottom: 0,
+                            right: 0,
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            width: 28,
+                            height: 28,
+                            '&:hover': {
+                              backgroundColor: 'rgba(255, 255, 255, 1)',
+                            },
+                          }}
+                        >
+                          <PencilIcon fontSize="var(--icon-fontSize-xs)" />
+                          <input type="file" hidden accept="image/*" onChange={handleAvatarChange} />
+                        </IconButton>
+                      </div>
+                    </Stack>
+                  </Grid>
+                  <Grid md={5} xs={9}>
                     <FormControl fullWidth required>
                       <InputLabel>{tt("Tên suất diễn", "Show Name")}</InputLabel>
                       <OutlinedInput label={tt("Tên suất diễn", "Show Name")} name="name" value={formData.name} onChange={handleChange} />
@@ -260,6 +352,29 @@ export default function UpdateShowPage({ params }: { params: { event_id: number;
                           value={formData.limitPerTransaction !== null ? (formData.limitPerTransaction as number).toLocaleString('vi-VN') : ''}
                           onChange={handleTransactionLimitChange}
                           disabled={isTransactionLimitUnlimited}
+                        />
+                      }
+                      sx={{ p: 0 }}
+                    />
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <CardHeader
+                      title={tt("Số vé tối thiểu mỗi đơn hàng", "Minimum Tickets Per Order")}
+                      subheader={
+                        <Box display="flex" alignItems="center">
+                          <FormControlLabel
+                            control={<Checkbox checked={isMinTransactionLimitUnlimited} onChange={handleMinTransactionLimitCheckboxChange} />}
+                            label={<Typography variant="body2">{tt("Không giới hạn", "Unlimited")}</Typography>}
+                          />
+                        </Box>
+                      }
+                      action={
+                        <OutlinedInput
+                          sx={{ maxWidth: { xs: 70, sm: 180 } }}
+                          type="number"
+                          value={formData.minPerTransaction !== null ? (formData.minPerTransaction as number).toLocaleString('vi-VN') : ''}
+                          onChange={handleMinTransactionLimitChange}
+                          disabled={isMinTransactionLimitUnlimited}
                         />
                       }
                       sx={{ p: 0 }}

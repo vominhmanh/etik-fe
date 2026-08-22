@@ -3,7 +3,7 @@
 import NotificationContext from '@/contexts/notification-context';
 import { useTranslation } from '@/contexts/locale-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service'; // Axios instance
-import { Box, Checkbox, FormControlLabel, FormHelperText, InputAdornment } from '@mui/material';
+import { Box, Checkbox, FormControlLabel, FormHelperText, InputAdornment, Stack, Avatar } from '@mui/material';
 import Backdrop from '@mui/material/Backdrop';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -16,8 +16,8 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
-import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import { Pencil as PencilIcon } from '@phosphor-icons/react/dist/ssr/Pencil';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -47,9 +47,12 @@ type TicketcategoryFormData = {
   price: number;
   quantity: number;
   limitPerTransaction: number | null;
+  minPerTransaction: number | null;
+  limitPerCustomer: number | null;
   limitPerCustomer: number | null;
   status: string;
   description: string;
+  avatar: string;
 }
 
 export default function Page({
@@ -70,6 +73,7 @@ export default function Page({
   /* State */
   const [show, setShow] = useState<Show | null>(null);
   const [isTransactionLimitUnlimited, setIsTransactionLimitUnlimited] = useState(false);
+  const [isMinTransactionLimitUnlimited, setIsMinTransactionLimitUnlimited] = useState(false);
   const [isCustomerLimitUnlimited, setIsCustomerLimitUnlimited] = useState(false);
   const [formData, setFormData] = useState<TicketcategoryFormData>({
     name: '',
@@ -77,9 +81,11 @@ export default function Page({
     price: 0,
     quantity: 100,
     limitPerTransaction: 2,
+    minPerTransaction: 1,
     limitPerCustomer: 4,
     description: '',
     status: 'on_sale',
+    avatar: '',
   });
 
   const [audiences, setAudiences] = useState<any[]>([]);
@@ -112,7 +118,9 @@ export default function Page({
           status: ticketCategory.status,
           quantity: ticketCategory.quantity,
           limitPerTransaction: ticketCategory.limitPerTransaction || null,
+          minPerTransaction: ticketCategory.minPerTransaction || null,
           limitPerCustomer: ticketCategory.limitPerCustomer || null,
+          avatar: ticketCategory.avatar || '',
         });
 
         // Populate audience prices
@@ -144,8 +152,9 @@ export default function Page({
         setSelectedAudiences(selected);
 
         // Set the checkbox states based on the fetched values
-        setIsTransactionLimitUnlimited(ticketCategory.limitPerTransaction === undefined || ticketCategory.limitPerTransaction === null);
-        setIsCustomerLimitUnlimited(ticketCategory.limitPerCustomer === undefined || ticketCategory.limitPerCustomer === null);
+        setIsTransactionLimitUnlimited(ticketCategory.limitPerTransaction === null);
+        setIsMinTransactionLimitUnlimited(ticketCategory.minPerTransaction === null);
+        setIsCustomerLimitUnlimited(ticketCategory.limitPerCustomer === null);
       } catch (error) {
         notificationCtx.error('Lỗi:', error);
       } finally {
@@ -161,6 +170,34 @@ export default function Page({
       ...prev,
       [name as string]: value,
     }));
+  };
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      try {
+        setIsLoading(true);
+        const presignedResponse = await baseHttpServiceInstance.post('/common/s3/generate_presigned_url', {
+          filename: file.name,
+          content_type: file.type,
+        });
+        const { presignedUrl, fileUrl } = presignedResponse.data;
+
+        await fetch(presignedUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type,
+          },
+        });
+        
+        setFormData((prev) => ({ ...prev, avatar: fileUrl }));
+      } catch (error) {
+        notificationCtx.error(tt('Lỗi tải ảnh:', 'Image upload error:'), error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
   const handleAudiencePriceChange = (audienceId: number, value: string) => {
@@ -195,6 +232,13 @@ export default function Page({
     }));
   };
 
+  const handleMinTransactionLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      minPerTransaction: e.target.value ? parseFloat(e.target.value.replace(/\./g, '')) : 0
+    }));
+  };
+
   const handleCustomerLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
       ...prev,
@@ -208,6 +252,15 @@ export default function Page({
       setFormData((prev) => ({ ...prev, limitPerTransaction: null }));
     } else {
       setFormData((prev) => ({ ...prev, limitPerTransaction: 2 })); // Reset to default value
+    }
+  };
+
+  const handleMinTransactionLimitCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsMinTransactionLimitUnlimited(e.target.checked);
+    if (e.target.checked) {
+      setFormData((prev) => ({ ...prev, minPerTransaction: null }));
+    } else {
+      setFormData((prev) => ({ ...prev, minPerTransaction: 1 })); // Reset to default value
     }
   };
 
@@ -264,8 +317,10 @@ export default function Page({
           quantity: formData.quantity,
           description: formData.description,
           limitPerTransaction: formData.limitPerTransaction,
+          minPerTransaction: formData.minPerTransaction,
           limitPerCustomer: formData.limitPerCustomer,
           status: formData.status,
+          avatar: formData.avatar || null,
           audiences: selectedAudiences.map(id => ({
             audienceId: id,
             price: audiencePrices[id] !== undefined ? audiencePrices[id] : 0
@@ -316,13 +371,52 @@ export default function Page({
                 <Divider />
                 <CardContent>
                   <Grid container spacing={3}>
-                    <Grid md={4} xs={12}>
+                    <Grid md={1} xs={3} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                        <div style={{ position: 'relative' }}>
+                          {formData.avatar ? (
+                            <Box
+                              component="img"
+                              src={formData.avatar}
+                              sx={{
+                                height: '80px',
+                                width: '80px',
+                                borderRadius: 2,
+                                objectFit: 'cover',
+                              }}
+                            />
+                          ) : (
+                            <Avatar variant="rounded" sx={{ height: '80px', width: '80px', borderRadius: 2, fontSize: '2rem' }}>
+                              {formData.name ? formData.name[0].toUpperCase() : 'T'}
+                            </Avatar>
+                          )}
+                          <IconButton
+                            component="label"
+                            sx={{
+                              position: 'absolute',
+                              bottom: 0,
+                              right: 0,
+                              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                              width: 28,
+                              height: 28,
+                              '&:hover': {
+                                backgroundColor: 'rgba(255, 255, 255, 1)',
+                              },
+                            }}
+                          >
+                            <PencilIcon fontSize="var(--icon-fontSize-xs)" />
+                            <input type="file" hidden accept="image/*" onChange={handleAvatarChange} />
+                          </IconButton>
+                        </div>
+                      </Stack>
+                    </Grid>
+                    <Grid md={5} xs={9}>
                       <FormControl fullWidth required>
                         <InputLabel>{tt("Tên loại vé", "Ticket Category Name")}</InputLabel>
                         <OutlinedInput label={tt("Tên loại vé", "Ticket Category Name")} name="name" value={formData.name} onChange={handleChange as any} />
                       </FormControl>
                     </Grid>
-                    <Grid md={4} xs={12}>
+                    <Grid md={6} xs={12}>
                       <FormControl fullWidth required>
                         <InputLabel>{tt("Phân loại", "Category")}</InputLabel>
                         <Select
@@ -482,6 +576,26 @@ export default function Page({
                       value={formData.limitPerTransaction !== null ? formData.limitPerTransaction.toLocaleString('vi-VN') : ''}
                       onChange={handleTransactionLimitChange}
                       disabled={isTransactionLimitUnlimited} // Disable if the checkbox is checked
+                    />
+                  }
+                />
+                <CardHeader
+                  title={tt("Số vé tối thiểu mỗi đơn hàng", "Minimum Tickets Per Order")}
+                  subheader={
+                    <Box display="flex" alignItems="center">
+                      <FormControlLabel
+                        control={<Checkbox checked={isMinTransactionLimitUnlimited} onChange={handleMinTransactionLimitCheckboxChange} />}
+                        label={<Typography variant="body2">{tt("Không giới hạn", "Unlimited")}</Typography>}
+                      />
+                    </Box>
+                  }
+                  action={
+                    <OutlinedInput
+                      sx={{ maxWidth: { xs: 70, sm: 180 } }}
+                      type="number"
+                      value={formData.minPerTransaction !== null ? formData.minPerTransaction.toLocaleString('vi-VN') : ''}
+                      onChange={handleMinTransactionLimitChange}
+                      disabled={isMinTransactionLimitUnlimited}
                     />
                   }
                 />

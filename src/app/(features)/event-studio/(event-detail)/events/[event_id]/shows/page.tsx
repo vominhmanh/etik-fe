@@ -98,7 +98,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
 
   const [eventData, setEventData] = React.useState<any | null>(null); // Use any or EventResponse interface
   const [openLimitModal, setOpenLimitModal] = React.useState(false);
-  const [limitFormData, setLimitFormData] = React.useState<{ limitPerTransaction: number | null, limitPerCustomer: number | null }>({ limitPerTransaction: null, limitPerCustomer: null });
+  const [limitFormData, setLimitFormData] = React.useState<{ limitPerTransaction: number | null, minPerTransaction: number | null, limitPerCustomer: number | null }>({ limitPerTransaction: null, minPerTransaction: null, limitPerCustomer: null });
 
   // Audience State
   const [audiences, setAudiences] = React.useState<Audience[]>([]);
@@ -203,6 +203,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         setEventData(response.data);
         setLimitFormData({
           limitPerTransaction: response.data.limitPerTransaction,
+          minPerTransaction: response.data.minPerTransaction,
           limitPerCustomer: response.data.limitPerCustomer
         });
       } catch (error) {
@@ -240,17 +241,14 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     try {
       setIsLoading(true);
       const payload = {
-        ...eventData,
         limitPerTransaction: limitFormData.limitPerTransaction,
+        minPerTransaction: limitFormData.minPerTransaction,
         limitPerCustomer: limitFormData.limitPerCustomer,
       };
-      // Pydantic expects specific fields, some might need transformation if response has extra fields?
-      // EventUpdateRequest usually matches EventResponse but let's hope extra fields are ignored or structure matches.
-      // EventUpdateRequest has camelCase alias generator? Yes.
 
-      await baseHttpServiceInstance.put(`/event-studio/events/${params.event_id}`, payload);
+      await baseHttpServiceInstance.patch(`/event-studio/events/${params.event_id}/ticket-limits`, payload);
       notificationCtx.success(tt("Cập nhật thành công", "Update successful"));
-      setEventData(payload); // Optimistic update
+      setEventData({ ...eventData, ...payload }); // Optimistic update
       setOpenLimitModal(false);
     } catch (error) {
       notificationCtx.error(tt('Lỗi:', 'Error:'), error);
@@ -1007,6 +1005,28 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   <Checkbox
                     checked={limitFormData.limitPerTransaction === null}
                     onChange={(e) => setLimitFormData(prev => ({ ...prev, limitPerTransaction: e.target.checked ? null : 10 }))}
+                  />
+                }
+                label={tt("Không giới hạn", "Unlimited")}
+              />
+            </Stack>
+
+            {/* Min Per Transaction */}
+            <Stack direction="row" spacing={2} alignItems="center">
+              <OutlinedInput
+                type="number"
+                size="small"
+                disabled={limitFormData.minPerTransaction === null}
+                value={limitFormData.minPerTransaction ?? ''}
+                onChange={(e) => setLimitFormData(prev => ({ ...prev, minPerTransaction: Number(e.target.value) }))}
+                sx={{ width: 100 }}
+              />
+              <Typography>{tt("vé / tối thiểu 1 đơn", "min tickets / order")}</Typography>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={limitFormData.minPerTransaction === null}
+                    onChange={(e) => setLimitFormData(prev => ({ ...prev, minPerTransaction: e.target.checked ? null : 1 }))}
                   />
                 }
                 label={tt("Không giới hạn", "Unlimited")}

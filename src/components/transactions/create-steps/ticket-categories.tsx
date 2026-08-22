@@ -172,7 +172,8 @@ export function TicketCategories({ show, source, cartQuantities = {}, cartAudien
         const currentQty = ticketQuantities[ticketCategory.id] || 0;
         if (currentQty === 0 && maxAllowed >= 1) {
           const defaultAudience = activeAudiences.find((ca: any) => ca.isDefault) || activeAudiences[0];
-          if (defaultAudience) initialAudienceQtys[defaultAudience.audienceId] = 1;
+          const minAllowed = ticketCategory.minPerTransaction || 1;
+          if (defaultAudience) initialAudienceQtys[defaultAudience.audienceId] = Math.min(minAllowed, maxAllowed);
         }
       }
       setAudienceQuantities(initialAudienceQtys);
@@ -183,8 +184,9 @@ export function TicketCategories({ show, source, cartQuantities = {}, cartAudien
         const current = prev[ticketCategory.id];
         if (current && current > 0) return prev;
         const maxAllowed = getMaxAllowedForCategory(ticketCategory);
+        const minAllowed = ticketCategory.minPerTransaction || 1;
         const fromCart = cartQuantities[ticketCategory.id];
-        return { ...prev, [ticketCategory.id]: Math.min(Math.max(1, fromCart ?? 1), maxAllowed) };
+        return { ...prev, [ticketCategory.id]: Math.min(Math.max(minAllowed, fromCart ?? minAllowed), maxAllowed) };
       });
     }
   };
@@ -232,6 +234,11 @@ export function TicketCategories({ show, source, cartQuantities = {}, cartAudien
     if (isMultiAudience) {
       payloadQty = { ...audienceQuantities };
       totalQty = Object.values(audienceQuantities).reduce((a, b) => a + b, 0);
+    }
+
+    if (totalQty > 0 && selectedTicketCategory.minPerTransaction && totalQty < selectedTicketCategory.minPerTransaction) {
+      notificationCtx.error(tt(`Bạn cần chọn tối thiểu ${selectedTicketCategory.minPerTransaction} vé cho loại vé này`, `You must select at least ${selectedTicketCategory.minPerTransaction} tickets for this category`));
+      return;
     }
 
     if (totalQty <= 0) {
@@ -397,6 +404,10 @@ export function TicketCategories({ show, source, cartQuantities = {}, cartAudien
                       {showMore && (
                         <>
                           <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                            {tt("Số vé tối thiểu mỗi đơn hàng:", "Minimum tickets per order:")}{" "}
+                            {selectedTicketCategory?.minPerTransaction || tt("Không giới hạn", "Unlimited")}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: "text.secondary" }}>
                             {tt("Số vé tối đa mỗi đơn hàng:", "Maximum tickets per order:")}{" "}
                             {selectedTicketCategory?.limitPerTransaction || tt("Không giới hạn", "Unlimited")}
                           </Typography>
@@ -414,6 +425,10 @@ export function TicketCategories({ show, source, cartQuantities = {}, cartAudien
                     </>
                   ) : (
                     <>
+                      <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                        {tt("Số vé tối thiểu mỗi đơn hàng:", "Minimum tickets per order:")}{" "}
+                        {selectedTicketCategory?.minPerTransaction || tt("Không giới hạn", "Unlimited")}
+                      </Typography>
                       <Typography variant="caption" sx={{ color: "text.secondary" }}>
                         {tt("Số vé tối đa mỗi đơn hàng:", "Maximum tickets per order:")}{" "}
                         {selectedTicketCategory?.limitPerTransaction || tt("Không giới hạn", "Unlimited")}

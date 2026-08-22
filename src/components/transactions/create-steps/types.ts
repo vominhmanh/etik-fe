@@ -11,6 +11,7 @@ export type TicketCategory = {
     sold: number;
     disabled: boolean;
     limitPerTransaction: number | null;
+    minPerTransaction: number | null;
     limitPerCustomer: number | null;
     categoryAudiences?: {
         id: number;
@@ -40,6 +41,7 @@ export type Show = {
     endDateTime: string;
     ticketCategories: TicketCategory[];
     limitPerTransaction?: number | null;
+    minPerTransaction?: number | null;
     limitPerCustomer?: number | null;
     concessionsEnabled?: boolean;
     showConcessions?: ShowConcession[];
@@ -81,6 +83,7 @@ export type EventResponse = {
     displayOption?: string;
     timeInstruction?: string;
     limitPerTransaction?: number | null;
+    minPerTransaction?: number | null;
     limitPerCustomer?: number | null;
 };
 
