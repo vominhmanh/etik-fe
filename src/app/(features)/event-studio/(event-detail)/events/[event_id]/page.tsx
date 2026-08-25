@@ -131,7 +131,7 @@ export interface CheckEventAgencyRegistrationAndEventApprovalRequestResponse {
 export default function Page({ params }: { params: { event_id: number } }): React.JSX.Element {
   const { tt } = useTranslation();
   const [event, setEvent] = React.useState<EventResponse | null>(null);
-  const { event_id: eventId } = params;
+  const eventId = Number(params.event_id);
   const [description, setDescription] = React.useState<string>('');
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
