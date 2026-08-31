@@ -66,9 +66,12 @@ const options = {
   maximumAge: 0,
 };
 
-export default function Page(): React.JSX.Element {
-  const params = { event_slug: 'tft-hon-chien-d1' }
+import { Tabs, Tab } from '@mui/material';
+
+export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
+  const eventId = Number.parseInt(params.event_id)
   const [event, setEvent] = React.useState<EventResponse | null>(null);
+  const [selectedTab, setSelectedTab] = React.useState<number>(0);
   const [selectedCategories, setSelectedCategories] = React.useState<Record<number, number | null>>({});
   const [ticketQuantity, setTicketQuantity] = React.useState<number>(1);
   const [customer, setCustomer] = React.useState({
@@ -86,7 +89,7 @@ export default function Page(): React.JSX.Element {
   const [position, setPosition] = React.useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
   const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
   const [ticketHolderEditted, setTicketHolderEditted] = React.useState<boolean>(false);
-    const [data, setData] = React.useState(
+  const [data, setData] = React.useState(
     rowLabels.map(() =>
       colLabels.map(() => '')
     )
@@ -99,7 +102,7 @@ export default function Page(): React.JSX.Element {
   };
 
   React.useEffect(() => {
-    document.title = `Sự kiện ${event?.name} | ETIK - Vé điện tử & Quản lý sự kiện`;
+    document.title = `Sự kiện ${event?.name || ''} | ETIK - Vé điện tử & Quản lý sự kiện`;
   }, [event]);
 
   const totalAmount = React.useMemo(() => {
@@ -110,22 +113,21 @@ export default function Page(): React.JSX.Element {
     }, 0)
   }, [selectedCategories])
 
-
-
   const handleCloseSuccessModal = (event: {}, reason: "backdropClick" | "escapeKeyDown") => {
     setOpenSuccessModal(false)
   }
 
   // Fetch event details on component mount
   React.useEffect(() => {
-    if (params.event_slug) {
+    if (params.event_id) {
       const fetchEventDetails = async () => {
         try {
           setIsLoading(true);
-          const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
-            `/marketplace/events/${params.event_slug}`
-          );
-          setEvent(response.data);
+          const [eventRes, showsRes] = await Promise.all([
+            baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}`),
+            baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/shows-with-ticket-categories`)
+          ]);
+          setEvent({ ...eventRes.data, shows: showsRes.data.shows });
         } catch (error) {
           notificationCtx.error('Lỗi:', error);
         } finally {
@@ -135,7 +137,11 @@ export default function Page(): React.JSX.Element {
 
       fetchEventDetails();
     }
-  }, [params.event_slug]);
+  }, [params.event_id]);
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setSelectedTab(newValue);
+  };
 
 
   const handleCategorySelection = (showId: number, categoryId: number) => {
@@ -147,7 +153,7 @@ export default function Page(): React.JSX.Element {
 
   const handleSelectionChange = (selected: Show[]) => {
     setSelectedSchedules(selected);
-    const tmpObj = {}
+    const tmpObj: Record<number, number | null> = {}
     selected.forEach((s) => { tmpObj[s.id] = selectedCategories[s.id] || null })
     setSelectedCategories(tmpObj);
   };
@@ -211,7 +217,7 @@ export default function Page(): React.JSX.Element {
       };
 
       const response = await baseHttpServiceInstance.post(
-        `/marketplace/events/${params.event_slug}/transactions`,
+        `/marketplace/events/${params.event_id}/transactions`,
         transactionData
       );
       // notificationCtx.success('Transaction created successfully!');
@@ -232,8 +238,6 @@ export default function Page(): React.JSX.Element {
     <div
       style={{
         scrollBehavior: 'smooth',
-        backgroundColor: '#d1f9db',
-        backgroundImage: `linear-gradient(356deg, #d1f9db 0%, #fffed9 100%)`,
       }}
     >
       <Backdrop
@@ -246,110 +250,136 @@ export default function Page(): React.JSX.Element {
       >
         <CircularProgress color="inherit" />
       </Backdrop>
-      <Container maxWidth="xl" sx={{ py: '64px' }}>
-        <Stack spacing={3}>
-          <Grid container spacing={3}>
-            <Grid item lg={8} md={6} xs={12}>
-              <Box
-                sx={{
-                  position: 'relative',
+      <Stack spacing={3}>
+        <Grid container spacing={3}>
+          <Grid item lg={8} md={6} xs={12}>
+            <Box
+              sx={{
+                position: 'relative',
+                width: '100%',
+                aspectRatio: 16 / 6, // 16:9 aspect ratio (modify as needed)
+                overflow: 'hidden',
+                border: 'grey 1px',
+                borderRadius: '20px',
+                backgroundColor: 'gray',
+              }}
+            >
+              <Box component="img"
+                src={event?.bannerUrl || ''}
+                alt="Sự kiện"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
                   width: '100%',
-                  aspectRatio: 16 / 6, // 16:9 aspect ratio (modify as needed)
-                  overflow: 'hidden',
-                  border: 'grey 1px',
-                  borderRadius: '20px',
-                  backgroundColor: 'gray',
+                  height: 'auto',
+                  objectFit: 'cover', // or 'contain' depending on your preference
+                }}
+              />
+            </Box>
+          </Grid>
+          <Grid item lg={4} md={6} xs={12}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent
+                sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+              >
+                <Stack direction="column" spacing={2}>
+                  <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
+                    <div>
+                      {event?.avatarUrl ?
+                        <Box component="img" src={event?.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                        :
+                        <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
+                          {(event?.name[0] ?? 'a').toUpperCase()}
+                        </Avatar>}
+                    </div>
+                    <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
+                      {event?.name}
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" spacing={1}>
+                    <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      Đơn vị tổ chức: {event?.organizer}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <ClockIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {event?.startDateTime && event?.endDateTime
+                        ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
+                        : 'Chưa xác định'} {event?.timeInstruction ? `(${event.timeInstruction})` : ''}
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" spacing={1}>
+                    <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
+                    <Typography color="text.secondary" display="inline" variant="body2">
+                      {event?.place ? `${event?.place}` : 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank'>Xem bản đồ</a>}
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        <div
+          id="registration"
+          style={{ display: 'block', height: '100px', marginTop: '-100px', visibility: 'hidden' }}
+        ></div>
+        <Stack direction="row" spacing={3}>
+          <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
+            <Typography variant="h6">Thiết lập các trận đấu</Typography>
+          </Stack>
+        </Stack>
+
+        {event?.shows && event.shows.length > 0 && (
+          <Box sx={{ width: '100%' }}>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+              <Tabs 
+                value={selectedTab} 
+                onChange={handleTabChange} 
+                aria-label="show tabs"
+                variant="scrollable"
+                scrollButtons="auto"
+                allowScrollButtonsMobile
+                sx={{
+                  '& .MuiTabs-scroller': {
+                    overflowX: 'auto !important',
+                    scrollbarWidth: 'thin',
+                    '&::-webkit-scrollbar': { height: '4px' },
+                    '&::-webkit-scrollbar-track': { background: 'transparent' },
+                    '&::-webkit-scrollbar-thumb': { background: 'rgba(0,0,0,0.1)', borderRadius: '4px' },
+                    '&::-webkit-scrollbar-thumb:hover': { background: 'rgba(0,0,0,0.2)' }
+                  }
                 }}
               >
-                <Box component="img"
-                  src={event?.bannerUrl || ''}
-                  alt="Sự kiện"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: 'auto',
-                    objectFit: 'cover', // or 'contain' depending on your preference
-                  }}
-                />
-              </Box>
-            </Grid>
-            <Grid item lg={4} md={6} xs={12}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent
-                  sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-                >
-                  <Stack direction="column" spacing={2}>
-                    <Stack direction="row" spacing={2} style={{ alignItems: 'center' }}>
-                      <div>
-                        {event?.avatarUrl ?
-                          <Box component="img" src={event?.avatarUrl} style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
-                          :
-                          <Avatar sx={{ height: '80px', width: '80px', fontSize: '2rem' }}>
-                            {(event?.name[0] ?? 'a').toUpperCase()}
-                          </Avatar>}
-                      </div>
-                      <Typography variant="h5" sx={{ width: '100%', textAlign: 'center' }}>
-                        {event?.name}
-                      </Typography>
-                    </Stack>
-
-                    <Stack direction="row" spacing={1}>
-                      <HouseLineIcon fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        Đơn vị tổ chức: {event?.organizer}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" spacing={1}>
-                      <ClockIcon fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.startDateTime && event?.endDateTime
-                          ? `${dayjs(event.startDateTime || 0).format('HH:mm DD/MM/YYYY')} - ${dayjs(event.endDateTime || 0).format('HH:mm DD/MM/YYYY')}`
-                          : 'Chưa xác định'} {event?.timeInstruction ? `(${event.timeInstruction})` : ''}
-                      </Typography>
-                    </Stack>
-
-                    <Stack direction="row" spacing={1}>
-                      <MapPinIcon fontSize="var(--icon-fontSize-sm)" />
-                      <Typography color="text.secondary" display="inline" variant="body2">
-                        {event?.place ? `${event?.place}` : 'Chưa xác định'} {event?.locationInstruction && event.locationInstruction} {event?.locationUrl && <a href={event.locationUrl} target='_blank'>Xem bản đồ</a>}
-                      </Typography>
-                    </Stack>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-          
-          <div
-            id="registration"
-            style={{ display: 'block', height: '100px', marginTop: '-100px', visibility: 'hidden' }}
-          ></div>
-          <Stack direction="row" spacing={3}>
-            <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-              <Typography variant="h6">Thiết lập các trận đấu</Typography>
-            </Stack>
-          </Stack>
-          <Grid container spacing={3}>
-            {/* <Grid item lg={4} md={6} xs={12}>
-              <Stack spacing={3}>
-                <Schedules shows={event?.shows} onSelectionChange={handleSelectionChange} />
-                {selectedSchedules && selectedSchedules.map(show => (
-                  <TicketCategories key={show.id} show={show} onCategorySelect={(categoryId: number) => handleCategorySelection(show.id, categoryId)}
-                  />
+                {event.shows.map((show, index) => (
+                  <Tab label={show.name} id={`show-tab-${index}`} aria-controls={`show-tabpanel-${index}`} key={show.id} />
                 ))}
-              </Stack>
-            </Grid> */}
-            <Grid item lg={12} md={12} xs={12}>
-              <Stack spacing={3}>
-                  <EditableGrid shows={event?.shows} />
-                
-              </Stack>
-            </Grid>
-          </Grid>
-        </Stack>
-      </Container>
+              </Tabs>
+            </Box>
+
+            {event.shows.map((show, index) => (
+              <div
+                role="tabpanel"
+                hidden={selectedTab !== index}
+                id={`show-tabpanel-${index}`}
+                aria-labelledby={`show-tab-${index}`}
+                key={show.id}
+              >
+                {selectedTab === index && (
+                  <Box sx={{ pt: 1 }}>
+                    <EditableGrid eventId={Number(params.event_id)} show={show} allShows={event.shows} />
+                  </Box>
+                )}
+              </div>
+            ))}
+          </Box>
+        )}
+      </Stack>
     </div>
   );
 }
