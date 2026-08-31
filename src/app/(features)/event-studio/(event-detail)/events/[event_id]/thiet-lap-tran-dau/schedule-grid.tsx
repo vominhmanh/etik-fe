@@ -46,6 +46,7 @@ interface Player {
   isLocked?: boolean;
   isHighlighted?: boolean;
   extra_fields?: Record<string, string>;
+  check_in_at?: string | null;
 }
 
 type ManualAddResult = {
@@ -251,23 +252,53 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
     fetchData();
   }, [eventId, show.id, viewMode]);
 
-  // Auto-reload waiting list every 15s
+  // Auto-reload waiting list and tables-data every 15s
   useEffect(() => {
     const interval = setInterval(() => {
-      baseHttpServiceInstance.get(`/event-studio/table-arrangements/${eventId}/shows/${show.id}/waiting-list`)
-        .then(res => {
-          if (res.data) {
-            setGrid(currentGrid => {
-              const currentGridPlayers = new Set(currentGrid.flat().map(p => p.id));
+      Promise.all([
+        baseHttpServiceInstance.get(`/event-studio/table-arrangements/${eventId}/shows/${show.id}/waiting-list`),
+        baseHttpServiceInstance.get(`/event-studio/table-arrangements/${eventId}/shows/${show.id}/tables-data`)
+      ])
+        .then(([waitingRes, tablesDataRes]) => {
+          const newTablesData = tablesDataRes.data || {};
+          const checkInMap = new Map<string, string | null>();
+          
+          Object.values(newTablesData).forEach((tablePlayers: any) => {
+            const seenCounts = new Map();
+            tablePlayers.forEach((p: any) => {
+              const count = (seenCounts.get(p.id) || 0) + 1;
+              seenCounts.set(p.id, count);
+              const uniqueId = count > 1 ? `${p.id}_ticket${count}` : p.id;
+              checkInMap.set(uniqueId, p.check_in_at || null);
+            });
+          });
+
+          setGrid(currentGrid => {
+            let hasGridChanges = false;
+            const nextGrid = currentGrid.map(table => 
+              table.map(p => {
+                if (checkInMap.has(p.id)) {
+                  const checkInTime = checkInMap.get(p.id);
+                  if (p.check_in_at !== checkInTime) {
+                    hasGridChanges = true;
+                    return { ...p, check_in_at: checkInTime };
+                  }
+                }
+                return p;
+              })
+            );
+
+            if (waitingRes.data) {
+              const currentGridPlayers = new Set(nextGrid.flat().map(p => p.id));
               setWaitingList(currentWaitingList => {
                 const currentWaitingMap = new Map(currentWaitingList.map(p => [p.id, p]));
                 
                 const nextWaitingList = [];
-                for (const p of res.data) {
+                for (const p of waitingRes.data) {
                   if (!currentGridPlayers.has(p.id)) {
                     const existing = currentWaitingMap.get(p.id);
                     if (existing) {
-                      nextWaitingList.push({ ...p, isHighlighted: existing.isHighlighted });
+                      nextWaitingList.push({ ...p, isHighlighted: existing.isHighlighted, check_in_at: p.check_in_at || null });
                     } else {
                       nextWaitingList.push(p);
                     }
@@ -275,9 +306,10 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
                 }
                 return nextWaitingList;
               });
-              return currentGrid; // Must return same grid to avoid changing it
-            });
-          }
+            }
+
+            return hasGridChanges ? nextGrid : currentGrid;
+          });
         })
         .catch(console.error);
     }, 15000);
@@ -950,44 +982,54 @@ const PlayerCard: FC<{
             }
           }}
         >
-          <Tooltip title={tooltipContent} placement="top" arrow disableInteractive>
-            <Box sx={{ p: 0.5, display: 'flex', alignItems: 'flex-start', gap: 0.75, width: '100%' }}>
-              <Avatar sx={{ mt: 0.2, width: 18, height: 18, fontSize: '0.6rem', bgcolor: player.isLocked ? 'grey.500' : 'primary.main', flexShrink: 0 }}>
-                {player.isLocked ? <LockIcon weight="fill" /> : player.name.charAt(0)}
-              </Avatar>
-              <Box sx={{ minWidth: 0, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                {(!cardFields || cardFields.length === 0) && (
-                  <Typography
-                    sx={{
-                      fontSize: '0.7rem',
-                      fontWeight: 600,
-                      lineHeight: 1.1,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}
-                  >
-                    <Box component="span" sx={{ color: 'text.secondary', fontWeight: 500, mr: 0.5 }}>
-                      #{player.id.replace('txn-', '')}
-                    </Box>
-                    {player.name}
-                  </Typography>
-                )}
+          <Box sx={{ p: 0.5, display: 'flex', alignItems: 'flex-start', gap: 0.75, width: '100%' }}>
+            <Tooltip title={tooltipContent} placement="top" arrow disableInteractive>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, flexGrow: 1, minWidth: 0 }}>
+                <Avatar sx={{ mt: 0.2, width: 18, height: 18, fontSize: '0.6rem', bgcolor: player.isLocked ? 'grey.500' : 'primary.main', flexShrink: 0 }}>
+                  {player.isLocked ? <LockIcon weight="fill" /> : player.name.charAt(0)}
+                </Avatar>
+                <Box sx={{ minWidth: 0, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                  {(!cardFields || cardFields.length === 0) && (
+                    <Typography
+                      sx={{
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        lineHeight: 1.1,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      <Box component="span" sx={{ color: 'text.secondary', fontWeight: 500, mr: 0.5 }}>
+                        #{player.id.replace('txn-', '')}
+                      </Box>
+                      {player.name}
+                    </Typography>
+                  )}
 
-                {cardFields && cardFields.length > 0 && (
-                  <Box sx={{ mt: 0.5, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                    {cardFields.map(f => {
-                      return (
-                        <Typography key={f} sx={{ fontSize: '0.65rem', color: 'text.secondary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {player.extra_fields?.[f] || 'N/A'}
-                        </Typography>
-                      );
-                    })}
-                  </Box>
-                )}
+                  {cardFields && cardFields.length > 0 && (
+                    <Box sx={{ mt: 0.5, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                      {cardFields.map(f => {
+                        return (
+                          <Typography key={f} sx={{ fontSize: '0.65rem', color: 'text.secondary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {player.extra_fields?.[f] || 'N/A'}
+                          </Typography>
+                        );
+                      })}
+                    </Box>
+                  )}
+                </Box>
               </Box>
-            </Box>
-          </Tooltip>
+            </Tooltip>
+
+            {player.isLocked && player.check_in_at && (
+              <Tooltip title={`Đã Check-in lúc: ${new Date(player.check_in_at).toLocaleString('vi-VN')}`} placement="top" arrow disableInteractive>
+                <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto', flexShrink: 0, pt: 0.2 }}>
+                  <CheckCircleIcon size={18} weight="fill" color="#4caf50" />
+                </Box>
+              </Tooltip>
+            )}
+          </Box>
         </Box>
       )}
     </Draggable>
