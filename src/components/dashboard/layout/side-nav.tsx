@@ -423,6 +423,13 @@ export function SideNav(): React.JSX.Element {
                 href={`/event-studio/events/${dynamicId}/config-mini-app-voting`}
                 icon={SpinnerBall}
               />
+              <NavItemCollapseChildItem
+                pathname={pathname}
+                key="thiet-lap-tran-dau"
+                title={tt("Thiết lập trận đấu", "Match Settings")}
+                href={`/event-studio/events/${dynamicId}/thiet-lap-tran-dau`}
+                icon={SquaresFour}
+              />
 
             </NavItemCollapse>
           </Stack>

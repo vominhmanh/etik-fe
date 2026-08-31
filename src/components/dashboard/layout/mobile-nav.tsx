@@ -414,6 +414,14 @@ export function MobileNav({ open, onClose }: MobileNavProps): React.JSX.Element 
               icon={SpinnerBall}
               onClose={onClose}
             />
+            <NavItemCollapseChildItem
+              pathname={normalizedPathname}
+              key="thiet-lap-tran-dau"
+              title={tt("Thiết lập trận đấu", "Match Settings")}
+              href={`/event-studio/events/${dynamicId}/thiet-lap-tran-dau`}
+              icon={SquaresFour}
+              onClose={onClose}
+            />
 
           </NavItemCollapse>
         </Stack>
