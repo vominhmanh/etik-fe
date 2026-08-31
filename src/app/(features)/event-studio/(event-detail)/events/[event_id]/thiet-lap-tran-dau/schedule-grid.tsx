@@ -68,9 +68,10 @@ interface EditableGridProps {
   cardFields?: string[];
   tooltipFields?: string[];
   availableFields?: {id: string, name: string}[];
+  viewMode?: 'transaction' | 'ticket';
 }
 
-export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, cardFields = [], tooltipFields = [], availableFields = [] }) => {
+export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, cardFields = [], tooltipFields = [], availableFields = [], viewMode = 'transaction' }) => {
   const theme = useTheme();
   const notificationCtx = useContext(NotificationContext);
 
@@ -216,7 +217,23 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
           const initialGrid = Array.from({ length: fetchedTables.length }, () => []);
           fetchedTables.forEach((t: any, idx: number) => {
             if (tData[t.id]) {
-              initialGrid[idx] = tData[t.id];
+              let tablePlayers = tData[t.id] as Player[];
+              if (viewMode === 'transaction') {
+                const seen = new Set();
+                tablePlayers = tablePlayers.filter(p => {
+                  if (seen.has(p.id)) return false;
+                  seen.add(p.id);
+                  return true;
+                });
+              } else {
+                const seenCounts = new Map();
+                tablePlayers = tablePlayers.map(p => {
+                  const count = (seenCounts.get(p.id) || 0) + 1;
+                  seenCounts.set(p.id, count);
+                  return count > 1 ? { ...p, id: `${p.id}_ticket${count}` } : p;
+                });
+              }
+              initialGrid[idx] = tablePlayers;
             }
           });
           setGrid(initialGrid as any);
@@ -232,7 +249,7 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
       }
     };
     fetchData();
-  }, [eventId, show.id]);
+  }, [eventId, show.id, viewMode]);
 
   // Auto-reload waiting list every 15s
   useEffect(() => {
@@ -376,6 +393,25 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
     } catch (err) {
       console.error(err);
       alert("Lỗi khi chốt bàn.");
+    }
+  };
+
+  const handleSaveAllTables = async () => {
+    try {
+      const savePromises = tables.map((tableInfo, tableIndex) => {
+        const playersInTable = grid[tableIndex];
+        const txnIds = playersInTable.map(p => parseInt(p.id.replace('txn-', ''), 10));
+        return baseHttpServiceInstance.post(`/event-studio/table-arrangements/${eventId}/shows/${show.id}/tables/${tableInfo.id}/save`, txnIds);
+      });
+
+      await Promise.all(savePromises);
+
+      const newGrid = grid.map(tablePlayers => tablePlayers.map(p => ({ ...p, isLocked: true })));
+      setGrid(newGrid);
+      notificationCtx.success('Đã lưu toàn bộ bảng đấu thành công!');
+    } catch (err) {
+      console.error(err);
+      notificationCtx.error('Lỗi khi lưu bảng đấu.', err);
     }
   };
 
@@ -561,7 +597,7 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
                   <ResetIcon size={16} weight="bold" />
                 </IconButton>
               </Tooltip>
-              <Button variant="contained" size="small" color="primary">Lưu Bảng Đấu</Button>
+              <Button variant="contained" size="small" color="primary" onClick={handleSaveAllTables}>Lưu Bảng Đấu</Button>
             </Box>
           </Box>
 

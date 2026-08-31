@@ -97,6 +97,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [availableFields, setAvailableFields] = React.useState<{id: string, name: string}[]>([]);
   const [cardFields, setCardFields] = React.useState<string[]>([]);
   const [tooltipFields, setTooltipFields] = React.useState<string[]>([]);
+  const [viewMode, setViewMode] = React.useState<'transaction' | 'ticket'>('transaction');
+  const [tempViewMode, setTempViewMode] = React.useState<'transaction' | 'ticket'>('transaction');
 
   const [data, setData] = React.useState(
     rowLabels.map(() =>
@@ -142,6 +144,12 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           setAvailableFields(fieldsRes.data);
           setCardFields(settingsRes.data.card_fields || []);
           setTooltipFields(settingsRes.data.tooltip_fields || []);
+          
+          if (typeof window !== 'undefined') {
+            const savedViewMode = (localStorage.getItem(`viewMode_${params.event_id}`) as 'transaction' | 'ticket') || 'transaction';
+            setViewMode(savedViewMode);
+            setTempViewMode(savedViewMode);
+          }
         } catch (error) {
           notificationCtx.error('Lỗi:', error);
         } finally {
@@ -163,6 +171,10 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         card_fields: cardFields,
         tooltip_fields: tooltipFields
       });
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`viewMode_${params.event_id}`, tempViewMode);
+      }
+      setViewMode(tempViewMode);
       notificationCtx.success('Lưu cấu hình thành công!');
       setConfigModalOpen(false);
     } catch (e) {
@@ -410,6 +422,7 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       cardFields={cardFields}
                       tooltipFields={tooltipFields}
                       availableFields={availableFields}
+                      viewMode={viewMode}
                     />
                   </Box>
                 )}
@@ -459,6 +472,18 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   <ListItemText primary={field.name} />
                 </MenuItem>
               ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth>
+            <InputLabel>Chế độ xem bảng thi đấu</InputLabel>
+            <Select
+              value={tempViewMode}
+              onChange={(e: SelectChangeEvent) => setTempViewMode(e.target.value as 'transaction' | 'ticket')}
+              label="Chế độ xem bảng thi đấu"
+            >
+              <MenuItem value="transaction">Xem theo giao dịch (Ẩn vé trùng)</MenuItem>
+              <MenuItem value="ticket">Xem theo vé (Hiện tất cả)</MenuItem>
             </Select>
           </FormControl>
         </DialogContent>
