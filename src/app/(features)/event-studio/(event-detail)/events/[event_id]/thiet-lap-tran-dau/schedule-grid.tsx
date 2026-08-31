@@ -45,6 +45,7 @@ interface Player {
   phone: string;
   isLocked?: boolean;
   isHighlighted?: boolean;
+  extra_fields?: Record<string, string>;
 }
 
 type ManualAddResult = {
@@ -64,9 +65,12 @@ interface EditableGridProps {
   eventId: number;
   show: any;
   allShows: any[];
+  cardFields?: string[];
+  tooltipFields?: string[];
+  availableFields?: {id: string, name: string}[];
 }
 
-export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows }) => {
+export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, cardFields = [], tooltipFields = [], availableFields = [] }) => {
   const theme = useTheme();
   const notificationCtx = useContext(NotificationContext);
 
@@ -520,7 +524,15 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows })
                 }}
               >
                 {waitingList.map((player, index) => (
-                  <PlayerCard key={player.id} player={player} index={index} onContextMenu={(e, p) => handleContextMenu(e, p, true)} />
+                      <PlayerCard 
+                        key={player.id} 
+                        player={player} 
+                        index={index} 
+                        onContextMenu={(e, p) => handleContextMenu(e, p, true)} 
+                        cardFields={cardFields} 
+                        tooltipFields={tooltipFields} 
+                        availableFields={availableFields} 
+                      />
                 ))}
                 {provided.placeholder}
               </Box>
@@ -620,7 +632,15 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows })
                         }}
                       >
                         {tablePlayers.map((player, index) => (
-                          <PlayerCard key={player.id} player={player} index={index} onContextMenu={(e, p) => handleContextMenu(e, p, false)} />
+                          <PlayerCard 
+                            key={player.id} 
+                            player={player} 
+                            index={index} 
+                            onContextMenu={(e, p) => handleContextMenu(e, p, false)} 
+                            cardFields={cardFields} 
+                            tooltipFields={tooltipFields} 
+                            availableFields={availableFields} 
+                          />
                         ))}
                         {provided.placeholder}
 
@@ -843,7 +863,27 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows })
   );
 };
 
-const PlayerCard: FC<{ player: Player; index: number; onContextMenu: (e: React.MouseEvent, player: Player) => void }> = ({ player, index, onContextMenu }) => {
+const PlayerCard: FC<{ 
+  player: Player; 
+  index: number; 
+  onContextMenu: (e: React.MouseEvent, player: Player) => void;
+  cardFields: string[];
+  tooltipFields: string[];
+  availableFields: {id: string, name: string}[];
+}> = ({ player, index, onContextMenu, cardFields, tooltipFields, availableFields }) => {
+  
+  const tooltipContent = (
+    <Box sx={{ whiteSpace: 'pre-line' }}>
+      {tooltipFields && tooltipFields.length > 0 ? (
+        tooltipFields.map(f => {
+          return <div key={f}>{player.extra_fields?.[f] || 'N/A'}</div>;
+        })
+      ) : (
+        <>{player.phone}</>
+      )}
+    </Box>
+  );
+
   return (
     <Draggable draggableId={player.id} index={index} isDragDisabled={player.isLocked}>
       {(provided, snapshot) => (
@@ -874,27 +914,41 @@ const PlayerCard: FC<{ player: Player; index: number; onContextMenu: (e: React.M
             }
           }}
         >
-          <Tooltip title={`${player.fullName || player.name} - ${player.phone}`} placement="top" arrow disableInteractive>
-            <Box sx={{ p: 0.5, display: 'flex', alignItems: 'center', gap: 0.75, width: '100%' }}>
-              <Avatar sx={{ width: 18, height: 18, fontSize: '0.6rem', bgcolor: player.isLocked ? 'grey.500' : 'primary.main', flexShrink: 0 }}>
+          <Tooltip title={tooltipContent} placement="top" arrow disableInteractive>
+            <Box sx={{ p: 0.5, display: 'flex', alignItems: 'flex-start', gap: 0.75, width: '100%' }}>
+              <Avatar sx={{ mt: 0.2, width: 18, height: 18, fontSize: '0.6rem', bgcolor: player.isLocked ? 'grey.500' : 'primary.main', flexShrink: 0 }}>
                 {player.isLocked ? <LockIcon weight="fill" /> : player.name.charAt(0)}
               </Avatar>
-              <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                <Typography
-                  sx={{
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    lineHeight: 1.1,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}
-                >
-                  <Box component="span" sx={{ color: 'text.secondary', fontWeight: 500, mr: 0.5 }}>
-                    #{player.id.replace('txn-', '')}
+              <Box sx={{ minWidth: 0, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                {(!cardFields || cardFields.length === 0) && (
+                  <Typography
+                    sx={{
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      lineHeight: 1.1,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    <Box component="span" sx={{ color: 'text.secondary', fontWeight: 500, mr: 0.5 }}>
+                      #{player.id.replace('txn-', '')}
+                    </Box>
+                    {player.name}
+                  </Typography>
+                )}
+
+                {cardFields && cardFields.length > 0 && (
+                  <Box sx={{ mt: 0.5, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                    {cardFields.map(f => {
+                      return (
+                        <Typography key={f} sx={{ fontSize: '0.65rem', color: 'text.secondary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {player.extra_fields?.[f] || 'N/A'}
+                        </Typography>
+                      );
+                    })}
                   </Box>
-                  {player.name}
-                </Typography>
+                )}
               </Box>
             </Box>
           </Tooltip>

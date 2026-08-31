@@ -1,7 +1,8 @@
 'use client';
 
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Avatar, Box, Container, Typography } from '@mui/material';
+import { Avatar, Box, Container, Typography, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button, FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText, OutlinedInput } from '@mui/material';
+import { SelectChangeEvent } from '@mui/material/Select';
 import Backdrop from '@mui/material/Backdrop';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -11,6 +12,7 @@ import Stack from '@mui/material/Stack';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
+import { Gear as GearIcon } from '@phosphor-icons/react/dist/ssr/Gear';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
 import * as React from 'react';
@@ -89,6 +91,13 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [position, setPosition] = React.useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
   const [openSuccessModal, setOpenSuccessModal] = React.useState(false);
   const [ticketHolderEditted, setTicketHolderEditted] = React.useState<boolean>(false);
+  
+  // Settings Config
+  const [configModalOpen, setConfigModalOpen] = React.useState(false);
+  const [availableFields, setAvailableFields] = React.useState<{id: string, name: string}[]>([]);
+  const [cardFields, setCardFields] = React.useState<string[]>([]);
+  const [tooltipFields, setTooltipFields] = React.useState<string[]>([]);
+
   const [data, setData] = React.useState(
     rowLabels.map(() =>
       colLabels.map(() => '')
@@ -123,11 +132,16 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       const fetchEventDetails = async () => {
         try {
           setIsLoading(true);
-          const [eventRes, showsRes] = await Promise.all([
+          const [eventRes, showsRes, fieldsRes, settingsRes] = await Promise.all([
             baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}`),
-            baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/shows-with-ticket-categories`)
+            baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}/shows-with-ticket-categories`),
+            baseHttpServiceInstance.get(`/event-studio/table-arrangements/${params.event_id}/available-fields`),
+            baseHttpServiceInstance.get(`/event-studio/table-arrangements/${params.event_id}/settings`)
           ]);
           setEvent({ ...eventRes.data, shows: showsRes.data.shows });
+          setAvailableFields(fieldsRes.data);
+          setCardFields(settingsRes.data.card_fields || []);
+          setTooltipFields(settingsRes.data.tooltip_fields || []);
         } catch (error) {
           notificationCtx.error('Lỗi:', error);
         } finally {
@@ -143,6 +157,18 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
     setSelectedTab(newValue);
   };
 
+  const handleSaveGlobalConfig = async () => {
+    try {
+      await baseHttpServiceInstance.post(`/event-studio/table-arrangements/${params.event_id}/settings`, {
+        card_fields: cardFields,
+        tooltip_fields: tooltipFields
+      });
+      notificationCtx.success('Lưu cấu hình thành công!');
+      setConfigModalOpen(false);
+    } catch (e) {
+      notificationCtx.error('Lỗi khi lưu cấu hình', e);
+    }
+  };
 
   const handleCategorySelection = (showId: number, categoryId: number) => {
     setSelectedCategories(prevCategories => ({
@@ -330,8 +356,13 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           style={{ display: 'block', height: '100px', marginTop: '-100px', visibility: 'hidden' }}
         ></div>
         <Stack direction="row" spacing={3}>
-          <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: '1 1 auto' }}>
             <Typography variant="h6">Thiết lập các trận đấu</Typography>
+            <Tooltip title="Cấu hình hiển thị thẻ/tooltip cho sự kiện">
+              <IconButton onClick={() => setConfigModalOpen(true)} size="small" sx={{ ml: 1, bgcolor: 'background.paper', boxShadow: 1 }}>
+                <GearIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Stack>
         </Stack>
 
@@ -372,7 +403,14 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
               >
                 {selectedTab === index && (
                   <Box sx={{ pt: 1 }}>
-                    <EditableGrid eventId={Number(params.event_id)} show={show} allShows={event.shows} />
+                    <EditableGrid 
+                      eventId={Number(params.event_id)} 
+                      show={show} 
+                      allShows={event.shows} 
+                      cardFields={cardFields}
+                      tooltipFields={tooltipFields}
+                      availableFields={availableFields}
+                    />
                   </Box>
                 )}
               </div>
@@ -380,6 +418,55 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           </Box>
         )}
       </Stack>
+
+      <Dialog open={configModalOpen} onClose={() => setConfigModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Cấu hình hiển thị</DialogTitle>
+        <DialogContent dividers sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            Chọn các trường dữ liệu muốn hiển thị trên thẻ người chơi và tooltip khi rê chuột vào thẻ. Cấu hình này áp dụng chung cho sự kiện.
+          </Typography>
+          
+          <FormControl fullWidth>
+            <InputLabel>Hiển thị trên thẻ (Card)</InputLabel>
+            <Select
+              multiple
+              value={cardFields}
+              onChange={(e: SelectChangeEvent<typeof cardFields>) => setCardFields(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+              input={<OutlinedInput label="Hiển thị trên thẻ (Card)" />}
+              renderValue={(selected) => selected.map(id => availableFields.find(f => f.id === id)?.name || id).join(', ')}
+            >
+              {availableFields.map((field) => (
+                <MenuItem key={field.id} value={field.id}>
+                  <Checkbox checked={cardFields.indexOf(field.id) > -1} />
+                  <ListItemText primary={field.name} />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth>
+            <InputLabel>Hiển thị trên Tooltip</InputLabel>
+            <Select
+              multiple
+              value={tooltipFields}
+              onChange={(e: SelectChangeEvent<typeof tooltipFields>) => setTooltipFields(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+              input={<OutlinedInput label="Hiển thị trên Tooltip" />}
+              renderValue={(selected) => selected.map(id => availableFields.find(f => f.id === id)?.name || id).join(', ')}
+            >
+              {availableFields.map((field) => (
+                <MenuItem key={field.id} value={field.id}>
+                  <Checkbox checked={tooltipFields.indexOf(field.id) > -1} />
+                  <ListItemText primary={field.name} />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setConfigModalOpen(false)} color="inherit">Hủy</Button>
+          <Button onClick={handleSaveGlobalConfig} variant="contained">Lưu cấu hình</Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }
