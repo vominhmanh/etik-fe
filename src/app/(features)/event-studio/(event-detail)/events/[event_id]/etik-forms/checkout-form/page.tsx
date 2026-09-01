@@ -12,10 +12,12 @@ import {
   CardContent,
   CardHeader,
   Checkbox,
+  Chip,
   Container,
   Divider,
   FormControl,
   FormControlLabel,
+  FormHelperText,
   InputLabel,
   MenuItem,
   Modal,
@@ -36,6 +38,17 @@ import { useSearchParams } from 'next/navigation';
 
 type FieldType = 'text' | 'number' | 'radio' | 'checkbox' | 'date' | 'time' | 'datetime';
 
+// 'hidden': ẩn hoàn toàn, không dùng trường này ở đâu cả
+// 'staffOnly': BTC vẫn thấy/điền được (tạo đơn thủ công), khách tự mua vé không thấy và không phải nhập
+// 'public': hiển thị cho khách như bình thường, có thể bắt buộc
+type VisibilityScope = 'hidden' | 'staffOnly' | 'public';
+
+const getVisibilityScope = (visible: boolean, hiddenFromCustomer: boolean): VisibilityScope => {
+  if (!visible) return 'hidden';
+  if (hiddenFromCustomer) return 'staffOnly';
+  return 'public';
+};
+
 interface FieldDefinition {
   id: number;
   internalName: string;
@@ -43,6 +56,7 @@ interface FieldDefinition {
   type: FieldType;
   visible: boolean;
   required: boolean;
+  hiddenFromCustomer: boolean;
   note: string;
   showInTransactionHistory: boolean;
   showInTicketEmail: boolean;
@@ -58,6 +72,7 @@ interface NewFieldState {
   type: FieldType;
   visible: boolean;
   required: boolean;
+  hiddenFromCustomer: boolean;
   note: string;
   showInTransactionHistory: boolean;
   showInTicketEmail: boolean;
@@ -72,6 +87,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     type: 'text',
     visible: true,
     required: true,
+    hiddenFromCustomer: false,
     note: '',
     showInTransactionHistory: true, // luôn true, không cho edit (core field)
     showInTicketEmail: true, // luôn true, không cho edit (core field)
@@ -85,6 +101,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     type: 'text',
     visible: true,
     required: true,
+    hiddenFromCustomer: false,
     note: '',
     showInTransactionHistory: true, // luôn true, không cho edit (core field)
     showInTicketEmail: true, // luôn true, không cho edit (core field)
@@ -98,6 +115,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     type: 'text',
     visible: true,
     required: true,
+    hiddenFromCustomer: false,
     note: '',
     showInTransactionHistory: true, // luôn true, không cho edit (core field)
     showInTicketEmail: true, // luôn true, không cho edit (core field)
@@ -111,6 +129,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     type: 'text',
     visible: true,
     required: true,
+    hiddenFromCustomer: false,
     note: '',
     showInTransactionHistory: true, // luôn true, không cho edit (core field)
     showInTicketEmail: true, // luôn true, không cho edit (core field)
@@ -124,6 +143,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     type: 'text',
     visible: false,
     required: false,
+    hiddenFromCustomer: false,
     note: '',
     showInTransactionHistory: false, // mặc định false, có thể edit
     showInTicketEmail: false, // mặc định false, có thể edit
@@ -137,6 +157,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     type: 'date',
     visible: false,
     required: false,
+    hiddenFromCustomer: false,
     note: '',
     showInTransactionHistory: false, // mặc định false, có thể edit
     showInTicketEmail: false, // mặc định false, có thể edit
@@ -150,6 +171,7 @@ const INITIAL_FIELDS: FieldDefinition[] = [
     type: 'text',
     visible: false,
     required: false,
+    hiddenFromCustomer: false,
     note: '',
     showInTransactionHistory: false, // mặc định false, có thể edit
     showInTicketEmail: false, // mặc định false, có thể edit
@@ -183,6 +205,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     type: 'text',
     visible: true,
     required: false,
+    hiddenFromCustomer: false,
     note: '',
     showInTransactionHistory: false, // mặc định false, có thể edit
     showInTicketEmail: false, // mặc định false, có thể edit
@@ -219,6 +242,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               type: apiField.fieldType,
               visible: apiField.visible,
               required: apiField.required,
+              hiddenFromCustomer: apiField.hiddenFromCustomer || false,
               note: apiField.note || '',
               showInTransactionHistory: ['title', 'name', 'email', 'phone_number'].includes(builtin.internalName) ? true : (apiField.showInTransactionHistory || false),
               showInTicketEmail: ['title', 'name', 'email', 'phone_number'].includes(builtin.internalName) ? true : (apiField.showInTicketEmail || false),
@@ -241,6 +265,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             type: f.fieldType,
             visible: f.visible,
             required: f.required,
+            hiddenFromCustomer: f.hiddenFromCustomer || false,
             note: f.note || '',
             showInTransactionHistory: f.showInTransactionHistory || false,
             showInTicketEmail: f.showInTicketEmail || false,
@@ -268,6 +293,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       type: 'text',
       visible: true,
       required: false,
+      hiddenFromCustomer: false,
       note: '',
       showInTransactionHistory: false, // mặc định false, có thể edit
       showInTicketEmail: false, // mặc định false, có thể edit
@@ -284,6 +310,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       type: field.type,
       visible: field.visible,
       required: field.required,
+      hiddenFromCustomer: field.hiddenFromCustomer,
       note: field.note,
       showInTransactionHistory: field.showInTransactionHistory,
       showInTicketEmail: field.showInTicketEmail,
@@ -335,7 +362,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         label: newField.label.trim(),
         type: newField.type,
         visible: newField.visible,
-        required: newField.required,
+        required: newField.hiddenFromCustomer ? false : newField.required,
+        hiddenFromCustomer: newField.hiddenFromCustomer,
         note: newField.note,
         showInTransactionHistory: newField.showInTransactionHistory,
         showInTicketEmail: newField.showInTicketEmail,
@@ -366,7 +394,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             label: canEditLabel ? newField.label.trim() : field.label,
             type: canEditType ? newField.type : field.type,
             visible: canEditVisibilityAndRequired ? newField.visible : field.visible,
-            required: canEditVisibilityAndRequired ? newField.required : field.required,
+            required: canEditVisibilityAndRequired
+              ? (newField.hiddenFromCustomer ? false : newField.required)
+              : field.required,
+            hiddenFromCustomer: canEditVisibilityAndRequired ? newField.hiddenFromCustomer : field.hiddenFromCustomer,
             note: newField.note,
             showInTransactionHistory: isCoreField ? true : newField.showInTransactionHistory,
             showInTicketEmail: isCoreField ? true : newField.showInTicketEmail,
@@ -431,7 +462,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           label: field.label,
           fieldType: field.type,
           visible: field.visible,
-          required: field.required,
+          required: field.hiddenFromCustomer ? false : field.required,
+          hiddenFromCustomer: field.hiddenFromCustomer,
           note: field.note || null,
           showInTransactionHistory: field.showInTransactionHistory,
           showInTicketEmail: field.showInTicketEmail,
@@ -492,7 +524,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   <TableRow>
                     <TableCell>Trường thông tin/ câu hỏi</TableCell>
                     <TableCell>Định dạng</TableCell>
-                    <TableCell>Hiển thị</TableCell>
+                    <TableCell>Phạm vi hiển thị</TableCell>
                     <TableCell>Bắt buộc</TableCell>
                     <TableCell>Ghi chú cho khách</TableCell>
                     <TableCell>Cho phép Khách xem lại</TableCell>
@@ -520,12 +552,17 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                           )}
                         </Stack>
                       </TableCell>
-                      <TableCell sx={{ minWidth: 80 }}>
-                        <Checkbox
-                          checked={field.visible}
-                          // chỉ hiển thị, không chỉnh trong bảng
-                          disabled
-                        />
+                      <TableCell sx={{ minWidth: 160 }}>
+                        {(() => {
+                          const scope = getVisibilityScope(field.visible, field.hiddenFromCustomer);
+                          if (scope === 'hidden') {
+                            return <Chip size="small" label="Ẩn hoàn toàn" />;
+                          }
+                          if (scope === 'staffOnly') {
+                            return <Chip size="small" color="warning" label="Chỉ BTC tự điền" />;
+                          }
+                          return <Chip size="small" color="success" label="Hiển thị cho khách" />;
+                        })()}
                       </TableCell>
                       <TableCell sx={{ minWidth: 80 }}>
                         <Checkbox
@@ -656,18 +693,37 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   </Select>
                 </FormControl>
 
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={newField.visible}
-                      onChange={(e) =>
-                        setNewField((prev) => ({ ...prev, visible: e.target.checked }))
-                      }
-                      disabled={!!editingField && editingField.locked}
-                    />
-                  }
-                  label="Hiển thị"
-                />
+                <FormControl fullWidth size="small">
+                  <InputLabel id="visibility-scope-label">Phạm vi hiển thị</InputLabel>
+                  <Select
+                    labelId="visibility-scope-label"
+                    label="Phạm vi hiển thị"
+                    value={getVisibilityScope(newField.visible, newField.hiddenFromCustomer)}
+                    onChange={(e) => {
+                      const scope = e.target.value as VisibilityScope;
+                      setNewField((prev) => {
+                        if (scope === 'hidden') {
+                          return { ...prev, visible: false, hiddenFromCustomer: false, required: false };
+                        }
+                        if (scope === 'staffOnly') {
+                          return { ...prev, visible: true, hiddenFromCustomer: true, required: false };
+                        }
+                        return { ...prev, visible: true, hiddenFromCustomer: false };
+                      });
+                    }}
+                    disabled={!!editingField && editingField.locked}
+                  >
+                    <MenuItem value="hidden">Ẩn hoàn toàn (không dùng trường này)</MenuItem>
+                    <MenuItem value="staffOnly">Chỉ BTC tự điền (ẩn với khách khi tự mua vé)</MenuItem>
+                    <MenuItem value="public">Hiển thị cho khách</MenuItem>
+                  </Select>
+                  {getVisibilityScope(newField.visible, newField.hiddenFromCustomer) === 'staffOnly' && (
+                    <FormHelperText>
+                      Trường vẫn xuất hiện khi bạn tạo/sửa đơn thủ công, nhưng sẽ không hiển thị và
+                      không bắt buộc trên trang khách tự thanh toán. Bạn có thể điền thông tin này sau.
+                    </FormHelperText>
+                  )}
+                </FormControl>
 
                 <FormControlLabel
                   control={
@@ -676,7 +732,10 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       onChange={(e) =>
                         setNewField((prev) => ({ ...prev, required: e.target.checked }))
                       }
-                      disabled={!!editingField && editingField.locked}
+                      disabled={
+                        (!!editingField && editingField.locked) ||
+                        getVisibilityScope(newField.visible, newField.hiddenFromCustomer) !== 'public'
+                      }
                     />
                   }
                   label="Bắt buộc"

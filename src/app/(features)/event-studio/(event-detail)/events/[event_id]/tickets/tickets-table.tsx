@@ -15,6 +15,9 @@ import TableRow from '@mui/material/TableRow';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import Popover from '@mui/material/Popover';
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import * as React from 'react';
 
 import { Chip, ChipProps } from '@mui/material';
@@ -24,6 +27,7 @@ import { ArrowSquareUpRight as ArrowSquareUpRightIcon } from '@phosphor-icons/re
 import { Bank as BankIcon } from '@phosphor-icons/react/dist/ssr/Bank';
 import { Lightning as LightningIcon } from '@phosphor-icons/react/dist/ssr/Lightning';
 import { Money as MoneyIcon } from '@phosphor-icons/react/dist/ssr/Money';
+import { GearSix as SettingsIcon } from '@phosphor-icons/react/dist/ssr/GearSix';
 import dayjs from 'dayjs';
 import { LocalizedLink } from '@/components/homepage/localized-link';
 import { useTranslation } from '@/contexts/locale-context';
@@ -111,6 +115,9 @@ export interface CustomersTableProps {
   onDeselectMultiple: (rowIds: number[]) => void; // Callback to handle deselecting multiple rows.
   onSelectOne: (rowId: number) => void; // Callback to handle selecting a single row.
   onDeselectOne: (rowId: number) => void; // Callback to handle deselecting a single row.
+  ticketFormFields?: any[];
+  visibleColumns?: string[];
+  onVisibleColumnsChange?: (newColumns: string[]) => void;
 }
 
 
@@ -164,9 +171,36 @@ export function TicketsTable({
   onDeselectMultiple,
   onSelectOne,
   onDeselectOne,
+  ticketFormFields = [],
+  visibleColumns = ['id', 'customer_info', 'show_info', 'order', 'status', 'created_at', 'check_in_at'],
+  onVisibleColumnsChange,
 }: CustomersTableProps): React.JSX.Element {
   const { tt } = useTranslation();
   const router = useRouter();
+
+  const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
+
+  const handleOpenSettings = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseSettings = () => {
+    setAnchorEl(null);
+  };
+
+  const openSettings = Boolean(anchorEl);
+
+  const toggleColumn = (colName: string) => {
+    if (!onVisibleColumnsChange) return;
+    const isVisible = visibleColumns.includes(colName);
+    let newCols = [];
+    if (isVisible) {
+      newCols = visibleColumns.filter(c => c !== colName);
+    } else {
+      newCols = [...visibleColumns, colName];
+    }
+    onVisibleColumnsChange(newCols);
+  };
   const handleRequestSort = (property: string) => {
     const isAsc = orderBy === property && order === 'asc';
     const newOrder = isAsc ? 'desc' : 'asc';
@@ -180,6 +214,27 @@ export function TicketsTable({
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newRowsPerPage = parseInt(event.target.value, 10);
     onRowsPerPageChange(newRowsPerPage);
+  };
+
+  const isFieldVisible = (baseName: 'title' | 'name' | 'email' | 'phone') => {
+    const internalNameMap = {
+      title: ['title', 'holder_title'],
+      name: ['name', 'holder_name'],
+      email: ['email', 'holder_email'],
+      phone: ['phone_number', 'holder_phone'],
+    };
+    
+    const possibleNames = internalNameMap[baseName];
+    // Find the exact field definition that came from the API
+    const field = ticketFormFields.find(f => possibleNames.includes(f.internal_name));
+    
+    if (field) {
+      // If we found the field, its visibility is strictly determined by whether ITS internal_name is in visibleColumns
+      return visibleColumns.includes(field.internal_name);
+    }
+    
+    // Fallback if not found in ticketFormFields
+    return possibleNames.some(name => visibleColumns.includes(name));
   };
 
   const rowIds = React.useMemo(() => {
@@ -212,28 +267,42 @@ export function TicketsTable({
                   }}
                 />
               </TableCell>
-              <TableCell sx={{ minWidth: '100px' }}>{tt('ID', 'ID')}</TableCell>
-              <TableCell sx={{ minWidth: '200px' }}>{tt('Họ tên', 'Full Name')}</TableCell>
-              <TableCell sx={{ minWidth: '150px' }}>{tt('Suất diễn / Loại vé', 'Show / Ticket Type')}</TableCell>
-              <TableCell>{tt('Đơn hàng', 'Order')}</TableCell>
-              <TableCell>{tt('Vé', 'Ticket Status')}</TableCell>
-              <TableCell>
-                <TableSortLabel
-                  active={orderBy === 'createdAt'}
-                  direction={orderBy === 'createdAt' ? order : 'asc'}
-                  onClick={() => handleRequestSort('createdAt')}
-                >
-                  {tt('Thời gian tạo', 'Created At')}
-                </TableSortLabel>
-              </TableCell>
-              <TableCell>
-                <TableSortLabel
-                  active={orderBy === 'checkInAt'}
-                  direction={orderBy === 'checkInAt' ? order : 'asc'}
-                  onClick={() => handleRequestSort('checkInAt')}
-                >
-                  {tt('Thời gian check-in', 'Check-in Time')}
-                </TableSortLabel>
+              {visibleColumns.includes('id') && <TableCell sx={{ minWidth: '100px' }}>{tt('ID', 'ID')}</TableCell>}
+              {visibleColumns.includes('customer_info') && <TableCell sx={{ minWidth: '200px' }}>{tt('Họ tên', 'Full Name')}</TableCell>}
+              {visibleColumns.includes('show_info') && <TableCell sx={{ minWidth: '150px' }}>{tt('Suất diễn / Loại vé', 'Show / Ticket Type')}</TableCell>}
+              {visibleColumns.includes('order') && <TableCell>{tt('Đơn hàng', 'Order')}</TableCell>}
+              {visibleColumns.includes('status') && <TableCell>{tt('Vé', 'Ticket Status')}</TableCell>}
+              {visibleColumns.includes('created_at') && (
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'createdAt'}
+                    direction={orderBy === 'createdAt' ? order : 'asc'}
+                    onClick={() => handleRequestSort('createdAt')}
+                  >
+                    {tt('Thời gian tạo', 'Created At')}
+                  </TableSortLabel>
+                </TableCell>
+              )}
+              {visibleColumns.includes('check_in_at') && (
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'checkInAt'}
+                    direction={orderBy === 'checkInAt' ? order : 'asc'}
+                    onClick={() => handleRequestSort('checkInAt')}
+                  >
+                    {tt('Thời gian check-in', 'Check-in Time')}
+                  </TableSortLabel>
+                </TableCell>
+              )}
+              {ticketFormFields.map(field => 
+                !['holder_title', 'holder_name', 'holder_phone', 'holder_email', 'title', 'name', 'phone_number', 'email'].includes(field.internal_name) && visibleColumns.includes(field.internal_name) && (
+                  <TableCell key={field.internal_name}>{field.label}</TableCell>
+                )
+              )}
+              <TableCell align="right" padding="none">
+                <IconButton onClick={(e) => { e.stopPropagation(); handleOpenSettings(e); }}>
+                  <SettingsIcon size={20} />
+                </IconButton>
               </TableCell>
             </TableRow>
           </TableHead>
@@ -268,99 +337,116 @@ export function TicketsTable({
                       }}
                     />
                   </TableCell>
-                  <TableCell>
-                    <Stack spacing={0.5}>
-                      <Typography variant="body2">{row.transactionId}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        TID-{row.id}
-                      </Typography>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-                      <Tooltip title={
-                        <Stack spacing={1}>
-                          <Typography variant="caption">{tt('Họ tên:', 'Full Name:')} {row.holderName}</Typography>
-                          <Typography variant="caption">{tt('Email:', 'Email:')} {row.holderEmail || row.transactionTicketCategory.transaction.email}</Typography>
-                          <Typography variant="caption">{tt('SĐT:', 'Phone:')} {row.holderPhone || row.transactionTicketCategory.transaction.phoneNumber}</Typography>
-                        </Stack>
-                      }>
-                        <Avatar {...stringAvatar(row.holderName)} />
-                      </Tooltip>
-                      <Tooltip title={
-                        <Stack spacing={1}>
-                          <Typography variant="caption">{tt('Họ tên:', 'Full Name:')} {row.holderName}</Typography>
-                          <Typography variant="caption">{tt('Email:', 'Email:')} {row.holderEmail || row.transactionTicketCategory.transaction.email}</Typography>
-                          <Typography variant="caption">{tt('SĐT:', 'Phone:')} {row.holderPhone || row.transactionTicketCategory.transaction.phoneNumber}</Typography>
-                        </Stack>
-                      }>
+                  {visibleColumns.includes('id') && (
+                    <TableCell>
+                      <Stack spacing={0.5}>
+                        <Typography variant="body2">{row.transactionId}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          TID-{row.id}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                  )}
+                  {visibleColumns.includes('customer_info') && (
+                    <TableCell>
+                      <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
+                        <Avatar {...stringAvatar((row as any).formAnswers?.name || row.holderName)} />
                         <Stack spacing={0}>
-                          <Typography variant="subtitle2">{row.holderName}</Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>
-                            {row.holderEmail || row.transactionTicketCategory.transaction.email}
+                          <Typography variant="subtitle2">
+                            {isFieldVisible('title') && ((row as any).formAnswers?.title || row.holderTitle) ? `${(row as any).formAnswers?.title || row.holderTitle} ` : ''}
+                            {isFieldVisible('name') ? ((row as any).formAnswers?.name || row.holderName) : ''}
                           </Typography>
+                          {isFieldVisible('email') && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>
+                              {(row as any).formAnswers?.email || row.holderEmail || row.transactionTicketCategory.transaction.email}
+                            </Typography>
+                          )}
+                          {isFieldVisible('phone') && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>
+                              {(row as any).formAnswers?.phone_number || row.holderPhone || row.transactionTicketCategory.transaction.phoneNumber}
+                            </Typography>
+                          )}
                         </Stack>
-                      </Tooltip>
-
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    <Stack spacing={0.5}>
-                      <Typography variant="body2">{row.transactionTicketCategory.ticketCategory.show.name}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {row.transactionTicketCategory.ticketCategory.name}
-                      </Typography>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    <Stack spacing={0.5} alignItems="flex-start">
-                      <Stack spacing={0.5} direction={'row'} alignItems="center">
-                        {row.transactionTicketCategory.transaction.status !== 'normal' && (
+                      </Stack>
+                    </TableCell>
+                  )}
+                  {visibleColumns.includes('show_info') && (
+                    <TableCell>
+                      <Stack spacing={0.5}>
+                        <Typography variant="body2">{row.transactionTicketCategory.ticketCategory.show.name}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {row.transactionTicketCategory.ticketCategory.name}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                  )}
+                  {visibleColumns.includes('order') && (
+                    <TableCell>
+                      <Stack spacing={0.5} alignItems="flex-start">
+                        <Stack spacing={0.5} direction={'row'} alignItems="center">
+                          {row.transactionTicketCategory.transaction.status !== 'normal' && (
+                            <Chip
+                              color={getRowStatusDetails(row.transactionTicketCategory.transaction.status, tt).color}
+                              label={getRowStatusDetails(row.transactionTicketCategory.transaction.status, tt).label}
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
+                          {row.transactionTicketCategory.transaction.cancelRequestStatus == 'pending' &&
+                            <Tooltip title={
+                              <Typography>{tt('Khách hàng yêu cầu hủy', 'Customer requested cancellation')}</Typography>
+                            }>
+                              <Chip size="small" color={'error'} label={<WarningCircle size={16} />} variant="outlined" />
+                            </Tooltip>
+                          }
+                        </Stack>
+                        <Chip
+                          color={getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus, tt).color as ChipProps['color']}
+                          label={
+                            getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus, tt).label
+                          }
+                          size="small"
+                          variant="outlined"
+                        />
+                      </Stack>
+                    </TableCell>
+                  )}
+                  {visibleColumns.includes('status') && (
+                    <TableCell>
+                      <Stack spacing={0.5} alignItems="flex-start">
+                        {row.status !== 'normal' && (
                           <Chip
-                            color={getRowStatusDetails(row.transactionTicketCategory.transaction.status, tt).color}
-                            label={getRowStatusDetails(row.transactionTicketCategory.transaction.status, tt).label}
+                            color={getRowStatusDetails(row.status, tt).color}
+                            label={getRowStatusDetails(row.status, tt).label}
                             size="small"
                             variant="outlined"
                           />
                         )}
-                        {row.transactionTicketCategory.transaction.cancelRequestStatus == 'pending' &&
-                          <Tooltip title={
-                            <Typography>{tt('Khách hàng yêu cầu hủy', 'Customer requested cancellation')}</Typography>
-                          }>
-                            <Chip size="small" color={'error'} label={<WarningCircle size={16} />} variant="outlined" />
-                          </Tooltip>
-                        }
-                      </Stack>
-                      <Chip
-                        color={getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus, tt).color as ChipProps['color']}
-                        label={
-                          getPaymentStatusDetails(row.transactionTicketCategory.transaction.paymentStatus, tt).label
-                        }
-                        size="small"
-                        variant="outlined"
-                      />
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    <Stack spacing={0.5} alignItems="flex-start">
-                      {row.status !== 'normal' && (
                         <Chip
-                          color={getRowStatusDetails(row.status, tt).color}
-                          label={getRowStatusDetails(row.status, tt).label}
+                          color={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent', tt).color as ChipProps['color']}
+                          label={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent', tt).label}
                           size="small"
                           variant="outlined"
                         />
-                      )}
-                      <Chip
-                        color={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent', tt).color as ChipProps['color']}
-                        label={getSentEmailTicketStatusDetails(row.transactionTicketCategory.transaction.exportedTicketAt ? 'sent' : 'not_sent', tt).label}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </Stack>
-                  </TableCell>
-                  <TableCell>{dayjs(row.createdAt).format('HH:mm:ss DD/MM/YYYY')}</TableCell>
-                  <TableCell>{row.checkInAt ? dayjs(row.checkInAt).format('HH:mm:ss DD/MM/YYYY') : ''}</TableCell>
+                      </Stack>
+                    </TableCell>
+                  )}
+                  {visibleColumns.includes('created_at') && (
+                    <TableCell>{dayjs(row.createdAt).format('HH:mm:ss DD/MM/YYYY')}</TableCell>
+                  )}
+                  {visibleColumns.includes('check_in_at') && (
+                    <TableCell>{row.checkInAt ? dayjs(row.checkInAt).format('HH:mm:ss DD/MM/YYYY') : ''}</TableCell>
+                  )}
+                  {ticketFormFields.map(field => 
+                    !['holder_title', 'holder_name', 'holder_phone', 'holder_email', 'title', 'name', 'phone_number', 'email'].includes(field.internal_name) && visibleColumns.includes(field.internal_name) ? (
+                      <TableCell key={field.internal_name}>
+                        {Array.isArray((row as any).formAnswers?.[field.internal_name]) 
+                          ? (row as any).formAnswers?.[field.internal_name]?.join(', ') 
+                          : (row as any).formAnswers?.[field.internal_name] || '-'}
+                      </TableCell>
+                    ) : !['holder_title', 'holder_name', 'holder_phone', 'holder_email', 'title', 'name', 'phone_number', 'email'].includes(field.internal_name) ? null : null
+                  )}
+                  <TableCell />
                 </TableRow>
               );
             })}
@@ -380,6 +466,61 @@ export function TicketsTable({
           showLastButton
         />
       </Box>
+      <Divider />
+      <Popover
+        open={openSettings}
+        anchorEl={anchorEl}
+        onClose={handleCloseSettings}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Box sx={{ p: 2, maxHeight: 400, overflow: 'auto' }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>{tt('Tùy chỉnh cột', 'Customize Columns')}</Typography>
+          <FormGroup>
+            <FormControlLabel 
+              control={<Checkbox checked={visibleColumns.includes('id')} onChange={() => toggleColumn('id')} />} 
+              label={tt('ID', 'ID')} 
+            />
+            <FormControlLabel 
+              control={<Checkbox checked={visibleColumns.includes('customer_info')} onChange={() => toggleColumn('customer_info')} />} 
+              label={tt('Thông tin khách hàng', 'Customer Info')} 
+            />
+            <FormControlLabel 
+              control={<Checkbox checked={visibleColumns.includes('show_info')} onChange={() => toggleColumn('show_info')} />} 
+              label={tt('Suất diễn / Loại vé', 'Show / Ticket Type')} 
+            />
+            <FormControlLabel 
+              control={<Checkbox checked={visibleColumns.includes('order')} onChange={() => toggleColumn('order')} />} 
+              label={tt('Đơn hàng', 'Order')} 
+            />
+            <FormControlLabel 
+              control={<Checkbox checked={visibleColumns.includes('status')} onChange={() => toggleColumn('status')} />} 
+              label={tt('Trạng thái vé', 'Ticket Status')} 
+            />
+            <FormControlLabel 
+              control={<Checkbox checked={visibleColumns.includes('created_at')} onChange={() => toggleColumn('created_at')} />} 
+              label={tt('Thời gian tạo', 'Created At')} 
+            />
+            <FormControlLabel 
+              control={<Checkbox checked={visibleColumns.includes('check_in_at')} onChange={() => toggleColumn('check_in_at')} />} 
+              label={tt('Thời gian check-in', 'Check-in Time')} 
+            />
+            {ticketFormFields.length > 0 && (
+              <>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>{tt('Thông tin Form', 'Form Info')}</Typography>
+                {ticketFormFields.map(field => (
+                  <FormControlLabel 
+                    key={field.internal_name}
+                    control={<Checkbox checked={visibleColumns.includes(field.internal_name)} onChange={() => toggleColumn(field.internal_name)} />} 
+                    label={field.label} 
+                  />
+                ))}
+              </>
+            )}
+          </FormGroup>
+        </Box>
+      </Popover>
     </Card>
   );
 }

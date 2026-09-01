@@ -74,6 +74,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [bulkErrorDetails, setBulkErrorDetails] = React.useState<BulkErrorDetail[]>([]);
   const [spreadsheetId, setSpreadsheetId] = React.useState<string | null>(null);
   const [isGsheetSyncEnabled, setIsGsheetSyncEnabled] = React.useState<boolean | null>(null);
+  const [checkoutFormFields, setCheckoutFormFields] = React.useState<any[]>([]);
+  const [visibleColumns, setVisibleColumns] = React.useState<string[]>([]);
 
   // Initialization
   React.useEffect(() => {
@@ -283,7 +285,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const fetchEventInfo = React.useCallback(async () => {
     try {
-      const response: AxiosResponse<{ gsheetSpreadsheetId?: string | null; gsheetSyncEnabled?: boolean }> =
+      const response: AxiosResponse<{ gsheetSpreadsheetId?: string | null; gsheetSyncEnabled?: boolean; checkoutFormFields?: any[]; transactionsTableConfig?: any }> =
         await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}`);
       const sheetId = response.data.gsheetSpreadsheetId ?? null;
       setSpreadsheetId(sheetId);
@@ -295,11 +297,29 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       } else {
         setIsGsheetSyncEnabled(null);
       }
+      setCheckoutFormFields(response.data.checkoutFormFields || []);
+      if (response.data.transactionsTableConfig?.visible_columns) {
+        setVisibleColumns(response.data.transactionsTableConfig.visible_columns);
+      } else {
+        setVisibleColumns(['id', 'customer_info', 'ticket_quantity', 'status', 'exported_ticket_at', 'created_at', 'title', 'name', 'phone_number', 'email']);
+      }
     } catch (error) {
       // Ignore error; event info is only needed for Google Sheets link
       console.error(error);
     }
   }, [params.event_id]);
+
+  const handleVisibleColumnsChange = async (newColumns: string[]) => {
+    setVisibleColumns(newColumns);
+    try {
+      await baseHttpServiceInstance.put(`/event-studio/events/${params.event_id}/transactions-table-config`, {
+        visibleColumns: newColumns,
+      });
+      fetchTransactions(false); // Reload silently to get form_answers
+    } catch (error) {
+      notificationCtx.error(tt('Lỗi lưu cấu hình cột:', 'Error saving columns config:'), error);
+    }
+  };
 
   const handleExportExcel = async () => {
     try {
@@ -1340,6 +1360,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         onDeselectMultiple={handleDeselectMultiple}
         onSelectOne={handleSelectOne}
         onDeselectOne={handleDeselectOne}
+        checkoutFormFields={checkoutFormFields}
+        visibleColumns={visibleColumns}
+        onVisibleColumnsChange={handleVisibleColumnsChange}
       />
       <EmailMarketingSelectModal
         open={isEmailMarketingModalOpen}

@@ -116,6 +116,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const notificationCtx = React.useContext(NotificationContext);
   const [selected, setSelected] = React.useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [ticketFormFields, setTicketFormFields] = React.useState<any[]>([]);
+  const [visibleColumns, setVisibleColumns] = React.useState<string[]>(['id', 'customer_info', 'show_info', 'order', 'status', 'created_at', 'check_in_at', 'holder_title', 'holder_name', 'holder_phone', 'holder_email']);
   const [autoReload, setAutoReload] = React.useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(AUTO_RELOAD_STORAGE_KEY);
@@ -294,7 +296,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
   const fetchEventInfo = React.useCallback(async () => {
     try {
-      const response: AxiosResponse<{ gsheetSpreadsheetId?: string | null; gsheetSyncEnabled?: boolean }> =
+      const response: AxiosResponse<{ gsheetSpreadsheetId?: string | null; gsheetSyncEnabled?: boolean; ticketFormFields?: any[]; ticketsTableConfig?: any }> =
         await baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}`);
       const sheetId = response.data.gsheetSpreadsheetId ?? null;
       setSpreadsheetId(sheetId);
@@ -305,10 +307,28 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       } else {
         setIsGsheetSyncEnabled(null);
       }
+      setTicketFormFields(response.data.ticketFormFields || []);
+      if (response.data.ticketsTableConfig?.visible_columns) {
+        setVisibleColumns(response.data.ticketsTableConfig.visible_columns);
+      } else {
+        setVisibleColumns(['id', 'customer_info', 'show_info', 'order', 'status', 'created_at', 'check_in_at', 'holder_title', 'holder_name', 'holder_phone', 'holder_email']);
+      }
     } catch (error) {
       console.error(error);
     }
   }, [params.event_id]);
+
+  const handleVisibleColumnsChange = async (newColumns: string[]) => {
+    setVisibleColumns(newColumns);
+    try {
+      await baseHttpServiceInstance.put(`/event-studio/events/${params.event_id}/tickets-table-config`, {
+        visibleColumns: newColumns,
+      });
+      fetchTickets(false); // Reload silently to get form_answers
+    } catch (error) {
+      notificationCtx.error(tt('Lỗi lưu cấu hình cột:', 'Error saving columns config:'), error);
+    }
+  };
 
   const handleExportExcel = async () => {
     try {
@@ -1157,6 +1177,9 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         onDeselectMultiple={handleDeselectMultiple}
         onSelectOne={handleSelectOne}
         onDeselectOne={handleDeselectOne}
+        ticketFormFields={ticketFormFields}
+        visibleColumns={visibleColumns}
+        onVisibleColumnsChange={handleVisibleColumnsChange}
       />
     </Stack>
   );
