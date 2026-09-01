@@ -653,7 +653,6 @@ export default function Page(): React.JSX.Element {
         customer: customerData,
         tickets,
         paymentMethod,
-        qrOption,
         captchaValue,
         latitude: position?.latitude,
         longitude: position?.longitude,

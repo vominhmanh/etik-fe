@@ -366,7 +366,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
         hiddenFromCustomer: newField.hiddenFromCustomer,
         note: newField.note,
         showInTransactionHistory: newField.showInTransactionHistory,
-        showInTicketEmail: newField.showInTicketEmail,
+        showInTicketEmail: newField.visible ? newField.showInTicketEmail : false,
         locked: false,
         nonDeletable: false,
         options: cleanedOptions && cleanedOptions.length > 0 ? cleanedOptions : undefined,
@@ -400,7 +400,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             hiddenFromCustomer: canEditVisibilityAndRequired ? newField.hiddenFromCustomer : field.hiddenFromCustomer,
             note: newField.note,
             showInTransactionHistory: isCoreField ? true : newField.showInTransactionHistory,
-            showInTicketEmail: isCoreField ? true : newField.showInTicketEmail,
+            showInTicketEmail: isCoreField ? true : (newField.visible ? newField.showInTicketEmail : false),
             options:
               (newField.type === 'radio' || newField.type === 'checkbox') &&
               cleanedOptions &&
@@ -466,7 +466,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           hiddenFromCustomer: field.hiddenFromCustomer,
           note: field.note || null,
           showInTransactionHistory: field.showInTransactionHistory,
-          showInTicketEmail: field.showInTicketEmail,
+          showInTicketEmail: field.visible ? field.showInTicketEmail : false,
           sortOrder,
           options,
         };
@@ -703,7 +703,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       const scope = e.target.value as VisibilityScope;
                       setNewField((prev) => {
                         if (scope === 'hidden') {
-                          return { ...prev, visible: false, hiddenFromCustomer: false, required: false };
+                          return {
+                            ...prev,
+                            visible: false,
+                            hiddenFromCustomer: false,
+                            required: false,
+                            showInTicketEmail: false,
+                          };
                         }
                         if (scope === 'staffOnly') {
                           return { ...prev, visible: true, hiddenFromCustomer: true, required: false };
@@ -780,10 +786,22 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       onChange={(e) =>
                         setNewField((prev) => ({ ...prev, showInTicketEmail: e.target.checked }))
                       }
-                      disabled={!!editingField && (editingField.internalName === 'title' || editingField.internalName === 'name' || editingField.internalName === 'email' || editingField.internalName === 'phone_number')}
+                      disabled={
+                        (!!editingField && (editingField.internalName === 'title' || editingField.internalName === 'name' || editingField.internalName === 'email' || editingField.internalName === 'phone_number')) ||
+                        !newField.visible
+                      }
                     />
                   }
-                  label="Hiển thị trong email vé"
+                  label={
+                    <Stack spacing={0}>
+                      <Typography variant="body2">Hiển thị trong email vé</Typography>
+                      {!newField.visible && (
+                        <Typography variant="caption" color="text.secondary">
+                          Trường đang ở chế độ &quot;Ẩn hoàn toàn&quot; nên không thể hiển thị trong email vé
+                        </Typography>
+                      )}
+                    </Stack>
+                  }
                 />
 
                 {(newField.type === 'radio' || newField.type === 'checkbox') && (

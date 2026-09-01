@@ -409,7 +409,6 @@ export default function Page(): React.JSX.Element {
         customer,
         tickets,
         paymentMethod,
-        qrOption,
         captchaValue,
         "latitude": position?.latitude,
         "longitude": position?.longitude

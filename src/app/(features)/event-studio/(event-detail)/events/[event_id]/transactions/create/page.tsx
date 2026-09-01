@@ -861,7 +861,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const transactionData = {
         customer: apiCustomer,
         tickets: tickets,
-        qrOption: order.qrOption,
 
         paymentMethod: finalTotal === 0 ? 'cash' : order.paymentMethod,
         extraFee: order.extraFee,

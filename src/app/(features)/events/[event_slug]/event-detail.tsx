@@ -1169,7 +1169,6 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
         captchaValue: captchaValue,
         customer: apiCustomer,
         tickets: tickets,
-        qrOption: order.qrOption,
 
         paymentMethod: order.paymentMethod,
         extraFee: order.extraFee,
@@ -1448,7 +1447,9 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               setRequestedCategoryModalId={(categoryId) => setRequestedCategoryModalId(categoryId)}
               onBack={() => setActiveStep(0)}
               onNext={() => {
-                if (validateStep2()) setActiveStep(2);
+                if (!validateStep2()) return;
+                // Đơn hàng 0đ: bỏ qua bước Thanh toán, vào thẳng bước Xem lại đơn
+                setActiveStep(finalTotal === 0 ? 3 : 2);
               }}
               invitation={invitation}
             />
@@ -1512,7 +1513,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               appliedVoucherCode={appliedVoucher && voucherValidation.valid ? appliedVoucher.code : null}
               finalTotal={finalTotal}
               formatPrice={formatPrice}
-              onBack={() => setActiveStep(2)}
+              onBack={() => setActiveStep(finalTotal === 0 ? 1 : 2)}
               onConfirm={handleSubmit}
               confirmDisabled={isLoading}
               enableCaptcha={true}

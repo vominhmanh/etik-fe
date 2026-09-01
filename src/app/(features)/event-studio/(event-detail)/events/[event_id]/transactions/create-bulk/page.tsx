@@ -1066,7 +1066,6 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       const transactionData: any = {
         customers: customersWithFormAnswers,
         tickets,
-        qrOption: "shared",
         paymentMethod,
         extraFee,
       };

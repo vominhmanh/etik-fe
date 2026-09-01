@@ -23,6 +23,7 @@ import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { HouseLine as HouseLineIcon } from '@phosphor-icons/react/dist/ssr/HouseLine';
 import { MapPin as MapPinIcon } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { ScanSmiley as ScanSmileyIcon } from '@phosphor-icons/react/dist/ssr/ScanSmiley';
+import { QrCode as QrCodeIcon } from '@phosphor-icons/react/dist/ssr/QrCode';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
 import { LocalizedLink } from '@/components/homepage/localized-link';
@@ -84,6 +85,11 @@ export interface CheckInFaceConfig {
 }
 export interface TicketTransferConfig {
   allowTicketTransfer: boolean;
+}
+
+export interface TicketQrSettingsConfig {
+  qrOption: 'shared' | 'separate';
+  ticketRecipientMode: 'buyer' | 'holders' | 'both';
 }
 
 export interface OrderFlowConfig {
@@ -181,6 +187,11 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [ticketTransferConfig, setTicketTransferConfig] = useState<TicketTransferConfig>({
     allowTicketTransfer: true,
   });
+  const [ticketQrSettings, setTicketQrSettings] = useState<TicketQrSettingsConfig>({
+    qrOption: 'separate',
+    ticketRecipientMode: 'holders',
+  });
+  const [isTicketQrSettingsLoading, setIsTicketQrSettingsLoading] = useState<boolean>(false);
 
   const [printers, setPrinters] = useState<TicketTagPrinter[]>([]);
   const [selectedPrinterId, setSelectedPrinterId] = useState<number | null>(null);
@@ -207,12 +218,13 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     async function fetchData() {
       setIsLoading(true);
       try {
-        const [smtpRes, emailTplRes, sendMethodsRes, faceCfgRes, transferCfgRes, eventRes] = await Promise.allSettled([
+        const [smtpRes, emailTplRes, sendMethodsRes, faceCfgRes, transferCfgRes, qrSettingsRes, eventRes] = await Promise.allSettled([
           getSMTPSettings(params.event_id),
           getEmailTemplateSettings(params.event_id),
           getTransactionFlowsConfig(params.event_id),
           getCheckInFaceConfig(params.event_id),
           getTicketTransferConfig(params.event_id),
+          getTicketQrSettings(params.event_id),
           baseHttpServiceInstance.get(`/event-studio/events/${params.event_id}`),
         ]);
 
@@ -248,6 +260,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           setTicketTransferConfig(transferCfgRes.value);
         } else if (transferCfgRes.status === 'rejected') {
           notificationCtx.warning(tt('Không tải được cài đặt chuyển nhượng vé', 'Failed to load ticket transfer settings'));
+        }
+
+        if (qrSettingsRes.status === 'fulfilled' && qrSettingsRes.value) {
+          setTicketQrSettings(qrSettingsRes.value);
+        } else if (qrSettingsRes.status === 'rejected') {
+          notificationCtx.warning(tt('Không tải được cài đặt QR vé', 'Failed to load ticket QR settings'));
         }
 
         if (eventRes.status === 'fulfilled' && eventRes.value) {
@@ -607,6 +625,42 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
     }
   };
 
+  async function getTicketQrSettings(eventId: number): Promise<TicketQrSettingsConfig | null> {
+    try {
+      const response: AxiosResponse<TicketQrSettingsConfig> = await baseHttpServiceInstance.get(
+        `/event-studio/events/${eventId}/ticket-qr-settings`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async function saveTicketQrSettingsRequest(eventId: number, config: TicketQrSettingsConfig): Promise<void> {
+    try {
+      await baseHttpServiceInstance.post(`/event-studio/events/${eventId}/ticket-qr-settings`, config);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  const handleTicketQrSettingsChange = (event: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+    const { name, value } = event.target;
+    setTicketQrSettings((prev) => ({ ...prev, [name as string]: value }));
+  };
+
+  const handleSaveTicketQrSettings = async () => {
+    try {
+      setIsTicketQrSettingsLoading(true);
+      await saveTicketQrSettingsRequest(event_id, ticketQrSettings);
+      notificationCtx.success(tt('Cập nhật thành công', 'Updated successfully'));
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setIsTicketQrSettingsLoading(false);
+    }
+  };
+
   const handlePrinterChange = (printerId: number | null) => {
     setSelectedPrinterId(printerId);
   };
@@ -824,6 +878,58 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button variant="contained" color="primary" onClick={handleSaveTicketTransferConfig} startIcon={<Gift />} disabled={isTicketTransferLoading}>
                     {isTicketTransferLoading ? <CircularProgress size={24} /> : tt("Lưu cài đặt", "Save Settings")}
+                  </Button>
+                </CardActions>
+              </Card>
+              <Card>
+                <CardHeader title={tt("QR vé & Người nhận", "Ticket QR & Recipient")} />
+                <Divider />
+                <CardContent>
+                  <Stack spacing={3}>
+                    <FormControl fullWidth>
+                      <InputLabel>{tt("Mã QR", "QR Code")}</InputLabel>
+                      <Select
+                        label={tt("Mã QR", "QR Code")}
+                        name="qrOption"
+                        value={ticketQrSettings.qrOption}
+                        onChange={(event: any) => handleTicketQrSettingsChange(event)}
+                      >
+                        <MenuItem value={'separate'}>{tt("Tách riêng theo từng vé", "Separate per ticket")}</MenuItem>
+                        <MenuItem value={'shared'}>{tt("Dùng chung cho cả đơn", "Shared for the whole order")}</MenuItem>
+                      </Select>
+                      <FormHelperText>
+                        {tt(
+                          "Tách riêng: mỗi vé một mã QR riêng, phù hợp đa số sự kiện. Dùng chung: cả đơn hàng check-in bằng 1 mã QR duy nhất, phù hợp vé đi theo nhóm/gia đình.",
+                          "Separate: each ticket has its own QR code, suitable for most events. Shared: the whole order checks in with a single QR code, suitable for group/family orders."
+                        )}
+                      </FormHelperText>
+                    </FormControl>
+
+                    <FormControl fullWidth>
+                      <InputLabel>{tt("Gửi vé cho", "Send tickets to")}</InputLabel>
+                      <Select
+                        label={tt("Gửi vé cho", "Send tickets to")}
+                        name="ticketRecipientMode"
+                        value={ticketQrSettings.ticketRecipientMode}
+                        onChange={(event: any) => handleTicketQrSettingsChange(event)}
+                      >
+                        <MenuItem value={'buyer'}>{tt("Người mua", "Buyer")}</MenuItem>
+                        <MenuItem value={'holders'}>{tt("Người sở hữu vé", "Ticket holders")}</MenuItem>
+                        <MenuItem value={'both'}>{tt("Cả người mua và người sở hữu vé", "Both buyer and ticket holders")}</MenuItem>
+                      </Select>
+                      <FormHelperText>
+                        {tt(
+                          "Áp dụng cho email/Zalo tự động gửi vé theo luồng đơn hàng bên dưới.",
+                          "Applies to the automatic email/Zalo ticket delivery in the order flows below."
+                        )}
+                      </FormHelperText>
+                    </FormControl>
+                  </Stack>
+                </CardContent>
+                <Divider />
+                <CardActions sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button variant="contained" color="primary" onClick={handleSaveTicketQrSettings} startIcon={<QrCodeIcon />} disabled={isTicketQrSettingsLoading}>
+                    {isTicketQrSettingsLoading ? <CircularProgress size={24} /> : tt("Lưu cài đặt", "Save Settings")}
                   </Button>
                 </CardActions>
               </Card>
