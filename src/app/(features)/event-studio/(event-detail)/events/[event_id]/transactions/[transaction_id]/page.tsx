@@ -710,7 +710,8 @@ export default function Page({ params }: { params: { event_id: number; transacti
       // Optionally handle response
       if (response.status === 200) {
         notificationCtx.success(response.data.message);
-        setTransaction((prev) => prev ? { ...prev, exportedTicketAt: '.' } : prev);
+        // Refetch để lấy dữ liệu mới nhất (vd: Số báo danh vừa được cấp tự động)
+        await fetchTransactionDetails();
       }
     } catch (error) {
       notificationCtx.error(error);

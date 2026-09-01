@@ -125,6 +125,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [cartOpen, setCartOpen] = React.useState<boolean>(false);
 
   const [checkoutFormFields, setCheckoutFormFields] = React.useState<CheckoutRuntimeField[]>([]);
+  const [ticketFormFields, setTicketFormFields] = React.useState<CheckoutRuntimeField[]>([]);
   const [checkoutCustomAnswers, setCheckoutCustomAnswers] = React.useState<Record<string, any>>({});
   const [availableVouchers, setAvailableVouchers] = React.useState<any[]>([]);
   const [appliedVoucher, setAppliedVoucher] = React.useState<any | null>(null);
@@ -166,6 +167,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
           );
           setEvent(response.data);
           setCheckoutFormFields(response.data.checkoutFormFields || []);
+          setTicketFormFields(response.data.ticketFormFields || []);
           // setFormValues(response.data); // Initialize form with the event data
         } catch (error) {
           notificationCtx.error(error);
@@ -1066,6 +1068,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                 order={order}
                 setOrder={setOrder}
                 checkoutFormFields={checkoutFormFields}
+                ticketFormFields={ticketFormFields}
                 customCheckoutFields={customCheckoutFields}
                 builtinInternalNames={builtinInternalNames}
                 checkoutCustomAnswers={checkoutCustomAnswers}
@@ -1333,6 +1336,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
               }}
               shows={event?.shows || []}
               checkoutFormFields={checkoutFormFields}
+              ticketFormFields={ticketFormFields}
               builtinInternalNames={builtinInternalNames}
               checkoutCustomAnswers={invitationSettings.letCustomerFillInfo ? {} : checkoutCustomAnswers}
               paymentMethodLabel={paymentMethodLabel}

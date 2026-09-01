@@ -12,7 +12,7 @@ COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
 COPY packages/seat-picker/package.json packages/seat-picker/package.json
 
 # 3) Install deps
-RUN pnpm install --frozen-lockfile
+RUN pnpm config set ignore-scripts false && pnpm install --frozen-lockfile
 
 # 4) Copy the rest source
 COPY . .
