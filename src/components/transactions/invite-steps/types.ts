@@ -76,6 +76,7 @@ export type EventResponse = {
     locationInstruction: string | null;
     shows: Show[];
     checkoutFormFields: CheckoutRuntimeField[];
+    ticketFormFields?: CheckoutRuntimeField[];
     displayOption?: string;
     timeInstruction?: string;
     limitPerTransaction?: number | null;

@@ -176,19 +176,15 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
 
 	const checkoutFormFieldsMap = React.useMemo(() => {
 		const map = new Map<string, string>();
-		if (!eventData?.checkoutForm) return map;
-		try {
-			const fields = typeof eventData.checkoutForm === 'string' ? JSON.parse(eventData.checkoutForm) : eventData.checkoutForm;
-			if (Array.isArray(fields)) {
-				fields.forEach(f => {
-					if (f.internal_name && f.label) map.set(f.internal_name, f.label);
-				});
-			}
-		} catch (e) {
-			console.error("Failed to parse checkoutForm", e);
-		}
+		const fields = [
+			...(eventData?.checkoutFormFields || []),
+			...(eventData?.ticketFormFields || []),
+		];
+		fields.forEach((f: any) => {
+			if (f?.internalName && f?.label) map.set(f.internalName, f.label);
+		});
 		return map;
-	}, [eventData?.checkoutForm]);
+	}, [eventData?.checkoutFormFields, eventData?.ticketFormFields]);
 
 	// Actions
 	const handleResendEmail = async (id: number, e?: React.MouseEvent) => {
