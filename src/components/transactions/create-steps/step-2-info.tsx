@@ -170,6 +170,19 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
 
   const customTicketFields = ticketFormFields.filter(f => !builtinInternalNames.has(f.internalName));
 
+  // Ghi chú (hướng dẫn nhập liệu) cho các trường mặc định, do BTC cấu hình trong Form mua vé / Form thông tin vé
+  const ticketTitleNote = ticketFormFields.find((f) => f.internalName === 'title')?.note || undefined;
+  const ticketNameNote = ticketFormFields.find((f) => f.internalName === 'name')?.note || undefined;
+  const ticketCombinedNameNote = ticketNameNote || ticketTitleNote;
+  const ticketEmailNote = ticketFormFields.find((f) => f.internalName === 'email')?.note || undefined;
+  const ticketPhoneNote = ticketFormFields.find((f) => f.internalName === 'phone_number')?.note || undefined;
+
+  const customerTitleNote = checkoutFormFields.find((f) => f.internalName === 'title')?.note || undefined;
+  const customerNameNote = checkoutFormFields.find((f) => f.internalName === 'name')?.note || undefined;
+  const customerCombinedNameNote = customerNameNote || customerTitleNote;
+  const customerEmailNote = checkoutFormFields.find((f) => f.internalName === 'email')?.note || undefined;
+  const customerPhoneNote = checkoutFormFields.find((f) => f.internalName === 'phone_number')?.note || undefined;
+
   // Group tickets for summary
   const ticketSummary = React.useMemo(() => {
     const groups: Record<string, { showId: number, categoryId: number, showName: string, categoryName: string, quantity: number, total: number, indices: number[] }> = {};
@@ -683,6 +696,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                           }
                                         />
                                       </FormControl>
+                                      {ticketCombinedNameNote && (
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                          {ticketCombinedNameNote}
+                                        </Typography>
+                                      )}
                                     </Grid>
 
                                     <Grid item xs={12} md={3}>
@@ -698,6 +716,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
 
                                         />
                                       </FormControl>
+                                      {ticketEmailNote && (
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                          {ticketEmailNote}
+                                        </Typography>
+                                      )}
                                     </Grid>
 
                                     <Grid item xs={12} md={3}>
@@ -733,6 +756,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                           }
                                         />
                                       </FormControl>
+                                      {ticketPhoneNote && (
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                          {ticketPhoneNote}
+                                        </Typography>
+                                      )}
                                     </Grid>
 
                                     
@@ -753,6 +781,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                                 onChange={(e) => setHolderInfo({ idcard_number: e.target.value })}
                                               />
                                             </FormControl>
+                                            {idcardCfg?.note && (
+                                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                                {idcardCfg.note}
+                                              </Typography>
+                                            )}
                                           </Grid>
                                         )
                                       );
@@ -776,6 +809,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                                 onChange={(e) => setHolderInfo({ dob: e.target.value })}
                                               />
                                             </FormControl>
+                                            {dobCfg?.note && (
+                                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                                {dobCfg.note}
+                                              </Typography>
+                                            )}
                                           </Grid>
                                         )
                                       );
@@ -797,6 +835,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                                 onChange={(e) => setHolderInfo({ address: e.target.value })}
                                               />
                                             </FormControl>
+                                            {addrCfg?.note && (
+                                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                                {addrCfg.note}
+                                              </Typography>
+                                            )}
                                           </Grid>
                                         )
                                       );
@@ -1038,6 +1081,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                           }
                         />
                       </FormControl>
+                      {customerCombinedNameNote && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                          {customerCombinedNameNote}
+                        </Typography>
+                      )}
                     </Grid>
 
                     <Grid item lg={6} xs={12}>
@@ -1053,6 +1101,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                           onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
                         />
                       </FormControl>
+                      {customerEmailNote && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                          {customerEmailNote}
+                        </Typography>
+                      )}
                     </Grid>
 
                     <Grid item lg={6} xs={12}>
@@ -1089,6 +1142,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                           }
                         />
                       </FormControl>
+                      {customerPhoneNote && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                          {customerPhoneNote}
+                        </Typography>
+                      )}
                     </Grid>
 
                     {/* Builtin optional fields controlled by checkout form config */}
@@ -1118,6 +1176,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                               }}
                               inputProps={{ max: new Date().toISOString().slice(0, 10) }}
                             />
+                            {dobCfg?.note && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                {dobCfg.note}
+                              </Typography>
+                            )}
                           </Grid>
                         )
                       );
@@ -1145,6 +1208,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                 }
                               />
                             </FormControl>
+                            {idCfg?.note && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                {idCfg.note}
+                              </Typography>
+                            )}
                           </Grid>
                         )
                       );
@@ -1173,6 +1241,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                 }
                               />
                             </FormControl>
+                            {addrCfg?.note && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                {addrCfg.note}
+                              </Typography>
+                            )}
                           </Grid>
                         )
                       );

@@ -590,15 +590,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          {!field.locked && (
-                            <IconButton
-                              color="primary"
-                              onClick={() => handleOpenEditFieldModal(field)}
-                            >
-                              <Pencil />
-                            </IconButton>
-                          )}
-
+                          <IconButton
+                            color="primary"
+                            onClick={() => handleOpenEditFieldModal(field)}
+                          >
+                            <Pencil />
+                          </IconButton>
                         </Stack>
                       </TableCell>
                     </TableRow>
@@ -660,6 +657,12 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
                   value={newField.label}
                   onChange={(e) =>
                     setNewField((prev) => ({ ...prev, label: e.target.value }))
+                  }
+                  disabled={!!editingField && (editingField.locked || editingField.nonDeletable)}
+                  helperText={
+                    editingField && (editingField.locked || editingField.nonDeletable)
+                      ? 'Trường mặc định, không thể đổi tên. Bạn vẫn có thể chỉnh "Ghi chú cho khách" bên dưới.'
+                      : undefined
                   }
                 />
 
