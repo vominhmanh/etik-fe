@@ -33,7 +33,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
 import { alpha } from '@mui/material/styles';
-import { CaretDown, DotsThreeOutlineVertical, Pencil, Plus, Copy, User, EnvelopeSimple, Phone, MapPin, IdentificationCard, CalendarBlank, Armchair, CheckCircle } from '@phosphor-icons/react/dist/ssr';
+import { CaretDown, DotsThreeOutlineVertical, Pencil, Plus, Copy, User, EnvelopeSimple, Phone, MapPin, IdentificationCard, CalendarBlank, Armchair, CheckCircle, X } from '@phosphor-icons/react/dist/ssr';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 
 import { LocalizedLink } from '@/components/homepage/localized-link';
@@ -218,6 +218,22 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
       });
     }
     setCustomerLinkedToTicket1(true);
+  };
+
+  // Clear all buyer fields for a fresh manual entry, breaking the link with ticket 1
+  const clearCustomerInfo = () => {
+    setCustomerLinkedToTicket1(false);
+    setCustomer({
+      title: 'Bạn',
+      name: '',
+      email: '',
+      nationalPhone: '',
+      phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
+      avatar: '',
+      dob: null,
+      address: '',
+      idcard_number: '',
+    });
   };
 
   const setTicketFormAnswer = (ticketIndex: number, internalName: string, value: any) => {
@@ -1038,16 +1054,25 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                   <>
                     {order.tickets.length > 0 && (
                       customerLinkedToTicket1 ? (
-                        <Button
-                          size="small"
-                          variant="text"
-                          color="success"
-                          disabled
-                          startIcon={<CheckCircle size={14} weight="fill" />}
-                          sx={{ mr: 1, textTransform: 'none', '&.Mui-disabled': { color: 'success.main' } }}
-                        >
-                          {tt('Đã copy từ vé 1', 'Copied from ticket 1')}
-                        </Button>
+                        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mr: 1 }}>
+                          <Button
+                            size="small"
+                            variant="text"
+                            color="success"
+                            disabled
+                            startIcon={<CheckCircle size={14} weight="fill" />}
+                            sx={{ textTransform: 'none', '&.Mui-disabled': { color: 'success.main' } }}
+                          >
+                            {tt('Đã copy từ vé 1', 'Copied from ticket 1')}
+                          </Button>
+                          <IconButton
+                            size="small"
+                            onClick={clearCustomerInfo}
+                            aria-label={tt('Xóa thông tin để nhập lại', 'Clear to re-enter')}
+                          >
+                            <X size={14} />
+                          </IconButton>
+                        </Stack>
                       ) : (
                         <Button
                           size="small"
@@ -1060,25 +1085,29 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                         </Button>
                       )
                     )}
-                    <IconButton onClick={onOpenFormMenu} size='small'>
-                      <DotsThreeOutlineVertical />
-                    </IconButton>
-                    <Menu
-                      anchorEl={formMenuAnchorEl}
-                      open={Boolean(formMenuAnchorEl)}
-                      onClose={onCloseFormMenu}
-                      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                      transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                    >
-                      <MenuItem onClick={onCloseFormMenu}>
-                        <LocalizedLink
-                          style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
-                          href={`/event-studio/events/${paramsEventId}/etik-forms/checkout-form?back_to=/event-studio/events/${paramsEventId}/transactions/create`}
+                    {source !== 'marketplace' && (
+                      <>
+                        <IconButton onClick={onOpenFormMenu} size='small'>
+                          <DotsThreeOutlineVertical />
+                        </IconButton>
+                        <Menu
+                          anchorEl={formMenuAnchorEl}
+                          open={Boolean(formMenuAnchorEl)}
+                          onClose={onCloseFormMenu}
+                          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
                         >
-                          {tt("Thêm câu hỏi vào biểu mẫu này", "Add questions to this form")}
-                        </LocalizedLink>
-                      </MenuItem>
-                    </Menu>
+                          <MenuItem onClick={onCloseFormMenu}>
+                            <LocalizedLink
+                              style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
+                              href={`/event-studio/events/${paramsEventId}/etik-forms/checkout-form?back_to=/event-studio/events/${paramsEventId}/transactions/create`}
+                            >
+                              {tt("Thêm câu hỏi vào biểu mẫu này", "Add questions to this form")}
+                            </LocalizedLink>
+                          </MenuItem>
+                        </Menu>
+                      </>
+                    )}
                   </>
                 }
               />
