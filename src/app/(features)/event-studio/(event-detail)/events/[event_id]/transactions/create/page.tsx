@@ -967,6 +967,8 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
             onRemoveCartItem={(showId, categoryId) => handleAddToCartQuantity(showId, categoryId, 0)}
             eventLimitPerTransaction={event?.limitPerTransaction}
             eventLimitPerCustomer={event?.limitPerCustomer}
+            eventSlug={event?.slug}
+            appliedVoucherCode={appliedVoucher && voucherValidation.valid ? appliedVoucher.code : null}
           />
           <Box>
             <Button

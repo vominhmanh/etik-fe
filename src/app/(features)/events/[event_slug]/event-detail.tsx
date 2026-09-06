@@ -373,6 +373,117 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
     }
   }, [event]);
 
+  // "Giỏ hàng được chọn sẵn": restore a cart encoded in the `cart` URL param (built by
+  // an admin via the "Lấy link giỏ hàng" button), skipping straight to the Info step
+  // when the pre-selected tickets are still available.
+  const hasAppliedCartParam = React.useRef(false);
+  React.useEffect(() => {
+    if (!event || hasAppliedCartParam.current) return;
+    if (typeof window === 'undefined') return;
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const cartParam = searchParams.get('cart');
+    if (!cartParam || searchParams.get('invitationUuid')) return;
+
+    hasAppliedCartParam.current = true;
+
+    let payload: { items?: any[] } = {};
+    try {
+      payload = JSON.parse(cartParam);
+    } catch (err) {
+      console.error('Invalid cart param', err);
+      return;
+    }
+
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    if (items.length === 0) return;
+
+    const resolvedTickets: TicketInfo[] = [];
+    const showsToSelectMap = new Map<number, Show>();
+    let droppedForSeats = false;
+    let droppedForAvailability = 0;
+
+    items.forEach((item: any) => {
+      const showId = Number(item.showId);
+      const ticketCategoryId = Number(item.ticketCategoryId);
+      const quantity = Math.max(0, Number(item.quantity) || 0);
+      if (!showId || !ticketCategoryId || quantity <= 0) return;
+
+      const show = event.shows.find((s) => s.id === showId);
+      if (!show) { droppedForAvailability += quantity; return; }
+
+      // Seats are assigned individually and may be taken by someone else by now,
+      // so seat-based shows are never restored through this link.
+      if (show.seatmapMode === 'seatings_selection') { droppedForSeats = true; return; }
+
+      const category = show.ticketCategories.find((c) => c.id === ticketCategoryId);
+      if (!category) { droppedForAvailability += quantity; return; }
+
+      const isSellable = category.status === 'on_sale' && !category.disabled;
+      const remaining = Math.max(0, (category.quantity || 0) - (category.sold || 0));
+      const availableQty = isSellable ? Math.min(quantity, remaining) : 0;
+      if (availableQty <= 0) { droppedForAvailability += quantity; return; }
+      if (availableQty < quantity) droppedForAvailability += (quantity - availableQty);
+
+      let audienceId: number | undefined = item.audienceId ?? undefined;
+      let audienceName = '';
+      let price = category.price;
+      const activeAudiences = category.categoryAudiences?.filter((ca) => ca.audience.isActive) || [];
+      let categoryAudience = audienceId ? activeAudiences.find((ca) => ca.audienceId === audienceId) : undefined;
+      if (!categoryAudience) {
+        categoryAudience = activeAudiences.find((ca) => ca.isDefault) || activeAudiences[0];
+      }
+      if (categoryAudience) {
+        audienceId = categoryAudience.audienceId;
+        audienceName = categoryAudience.audience.name;
+        price = categoryAudience.price;
+      }
+
+      showsToSelectMap.set(show.id, show);
+
+      for (let i = 0; i < availableQty; i++) {
+        resolvedTickets.push({
+          showId: show.id,
+          showName: show.name,
+          ticketCategoryId: category.id,
+          ticketCategoryName: category.name,
+          price,
+          audienceId,
+          audienceName,
+        });
+      }
+    });
+
+    if (resolvedTickets.length === 0) {
+      notificationCtx.error(tt(
+        'Giỏ hàng trong liên kết không còn vé nào khả dụng.',
+        'No tickets in this cart link are available anymore.'
+      ));
+      return;
+    }
+
+    const showsToSelect = Array.from(showsToSelectMap.values());
+    setSelectedSchedules(showsToSelect);
+    if (showsToSelect.length > 0) setActiveScheduleId(showsToSelect[0].id);
+
+    setOrder((prev) => ({ ...prev, tickets: resolvedTickets }));
+    setActiveStep(1);
+
+    if (droppedForSeats) {
+      notificationCtx.info(tt(
+        'Một số vé chọn ghế trong liên kết đã được bỏ qua.',
+        'Some seat-picked tickets in the link were skipped.'
+      ));
+    }
+    if (droppedForAvailability > 0) {
+      notificationCtx.info(tt(
+        `Đã bỏ qua ${droppedForAvailability} vé không còn khả dụng.`,
+        `Skipped ${droppedForAvailability} tickets that are no longer available.`
+      ));
+    }
+    notificationCtx.success(tt('Đã khôi phục giỏ hàng từ liên kết!', 'Cart restored from link!'));
+  }, [event]);
+
   const handleCloseSuccessModal = () => {
     // Optionally handle close
   }

@@ -62,6 +62,8 @@ export type Step1SelectTicketsProps = {
   eventLimitPerTransaction?: number | null;
   eventLimitPerCustomer?: number | null;
   source?: string;
+  eventSlug?: string;
+  appliedVoucherCode?: string | null;
   invitation?: any;
   /** Called when guest clicks "Change Tickets" – clears all auto-filled tickets so they pick manually */
   onClearAndReselect?: () => void;
@@ -913,6 +915,9 @@ export function Step1SelectTickets(props: Step1SelectTicketsProps): React.JSX.El
         onEditItem={props.onEditCartItem}
         onRemoveItem={props.onRemoveCartItem}
         onUpdateConcessionQuantity={props.onUpdateConcessionQuantity}
+        source={props.source}
+        eventSlug={props.eventSlug}
+        appliedVoucherCode={props.appliedVoucherCode}
       />
     </Stack >
   );

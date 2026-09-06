@@ -11,10 +11,13 @@ import {
     Button,
     IconButton,
     Card,
-    CardContent
+    CardContent,
+    Tooltip
 } from '@mui/material';
 import { ShoppingCart as ShoppingCartIcon } from '@phosphor-icons/react/dist/ssr/ShoppingCart';
-import { X as XIcon, Pencil as PencilIcon, Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr';
+import { X as XIcon, Pencil as PencilIcon, Ticket as TicketIcon, LinkSimple as LinkIcon } from '@phosphor-icons/react/dist/ssr';
+
+import NotificationContext from '@/contexts/notification-context';
 
 interface CartModalProps {
     open: boolean;
@@ -27,6 +30,10 @@ interface CartModalProps {
     onEditItem: (showId: number, categoryId: number) => void;
     onRemoveItem: (showId: number, categoryId: number) => void;
     onUpdateConcessionQuantity?: (showId: number, concessionId: number, quantity: number) => void;
+    /** Only admin (event-studio) contexts may generate a shareable pre-selected-cart link */
+    source?: string;
+    eventSlug?: string;
+    appliedVoucherCode?: string | null;
 }
 
 export function CartModal({
@@ -39,9 +46,63 @@ export function CartModal({
     subtotal,
     onEditItem,
     onRemoveItem,
-    onUpdateConcessionQuantity
+    onUpdateConcessionQuantity,
+    source,
+    eventSlug,
+    appliedVoucherCode
 }: CartModalProps) {
+    const notificationCtx = React.useContext(NotificationContext);
     const totalSelectedTickets = order.tickets.length;
+
+    // Group tickets by show + category + audience, reused for both display and the cart-link payload
+    const groups = React.useMemo(() => {
+        const list: { key: string, showId: number, ticketCategoryId: number, audienceId?: number, audienceName?: string, quantity: number, price: number }[] = [];
+        order.tickets.forEach((t: any) => {
+            const key = `${t.showId}-${t.ticketCategoryId}-${t.audienceId || 'default'}`;
+            let g = list.find(x => x.key === key);
+            if (!g) {
+                g = {
+                    key,
+                    showId: t.showId,
+                    ticketCategoryId: t.ticketCategoryId,
+                    audienceId: t.audienceId,
+                    audienceName: t.audienceName,
+                    quantity: 0,
+                    price: t.price || 0
+                };
+                list.push(g);
+            }
+            g.quantity++;
+        });
+        return list;
+    }, [order.tickets]);
+
+    // Seats are assigned individually and can't be guaranteed available later, so
+    // carts containing seat-picked tickets are never eligible for a shareable link
+    const hasSeatBasedTickets = order.tickets.some((t: any) => !!t.seatId);
+    const showCartLinkButton = source !== 'marketplace' && !!eventSlug;
+
+    const handleGetCartLink = async () => {
+        if (!eventSlug) return;
+        const params = new URLSearchParams();
+        params.set('cart', JSON.stringify({
+            v: 1,
+            items: groups.map((g) => ({
+                showId: g.showId,
+                ticketCategoryId: g.ticketCategoryId,
+                audienceId: g.audienceId ?? null,
+                quantity: g.quantity,
+            })),
+        }));
+        if (appliedVoucherCode) params.set('promoCode', appliedVoucherCode);
+        const link = `${window.location.origin}/events/${eventSlug}?${params.toString()}`;
+        try {
+            await navigator.clipboard.writeText(link);
+            notificationCtx.success(tt('Đã sao chép link giỏ hàng vào bộ nhớ tạm!', 'Cart link copied to clipboard!'));
+        } catch (err) {
+            notificationCtx.error(tt('Không thể sao chép link giỏ hàng', 'Could not copy the cart link'));
+        }
+    };
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -72,33 +133,12 @@ export function CartModal({
                             </Typography>
                         ) : (
                             <Stack spacing={1.25}>
-                                {(() => {
-                                    // Group for display
-                                    const groups: any[] = [];
-                                    order.tickets.forEach((t: any) => {
-                                        const key = `${t.showId}-${t.ticketCategoryId}-${t.audienceId || 'default'}`;
-                                        let g = groups.find(x => x.key === key);
-                                        if (!g) {
-                                            g = {
-                                                key,
-                                                showId: t.showId,
-                                                ticketCategoryId: t.ticketCategoryId,
-                                                audienceId: t.audienceId,
-                                                audienceName: t.audienceName,
-                                                quantity: 0,
-                                                price: t.price || 0
-                                            };
-                                            groups.push(g);
-                                        }
-                                        g.quantity++;
-                                    });
+                                {groups.map((g) => {
+                                    const show = event?.shows?.find((s: any) => s.id === g.showId);
+                                    const ticketCategory = show?.ticketCategories?.find((c: any) => c.id === g.ticketCategoryId);
 
-                                    return groups.map((g) => {
-                                        const show = event?.shows?.find((s: any) => s.id === g.showId);
-                                        const ticketCategory = show?.ticketCategories?.find((c: any) => c.id === g.ticketCategoryId);
-
-                                        return (
-                                            <Card key={g.key} variant="outlined" sx={{ borderRadius: 1, boxShadow: 'none' }}>
+                                    return (
+                                        <Card key={g.key} variant="outlined" sx={{ borderRadius: 1, boxShadow: 'none' }}>
                                                 <CardContent sx={{ px: 1.5, py: 1, '&:last-child': { pb: 1 } }}>
                                                     <Stack spacing={0.75}>
                                                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ justifyContent: 'space-between' }}>
@@ -147,9 +187,8 @@ export function CartModal({
                                                     </Stack>
                                                 </CardContent>
                                             </Card>
-                                        );
-                                    });
-                                })()}
+                                    );
+                                })}
                             </Stack>
                         )}
 
@@ -225,7 +264,28 @@ export function CartModal({
                     </Stack>
                 )}
             </DialogContent>
-            <DialogActions>
+            <DialogActions sx={{ justifyContent: 'space-between', px: 3 }}>
+                <Box>
+                    {showCartLinkButton && totalSelectedTickets > 0 && (
+                        <Tooltip
+                            title={hasSeatBasedTickets
+                                ? tt('Không thể tạo link cho giỏ hàng có vé chọn ghế, vì ghế có thể bị người khác đặt mất', 'Cannot create a link for a cart with seat-picked tickets, as seats may be taken by someone else')
+                                : ''}
+                        >
+                            <span>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<LinkIcon size={16} />}
+                                    disabled={hasSeatBasedTickets}
+                                    onClick={handleGetCartLink}
+                                >
+                                    {tt('Lấy link giỏ hàng', 'Get cart link')}
+                                </Button>
+                            </span>
+                        </Tooltip>
+                    )}
+                </Box>
                 <Button onClick={onClose}>{tt('Đóng', 'Close')}</Button>
             </DialogActions>
         </Dialog >
