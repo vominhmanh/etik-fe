@@ -403,28 +403,30 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
     const showsToSelectMap = new Map<number, Show>();
     let droppedForSeats = false;
     let droppedForAvailability = 0;
+    const debugLog: any[] = [];
 
     items.forEach((item: any) => {
       const showId = Number(item.showId);
       const ticketCategoryId = Number(item.ticketCategoryId);
       const quantity = Math.max(0, Number(item.quantity) || 0);
-      if (!showId || !ticketCategoryId || quantity <= 0) return;
+      if (!showId || !ticketCategoryId || quantity <= 0) { debugLog.push({ item, result: 'invalid item' }); return; }
 
       const show = event.shows.find((s) => s.id === showId);
-      if (!show) { droppedForAvailability += quantity; return; }
+      if (!show) { droppedForAvailability += quantity; debugLog.push({ item, result: 'show not found' }); return; }
 
       // Seats are assigned individually and may be taken by someone else by now,
       // so seat-based shows are never restored through this link.
-      if (show.seatmapMode === 'seatings_selection') { droppedForSeats = true; return; }
+      if (show.seatmapMode === 'seatings_selection') { droppedForSeats = true; debugLog.push({ item, result: 'seat-based show, skipped' }); return; }
 
       const category = show.ticketCategories.find((c) => c.id === ticketCategoryId);
-      if (!category) { droppedForAvailability += quantity; return; }
+      if (!category) { droppedForAvailability += quantity; debugLog.push({ item, result: 'category not found on show' }); return; }
 
       const isSellable = category.status === 'on_sale' && !category.disabled;
       const remaining = Math.max(0, (category.quantity || 0) - (category.sold || 0));
       const availableQty = isSellable ? Math.min(quantity, remaining) : 0;
-      if (availableQty <= 0) { droppedForAvailability += quantity; return; }
+      if (availableQty <= 0) { droppedForAvailability += quantity; debugLog.push({ item, result: 'unavailable', status: category.status, disabled: category.disabled, remaining }); return; }
       if (availableQty < quantity) droppedForAvailability += (quantity - availableQty);
+      debugLog.push({ item, result: 'ok', availableQty });
 
       let audienceId: number | undefined = item.audienceId ? Number(item.audienceId) || undefined : undefined;
       let audienceName = '';
@@ -455,6 +457,8 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
       }
     });
 
+    console.info('[cart-link] resolved from URL:', { resolvedTicketCount: resolvedTickets.length, droppedForSeats, droppedForAvailability, perItem: debugLog });
+
     if (resolvedTickets.length === 0) {
       notificationCtx.error(tt(
         'Giỏ hàng trong liên kết không còn vé nào khả dụng.',
@@ -470,16 +474,19 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
     setOrder((prev) => ({ ...prev, tickets: resolvedTickets }));
     setActiveStep(1);
 
+    // Notification state holds only one message at a time, so combine both
+    // "skipped" cases into a single call instead of risking one overwriting the other.
+    const skippedMessages: string[] = [];
     if (droppedForSeats) {
-      notificationCtx.info(tt(
-        'Một số vé chọn ghế trong liên kết đã được bỏ qua.',
-        'Some seat-picked tickets in the link were skipped.'
-      ));
+      skippedMessages.push(tt('vé chọn ghế', 'seat-picked tickets'));
     }
     if (droppedForAvailability > 0) {
+      skippedMessages.push(tt(`${droppedForAvailability} vé không còn khả dụng`, `${droppedForAvailability} tickets no longer available`));
+    }
+    if (skippedMessages.length > 0) {
       notificationCtx.info(tt(
-        `Đã bỏ qua ${droppedForAvailability} vé không còn khả dụng.`,
-        `Skipped ${droppedForAvailability} tickets that are no longer available.`
+        `Đã bỏ qua: ${skippedMessages.join(', ')}.`,
+        `Skipped: ${skippedMessages.join(', ')}.`
       ));
     }
   }, [event]);
