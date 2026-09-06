@@ -33,13 +33,24 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
 import { alpha } from '@mui/material/styles';
-import { CaretDown, DotsThreeOutlineVertical, Pencil, Plus, Copy, User, EnvelopeSimple, Phone, MapPin, IdentificationCard, CalendarBlank, Armchair } from '@phosphor-icons/react/dist/ssr';
+import { CaretDown, DotsThreeOutlineVertical, Pencil, Plus, Copy, User, EnvelopeSimple, Phone, MapPin, IdentificationCard, CalendarBlank, Armchair, CheckCircle } from '@phosphor-icons/react/dist/ssr';
 import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
 
 import { LocalizedLink } from '@/components/homepage/localized-link';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from '@/config/phone-countries';
 
-import { Order, TicketInfo, TicketHolderInfo, CheckoutRuntimeField, Show } from './types';
+import { Order, TicketInfo, TicketHolderInfo, CheckoutRuntimeField, Show, CustomerInfo } from './types';
+
+// Fields shared by name between a ticket holder and the buyer; only the keys
+// present in `patch` are forwarded, so unrelated buyer fields stay untouched.
+function mapHolderPatchToCustomer(patch: Partial<TicketHolderInfo>): Partial<CustomerInfo> {
+  const out: Partial<CustomerInfo> = {};
+  (['title', 'name', 'email', 'nationalPhone', 'phoneCountryIso2', 'avatar', 'dob', 'address', 'idcard_number'] as const)
+    .forEach((key) => {
+      if (key in patch) (out as any)[key] = (patch as any)[key];
+    });
+  return out;
+}
 
 export type Step2InfoProps = {
   tt: (vi: string, en: string) => string;
@@ -113,16 +124,44 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
 
   const [isEditingInfo, setIsEditingInfo] = React.useState<boolean>(false);
 
+  // Whether the buyer's info is currently auto-synced from ticket 1's holder info
+  const [customerLinkedToTicket1, setCustomerLinkedToTicket1] = React.useState<boolean>(true);
+
   React.useEffect(() => {
     if (forceEditInfo && !isEditingInfo) {
       setIsEditingInfo(true);
+      setCustomerLinkedToTicket1(true);
       setOrder((prev: any) => ({
         ...prev,
-        customer: { title: '', name: '', email: '', phoneNumber: '', nationalPhone: '', address: '', phoneCountryIso2: 'VN', dob: null, idcard_number: '', avatar: '' },
+        customer: { title: 'Bạn', name: '', email: '', phoneNumber: '', nationalPhone: '', address: '', phoneCountryIso2: 'VN', dob: null, idcard_number: '', avatar: '' },
         tickets: prev.tickets.map((t: any) => ({ ...t, holderInfo: undefined }))
       }));
     }
   }, [forceEditInfo, isEditingInfo, setOrder]);
+
+  // Default title to "Bạn" for the buyer and every ticket holder whenever a new,
+  // not-yet-filled entry appears, so users don't have to pick it manually.
+  React.useEffect(() => {
+    setOrder(prev => {
+      let changed = false;
+      let customer = prev.customer;
+      if (!customer.title) {
+        customer = { ...customer, title: 'Bạn' };
+        changed = true;
+      }
+      const tickets = prev.tickets.map((t) => {
+        if (t.holderInfo?.title) return t;
+        changed = true;
+        const holder = t.holderInfo || {
+          name: '', email: '', phone: '', nationalPhone: '',
+          phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2, avatar: '',
+        };
+        return { ...t, holderInfo: { ...holder, title: 'Bạn' } };
+      });
+      return changed ? { ...prev, customer, tickets } : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order.tickets.length]);
 
   // State to control expanded accordions
   const [expandedAccordions, setExpandedAccordions] = React.useState<Record<number, boolean>>(() => {
@@ -154,6 +193,31 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
   const customer = order.customer;
   const setCustomer = (patch: any) => {
     setOrder(prev => ({ ...prev, customer: { ...prev.customer, ...patch } }));
+  };
+
+  // Manual edits to the buyer's info break the auto-sync link with ticket 1
+  const setCustomerField = (patch: any) => {
+    setCustomerLinkedToTicket1(false);
+    setCustomer(patch);
+  };
+
+  // One-shot full copy, used only when the user re-links via the button
+  const relinkCustomerToTicket1 = () => {
+    const firstHolder = order.tickets[0]?.holderInfo;
+    if (firstHolder) {
+      setCustomer({
+        title: firstHolder.title || 'Bạn',
+        name: firstHolder.name || '',
+        email: firstHolder.email || '',
+        nationalPhone: firstHolder.nationalPhone || '',
+        phoneCountryIso2: firstHolder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2,
+        avatar: firstHolder.avatar || '',
+        dob: firstHolder.dob || null,
+        address: firstHolder.address || '',
+        idcard_number: firstHolder.idcard_number || '',
+      });
+    }
+    setCustomerLinkedToTicket1(true);
   };
 
   const setTicketFormAnswer = (ticketIndex: number, internalName: string, value: any) => {
@@ -375,11 +439,12 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                       onClick={() => {
                         setOrder((prev: any) => ({
                           ...prev,
-                          customer: { title: '', name: '', email: '', phoneNumber: '', nationalPhone: '', address: '', phoneCountryIso2: 'VN', dob: null, idcard_number: '', avatar: '' },
+                          customer: { title: 'Bạn', name: '', email: '', phoneNumber: '', nationalPhone: '', address: '', phoneCountryIso2: 'VN', dob: null, idcard_number: '', avatar: '' },
                           tickets: prev.tickets.map((t: any) => ({ ...t, holderInfo: undefined })),
                           isInfoEdited: true
                         }));
                         setIsEditingInfo(true);
+                        setCustomerLinkedToTicket1(true);
                       }}
                       sx={{ borderRadius: '8px', fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}
                     >
@@ -480,7 +545,12 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                   holderInfo: { ...holderInfo, ...patch } as any,
                                   formAnswers: ticket.formAnswers || {}
                                 };
-                                return { ...prev, tickets: newTickets };
+                                // Ticket 1 is the source of truth for the buyer while linked:
+                                // propagate only what the user just edited, in the same update.
+                                const customer = ticketIndex === 0 && customerLinkedToTicket1
+                                  ? { ...prev.customer, ...mapHolderPatchToCustomer(patch) }
+                                  : prev.customer;
+                                return { ...prev, tickets: newTickets, customer };
                               });
                             };
 
@@ -967,31 +1037,28 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                 action={
                   <>
                     {order.tickets.length > 0 && (
-                      <Button
-                        size="small"
-                        variant="text"
-                        startIcon={<Copy size={12} />}
-                        sx={{ mr: 1, textTransform: 'none' }}
-                        onClick={() => {
-                          const firstTicket = order.tickets[0];
-                          const firstHolder = firstTicket?.holderInfo;
-                          if (firstHolder) {
-                            setCustomer({
-                              title: firstHolder.title || '',
-                              name: firstHolder.name || '',
-                              email: firstHolder.email || '',
-                              nationalPhone: firstHolder.nationalPhone || '',
-                              phoneCountryIso2: firstHolder.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2,
-                              avatar: firstHolder.avatar || '',
-                              ...(firstHolder.dob ? { dob: firstHolder.dob } : {}),
-                              ...(firstHolder.address ? { address: firstHolder.address } : {}),
-                              ...(firstHolder.idcard_number ? { idcard_number: firstHolder.idcard_number } : {}),
-                            });
-                          }
-                        }}
-                      >
-                        {tt('Copy từ vé 1', 'Copy from ticket 1')}
-                      </Button>
+                      customerLinkedToTicket1 ? (
+                        <Button
+                          size="small"
+                          variant="text"
+                          color="success"
+                          disabled
+                          startIcon={<CheckCircle size={14} weight="fill" />}
+                          sx={{ mr: 1, textTransform: 'none', '&.Mui-disabled': { color: 'success.main' } }}
+                        >
+                          {tt('Đã copy từ vé 1', 'Copied from ticket 1')}
+                        </Button>
+                      ) : (
+                        <Button
+                          size="small"
+                          variant="text"
+                          startIcon={<Copy size={12} />}
+                          sx={{ mr: 1, textTransform: 'none' }}
+                          onClick={relinkCustomerToTicket1}
+                        >
+                          {tt('Copy từ vé 1', 'Copy from ticket 1')}
+                        </Button>
+                      )
                     )}
                     <IconButton onClick={onOpenFormMenu} size='small'>
                       <DotsThreeOutlineVertical />
@@ -1029,38 +1096,14 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                           label={tt("Danh xưng*    Họ và tên", "Title*    Full Name")}
                           name="customer_name"
                           value={customer.name}
-                          onChange={(e) => {
-                            // Update customer
-                            setCustomer({ name: e.target.value });
-
-                            // Also auto-fill first ticket holder if it's "you" and empty
-                            if (order.tickets.length > 0) {
-                              setOrder(prev => {
-                                const newTickets = [...prev.tickets];
-                                const firstHolder = newTickets[0].holderInfo;
-                                if (firstHolder && (!firstHolder.name || firstHolder.name === prev.customer.name)) {
-                                  newTickets[0] = {
-                                    ...newTickets[0],
-                                      holderInfo: { ...firstHolder, name: e.target.value } as any
-                                  };
-                                }
-                                // Or if undefined holder, init it? Usually step 1 creates holder undefined.
-                                // Logic here is tricky if we don't want to enforce it.
-                                // Original logic: !ticketHolderEditted && ticketHolders.length > 0
-
-                                return { ...prev, customer: { ...prev.customer, name: e.target.value }, tickets: newTickets };
-                              });
-                              return; // handled above
-                            }
-                            setCustomer({ name: e.target.value });
-                          }}
+                          onChange={(e) => setCustomerField({ name: e.target.value })}
                           startAdornment={
                             <InputAdornment position="start">
                               <Select
                                 variant="standard"
                                 disableUnderline
                                 value={customer.title || ''}
-                                onChange={(e) => setCustomer({ ...customer, title: e.target.value })}
+                                onChange={(e) => setCustomerField({ title: e.target.value })}
                                 sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
                               >
                                 <MenuItem value=""><em>...</em></MenuItem>
@@ -1098,7 +1141,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                           name="customer_email"
                           type="email"
                           value={customer.email}
-                          onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
+                          onChange={(e) => setCustomerField({ email: e.target.value })}
                         />
                       </FormControl>
                       {customerEmailNote && (
@@ -1118,14 +1161,14 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                           name="customer_national_phone"
                           type="tel"
                           value={customer.nationalPhone}
-                          onChange={(e) => setCustomer({ ...customer, nationalPhone: e.target.value })}
+                          onChange={(e) => setCustomerField({ nationalPhone: e.target.value })}
                           startAdornment={
                             <InputAdornment position="start">
                               <Select
                                 variant="standard"
                                 disableUnderline
                                 value={customer.phoneCountryIso2}
-                                onChange={(e) => setCustomer({ ...customer, phoneCountryIso2: e.target.value as string })}
+                                onChange={(e) => setCustomerField({ phoneCountryIso2: e.target.value as string })}
                                 sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
                                 renderValue={(value) => {
                                   const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
@@ -1165,7 +1208,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                               type="date"
                               required={required}
                               value={customer.dob || ""}
-                              onChange={(e) => setCustomer({ ...customer, dob: e.target.value })}
+                              onChange={(e) => setCustomerField({ dob: e.target.value })}
                               InputLabelProps={{ shrink: true }}
                               InputProps={{
                                 startAdornment: (
@@ -1200,7 +1243,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                 size="small"
                                 name="customer_idcard_number"
                                 value={customer.idcard_number}
-                                onChange={(e) => setCustomer({ ...customer, idcard_number: e.target.value })}
+                                onChange={(e) => setCustomerField({ idcard_number: e.target.value })}
                                 startAdornment={
                                   <InputAdornment position="start">
                                     <IdentificationCard size={18} weight="duotone" style={{ opacity: 0.7 }} />
@@ -1233,7 +1276,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                 autoComplete="street-address"
                                 name="customer_address"
                                 value={customer.address}
-                                onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
+                                onChange={(e) => setCustomerField({ address: e.target.value })}
                                 startAdornment={
                                   <InputAdornment position="start">
                                     <MapPin size={18} weight="duotone" style={{ opacity: 0.7 }} />
