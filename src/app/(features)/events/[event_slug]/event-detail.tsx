@@ -382,21 +382,22 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
     if (typeof window === 'undefined') return;
 
     const searchParams = new URLSearchParams(window.location.search);
-    const cartParam = searchParams.get('cart');
-    if (!cartParam || searchParams.get('invitationUuid')) return;
+    const cartShowIds = searchParams.getAll('cartShowId');
+    if (cartShowIds.length === 0 || searchParams.get('invitationUuid')) return;
 
     hasAppliedCartParam.current = true;
 
-    let payload: { items?: any[] } = {};
-    try {
-      payload = JSON.parse(cartParam);
-    } catch (err) {
-      console.error('Invalid cart param', err);
-      return;
-    }
+    const cartCategoryIds = searchParams.getAll('cartCategoryId');
+    const cartAudienceIds = searchParams.getAll('cartAudienceId');
+    const cartQuantities = searchParams.getAll('cartQuantity');
 
-    const items = Array.isArray(payload.items) ? payload.items : [];
-    if (items.length === 0) return;
+    // Flattened as parallel repeated params (see cart-modal.tsx), not JSON, so the link stays plain.
+    const items = cartShowIds.map((showId, i) => ({
+      showId,
+      ticketCategoryId: cartCategoryIds[i],
+      audienceId: cartAudienceIds[i] || undefined,
+      quantity: cartQuantities[i],
+    }));
 
     const resolvedTickets: TicketInfo[] = [];
     const showsToSelectMap = new Map<number, Show>();
@@ -425,7 +426,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
       if (availableQty <= 0) { droppedForAvailability += quantity; return; }
       if (availableQty < quantity) droppedForAvailability += (quantity - availableQty);
 
-      let audienceId: number | undefined = item.audienceId ?? undefined;
+      let audienceId: number | undefined = item.audienceId ? Number(item.audienceId) || undefined : undefined;
       let audienceName = '';
       let price = category.price;
       const activeAudiences = category.categoryAudiences?.filter((ca) => ca.audience.isActive) || [];
@@ -481,7 +482,6 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
         `Skipped ${droppedForAvailability} tickets that are no longer available.`
       ));
     }
-    notificationCtx.success(tt('Đã khôi phục giỏ hàng từ liên kết!', 'Cart restored from link!'));
   }, [event]);
 
   const handleCloseSuccessModal = () => {

@@ -85,15 +85,14 @@ export function CartModal({
     const handleGetCartLink = async () => {
         if (!eventSlug) return;
         const params = new URLSearchParams();
-        params.set('cart', JSON.stringify({
-            v: 1,
-            items: groups.map((g) => ({
-                showId: g.showId,
-                ticketCategoryId: g.ticketCategoryId,
-                audienceId: g.audienceId ?? null,
-                quantity: g.quantity,
-            })),
-        }));
+        // Flattened as parallel repeated params (no JSON/object in the URL) so the
+        // link stays plain and readable instead of a percent-encoded blob.
+        groups.forEach((g) => {
+            params.append('cartShowId', String(g.showId));
+            params.append('cartCategoryId', String(g.ticketCategoryId));
+            params.append('cartAudienceId', g.audienceId != null ? String(g.audienceId) : '');
+            params.append('cartQuantity', String(g.quantity));
+        });
         if (appliedVoucherCode) params.set('promoCode', appliedVoucherCode);
         const link = `${window.location.origin}/events/${eventSlug}?${params.toString()}`;
         try {
