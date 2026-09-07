@@ -53,6 +53,7 @@ interface TicketRow {
   eCode?: string;
   rowLabel?: string | null;
   seatNumber?: string | null;
+  formAnswers?: any[];
 }
 
 const PX_PER_MM = 96 / 25.4;
@@ -128,6 +129,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
             eCode: ticket.eCode ?? transaction.eCode,
             rowLabel: ticket.showSeat?.rowLabel,
             seatNumber: ticket.showSeat?.seatNumber,
+            formAnswers: ticket.formAnswers || [],
           };
         }
       }
@@ -146,10 +148,13 @@ export default function Page({ params }: { params: { transaction_id: number } })
     if (!transaction) return '';
     const buyerName = [transaction.title, transaction.name].filter(Boolean).join(' ').trim();
 
-    if (comp.fieldId && transaction.formAnswers) {
-      const answerItem = Array.isArray(transaction.formAnswers)
-        ? transaction.formAnswers.find((item: any) => item.id === comp.fieldId)
-        : null;
+    if (comp.fieldId) {
+      // Try transaction-level (checkout) custom fields first, then fall back to
+      // this ticket's own (holder) custom fields - field IDs never collide between
+      // the two forms so a simple lookup in both places is enough.
+      const transactionAnswer = transaction.formAnswers?.find((item: any) => item.id === comp.fieldId);
+      const ticketAnswer = !transactionAnswer ? ticket?.formAnswers?.find((item: any) => item.id === comp.fieldId) : undefined;
+      const answerItem = transactionAnswer || ticketAnswer;
       if (answerItem) {
         const value = answerItem.value;
         if (Array.isArray(value)) return value.join(', ');

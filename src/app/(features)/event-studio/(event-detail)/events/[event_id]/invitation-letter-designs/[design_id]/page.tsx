@@ -96,6 +96,7 @@ interface VisibleField {
   internalName: string;
   label: string;
   fieldType: string;
+  scope?: 'transaction' | 'ticket';
   options?: VisibleFieldOption[] | null;
 }
 
@@ -461,6 +462,12 @@ export default function Page({ params }: { params: { event_id: number; design_id
 
   // Map API visible field to component key
   const mapFieldToComponentKey = (f: VisibleField): string => {
+    // Ticket-scoped custom fields are always keyed by their stable field ID, since
+    // their internalName is namespaced within the per-ticket form and could otherwise
+    // collide with a checkout (transaction-scope) field sharing the same internalName.
+    if (f.scope === 'ticket' && typeof f.id === 'number') {
+      return `ticket_field_${f.id}`;
+    }
     const internalName = f.internalName;
     const builtinInternalNames = ['title', 'name', 'email', 'phone_number', 'dob', 'address', 'idcard_number'];
     if (builtinInternalNames.includes(internalName)) {
@@ -594,6 +601,7 @@ export default function Page({ params }: { params: { event_id: number; design_id
   const customFieldsList = useMemo(() => {
     const builtinApiKeys = ['title', 'name', 'email', 'phone_number', 'dob', 'address', 'idcard_number'];
     return visibleFields
+      .filter((f) => f.scope !== 'ticket')
       .filter((f) => {
         const internalName = f.internalName;
         return !builtinApiKeys.includes(internalName || '');
@@ -606,6 +614,17 @@ export default function Page({ params }: { params: { event_id: number; design_id
           fieldId: f.id,
         };
       });
+  }, [visibleFields]);
+
+  // Custom fields defined on the per-ticket (holder) form - resolved per printed ticket
+  const ticketCustomFieldsList = useMemo(() => {
+    return visibleFields
+      .filter((f) => f.scope === 'ticket')
+      .map((f) => ({
+        label: f.label,
+        key: mapFieldToComponentKey(f),
+        fieldId: f.id,
+      }));
   }, [visibleFields]);
 
   // Handle size change
@@ -1132,6 +1151,21 @@ export default function Page({ params }: { params: { event_id: number; design_id
                 <ListItem button onClick={() => handleAddComponent('rowSeat', tt('Hàng ghế - Số ghế', 'Row - Seat'))}>
                   <Typography variant="body2">{tt('Hàng ghế - Số ghế', 'Row - Seat')}</Typography>
                 </ListItem>
+
+                {/* Custom fields from the per-ticket (holder) form */}
+                {ticketCustomFieldsList.map(({ label, key, fieldId }) => (
+                  <ListItem
+                    key={key}
+                    button
+                    onClick={() => handleAddComponent(key, label, fieldId)}
+                    sx={{
+                      cursor: 'pointer',
+                      '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.08)' },
+                    }}
+                  >
+                    <Typography variant="body2">{label}</Typography>
+                  </ListItem>
+                ))}
 
                 <Divider sx={{ my: 0.5 }} />
 

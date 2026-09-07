@@ -138,15 +138,28 @@ interface Event {
   allowTicketTransfer: boolean;
 };
 
+export interface TicketFormAnswer {
+  id: number;
+  internalName: string;
+  label: string;
+  fieldType: string;
+  value: any;
+}
+
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
   holderName: string;        // Name of the ticket holder
   holderPhone: string;        // Name of the ticket holder
   holderEmail: string;        // Name of the ticket holder
   holderTitle: string;        // Name of the ticket holder
+  holderAddress?: string;
+  holderDob?: string | null;
+  holderIdcardNumber?: string;
   status: string;            // Status of the ticket
   createdAt: string;   // The date the ticket was created
   checkInAt: string | null; // The date/time the ticket was checked in, nullable
+  // Custom per-ticket (holder) form field answers - canonical array shape
+  formAnswers?: TicketFormAnswer[];
 }
 
 export interface Show {

@@ -42,6 +42,7 @@ interface TicketRow {
   eCode?: string;
   rowLabel?: string | null;
   seatNumber?: string | null;
+  formAnswers?: any[]; // Per-ticket (holder) custom form field answers
 }
 
 // New Ticket Tag design schema (multi-design per event)
@@ -124,6 +125,7 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
           eCode: sharedCode ?? ticket.eCode ?? transaction.eCode,
           rowLabel: ticket.showSeat?.rowLabel,
           seatNumber: ticket.showSeat?.seatNumber,
+          formAnswers: ticket.formAnswers || [],
         };
       })
     );
@@ -316,18 +318,21 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
     [transaction]
   );
 
-  // Resolve custom field value using fieldId (stable, required for custom fields)
+  // Resolve custom field value using fieldId (stable, required for custom fields).
+  // Looks up the transaction-level (checkout) answers first, then falls back to the
+  // specific ticket's own (holder) answers - field IDs never collide between the two forms.
   const resolveCustomFieldValue = React.useCallback(
-    (comp: ComponentData): string => {
-      if (!transaction?.formAnswers || !Array.isArray(transaction.formAnswers)) return '';
-
+    (comp: ComponentData, ticket?: TicketRow): string => {
       // fieldId is required for custom fields - direct lookup
       if (!comp.fieldId) {
         console.warn('[resolveCustomFieldValue] Missing fieldId for component:', comp.key, comp.label);
         return '';
       }
 
-      const answerItem = transaction.formAnswers.find((item: any) => item.id === comp.fieldId);
+      const transactionAnswer = transaction?.formAnswers.find((item) => item.id === comp.fieldId);
+      const ticketAnswer = !transactionAnswer ? ticket?.formAnswers?.find((item) => item.id === comp.fieldId) : undefined;
+      const answerItem = transactionAnswer || ticketAnswer;
+
       if (!answerItem) {
         console.warn('[resolveCustomFieldValue] No answer found for fieldId:', comp.fieldId);
         return '';
@@ -378,7 +383,7 @@ const PrintTagModal: React.FC<PrintTagModalProps> = ({ open, onClose, transactio
       }
     } else if (comp.fieldId) {
       // Custom form field - identified by presence of fieldId (stable mapping)
-      value = resolveCustomFieldValue(comp);
+      value = resolveCustomFieldValue(comp, ticket);
     } else {
       value = resolveComponentValue(normalizedKey, ticket);
     }

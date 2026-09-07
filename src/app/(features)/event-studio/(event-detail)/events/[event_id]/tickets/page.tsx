@@ -69,17 +69,28 @@ interface TransactionTicketCategory {
   transaction: Transaction;
 }
 
+export interface TicketFormAnswer {
+  id: number;
+  internalName: string;
+  label: string;
+  fieldType: string;
+  value: any;
+}
+
 export interface Ticket {
   id: number;
   transactionId: number;
   createdAt: string; // ISO date string
   ticketCategoryId: number;
+  holderTitle?: string;
   holderName: string;
   holderEmail?: string;
   holderPhone?: string;
   checkInAt?: string | null; // ISO date string or null
   status: string;
   transactionTicketCategory: TransactionTicketCategory;
+  // Custom per-ticket (holder) form field answers - canonical array shape
+  formAnswers?: TicketFormAnswer[];
 }
 
 interface Filter {
@@ -117,7 +128,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
   const [selected, setSelected] = React.useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [ticketFormFields, setTicketFormFields] = React.useState<any[]>([]);
-  const [visibleColumns, setVisibleColumns] = React.useState<string[]>(['id', 'customer_info', 'show_info', 'order', 'status', 'created_at', 'check_in_at', 'holder_title', 'holder_name', 'holder_phone', 'holder_email']);
+  const [visibleColumns, setVisibleColumns] = React.useState<string[]>(['id', 'customer_info', 'show_info', 'order', 'status', 'created_at', 'check_in_at', 'title', 'name', 'phone_number', 'email']);
   const [autoReload, setAutoReload] = React.useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(AUTO_RELOAD_STORAGE_KEY);
@@ -311,7 +322,7 @@ export default function Page({ params }: { params: { event_id: number } }): Reac
       if (response.data.ticketsTableConfig?.visible_columns) {
         setVisibleColumns(response.data.ticketsTableConfig.visible_columns);
       } else {
-        setVisibleColumns(['id', 'customer_info', 'show_info', 'order', 'status', 'created_at', 'check_in_at', 'holder_title', 'holder_name', 'holder_phone', 'holder_email']);
+        setVisibleColumns(['id', 'customer_info', 'show_info', 'order', 'status', 'created_at', 'check_in_at', 'title', 'name', 'phone_number', 'email']);
       }
     } catch (error) {
       console.error(error);

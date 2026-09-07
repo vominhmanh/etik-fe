@@ -217,24 +217,26 @@ export function TicketsTable({
   };
 
   const isFieldVisible = (baseName: 'title' | 'name' | 'email' | 'phone') => {
-    const internalNameMap = {
-      title: ['title', 'holder_title'],
-      name: ['name', 'holder_name'],
-      email: ['email', 'holder_email'],
-      phone: ['phone_number', 'holder_phone'],
+    // Ticket-form builtin fields always use the bare internal_name (title/name/email/
+    // phone_number), matching the checkout form's convention - see BUILTIN_TICKET_FIELDS.
+    const internalNameMap: Record<'title' | 'name' | 'email' | 'phone', string> = {
+      title: 'title',
+      name: 'name',
+      email: 'email',
+      phone: 'phone_number',
     };
-    
-    const possibleNames = internalNameMap[baseName];
+
+    const internalName = internalNameMap[baseName];
     // Find the exact field definition that came from the API
-    const field = ticketFormFields.find(f => possibleNames.includes(f.internal_name));
-    
+    const field = ticketFormFields.find(f => f.internal_name === internalName);
+
     if (field) {
       // If we found the field, its visibility is strictly determined by whether ITS internal_name is in visibleColumns
       return visibleColumns.includes(field.internal_name);
     }
-    
+
     // Fallback if not found in ticketFormFields
-    return possibleNames.some(name => visibleColumns.includes(name));
+    return visibleColumns.includes(internalName);
   };
 
   const rowIds = React.useMemo(() => {
@@ -294,8 +296,8 @@ export function TicketsTable({
                   </TableSortLabel>
                 </TableCell>
               )}
-              {ticketFormFields.map(field => 
-                !['holder_title', 'holder_name', 'holder_phone', 'holder_email', 'title', 'name', 'phone_number', 'email'].includes(field.internal_name) && visibleColumns.includes(field.internal_name) && (
+              {ticketFormFields.map(field =>
+                !['title', 'name', 'phone_number', 'email'].includes(field.internal_name) && visibleColumns.includes(field.internal_name) && (
                   <TableCell key={field.internal_name}>{field.label}</TableCell>
                 )
               )}
@@ -350,20 +352,20 @@ export function TicketsTable({
                   {visibleColumns.includes('customer_info') && (
                     <TableCell>
                       <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-                        <Avatar {...stringAvatar((row as any).formAnswers?.name || row.holderName)} />
+                        <Avatar {...stringAvatar(row.holderName)} />
                         <Stack spacing={0}>
                           <Typography variant="subtitle2">
-                            {isFieldVisible('title') && ((row as any).formAnswers?.title || row.holderTitle) ? `${(row as any).formAnswers?.title || row.holderTitle} ` : ''}
-                            {isFieldVisible('name') ? ((row as any).formAnswers?.name || row.holderName) : ''}
+                            {isFieldVisible('title') && row.holderTitle ? `${row.holderTitle} ` : ''}
+                            {isFieldVisible('name') ? row.holderName : ''}
                           </Typography>
                           {isFieldVisible('email') && (
                             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>
-                              {(row as any).formAnswers?.email || row.holderEmail || row.transactionTicketCategory.transaction.email}
+                              {row.holderEmail || row.transactionTicketCategory.transaction.email}
                             </Typography>
                           )}
                           {isFieldVisible('phone') && (
                             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>
-                              {(row as any).formAnswers?.phone_number || row.holderPhone || row.transactionTicketCategory.transaction.phoneNumber}
+                              {row.holderPhone || row.transactionTicketCategory.transaction.phoneNumber}
                             </Typography>
                           )}
                         </Stack>
@@ -437,15 +439,18 @@ export function TicketsTable({
                   {visibleColumns.includes('check_in_at') && (
                     <TableCell>{row.checkInAt ? dayjs(row.checkInAt).format('HH:mm:ss DD/MM/YYYY') : ''}</TableCell>
                   )}
-                  {ticketFormFields.map(field => 
-                    !['holder_title', 'holder_name', 'holder_phone', 'holder_email', 'title', 'name', 'phone_number', 'email'].includes(field.internal_name) && visibleColumns.includes(field.internal_name) ? (
+                  {ticketFormFields.map(field => {
+                    const isBuiltin = ['title', 'name', 'phone_number', 'email'].includes(field.internal_name);
+                    if (isBuiltin || !visibleColumns.includes(field.internal_name)) return null;
+                    // The ticket's formAnswers is the canonical array shape [{id, internalName, label, fieldType, value}, ...]
+                    const answers = row.formAnswers || [];
+                    const value = answers.find((a) => a.internalName === field.internal_name)?.value;
+                    return (
                       <TableCell key={field.internal_name}>
-                        {Array.isArray((row as any).formAnswers?.[field.internal_name]) 
-                          ? (row as any).formAnswers?.[field.internal_name]?.join(', ') 
-                          : (row as any).formAnswers?.[field.internal_name] || '-'}
+                        {Array.isArray(value) ? value.join(', ') : (value || '-')}
                       </TableCell>
-                    ) : !['holder_title', 'holder_name', 'holder_phone', 'holder_email', 'title', 'name', 'phone_number', 'email'].includes(field.internal_name) ? null : null
-                  )}
+                    );
+                  })}
                   <TableCell />
                 </TableRow>
               );

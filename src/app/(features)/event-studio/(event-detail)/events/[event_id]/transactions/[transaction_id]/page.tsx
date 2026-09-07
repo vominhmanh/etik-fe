@@ -181,6 +181,18 @@ export interface TicketAddOn {
   redeemedBy: Creator | null;
 }
 
+// Canonical shape for a custom form field answer, consistent across transaction
+// (checkout) and ticket (holder) level - as returned by the API. `id`/`fieldType`
+// are optional because locally-reconstructed entries (e.g. right after saving an
+// edit, before the next refetch) don't always have them on hand.
+export interface FormAnswerItem {
+  id?: number;
+  internalName: string;
+  label: string;
+  fieldType?: string;
+  value: any;
+}
+
 export interface Ticket {
   id: number;             // Unique identifier for the ticket
   holderName: string;        // Name of the ticket holder
@@ -201,7 +213,8 @@ export interface Ticket {
   holderAddress?: string;
   holderDob?: string | null;
   holderIdcardNumber?: string;
-  formAnswers?: Record<string, any>;
+  // Custom per-ticket (holder) form field answers - canonical array shape
+  formAnswers?: FormAnswerItem[];
 }
 
 export interface Show {
@@ -343,8 +356,8 @@ export interface Transaction {
   qrOption: string;
   eCode?: string;
   concessions: TransactionConcession[];
-  // Dynamic checkout form answers (ETIK Forms)
-  formAnswers: Record<string, any>;
+  // Dynamic checkout form answers (ETIK Forms) - canonical array shape
+  formAnswers: FormAnswerItem[];
   checkoutFormFields?: CheckoutRuntimeField[];
   ticketFormFields?: CheckoutRuntimeField[];
   transactionFlow?: Record<string, any>;
@@ -944,18 +957,14 @@ export default function Page({ params }: { params: { event_id: number; transacti
     const phoneNumber = parsedPhone?.nationalNumber || ticket.holderPhone || '';
 
     setEditingTicket(activeMenuTicket);
-    // Initialize custom field answers
-    const formAnswersData = ticket.formAnswers;
+    // Initialize custom field answers - ticket.formAnswers is always the canonical
+    // array shape [{id, internalName, label, fieldType, value}, ...]
     const answersDict: Record<string, any> = {};
-    if (Array.isArray(formAnswersData)) {
-      formAnswersData.forEach((item: any) => {
-        if (item.internalName) {
-          answersDict[item.internalName] = item.value;
-        }
-      });
-    } else if (formAnswersData) {
-      Object.assign(answersDict, formAnswersData);
-    }
+    (ticket.formAnswers || []).forEach((item: any) => {
+      if (item.internalName) {
+        answersDict[item.internalName] = item.value;
+      }
+    });
 
     setEditingHolderInfo({
       title: ticket.holderTitle || (locale === 'en' ? 'Mx.' : 'Bạn'),
@@ -2068,16 +2077,16 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                           );
                                         })()}
 
-                                        {ticket.formAnswers && (Array.isArray(ticket.formAnswers) ? ticket.formAnswers : Object.keys(ticket.formAnswers)).length > 0 && (
+                                        {/* ticket.formAnswers is always the canonical array shape [{id, internalName, label, fieldType, value}, ...] */}
+                                        {ticket.formAnswers && ticket.formAnswers.length > 0 && (
                                           <>
-                                            {(Array.isArray(ticket.formAnswers) ? ticket.formAnswers : Object.entries(ticket.formAnswers).map(([k, v]) => ({ label: k, value: v }))).map((item: any, idx: number) => {
-                                              const key = item.label || item.internal_name || item.internalName;
+                                            {ticket.formAnswers.map((item: any, idx: number) => {
                                               const value = item.value;
                                               if (value === undefined || value === null || value === '') return null;
                                               return (
                                                 <Grid xs={12} md={3} key={idx}>
                                                   <Box>
-                                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{key}</Typography>
+                                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{item.label}</Typography>
                                                     <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
                                                       {Array.isArray(value) ? value.join(', ') : String(value)}
                                                     </Typography>
