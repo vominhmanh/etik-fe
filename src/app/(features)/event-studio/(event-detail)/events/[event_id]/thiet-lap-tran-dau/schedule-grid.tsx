@@ -34,6 +34,7 @@ import { ArrowUUpLeft as ResetIcon } from '@phosphor-icons/react/dist/ssr/ArrowU
 import { Gear as GearIcon } from '@phosphor-icons/react/dist/ssr/Gear';
 import { FloppyDisk as SaveIcon } from '@phosphor-icons/react/dist/ssr/FloppyDisk';
 import { Copy as CopyIcon } from '@phosphor-icons/react/dist/ssr/Copy';
+import { PaperPlaneTilt as ResendIcon } from '@phosphor-icons/react/dist/ssr/PaperPlaneTilt';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { CheckCircle as CheckCircleIcon } from '@phosphor-icons/react/dist/ssr/CheckCircle';
 import { WarningCircle as WarningCircleIcon } from '@phosphor-icons/react/dist/ssr/WarningCircle';
@@ -101,6 +102,7 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [isSavingAllTables, setIsSavingAllTables] = useState(false);
   const [savingTableIndexes, setSavingTableIndexes] = useState<Set<number>>(new Set());
+  const [resendingTableIndexes, setResendingTableIndexes] = useState<Set<number>>(new Set());
 
   const handleContextMenu = (event: React.MouseEvent, player: Player, isInWaitingList: boolean) => {
     event.preventDefault();
@@ -488,6 +490,33 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
     }
   };
 
+  const handleResendTable = async (tableIndex: number) => {
+    const tableInfo = tables[tableIndex];
+    if (!tableInfo) return;
+    if (resendingTableIndexes.has(tableIndex)) return; // tránh spam click
+    if (!window.confirm(`Gửi lại email + ZNS thông báo vị trí chỗ ngồi cho tất cả người đang ngồi ở ${tableInfo.name}?`)) return;
+
+    setResendingTableIndexes(prev => new Set(prev).add(tableIndex));
+    try {
+      const res = await baseHttpServiceInstance.post(`/event-studio/table-arrangements/${eventId}/shows/${show.id}/tables/${tableInfo.id}/resend`);
+      const count = res.data?.count ?? 0;
+      if (count > 0) {
+        notificationCtx.success(`Đã gửi lại thông báo cho ${count} người ở ${tableInfo.name}.`);
+      } else {
+        notificationCtx.warning(`${tableInfo.name} chưa có ai để gửi lại thông báo.`);
+      }
+    } catch (err) {
+      console.error(err);
+      notificationCtx.error(`Lỗi khi gửi lại thông báo cho ${tableInfo.name}.`, err);
+    } finally {
+      setResendingTableIndexes(prev => {
+        const next = new Set(prev);
+        next.delete(tableIndex);
+        return next;
+      });
+    }
+  };
+
   const handleSaveAllTables = async () => {
     if (isSavingAllTables) return; // tránh spam click
     setIsSavingAllTables(true);
@@ -847,6 +876,28 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
                                 <CircularProgress size={14} color="inherit" />
                               ) : (
                                 <SaveIcon size={14} weight="bold" />
+                              )}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title={`Gửi lại email + ZNS thông báo vị trí chỗ ngồi cho ${tables[r]?.name || `Bàn ${r + 1}`}`} placement="top" arrow>
+                          <span>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleResendTable(r)}
+                              disabled={resendingTableIndexes.has(r) || tablePlayers.length === 0}
+                              sx={{
+                                color: 'white',
+                                p: 0.3,
+                                bgcolor: 'rgba(255,255,255,0.15)',
+                                '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
+                                '&.Mui-disabled': { color: 'rgba(255,255,255,0.6)' }
+                              }}
+                            >
+                              {resendingTableIndexes.has(r) ? (
+                                <CircularProgress size={14} color="inherit" />
+                              ) : (
+                                <ResendIcon size={14} weight="bold" />
                               )}
                             </IconButton>
                           </span>
