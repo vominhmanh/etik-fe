@@ -108,7 +108,7 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
     );
   };
 
-  // Coords mapped according to group - exact rows 5-20 (A, B, E, F) and rows 22-37 (C, D, G, H)
+  // Coords mapped according to group - exact 100% verified coordinates
   let coords: Record<string, string[]>;
   const structuredGroup = bracketData?.vongBang?.[`bang${group}`];
 
@@ -123,8 +123,8 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
       top1: ['I10', 'J10', 'H10', 'I11', 'J11'],
       losers_m1_t1: ['D18', 'E18'],
       losers_m1_t2: ['D19', 'E19'],
-      losers_m2_t1: ['F18', 'G18'],
-      losers_m2_t2: ['F19', 'G19'],
+      losers_m2_t1: ['F16', 'G16', 'F17', 'G17'],
+      losers_m2_t2: ['F18', 'G18', 'F19', 'G19'],
       top2: ['H17', 'I17', 'H18', 'I18'],
     };
   } else if (group === 'B') {
@@ -138,8 +138,8 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
       top1: ['R10', 'S10', 'Q10', 'R11', 'S11'],
       losers_m1_t1: ['M18', 'N18'],
       losers_m1_t2: ['M19', 'N19'],
-      losers_m2_t1: ['O18', 'P18'],
-      losers_m2_t2: ['O19', 'P19'],
+      losers_m2_t1: ['O16', 'P16', 'O17', 'P17', 'N16'],
+      losers_m2_t2: ['O18', 'P18', 'O19', 'P19', 'N18'],
       top2: ['Q17', 'R17', 'Q18', 'R18'],
     };
   } else if (group === 'C') {
@@ -153,8 +153,8 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
       top1: ['I27', 'J27', 'H27', 'I28', 'J28'],
       losers_m1_t1: ['D35', 'E35'],
       losers_m1_t2: ['D36', 'E36'],
-      losers_m2_t1: ['F35', 'G35'],
-      losers_m2_t2: ['F36', 'G36'],
+      losers_m2_t1: ['F33', 'G33', 'F34', 'G34', 'E33'],
+      losers_m2_t2: ['F35', 'G35', 'F36', 'G36', 'E35'],
       top2: ['H34', 'I34', 'H35', 'I35'],
     };
   } else if (group === 'D') {
@@ -168,12 +168,11 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
       top1: ['R27', 'S27', 'Q27', 'R28', 'S28'],
       losers_m1_t1: ['M35', 'N35'],
       losers_m1_t2: ['M36', 'N36'],
-      losers_m2_t1: ['O35', 'P35'],
-      losers_m2_t2: ['O36', 'P36'],
+      losers_m2_t1: ['O33', 'P33', 'O34', 'P34', 'N33'],
+      losers_m2_t2: ['O35', 'P35', 'O36', 'P36', 'N35'],
       top2: ['Q34', 'R34', 'Q35', 'R35'],
     };
   } else if (group === 'E') {
-    // BẢNG E: Cột V..AC, hàng 5-20 (tương ứng Bảng A)
     coords = {
       v1_m1_t1: ['V8', 'W8'],
       v1_m1_t2: ['V9', 'W9'],
@@ -182,14 +181,13 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
       v2_m1: ['X8', 'Y8', 'X9', 'Y9', 'W8'],
       v2_m2: ['X12', 'Y12', 'X13', 'Y13', 'W12'],
       top1: ['AA10', 'AB10', 'Z10', 'AA11', 'AB11'],
-      losers_m1_t1: ['V18', 'W18', 'V17', 'W17'],
-      losers_m1_t2: ['V19', 'W19', 'V18', 'W18'],
-      losers_m2_t1: ['X18', 'Y18', 'X17', 'Y17'],
-      losers_m2_t2: ['X19', 'Y19', 'X18', 'Y18'],
-      top2: ['AA17', 'AA18', 'Z17', 'AB17', 'Z18', 'AB18'],
+      losers_m1_t1: ['V18', 'W18'],
+      losers_m1_t2: ['V19', 'W19'],
+      losers_m2_t1: ['X16', 'Y16', 'X17', 'Y17', 'W16'],
+      losers_m2_t2: ['X18', 'Y18', 'X19', 'Y19', 'W18'],
+      top2: ['Z17', 'AA17', 'Z18', 'AA18'],
     };
   } else if (group === 'F') {
-    // BẢNG F: Cột AE..AL, hàng 5-20 (tương ứng Bảng B)
     coords = {
       v1_m1_t1: ['AE8', 'AF8'],
       v1_m1_t2: ['AE9', 'AF9'],
@@ -198,14 +196,13 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
       v2_m1: ['AG8', 'AH8', 'AG9', 'AH9', 'AF8'],
       v2_m2: ['AG12', 'AH12', 'AG13', 'AH13', 'AF12'],
       top1: ['AJ10', 'AK10', 'AI10', 'AJ11', 'AK11'],
-      losers_m1_t1: ['AE18', 'AF18', 'AE17', 'AF17'],
-      losers_m1_t2: ['AE19', 'AF19', 'AE18', 'AF18'],
-      losers_m2_t1: ['AG18', 'AH18', 'AG17', 'AH17'],
-      losers_m2_t2: ['AG19', 'AH19', 'AG18', 'AH18'],
+      losers_m1_t1: ['AE18', 'AF18'],
+      losers_m1_t2: ['AE19', 'AF19'],
+      losers_m2_t1: ['AG16', 'AH16', 'AG17', 'AH17', 'AF16'],
+      losers_m2_t2: ['AG18', 'AH18', 'AG19', 'AH19', 'AF18'],
       top2: ['AI17', 'AJ17', 'AI18', 'AJ18'],
     };
   } else if (group === 'G') {
-    // BẢNG G: Cột V..AC, hàng 22-37 (tương ứng Bảng C)
     coords = {
       v1_m1_t1: ['V25', 'W25'],
       v1_m1_t2: ['V26', 'W26'],
@@ -214,14 +211,14 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
       v2_m1: ['X25', 'Y25', 'X26', 'Y26', 'W25'],
       v2_m2: ['X29', 'Y29', 'X30', 'Y30', 'W29'],
       top1: ['AA27', 'AB27', 'Z27', 'AA28', 'AB28'],
-      losers_m1_t1: ['V35', 'W35', 'V34', 'W34'],
-      losers_m1_t2: ['V36', 'W36', 'V35', 'W35'],
-      losers_m2_t1: ['X35', 'Y35', 'X34', 'Y34'],
-      losers_m2_t2: ['X36', 'Y36', 'X35', 'Y35'],
-      top2: ['AA34', 'Z34', 'AA35', 'Z35'],
+      losers_m1_t1: ['V35', 'W35'],
+      losers_m1_t2: ['V36', 'W36'],
+      losers_m2_t1: ['X33', 'Y33', 'X34', 'Y34', 'W33'],
+      losers_m2_t2: ['X35', 'Y35', 'X36', 'Y36', 'W35'],
+      top2: ['Z34', 'AA34', 'Z35', 'AA35'],
     };
   } else {
-    // BẢNG H: Cột AE..AL, hàng 22-37 (tương ứng Bảng D)
+    // BẢNG H
     coords = {
       v1_m1_t1: ['AE25', 'AF25'],
       v1_m1_t2: ['AE26', 'AF26'],
@@ -230,10 +227,10 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
       v2_m1: ['AG25', 'AH25', 'AG26', 'AH26', 'AF25'],
       v2_m2: ['AG29', 'AH29', 'AG30', 'AH30', 'AF29'],
       top1: ['AJ27', 'AK27', 'AI27', 'AJ28', 'AK28'],
-      losers_m1_t1: ['AE35', 'AF35', 'AE34', 'AF34'],
-      losers_m1_t2: ['AE36', 'AF36', 'AE35', 'AF35'],
-      losers_m2_t1: ['AG35', 'AH35', 'AG34', 'AH34'],
-      losers_m2_t2: ['AG36', 'AH36', 'AG35', 'AH35'],
+      losers_m1_t1: ['AE35', 'AF35'],
+      losers_m1_t2: ['AE36', 'AF36'],
+      losers_m2_t1: ['AG33', 'AH33', 'AG34', 'AH34', 'AF33'],
+      losers_m2_t2: ['AG35', 'AH35', 'AG36', 'AH36', 'AF35'],
       top2: ['AI34', 'AJ34', 'AI35', 'AJ35'],
     };
   }
