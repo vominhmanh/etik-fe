@@ -1,0 +1,16 @@
+/* Font declaration for TFT 2026 Leaderboards */
+@font-face {
+  font-family: 'Normalidad Text Medium';
+  src: url('/fonts/tft-2026/Normalidad%20Text%20Medium.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GS3 Normalidad Text';
+  src: url('/fonts/tft-2026/Normalidad%20Text%20Medium.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
