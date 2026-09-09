@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { Copy as CopyIcon } from '@phosphor-icons/react/dist/ssr/Copy';
 import { CheckCircle as CheckCircleIcon } from '@phosphor-icons/react/dist/ssr/CheckCircle';
-import React, { FC, useState, useEffect, useContext } from 'react';
+import React, { FC, useState, useEffect, useContext, useRef } from 'react';
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 
@@ -51,6 +51,30 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, cardFields 
     playerId: string;
   } | null>(null);
 
+  // Đánh dấu nổi bật lưu ở localStorage của trình duyệt, riêng cho trang xem (viewer) này,
+  // theo từng giao dịch (không phụ thuộc suffix "_ticketN" khi ở viewMode 'ticket')
+  const highlightStorageKey = `table-arrangement-highlight-viewer-${eventId}-${show.id}`;
+  const getTxnBaseId = (id: string) => id.split('_ticket')[0];
+  const highlightedIdsRef = useRef<Set<string>>(new Set());
+
+  const applyHighlights = (playerGrid: Player[][]) =>
+    playerGrid.map(table => table.map(p => ({
+      ...p,
+      isHighlighted: highlightedIdsRef.current.has(getTxnBaseId(p.id))
+    })));
+
+  // Nạp trạng thái highlight đã lưu trước khi tải dữ liệu bàn đấu
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(highlightStorageKey);
+      highlightedIdsRef.current = raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch (err) {
+      console.error(err);
+      highlightedIdsRef.current = new Set();
+    }
+    setGrid(currentGrid => applyHighlights(currentGrid));
+  }, [eventId, show.id]);
+
   const handleContextMenu = (event: React.MouseEvent, player: Player) => {
     event.preventDefault();
     setContextMenu(
@@ -70,19 +94,25 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, cardFields 
 
   const handleToggleHighlight = () => {
     if (!contextMenu) return;
-    const { playerId } = contextMenu;
+    const baseId = getTxnBaseId(contextMenu.playerId);
 
-    const newGrid = [...grid];
-    for (let r = 0; r < newGrid.length; r++) {
-      const pIndex = newGrid[r].findIndex(p => p.id === playerId);
-      if (pIndex !== -1) {
-        const table = [...newGrid[r]];
-        table[pIndex] = { ...table[pIndex], isHighlighted: !table[pIndex].isHighlighted };
-        newGrid[r] = table;
-        setGrid(newGrid);
-        break;
-      }
+    const nextHighlighted = new Set(highlightedIdsRef.current);
+    const isHighlighted = !nextHighlighted.has(baseId);
+    if (isHighlighted) {
+      nextHighlighted.add(baseId);
+    } else {
+      nextHighlighted.delete(baseId);
     }
+    highlightedIdsRef.current = nextHighlighted;
+    try {
+      localStorage.setItem(highlightStorageKey, JSON.stringify(Array.from(nextHighlighted)));
+    } catch (err) {
+      console.error(err);
+    }
+
+    setGrid(currentGrid => currentGrid.map(table => table.map(p =>
+      getTxnBaseId(p.id) === baseId ? { ...p, isHighlighted } : p
+    )));
     handleCloseMenu();
   };
 
@@ -92,6 +122,33 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, cardFields 
     const txnId = parseInt(playerId.replace('txn-', ''), 10);
     window.open(`/event-studio/events/${eventId}/transactions/${txnId}`, '_blank');
     handleCloseMenu();
+  };
+
+  // Xây dựng lại grid từ dữ liệu API (dùng chung cho lần tải đầu và các lần auto-reload)
+  const buildGridFromTablesData = (fetchedTables: { id: number, name: string }[], tData: Record<string, any>) => {
+    const newGrid: Player[][] = Array.from({ length: fetchedTables.length }, () => []);
+    fetchedTables.forEach((t, idx) => {
+      if (tData[t.id]) {
+        let tablePlayers = tData[t.id] as Player[];
+        if (viewMode === 'transaction') {
+          const seen = new Set();
+          tablePlayers = tablePlayers.filter(p => {
+            if (seen.has(p.id)) return false;
+            seen.add(p.id);
+            return true;
+          });
+        } else {
+          const seenCounts = new Map();
+          tablePlayers = tablePlayers.map(p => {
+            const count = (seenCounts.get(p.id) || 0) + 1;
+            seenCounts.set(p.id, count);
+            return count > 1 ? { ...p, id: `${p.id}_ticket${count}` } : p;
+          });
+        }
+        newGrid[idx] = tablePlayers;
+      }
+    });
+    return newGrid;
   };
 
   // Lấy dữ liệu API
@@ -115,30 +172,7 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, cardFields 
         }
 
         if (tablesDataRes.data) {
-          const tData = tablesDataRes.data;
-          const newGrid: Player[][] = Array.from({ length: fetchedTables.length }, () => []);
-          fetchedTables.forEach((t: any, idx: number) => {
-            if (tData[t.id]) {
-              let tablePlayers = tData[t.id] as Player[];
-              if (viewMode === 'transaction') {
-                const seen = new Set();
-                tablePlayers = tablePlayers.filter(p => {
-                  if (seen.has(p.id)) return false;
-                  seen.add(p.id);
-                  return true;
-                });
-              } else {
-                const seenCounts = new Map();
-                tablePlayers = tablePlayers.map(p => {
-                  const count = (seenCounts.get(p.id) || 0) + 1;
-                  seenCounts.set(p.id, count);
-                  return count > 1 ? { ...p, id: `${p.id}_ticket${count}` } : p;
-                });
-              }
-              newGrid[idx] = tablePlayers;
-            }
-          });
-          setGrid(newGrid);
+          setGrid(applyHighlights(buildGridFromTablesData(fetchedTables, tablesDataRes.data)));
         } else {
           setGrid(Array.from({ length: fetchedTables.length }, () => []));
         }
@@ -149,47 +183,25 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, cardFields 
     fetchData();
   }, [eventId, show.id, viewMode]);
 
-  // Auto-reload tables-data every 15s để cập nhật trạng thái check-in
+  // Auto-reload every 15s để cập nhật realtime: check-in, thêm/sửa/xóa/đổi bàn của người chơi
   useEffect(() => {
     const interval = setInterval(() => {
-      baseHttpServiceInstance.get(`/event-studio/table-arrangements/${eventId}/shows/${show.id}/tables-data`)
-        .then((tablesDataRes) => {
-          const newTablesData = tablesDataRes.data || {};
-          const checkInMap = new Map<string, string | null>();
+      Promise.all([
+        baseHttpServiceInstance.get(`/event-studio/table-arrangements/${eventId}/shows/${show.id}/tables`),
+        baseHttpServiceInstance.get(`/event-studio/table-arrangements/${eventId}/shows/${show.id}/tables-data`)
+      ])
+        .then(([tablesRes, tablesDataRes]) => {
+          const fetchedTables = tablesRes.data || [];
+          setTables(fetchedTables);
 
-          Object.values(newTablesData).forEach((tablePlayers: any) => {
-            const seenCounts = new Map();
-            tablePlayers.forEach((p: any) => {
-              const count = (seenCounts.get(p.id) || 0) + 1;
-              seenCounts.set(p.id, count);
-              const uniqueId = count > 1 ? `${p.id}_ticket${count}` : p.id;
-              checkInMap.set(uniqueId, p.check_in_at || null);
-            });
-          });
-
-          setGrid(currentGrid => {
-            let hasGridChanges = false;
-            const nextGrid = currentGrid.map(table =>
-              table.map(p => {
-                if (checkInMap.has(p.id)) {
-                  const checkInTime = checkInMap.get(p.id);
-                  if (p.check_in_at !== checkInTime) {
-                    hasGridChanges = true;
-                    return { ...p, check_in_at: checkInTime };
-                  }
-                }
-                return p;
-              })
-            );
-
-            return hasGridChanges ? nextGrid : currentGrid;
-          });
+          const newGrid = buildGridFromTablesData(fetchedTables, tablesDataRes.data || {});
+          setGrid(applyHighlights(newGrid));
         })
         .catch(console.error);
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [eventId, show.id]);
+  }, [eventId, show.id, viewMode]);
 
   // Xây dựng nội dung 1 ô (card) khi copy, dựa theo các trường user đã chọn hiển thị
   const getPlayerCellText = (player: Player) => {

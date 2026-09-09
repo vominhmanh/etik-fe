@@ -38,7 +38,7 @@ import { PaperPlaneTilt as ResendIcon } from '@phosphor-icons/react/dist/ssr/Pap
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { CheckCircle as CheckCircleIcon } from '@phosphor-icons/react/dist/ssr/CheckCircle';
 import { WarningCircle as WarningCircleIcon } from '@phosphor-icons/react/dist/ssr/WarningCircle';
-import React, { FC, useState, useEffect, useContext } from 'react';
+import React, { FC, useState, useEffect, useContext, useRef } from 'react';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 
 interface Player {
@@ -104,6 +104,28 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
   const [savingTableIndexes, setSavingTableIndexes] = useState<Set<number>>(new Set());
   const [resendingTableIndexes, setResendingTableIndexes] = useState<Set<number>>(new Set());
 
+  // Đánh dấu nổi bật lưu ở localStorage của trình duyệt, riêng cho trang xếp bàn (editor) này,
+  // theo từng giao dịch (không phụ thuộc suffix "_ticketN" khi ở viewMode 'ticket')
+  const highlightStorageKey = `table-arrangement-highlight-editor-${eventId}-${show.id}`;
+  const getTxnBaseId = (id: string) => id.split('_ticket')[0];
+  const highlightedIdsRef = useRef<Set<string>>(new Set());
+
+  const applyHighlights = <T extends Player>(players: T[]) =>
+    players.map(p => ({ ...p, isHighlighted: highlightedIdsRef.current.has(getTxnBaseId(p.id)) }));
+
+  // Nạp trạng thái highlight đã lưu trước khi tải dữ liệu bàn đấu
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(highlightStorageKey);
+      highlightedIdsRef.current = raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch (err) {
+      console.error(err);
+      highlightedIdsRef.current = new Set();
+    }
+    setGrid(currentGrid => currentGrid.map(table => applyHighlights(table)));
+    setWaitingList(currentList => applyHighlights(currentList));
+  }, [eventId, show.id]);
+
   const handleContextMenu = (event: React.MouseEvent, player: Player, isInWaitingList: boolean) => {
     event.preventDefault();
     setContextMenu(
@@ -125,30 +147,28 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
 
   const handleToggleHighlight = () => {
     if (!contextMenu) return;
-    const { playerId } = contextMenu;
+    const baseId = getTxnBaseId(contextMenu.playerId);
 
-    // Find and update in waitingList
-    const wIndex = waitingList.findIndex(p => p.id === playerId);
-    if (wIndex !== -1) {
-      const newList = [...waitingList];
-      newList[wIndex] = { ...newList[wIndex], isHighlighted: !newList[wIndex].isHighlighted };
-      setWaitingList(newList);
-      handleCloseMenu();
-      return;
+    const nextHighlighted = new Set(highlightedIdsRef.current);
+    const isHighlighted = !nextHighlighted.has(baseId);
+    if (isHighlighted) {
+      nextHighlighted.add(baseId);
+    } else {
+      nextHighlighted.delete(baseId);
+    }
+    highlightedIdsRef.current = nextHighlighted;
+    try {
+      localStorage.setItem(highlightStorageKey, JSON.stringify(Array.from(nextHighlighted)));
+    } catch (err) {
+      console.error(err);
     }
 
-    // Find and update in grid
-    const newGrid = [...grid];
-    for (let r = 0; r < newGrid.length; r++) {
-      const pIndex = newGrid[r].findIndex(p => p.id === playerId);
-      if (pIndex !== -1) {
-        const table = [...newGrid[r]];
-        table[pIndex] = { ...table[pIndex], isHighlighted: !table[pIndex].isHighlighted };
-        newGrid[r] = table;
-        setGrid(newGrid);
-        break;
-      }
-    }
+    setWaitingList(currentList => currentList.map(p =>
+      getTxnBaseId(p.id) === baseId ? { ...p, isHighlighted } : p
+    ));
+    setGrid(currentGrid => currentGrid.map(table => table.map(p =>
+      getTxnBaseId(p.id) === baseId ? { ...p, isHighlighted } : p
+    )));
     handleCloseMenu();
   };
 
@@ -254,13 +274,13 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
               initialGrid[idx] = tablePlayers;
             }
           });
-          setGrid(initialGrid as any);
+          setGrid((initialGrid as Player[][]).map(table => applyHighlights(table)));
         } else {
           setGrid(Array.from({ length: fetchedTables.length }, () => []));
         }
 
         if (waitingRes.data) {
-          setWaitingList(waitingRes.data);
+          setWaitingList(applyHighlights(waitingRes.data));
         }
       } catch (err) {
         console.error(err);
