@@ -119,9 +119,11 @@ export default function TFTLeaderboardView({
               display: 'flex',
               alignItems: 'center',
               boxSizing: 'border-box',
-              fontSize: '2.1vh',
-              fontWeight: 500,
+              fontSize: '2.3vh',
+              fontWeight: 700,
               color: '#52426d',
+              WebkitTextStroke: '0.045vh #52426d',
+              paintOrder: 'stroke fill',
               fontFamily: "'Normalidad Text Medium', 'GS3 Normalidad Text', sans-serif",
             }}
           >
@@ -131,7 +133,8 @@ export default function TFTLeaderboardView({
                 width: '9.62%',
                 textAlign: 'center',
                 flexShrink: 0,
-                fontWeight: 600,
+                fontWeight: 700,
+                WebkitTextStroke: '0.045vh #52426d',
               }}
             >
               {entry.position ?? (isRight ? index + 17 : index + 1)}
@@ -143,7 +146,8 @@ export default function TFTLeaderboardView({
                 width: '9.73%',
                 textAlign: 'center',
                 flexShrink: 0,
-                fontWeight: 600,
+                fontWeight: 700,
+                WebkitTextStroke: '0.045vh #52426d',
               }}
             >
               {entry.sbd}
@@ -159,7 +163,8 @@ export default function TFTLeaderboardView({
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                fontWeight: 500,
+                fontWeight: 700,
+                WebkitTextStroke: '0.045vh #52426d',
               }}
             >
               {entry.name}
@@ -171,7 +176,8 @@ export default function TFTLeaderboardView({
                 width: '11.63%',
                 textAlign: 'center',
                 flexShrink: 0,
-                fontWeight: 600,
+                fontWeight: 700,
+                WebkitTextStroke: '0.045vh #52426d',
               }}
             >
               {entry.total}
@@ -225,9 +231,10 @@ export default function TFTLeaderboardView({
             position: 'absolute',
             top: '2%',
             right: '2.5%',
-            fontSize: '2.2vh',
-            fontWeight: 600,
+            fontSize: '2.4vh',
+            fontWeight: 700,
             color: '#52426d',
+            WebkitTextStroke: '0.045vh #52426d',
             fontFamily: "'Normalidad Text Medium', 'GS3 Normalidad Text', sans-serif",
           }}
         >
@@ -244,10 +251,11 @@ export default function TFTLeaderboardView({
             position: 'absolute',
             bottom: '0.6%',
             left: '2%',
-            fontSize: '1.2vh',
-            fontWeight: 500,
+            fontSize: '1.25vh',
+            fontWeight: 700,
             color: '#52426d',
             fontStyle: 'italic',
+            WebkitTextStroke: '0.03vh #52426d',
             fontFamily: "'Normalidad Text Medium', 'GS3 Normalidad Text', sans-serif",
           }}
         >

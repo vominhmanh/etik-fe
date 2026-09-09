@@ -2,7 +2,7 @@
 @font-face {
   font-family: 'Normalidad Text Medium';
   src: url('/fonts/tft-2026/Normalidad%20Text%20Medium.otf') format('opentype');
-  font-weight: normal;
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
@@ -10,7 +10,15 @@
 @font-face {
   font-family: 'GS3 Normalidad Text';
   src: url('/fonts/tft-2026/Normalidad%20Text%20Medium.otf') format('opentype');
-  font-weight: normal;
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
+}
+
+.tft-leaderboard-text {
+  font-family: 'Normalidad Text Medium', 'GS3 Normalidad Text', sans-serif;
+  color: #52426d;
+  font-weight: 700;
+  -webkit-text-stroke: 0.045vh #52426d;
+  paint-order: stroke fill;
 }
