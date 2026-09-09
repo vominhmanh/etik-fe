@@ -118,10 +118,8 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
       v1_m1_t2: ['D9', 'E9'],
       v1_m2_t1: ['D12', 'E12'],
       v1_m2_t2: ['D13', 'E13'],
-      v2_m1_t1: ['F8', 'G8'],
-      v2_m1_t2: ['F9', 'G9'],
-      v2_m2_t1: ['F12', 'G12'],
-      v2_m2_t2: ['F13', 'G13'],
+      v2_m1: ['F8', 'G8', 'F9', 'G9', 'E8'],
+      v2_m2: ['F12', 'G12', 'F13', 'G13', 'E12'],
       top1: ['I10', 'J10', 'H10', 'I11', 'J11'],
       losers_m1_t1: ['D18', 'E18'],
       losers_m1_t2: ['D19', 'E19'],
@@ -135,10 +133,8 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
       v1_m1_t2: ['M9', 'N9'],
       v1_m2_t1: ['M12', 'N12'],
       v1_m2_t2: ['M13', 'N13'],
-      v2_m1_t1: ['O8', 'P8'],
-      v2_m1_t2: ['O9', 'P9'],
-      v2_m2_t1: ['O12', 'P12'],
-      v2_m2_t2: ['O13', 'P13'],
+      v2_m1: ['O8', 'P8', 'O9', 'P9', 'N8'],
+      v2_m2: ['O12', 'P12', 'O13', 'P13', 'N12'],
       top1: ['R10', 'S10', 'Q10', 'R11', 'S11'],
       losers_m1_t1: ['M18', 'N18'],
       losers_m1_t2: ['M19', 'N19'],
@@ -152,10 +148,8 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
       v1_m1_t2: ['D26', 'E26'],
       v1_m2_t1: ['D29', 'E29'],
       v1_m2_t2: ['D30', 'E30'],
-      v2_m1_t1: ['F25', 'G25'],
-      v2_m1_t2: ['F26', 'G26'],
-      v2_m2_t1: ['F29', 'G29'],
-      v2_m2_t2: ['F30', 'G30'],
+      v2_m1: ['F25', 'G25', 'F26', 'G26', 'E25'],
+      v2_m2: ['F29', 'G29', 'F30', 'G30', 'E29'],
       top1: ['I27', 'J27', 'H27', 'I28', 'J28'],
       losers_m1_t1: ['D35', 'E35'],
       losers_m1_t2: ['D36', 'E36'],
@@ -170,10 +164,8 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
       v1_m1_t2: ['M26', 'N26'],
       v1_m2_t1: ['M29', 'N29'],
       v1_m2_t2: ['M30', 'N30'],
-      v2_m1_t1: ['O25', 'P25'],
-      v2_m1_t2: ['O26', 'P26'],
-      v2_m2_t1: ['O29', 'P29'],
-      v2_m2_t2: ['O30', 'P30'],
+      v2_m1: ['O25', 'P25', 'O26', 'P26', 'N25'],
+      v2_m2: ['O29', 'P29', 'O30', 'P30', 'N29'],
       top1: ['R27', 'S27', 'Q27', 'R28', 'S28'],
       losers_m1_t1: ['M35', 'N35'],
       losers_m1_t2: ['M36', 'N36'],
@@ -183,11 +175,16 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
     };
   }
 
-  const t = (key: string, structKey?: string) => {
-    if (structKey && structuredGroup && structuredGroup[structKey]) {
-      return String(structuredGroup[structKey]).trim();
+  const t = (key: string, ...structKeys: string[]) => {
+    if (structuredGroup) {
+      for (const sk of structKeys) {
+        if (structuredGroup[sk] && String(structuredGroup[sk]).trim()) {
+          return String(structuredGroup[sk]).trim();
+        }
+      }
     }
-    return getVal(bracketData, ...coords[key]);
+    const targetCoords = coords[key] || [];
+    return getVal(bracketData, ...targetCoords);
   };
 
   return (
@@ -260,11 +257,12 @@ export default function TFTGroupBracketView({ group }: TFTGroupBracketViewProps)
         {renderSlot(t('losers_m1_t1', 'nhanhThua_m1_t1'), '10.42%', '79.72%', '17.97%', '5.46%')}
         {renderSlot(t('losers_m1_t2', 'nhanhThua_m1_t2'), '10.42%', '85.46%', '17.97%', '5.46%')}
 
-        {/* VÒNG 2 (Cột 2 trên: left 39.84%, width 18.15%) */}
-        {renderSlot(t('v2_m1_t1', 'vong2_m1_t1'), '39.84%', '37.22%', '18.15%', '5.56%')}
-        {renderSlot(t('v2_m1_t2', 'vong2_m1_t2'), '39.84%', '42.87%', '18.15%', '5.56%')}
-        {renderSlot(t('v2_m2_t1', 'vong2_m2_t1'), '39.84%', '56.48%', '18.15%', '5.56%')}
-        {renderSlot(t('v2_m2_t2', 'vong2_m2_t2'), '39.84%', '62.13%', '18.15%', '5.56%')}
+        {/* VÒNG 2: 2 ô to đơn căn giữa, cỡ chữ 2.5vh đậm 800 giống ô Đội 2 - 0 */}
+        {/* Ô trên Vòng 2: Bounding box x=[765..1113] w=349 y=[402..522] h=121 */}
+        {renderSlot(t('v2_m1', 'vong2_m1', 'vong2_m1_t1', 'vong2_m1_t2'), '39.84%', '37.22%', '18.18%', '11.20%', '2.5vh', 800)}
+
+        {/* Ô dưới Vòng 2: Bounding box x=[765..1113] w=349 y=[610..730] h=121 */}
+        {renderSlot(t('v2_m2', 'vong2_m2', 'vong2_m2_t1', 'vong2_m2_t2'), '39.84%', '56.48%', '18.18%', '11.20%', '2.5vh', 800)}
 
         {/* NHÁNH THUA VÒNG 2 (Cột 2 dưới: left 39.84%, width 18.15%) */}
         {renderSlot(t('losers_m2_t1', 'nhanhThua_m2_t1'), '39.84%', '74.26%', '18.15%', '5.56%')}
