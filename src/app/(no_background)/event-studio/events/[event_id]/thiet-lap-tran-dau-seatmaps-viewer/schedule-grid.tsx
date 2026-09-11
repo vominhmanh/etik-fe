@@ -1,7 +1,6 @@
 import {
   Box,
   Typography,
-  Paper,
   Avatar,
   useTheme,
   Tooltip,
@@ -35,9 +34,19 @@ interface EditableGridProps {
   tooltipFields?: string[];
   availableFields?: { id: string, name: string }[];
   viewMode?: 'transaction' | 'ticket';
+  onTableCountChange?: (count: number) => void;
+  onRegisterCopyAll?: (copyFn: (() => void) | null) => void;
 }
 
-export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, cardFields = [], tooltipFields = [], viewMode = 'transaction' }) => {
+export const EditableGrid: FC<EditableGridProps> = ({ 
+  eventId, 
+  show, 
+  cardFields = [], 
+  tooltipFields = [], 
+  viewMode = 'transaction',
+  onTableCountChange,
+  onRegisterCopyAll,
+}) => {
   const theme = useTheme();
   const notificationCtx = useContext(NotificationContext);
 
@@ -169,6 +178,10 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, cardFields 
         if (tablesRes.data) {
           fetchedTables = tablesRes.data;
           setTables(fetchedTables);
+          onTableCountChange?.(fetchedTables.length);
+        } else {
+          setGrid(Array.from({ length: fetchedTables.length }, () => []));
+          onTableCountChange?.(0);
         }
 
         if (tablesDataRes.data) {
@@ -181,7 +194,7 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, cardFields 
       }
     };
     fetchData();
-  }, [eventId, show.id, viewMode]);
+  }, [eventId, show.id, viewMode, onTableCountChange]);
 
   // Auto-reload every 15s để cập nhật realtime: check-in, thêm/sửa/xóa/đổi bàn của người chơi
   useEffect(() => {
@@ -193,6 +206,7 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, cardFields 
         .then(([tablesRes, tablesDataRes]) => {
           const fetchedTables = tablesRes.data || [];
           setTables(fetchedTables);
+          onTableCountChange?.(fetchedTables.length);
 
           const newGrid = buildGridFromTablesData(fetchedTables, tablesDataRes.data || {});
           setGrid(applyHighlights(newGrid));
@@ -201,7 +215,14 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, cardFields 
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [eventId, show.id, viewMode]);
+  }, [eventId, show.id, viewMode, onTableCountChange]);
+
+  useEffect(() => {
+    onRegisterCopyAll?.(handleCopyAllTables);
+    return () => {
+      onRegisterCopyAll?.(null);
+    };
+  }, [tables, grid, cardFields, onRegisterCopyAll]);
 
   // Xây dựng nội dung 1 ô (card) khi copy, dựa theo các trường user đã chọn hiển thị
   const getPlayerCellText = (player: Player) => {
@@ -252,117 +273,94 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, cardFields 
 
   return (
     <>
-      <Paper
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          background: 'rgba(255,255,255,0.95)',
-          border: '1px solid rgba(0,0,0,0.05)',
-          borderRadius: 3,
-          boxShadow: '0 4px 20px 0 rgba(0, 0, 0, 0.05)',
-          overflow: 'hidden'
-        }}
-      >
-        <Box sx={{ p: 1.5, borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="subtitle2" fontWeight="bold">Sơ đồ các bàn thi đấu ({tables.length} Bàn)</Typography>
-          <Tooltip title="Sao chép bảng đấu" placement="top" arrow>
-            <IconButton size="small" onClick={handleCopyAllTables} color="primary" sx={{ bgcolor: 'rgba(24, 119, 242, 0.1)' }}>
-              <CopyIcon size={16} weight="bold" />
-            </IconButton>
-          </Tooltip>
-        </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 2 }}>
+        {grid.map((tablePlayers, r) => (
+          <Box
+            key={r}
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              overflow: 'hidden',
+              background: 'white',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
+                borderColor: theme.palette.primary.light
+              }
+            }}
+          >
+            <Box sx={{
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+              color: 'white',
+              px: 1.5,
+              py: 0.75,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="caption" fontWeight="bold">{tables[r]?.name || `BÀN ${r + 1}`}</Typography>
+                <Tooltip title={`Sao chép ${tables[r]?.name || `Bàn ${r + 1}`}`} placement="top" arrow>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleCopyTable(r)}
+                    sx={{
+                      color: 'white',
+                      p: 0.3,
+                      bgcolor: 'rgba(255,255,255,0.15)',
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
+                    }}
+                  >
+                    <CopyIcon size={14} weight="bold" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+              <Typography variant="caption" sx={{ opacity: 0.9, bgcolor: 'rgba(255,255,255,0.2)', px: 1, py: 0.2, borderRadius: 4, fontWeight: 'bold' }}>
+                {tablePlayers.length}/{seatsPerTable}
+              </Typography>
+            </Box>
 
-        <Box sx={{ p: 2, overflowY: 'auto' }}>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 2 }}>
-            {grid.map((tablePlayers, r) => (
-              <Box
-                key={r}
-                sx={{
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                  background: 'white',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
-                    borderColor: theme.palette.primary.light
-                  }
-                }}
-              >
-                <Box sx={{
-                  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                  color: 'white',
-                  px: 1.5,
-                  py: 0.75,
+            <Box
+              sx={{
+                p: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 0.75,
+                minHeight: 120,
+              }}
+            >
+              {tablePlayers.map((player) => (
+                <PlayerCard
+                  key={player.id}
+                  player={player}
+                  onContextMenu={handleContextMenu}
+                  cardFields={cardFields}
+                  tooltipFields={tooltipFields}
+                />
+              ))}
+
+              {Array.from({ length: Math.max(0, seatsPerTable - tablePlayers.length) }).map((_, i) => (
+                <Box key={`empty-${i}`} sx={{
+                  border: '1px dashed',
+                  borderColor: 'rgba(0,0,0,0.1)',
+                  borderRadius: 1,
+                  height: 30,
                   display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: 'rgba(0,0,0,0.02)'
                 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="caption" fontWeight="bold">{tables[r]?.name || `BÀN ${r + 1}`}</Typography>
-                    <Tooltip title={`Sao chép ${tables[r]?.name || `Bàn ${r + 1}`}`} placement="top" arrow>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleCopyTable(r)}
-                        sx={{
-                          color: 'white',
-                          p: 0.3,
-                          bgcolor: 'rgba(255,255,255,0.15)',
-                          '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
-                        }}
-                      >
-                        <CopyIcon size={14} weight="bold" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                  <Typography variant="caption" sx={{ opacity: 0.9, bgcolor: 'rgba(255,255,255,0.2)', px: 1, py: 0.2, borderRadius: 4, fontWeight: 'bold' }}>
-                    {tablePlayers.length}/{seatsPerTable}
+                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.6rem' }}>
+                    Vị trí {tablePlayers.length + i + 1}
                   </Typography>
                 </Box>
-
-                <Box
-                  sx={{
-                    p: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 0.75,
-                    minHeight: 120,
-                  }}
-                >
-                  {tablePlayers.map((player) => (
-                    <PlayerCard
-                      key={player.id}
-                      player={player}
-                      onContextMenu={handleContextMenu}
-                      cardFields={cardFields}
-                      tooltipFields={tooltipFields}
-                    />
-                  ))}
-
-                  {Array.from({ length: Math.max(0, seatsPerTable - tablePlayers.length) }).map((_, i) => (
-                    <Box key={`empty-${i}`} sx={{
-                      border: '1px dashed',
-                      borderColor: 'rgba(0,0,0,0.1)',
-                      borderRadius: 1,
-                      height: 30,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      bgcolor: 'rgba(0,0,0,0.02)'
-                    }}>
-                      <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.6rem' }}>
-                        Vị trí {tablePlayers.length + i + 1}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              </Box>
-            ))}
+              ))}
+            </Box>
           </Box>
-        </Box>
-      </Paper>
+        ))}
+      </Box>
 
       <Menu
         open={contextMenu !== null}

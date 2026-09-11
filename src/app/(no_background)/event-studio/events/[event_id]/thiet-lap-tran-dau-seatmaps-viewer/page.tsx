@@ -59,7 +59,10 @@ const options = {
   maximumAge: 0,
 };
 
-import { Tabs, Tab } from '@mui/material';
+import { Tabs, Tab, Tooltip, IconButton } from '@mui/material';
+import { Copy as CopyIcon } from '@phosphor-icons/react/dist/ssr/Copy';
+
+const BG_VIEWER = 'https://media.etik.vn/tft-2026/BG_LOOP_1.png';
 
 export default function Page({ params }: { params: { event_id: string } }): React.JSX.Element {
   const eventId = Number.parseInt(params.event_id)
@@ -87,6 +90,15 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [cardFields, setCardFields] = React.useState<string[]>([]);
   const [tooltipFields, setTooltipFields] = React.useState<string[]>([]);
   const [viewMode, setViewMode] = React.useState<'transaction' | 'ticket'>('transaction');
+  const [tableCounts, setTableCounts] = React.useState<Record<number, number>>({});
+  const [copyAllFn, setCopyAllFn] = React.useState<(() => void) | null>(null);
+
+  const handleTableCountChange = React.useCallback((showId: number, count: number) => {
+    setTableCounts((prev) => {
+      if (prev[showId] === count) return prev;
+      return { ...prev, [showId]: count };
+    });
+  }, []);
 
   const [data, setData] = React.useState(
     rowLabels.map(() =>
@@ -243,12 +255,42 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   return (
     <Box
       sx={{
-        scrollBehavior: 'smooth',
+        position: 'relative',
+        minHeight: '100vh',
         width: '100%',
+        scrollBehavior: 'smooth',
+        backgroundColor: '#d1f9db',
+        backgroundImage: 'linear-gradient(356deg, #d1f9db 0%, #fffed9 100%)',
         px: { xs: 2, sm: 3, md: 4 },
         py: 2,
       }}
     >
+      {/* Background layer: Fixed letterbox 16:9, bảo toàn tỉ lệ trên mọi kích cỡ projector */}
+      <Box
+        sx={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        <Box
+          component="img"
+          src={BG_VIEWER}
+          alt="Viewer Background"
+          sx={{
+            width: '100vw',
+            height: '100vh',
+            objectFit: 'contain',
+            userSelect: 'none',
+          }}
+        />
+      </Box>
+
       <Backdrop
         open={isLoading}
         sx={{
@@ -259,10 +301,28 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
       >
         <CircularProgress color="inherit" />
       </Backdrop>
-      <Stack spacing={3}>
+      <Stack spacing={3} sx={{ position: 'relative', zIndex: 1 }}>
         {event?.shows && event.shows.length > 0 && (
           <Box sx={{ width: '100%' }}>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+            <Box 
+              sx={{ 
+                position: 'sticky',
+                top: 8,
+                zIndex: 10,
+                backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                borderRadius: 2,
+                px: 2,
+                py: 0.5,
+                mb: 3,
+                border: '1px solid rgba(255, 255, 255, 0.6)',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.05)',
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center' 
+              }}
+            >
               <Tabs 
                 value={selectedTab} 
                 onChange={handleTabChange} 
@@ -271,6 +331,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 scrollButtons="auto"
                 allowScrollButtonsMobile
                 sx={{
+                  flex: 1,
+                  minWidth: 0,
                   '& .MuiTabs-scroller': {
                     overflowX: 'auto !important',
                     scrollbarWidth: 'thin',
@@ -281,10 +343,30 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   }
                 }}
               >
-                {event.shows.map((show, index) => (
-                  <Tab label={show.name} id={`show-tab-${index}`} aria-controls={`show-tabpanel-${index}`} key={show.id} />
-                ))}
+                {event.shows.map((show, index) => {
+                  const count = tableCounts[show.id] ?? show.ticketCategories?.length ?? 0;
+                  return (
+                    <Tab 
+                      label={`${show.name} (${count})`} 
+                      id={`show-tab-${index}`} 
+                      aria-controls={`show-tabpanel-${index}`} 
+                      key={show.id} 
+                    />
+                  );
+                })}
               </Tabs>
+              {copyAllFn && (
+                <Tooltip title="Sao chép toàn bộ bảng đấu" placement="top" arrow>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => copyAllFn()} 
+                    color="primary" 
+                    sx={{ bgcolor: 'rgba(24, 119, 242, 0.1)', ml: 1, flexShrink: 0 }}
+                  >
+                    <CopyIcon size={18} weight="bold" />
+                  </IconButton>
+                </Tooltip>
+              )}
             </Box>
 
             {event.shows.map((show, index) => (
@@ -304,6 +386,8 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       cardFields={cardFields}
                       tooltipFields={tooltipFields}
                       viewMode={viewMode}
+                      onTableCountChange={(count) => handleTableCountChange(show.id, count)}
+                      onRegisterCopyAll={setCopyAllFn}
                     />
                   </Box>
                 )}
