@@ -131,16 +131,16 @@ export default function TFTDuoFinalView({
                 pointerEvents: 'none',
               }}
             >
-              {/* TÊN ĐỘI (To, đậm, căn trái thanh lịch) */}
+              {/* TÊN ĐỘI (To vừa vặn, đậm, căn trái thanh lịch) */}
               <div
                 style={{
                   width: '78.65%',
-                  paddingLeft: '1.2%',
+                  paddingLeft: '1.5%',
                   paddingRight: '2%',
-                  fontSize: '4.2vh',
+                  fontSize: '3.4vh',
                   fontWeight: 800,
                   color: '#52426d',
-                  WebkitTextStroke: '0.06vh #52426d',
+                  WebkitTextStroke: '0.045vh #52426d',
                   fontFamily: "'Normalidad Text Medium', 'GS3 Normalidad Text', sans-serif",
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -154,15 +154,15 @@ export default function TFTDuoFinalView({
                 {entry.name}
               </div>
 
-              {/* TỔNG ĐIỂM (Cực to, nổi bật, căn giữa ô TỔNG) */}
+              {/* TỔNG ĐIỂM (To vừa vặn, nổi bật, căn giữa ô TỔNG) */}
               <div
                 style={{
                   width: '21.35%',
                   textAlign: 'center',
-                  fontSize: '5.2vh',
+                  fontSize: '4.2vh',
                   fontWeight: 900,
                   color: '#52426d',
-                  WebkitTextStroke: '0.08vh #52426d',
+                  WebkitTextStroke: '0.06vh #52426d',
                   fontFamily: "'Normalidad Text Medium', 'GS3 Normalidad Text', sans-serif",
                   lineHeight: 1,
                   display: 'flex',

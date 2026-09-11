@@ -8,7 +8,6 @@ import {
   Menu,
   MenuItem,
 } from '@mui/material';
-import { Copy as CopyIcon } from '@phosphor-icons/react/dist/ssr/Copy';
 import { CheckCircle as CheckCircleIcon } from '@phosphor-icons/react/dist/ssr/CheckCircle';
 import React, { FC, useState, useEffect, useContext, useRef } from 'react';
 import NotificationContext from '@/contexts/notification-context';
@@ -35,7 +34,6 @@ interface EditableGridProps {
   availableFields?: { id: string, name: string }[];
   viewMode?: 'transaction' | 'ticket';
   onTableCountChange?: (count: number) => void;
-  onRegisterCopyAll?: (copyFn: (() => void) | null) => void;
 }
 
 export const EditableGrid: FC<EditableGridProps> = ({ 
@@ -45,7 +43,6 @@ export const EditableGrid: FC<EditableGridProps> = ({
   tooltipFields = [], 
   viewMode = 'transaction',
   onTableCountChange,
-  onRegisterCopyAll,
 }) => {
   const theme = useTheme();
   const notificationCtx = useContext(NotificationContext);
@@ -217,60 +214,6 @@ export const EditableGrid: FC<EditableGridProps> = ({
     return () => clearInterval(interval);
   }, [eventId, show.id, viewMode, onTableCountChange]);
 
-  useEffect(() => {
-    onRegisterCopyAll?.(handleCopyAllTables);
-    return () => {
-      onRegisterCopyAll?.(null);
-    };
-  }, [tables, grid, cardFields, onRegisterCopyAll]);
-
-  // Xây dựng nội dung 1 ô (card) khi copy, dựa theo các trường user đã chọn hiển thị
-  const getPlayerCellText = (player: Player) => {
-    const raw = cardFields && cardFields.length > 0
-      ? cardFields.map(f => player.extra_fields?.[f] || 'N/A').join(' - ')
-      : `#${player.id.replace('txn-', '')} - ${player.name}`;
-    // Loại bỏ tab/xuống dòng để không phá vỡ định dạng khi dán vào Excel
-    return raw.replace(/\t/g, ' ').replace(/\r?\n/g, ' ');
-  };
-
-  // Tạo dữ liệu dạng TSV (tab-separated) để dán trực tiếp vào Excel:
-  // mỗi bàn là 1 cột, hàng đầu là tên bàn, các hàng sau là từng card
-  const buildTsvForTables = (tableIndexes: number[]) => {
-    const selectedTables = tableIndexes.map(idx => ({
-      name: tables[idx]?.name || `BÀN ${idx + 1}`,
-      players: grid[idx] || []
-    }));
-    const maxRows = Math.max(0, ...selectedTables.map(t => t.players.length));
-    const header = selectedTables.map(t => t.name.replace(/\t/g, ' ')).join('\t');
-    const lines = [header];
-    for (let r = 0; r < maxRows; r++) {
-      lines.push(selectedTables.map(t => t.players[r] ? getPlayerCellText(t.players[r]) : '').join('\t'));
-    }
-    return lines.join('\n');
-  };
-
-  const copyToClipboard = async (text: string, successMessage: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      notificationCtx.success(successMessage);
-    } catch (err) {
-      console.error(err);
-      notificationCtx.error('Lỗi khi sao chép dữ liệu.', err);
-    }
-  };
-
-  const handleCopyAllTables = () => {
-    if (tables.length === 0) return;
-    const tsv = buildTsvForTables(tables.map((_, idx) => idx));
-    copyToClipboard(tsv, 'Đã sao chép toàn bộ bảng đấu');
-  };
-
-  const handleCopyTable = (tableIndex: number) => {
-    const tsv = buildTsvForTables([tableIndex]);
-    const tableName = tables[tableIndex]?.name || `Bàn ${tableIndex + 1}`;
-    copyToClipboard(tsv, `Đã sao chép ${tableName}`);
-  };
-
   return (
     <>
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 2 }}>
@@ -287,12 +230,12 @@ export const EditableGrid: FC<EditableGridProps> = ({
               transition: 'all 0.2s ease',
               '&:hover': {
                 boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
-                borderColor: theme.palette.primary.light
+                borderColor: '#654e85'
               }
             }}
           >
             <Box sx={{
-              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+              background: 'linear-gradient(135deg, #654e85 0%, #43335b 100%)',
               color: 'white',
               px: 1.5,
               py: 0.75,
@@ -300,23 +243,7 @@ export const EditableGrid: FC<EditableGridProps> = ({
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="caption" fontWeight="bold">{tables[r]?.name || `BÀN ${r + 1}`}</Typography>
-                <Tooltip title={`Sao chép ${tables[r]?.name || `Bàn ${r + 1}`}`} placement="top" arrow>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleCopyTable(r)}
-                    sx={{
-                      color: 'white',
-                      p: 0.3,
-                      bgcolor: 'rgba(255,255,255,0.15)',
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
-                    }}
-                  >
-                    <CopyIcon size={14} weight="bold" />
-                  </IconButton>
-                </Tooltip>
-              </Box>
+              <Typography variant="caption" fontWeight="bold">{tables[r]?.name || `BÀN ${r + 1}`}</Typography>
               <Typography variant="caption" sx={{ opacity: 0.9, bgcolor: 'rgba(255,255,255,0.2)', px: 1, py: 0.2, borderRadius: 4, fontWeight: 'bold' }}>
                 {tablePlayers.length}/{seatsPerTable}
               </Typography>
@@ -431,7 +358,7 @@ const PlayerCard: FC<{
       <Box sx={{ p: 0.5, display: 'flex', alignItems: 'flex-start', gap: 0.75, width: '100%' }}>
         <Tooltip title={tooltipContent} placement="top" arrow disableInteractive>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, flexGrow: 1, minWidth: 0 }}>
-            <Avatar sx={{ mt: 0.2, width: 18, height: 18, fontSize: '0.6rem', bgcolor: 'primary.main', flexShrink: 0 }}>
+            <Avatar sx={{ mt: 0.2, width: 18, height: 18, fontSize: '0.6rem', bgcolor: '#52426d', flexShrink: 0 }}>
               {player.name.charAt(0)}
             </Avatar>
             <Box sx={{ minWidth: 0, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>

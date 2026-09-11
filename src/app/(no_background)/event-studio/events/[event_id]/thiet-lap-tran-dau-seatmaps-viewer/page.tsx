@@ -59,8 +59,7 @@ const options = {
   maximumAge: 0,
 };
 
-import { Tabs, Tab, Tooltip, IconButton } from '@mui/material';
-import { Copy as CopyIcon } from '@phosphor-icons/react/dist/ssr/Copy';
+import { Tabs, Tab } from '@mui/material';
 
 const BG_VIEWER = 'https://media.etik.vn/tft-2026/BG_LOOP_1.png';
 
@@ -91,7 +90,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [tooltipFields, setTooltipFields] = React.useState<string[]>([]);
   const [viewMode, setViewMode] = React.useState<'transaction' | 'ticket'>('transaction');
   const [tableCounts, setTableCounts] = React.useState<Record<number, number>>({});
-  const [copyAllFn, setCopyAllFn] = React.useState<(() => void) | null>(null);
 
   const handleTableCountChange = React.useCallback((showId: number, count: number) => {
     setTableCounts((prev) => {
@@ -265,17 +263,20 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
         py: 2,
       }}
     >
-      {/* Background layer: Fixed letterbox 16:9, bảo toàn tỉ lệ trên mọi kích cỡ projector */}
+      {/* Background layer: Luôn luôn chiếm 100% chiều rộng màn hình, chiều cao tự nhiên theo tỉ lệ */}
       <Box
         sx={{
           position: 'fixed',
-          inset: 0,
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
           zIndex: 0,
           pointerEvents: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           overflow: 'hidden',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
         }}
       >
         <Box
@@ -284,8 +285,9 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
           alt="Viewer Background"
           sx={{
             width: '100vw',
-            height: '100vh',
-            objectFit: 'contain',
+            minWidth: '100vw',
+            height: 'auto',
+            display: 'block',
             userSelect: 'none',
           }}
         />
@@ -318,9 +320,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 mb: 3,
                 border: '1px solid rgba(255, 255, 255, 0.6)',
                 boxShadow: '0 4px 16px rgba(0, 0, 0, 0.05)',
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center' 
               }}
             >
               <Tabs 
@@ -331,8 +330,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                 scrollButtons="auto"
                 allowScrollButtonsMobile
                 sx={{
-                  flex: 1,
-                  minWidth: 0,
                   '& .MuiTabs-scroller': {
                     overflowX: 'auto !important',
                     scrollbarWidth: 'thin',
@@ -355,18 +352,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                   );
                 })}
               </Tabs>
-              {copyAllFn && (
-                <Tooltip title="Sao chép toàn bộ bảng đấu" placement="top" arrow>
-                  <IconButton 
-                    size="small" 
-                    onClick={() => copyAllFn()} 
-                    color="primary" 
-                    sx={{ bgcolor: 'rgba(24, 119, 242, 0.1)', ml: 1, flexShrink: 0 }}
-                  >
-                    <CopyIcon size={18} weight="bold" />
-                  </IconButton>
-                </Tooltip>
-              )}
             </Box>
 
             {event.shows.map((show, index) => (
@@ -387,7 +372,6 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                       tooltipFields={tooltipFields}
                       viewMode={viewMode}
                       onTableCountChange={(count) => handleTableCountChange(show.id, count)}
-                      onRegisterCopyAll={setCopyAllFn}
                     />
                   </Box>
                 )}
