@@ -60,6 +60,7 @@ export function MainNav(): React.JSX.Element {
               <Button
                 component={LocalizedLink}
                 href="/"
+                prefetch={false}
                 sx={{
                   width: '45px',
                   minWidth: '45px',
