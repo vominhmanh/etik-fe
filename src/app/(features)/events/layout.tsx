@@ -2,7 +2,6 @@ import Box from '@mui/material/Box';
 import GlobalStyles from '@mui/material/GlobalStyles';
 import * as React from 'react';
 
-
 import { MainNav } from './main-nav';
 
 interface LayoutProps {

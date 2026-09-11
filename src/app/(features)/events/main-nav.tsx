@@ -1,16 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { Container } from '@mui/material';
-import Avatar from '@mui/material/Avatar';
-import Badge from '@mui/material/Badge';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
-import Stack from '@mui/material/Stack';
-import Tooltip from '@mui/material/Tooltip';
+import { Avatar, Badge, Box, Button, CircularProgress, Container, IconButton, Stack, Tooltip } from '@mui/material';
 import { Bell as BellIcon } from '@phosphor-icons/react/dist/ssr/Bell';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
+import { useRouter } from 'next/navigation';
 
 import { paths } from '@/paths';
 import { useTranslation } from '@/contexts/locale-context';
@@ -20,17 +14,29 @@ import { UserPopover } from '@/components/dashboard/layout/user-popover';
 import { LocalizedLink } from '@/components/homepage/localized-link';
 
 export function MainNav(): React.JSX.Element {
-  const { tt } = useTranslation();
+  const { tt, locale } = useTranslation();
+  const router = useRouter();
   const userPopover = usePopover<HTMLDivElement>();
-  const { user } = useUser();
+  const { user, checkSession } = useUser();
+  const [isChecking, setIsChecking] = React.useState(false);
 
-  React.useEffect(() => {
-    const fetchUser = async () => {
-      const fetchedUser = user;
-    };
-
-    fetchUser();
-  }, [user]);
+  const handleSignIn = async () => {
+    setIsChecking(true);
+    try {
+      const loggedUser = await checkSession();
+      if (!loggedUser?.email) {
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        const loginPath = locale === 'en' ? `/en${paths.auth.signIn}` : paths.auth.signIn;
+        router.push(`${loginPath}?returnUrl=${returnUrl}`);
+      }
+    } catch {
+      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      const loginPath = locale === 'en' ? `/en${paths.auth.signIn}` : paths.auth.signIn;
+      router.push(`${loginPath}?returnUrl=${returnUrl}`);
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
   return (
     <React.Fragment>
@@ -86,8 +92,13 @@ export function MainNav(): React.JSX.Element {
               </Stack>
             ) : (
               <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-                <Button variant="contained" component={LocalizedLink} href={`${paths.auth.signIn}`}>
-                  {tt('Đăng nhập', 'Sign In')}
+                <Button
+                  variant="contained"
+                  onClick={handleSignIn}
+                  disabled={isChecking}
+                  startIcon={isChecking ? <CircularProgress size={16} color="inherit" /> : null}
+                >
+                  {isChecking ? tt('Đang kiểm tra...', 'Checking...') : tt('Đăng nhập', 'Sign In')}
                 </Button>
               </Stack>
             )}
