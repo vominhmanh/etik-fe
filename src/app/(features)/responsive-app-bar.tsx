@@ -100,6 +100,7 @@ export function ResponsiveAppBar() {
             <Button
               component={LocalizedLink}
               href={paths.home}
+              prefetch={false}
               scroll={false}
               onClick={handleCloseNavMenu}
               sx={{ my: 0, color: 'white', display: 'block', py: 0, fontSize: { xs: '11px', md: '13px' }, p:0 }}
