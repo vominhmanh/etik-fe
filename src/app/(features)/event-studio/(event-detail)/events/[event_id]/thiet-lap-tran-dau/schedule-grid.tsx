@@ -229,9 +229,10 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
           baseHttpServiceInstance.get(`/event-studio/table-arrangements/${eventId}/shows/${show.id}/waiting-list/filter`)
         ]);
 
-        let sourceCatQuery = '';
+        let savedTxnIds: number[] = [];
         if (filterRes.data) {
-          setSavedTransactionIds(filterRes.data.transaction_ids || []);
+          savedTxnIds = filterRes.data.transaction_ids || [];
+          setSavedTransactionIds(savedTxnIds);
           setFilterField(filterRes.data.filter_field || 'id');
           if (filterRes.data.source_category_ids) {
             const savedCats = filterRes.data.source_category_ids.split(',').map((id: string) => parseInt(id.trim())).filter((n: number) => !isNaN(n));
@@ -280,7 +281,19 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
         }
 
         if (waitingRes.data) {
-          setWaitingList(applyHighlights(waitingRes.data));
+          let list: Player[] = waitingRes.data;
+          if (savedTxnIds.length > 0) {
+            const orderMap = new Map<number, number>();
+            savedTxnIds.forEach((id, idx) => orderMap.set(id, idx));
+            list = [...list].sort((a, b) => {
+              const idA = parseInt(a.id.replace('txn-', '').split('_')[0], 10);
+              const idB = parseInt(b.id.replace('txn-', '').split('_')[0], 10);
+              const orderA = orderMap.has(idA) ? orderMap.get(idA)! : 999999;
+              const orderB = orderMap.has(idB) ? orderMap.get(idB)! : 999999;
+              return orderA - orderB;
+            });
+          }
+          setWaitingList(applyHighlights(list));
         }
       } catch (err) {
         console.error(err);
@@ -412,7 +425,10 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
       const sourceCats = selectedSourceCategoryIds.length > 0 ? selectedSourceCategoryIds.join(',') : '';
       const res = await baseHttpServiceInstance.get(`/event-studio/table-arrangements/${eventId}/shows/${show.id}/waiting-list?source_category_ids=${sourceCats}&ignore_filter=true&include_seated=true`);
       const validPlayers: Player[] = res.data || [];
-      const validMap = new Map(validPlayers.map(p => [(p.extra_fields?.[filterField] || '').trim(), p]));
+      const validMap = new Map(validPlayers.map(p => {
+        const rawVal = p.extra_fields?.[filterField] || (filterField === 'id' ? p.id.replace('txn-', '') : '');
+        return [rawVal.trim(), p];
+      }));
 
       const results: ManualAddResult[] = values.map(value => {
         const p = validMap.get(value);
@@ -438,9 +454,17 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
       return;
     }
 
-    const validIds = confirmingResults
-      .map(r => r.player ? parseInt(r.player.id.replace('txn-', ''), 10) : NaN)
-      .filter(n => !isNaN(n));
+    const validIds: number[] = [];
+    const seenIds = new Set<number>();
+    confirmingResults.forEach(r => {
+      if (r.player) {
+        const txnId = parseInt(r.player.id.replace('txn-', ''), 10);
+        if (!isNaN(txnId) && !seenIds.has(txnId)) {
+          seenIds.add(txnId);
+          validIds.push(txnId);
+        }
+      }
+    });
     try {
       const payload = {
         transaction_ids: validIds,
@@ -452,7 +476,20 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
 
       const sourceCats = selectedSourceCategoryIds.length > 0 ? selectedSourceCategoryIds.join(',') : '';
       const waitingRes = await baseHttpServiceInstance.get(`/event-studio/table-arrangements/${eventId}/shows/${show.id}/waiting-list?source_category_ids=${sourceCats}`);
-      if (waitingRes.data) setWaitingList(waitingRes.data);
+      if (waitingRes.data) {
+        const orderMap = new Map<number, number>();
+        validIds.forEach((id, idx) => {
+          orderMap.set(id, idx);
+        });
+        const sortedList = [...waitingRes.data].sort((a, b) => {
+          const idA = parseInt(a.id.replace('txn-', '').split('_')[0], 10);
+          const idB = parseInt(b.id.replace('txn-', '').split('_')[0], 10);
+          const orderA = orderMap.has(idA) ? orderMap.get(idA)! : 999999;
+          const orderB = orderMap.has(idB) ? orderMap.get(idB)! : 999999;
+          return orderA - orderB;
+        });
+        setWaitingList(applyHighlights(sortedList));
+      }
       setSavedTransactionIds(validIds);
       setAddModalOpen(false);
       setManualIdsInput('');
@@ -475,7 +512,7 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
 
       const sourceCats = selectedSourceCategoryIds.length > 0 ? selectedSourceCategoryIds.join(',') : '';
       const waitingRes = await baseHttpServiceInstance.get(`/event-studio/table-arrangements/${eventId}/shows/${show.id}/waiting-list?source_category_ids=${sourceCats}`);
-      if (waitingRes.data) setWaitingList(waitingRes.data);
+      if (waitingRes.data) setWaitingList(applyHighlights(waitingRes.data));
       setSavedTransactionIds([]);
       setAddModalOpen(false);
       setConfirmingResults(null);
@@ -637,7 +674,7 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
   const handleResetAll = () => {
     if (!window.confirm("Bạn có chắc muốn đưa tất cả các đội chưa bị khoá về hàng chờ?")) return;
 
-    const newWaitingList = [...waitingList];
+    let newWaitingList = [...waitingList];
     const newGrid = grid.map(table => {
       const remaining: Player[] = [];
       table.forEach(player => {
@@ -649,6 +686,18 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
       });
       return remaining;
     });
+
+    if (savedTransactionIds.length > 0) {
+      const orderMap = new Map<number, number>();
+      savedTransactionIds.forEach((id, idx) => orderMap.set(id, idx));
+      newWaitingList.sort((a, b) => {
+        const idA = parseInt(a.id.replace('txn-', '').split('_')[0], 10);
+        const idB = parseInt(b.id.replace('txn-', '').split('_')[0], 10);
+        const orderA = orderMap.has(idA) ? orderMap.get(idA)! : 999999;
+        const orderB = orderMap.has(idB) ? orderMap.get(idB)! : 999999;
+        return orderA - orderB;
+      });
+    }
 
     setWaitingList(newWaitingList);
     setGrid(newGrid);
