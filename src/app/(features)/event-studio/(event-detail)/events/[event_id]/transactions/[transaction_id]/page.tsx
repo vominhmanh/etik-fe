@@ -414,7 +414,12 @@ export default function Page({ params }: { params: { event_id: number; transacti
   // grab ?checkInCode=… from the browser URL
   const searchParams = useSearchParams()
   const checkInCode = searchParams.get('checkInCode') || undefined
-  const [selectedStatus, setSelectedStatus] = useState<string>(formData.status || '');
+  const [cancelOrderModalOpen, setCancelOrderModalOpen] = useState<boolean>(false);
+  const [cancelOrderReason, setCancelOrderReason] = useState<string>('customer_cancelled');
+  const [cancelTicketModalOpen, setCancelTicketModalOpen] = useState<boolean>(false);
+  const [cancelTicketReason, setCancelTicketReason] = useState<string>('customer_cancelled');
+  const [cancelTicketTarget, setCancelTicketTarget] = useState<{ categoryIndex: number; ticketIndex: number } | null>(null);
+  const [cancelTicketLoading, setCancelTicketLoading] = useState<boolean>(false);
   const [editTicketModalOpen, setEditTicketModalOpen] = useState<boolean>(false);
   const [editingTicket, setEditingTicket] = useState<{ categoryIndex: number; ticketIndex: number } | null>(null);
   const [editingHolderInfo, setEditingHolderInfo] = useState<{
@@ -1243,6 +1248,55 @@ export default function Page({ params }: { params: { event_id: number; transacti
     }
   };
 
+  const handleConfirmCancelOrder = async () => {
+    await handleSetTransactionStatus(cancelOrderReason);
+    setCancelOrderModalOpen(false);
+  };
+
+  const handleOpenCancelTicketModal = () => {
+    if (!activeMenuTicket || !transaction) return;
+    setCancelTicketTarget(activeMenuTicket);
+    setCancelTicketReason('customer_cancelled');
+    setCancelTicketModalOpen(true);
+    setTicketMenuAnchorEl(null);
+  };
+
+  const handleConfirmCancelTicket = async () => {
+    if (!cancelTicketTarget || !transaction) return;
+    const { categoryIndex, ticketIndex } = cancelTicketTarget;
+    const ticket = transaction.transactionTicketCategories[categoryIndex]?.tickets[ticketIndex];
+    if (!ticket) return;
+
+    try {
+      setCancelTicketLoading(true);
+      const response: AxiosResponse = await baseHttpServiceInstance.post(
+        `/event-studio/events/${event_id}/tickets/${ticket.id}/set-status`,
+        { status: cancelTicketReason }
+      );
+
+      if (response.status === 200) {
+        notificationCtx.success(response.data?.message || tt('Huỷ vé thành công!', 'Ticket cancelled successfully!'));
+        setTransaction((prev) => {
+          if (!prev) return prev;
+          const updatedCategories = [...prev.transactionTicketCategories];
+          const category = updatedCategories[categoryIndex];
+          if (category && category.tickets[ticketIndex]) {
+            const updatedTickets = [...category.tickets];
+            updatedTickets[ticketIndex] = { ...updatedTickets[ticketIndex], status: cancelTicketReason };
+            updatedCategories[categoryIndex] = { ...category, tickets: updatedTickets };
+          }
+          return { ...prev, transactionTicketCategories: updatedCategories };
+        });
+        setCancelTicketModalOpen(false);
+        setCancelTicketTarget(null);
+      }
+    } catch (error) {
+      notificationCtx.error(error);
+    } finally {
+      setCancelTicketLoading(false);
+    }
+  };
+
   const handleSendEmailMarketingSingle = async (templateId: number) => {
     setIsEmailMarketingModalOpen(false);
     try {
@@ -1556,35 +1610,19 @@ export default function Page({ params }: { params: { event_id: number; transacti
                         )}
                     </Stack>
                     {transaction.status !== 'transfered' && (
-                      <Grid container spacing={3}>
-                        <Grid md={10} xs={9}>
-                          <FormControl size='small' fullWidth>
-                            <InputLabel>{tt('Hủy đơn hàng', 'Cancel Order')}</InputLabel>
-                            <Select
-                              label={tt('Hủy đơn hàng', 'Cancel Order')}
-                              name="status"
-                              value={selectedStatus}
-                              onChange={(event) => setSelectedStatus(event.target.value)}
-                            >
-                              {transaction.status === 'wait_for_response' && (
-                                <MenuItem value="normal">{tt('Phê duyệt đơn hàng', 'Approve Order')}</MenuItem>
-                              )}
-                              <MenuItem value="customer_cancelled">{tt('Huỷ bởi Khách hàng', 'Cancelled by Customer')}</MenuItem>
-                              <MenuItem value="staff_locked">{tt('Khoá bởi Nhân viên', 'Locked by Staff')}</MenuItem>
-                            </Select>
-                          </FormControl>
-                        </Grid>
-                        <Grid md={2} xs={3} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                          <Button
-                            type="submit"
-                            variant="contained"
-                            onClick={() => handleSetTransactionStatus(selectedStatus)}
-                            disabled={!selectedStatus} // Disable if no status is selected
-                          >
-                            {tt('Lưu', 'Save')}
-                          </Button>
-                        </Grid>
-                      </Grid>
+                      <Stack spacing={2} direction={'row'}>
+                        <Button
+                          onClick={() => {
+                            setCancelOrderReason('customer_cancelled');
+                            setCancelOrderModalOpen(true);
+                          }}
+                          size="small"
+                          color="error"
+                          startIcon={<Trash />}
+                        >
+                          {tt('Huỷ đơn hàng', 'Cancel Order')}
+                        </Button>
+                      </Stack>
                     )}
                   </Stack>
                 </CardContent>
@@ -2166,12 +2204,6 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                         >
-                          {/* <MenuItem onClick={handleCloseTicketMenu} sx={{ fontSize: '14px', color: 'primary' }}>
-                          <EnvelopeSimpleIcon style={{ marginRight: 8 }} /> Gửi vé qua Email
-                        </MenuItem>
-                        <MenuItem onClick={handleCloseTicketMenu} sx={{ fontSize: '14px', color: 'primary' }}>
-                          <DeviceMobile style={{ marginRight: 8 }} /> Gửi vé qua Zalo
-                        </MenuItem> */}
                           <MenuItem disabled={!!isLoading || !!(activeMenuTicket && (() => {
                             const ticket = transaction.transactionTicketCategories[activeMenuTicket.categoryIndex]?.tickets[activeMenuTicket.ticketIndex];
                             if (!ticket) return true;
@@ -2197,6 +2229,17 @@ export default function Page({ params }: { params: { event_id: number; transacti
                           </MenuItem>
                           <MenuItem onClick={handleOpenAssignAddOnModal} sx={{ fontSize: '14px', color: 'primary' }}>
                             <CirclesThreePlus style={{ marginRight: 8 }} /> {tt('Gán tiện ích cho vé', 'Assign Add-ons to Ticket')}
+                          </MenuItem>
+                          <Divider />
+                          <MenuItem
+                            disabled={!!(activeMenuTicket && (() => {
+                              const ticket = transaction.transactionTicketCategories[activeMenuTicket.categoryIndex]?.tickets[activeMenuTicket.ticketIndex];
+                              return !ticket || ticket.status !== 'normal';
+                            })())}
+                            onClick={handleOpenCancelTicketModal}
+                            sx={{ fontSize: '14px', color: 'error.main' }}
+                          >
+                            <Trash style={{ marginRight: 8 }} /> {tt('Huỷ vé này', 'Cancel This Ticket')}
                           </MenuItem>
                         </Menu>
                       </div>
@@ -3314,6 +3357,106 @@ export default function Page({ params }: { params: { event_id: number; transacti
                     startIcon={deleteAddOnLoading && <CircularProgress size={20} color="inherit" />}
                   >
                     {tt('Xoá', 'Delete')}
+                  </Button>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+
+      {/* Cancel Order Confirm Modal */}
+      <Modal
+        open={cancelOrderModalOpen}
+        onClose={() => setCancelOrderModalOpen(false)}
+        aria-labelledby="cancel-order-confirm-modal"
+      >
+        <Container maxWidth="xs">
+          <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { xs: '90%', sm: 400 }, outline: 'none' }}>
+            <CardHeader
+              title={tt('Huỷ đơn hàng', 'Cancel Order')}
+              action={<IconButton onClick={() => setCancelOrderModalOpen(false)}><X /></IconButton>}
+            />
+            <Divider />
+            <CardContent>
+              <Stack spacing={2}>
+                <FormControl>
+                  <RadioGroup
+                    value={cancelOrderReason}
+                    onChange={(event) => setCancelOrderReason(event.target.value)}
+                  >
+                    <FormControlLabel value="customer_cancelled" control={<Radio />} label={tt('Huỷ bởi Khách hàng', 'Cancelled by Customer')} />
+                    <FormControlLabel value="staff_locked" control={<Radio />} label={tt('Khoá bởi Nhân viên', 'Locked by Staff')} />
+                  </RadioGroup>
+                </FormControl>
+                <Stack direction="row" spacing={1} alignItems="flex-start">
+                  <WarningCircle size={20} color="var(--mui-palette-error-main)" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <Typography variant="body2" color="error">
+                    {tt('Hành động này không thể hoàn tác. Vui lòng kiểm tra kỹ trước khi xác nhận.', 'This action cannot be undone. Please double-check before confirming.')}
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={2} justifyContent="flex-end">
+                  <Button variant="outlined" onClick={() => setCancelOrderModalOpen(false)}>
+                    {tt('Đóng', 'Close')}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    disabled={isLoading}
+                    onClick={handleConfirmCancelOrder}
+                    startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <Trash />}
+                  >
+                    {tt('Xác nhận huỷ', 'Confirm Cancel')}
+                  </Button>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </Modal>
+
+      {/* Cancel Single Ticket Confirm Modal */}
+      <Modal
+        open={cancelTicketModalOpen}
+        onClose={() => setCancelTicketModalOpen(false)}
+        aria-labelledby="cancel-ticket-confirm-modal"
+      >
+        <Container maxWidth="xs">
+          <Card sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: { xs: '90%', sm: 400 }, outline: 'none' }}>
+            <CardHeader
+              title={tt('Huỷ vé', 'Cancel Ticket')}
+              action={<IconButton onClick={() => setCancelTicketModalOpen(false)}><X /></IconButton>}
+            />
+            <Divider />
+            <CardContent>
+              <Stack spacing={2}>
+                <FormControl>
+                  <RadioGroup
+                    value={cancelTicketReason}
+                    onChange={(event) => setCancelTicketReason(event.target.value)}
+                  >
+                    <FormControlLabel value="customer_cancelled" control={<Radio />} label={tt('Huỷ bởi Khách hàng', 'Cancelled by Customer')} />
+                    <FormControlLabel value="staff_locked" control={<Radio />} label={tt('Khoá bởi Nhân viên', 'Locked by Staff')} />
+                  </RadioGroup>
+                </FormControl>
+                <Stack direction="row" spacing={1} alignItems="flex-start">
+                  <WarningCircle size={20} color="var(--mui-palette-error-main)" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <Typography variant="body2" color="error">
+                    {tt('Hành động này không thể hoàn tác. Vui lòng kiểm tra kỹ trước khi xác nhận.', 'This action cannot be undone. Please double-check before confirming.')}
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={2} justifyContent="flex-end">
+                  <Button variant="outlined" onClick={() => setCancelTicketModalOpen(false)}>
+                    {tt('Đóng', 'Close')}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    disabled={cancelTicketLoading}
+                    onClick={handleConfirmCancelTicket}
+                    startIcon={cancelTicketLoading ? <CircularProgress size={20} color="inherit" /> : <Trash />}
+                  >
+                    {tt('Xác nhận huỷ', 'Confirm Cancel')}
                   </Button>
                 </Stack>
               </Stack>

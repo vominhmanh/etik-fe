@@ -648,21 +648,26 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
     copyToClipboard(tsv, `Đã sao chép ${tableName}`);
   };
 
-  // Thuật toán điền vòng lặp (Round Robin)
+  // Thuật toán điền zigzag (rắn bò - boustrophedon):
+  // Hàng ghế chẵn (0, 2, 4...) điền từ trái sang phải, hàng ghế lẻ (1, 3, 5...) điền từ phải sang trái.
+  // Nếu 1 bàn đã có sẵn card ở vị trí ghế đang xét (ví dụ bị khoá), bỏ qua bàn đó và chuyển sang bàn kế tiếp trong cùng hàng.
   const handleAutoFill = () => {
     let currentWaiting = [...waitingList];
     const newGrid = grid.map(table => [...table]);
+    const numTables = tables.length;
 
-    let moved = true;
-    while (moved && currentWaiting.length > 0) {
-      moved = false;
-      for (let r = 0; r < tables.length; r++) {
+    for (let seatIdx = 0; seatIdx < seatsPerTable && currentWaiting.length > 0; seatIdx++) {
+      const isEvenRow = seatIdx % 2 === 0;
+      const tableOrder = Array.from({ length: numTables }, (_, i) => i);
+      if (!isEvenRow) tableOrder.reverse();
+
+      for (const r of tableOrder) {
         if (currentWaiting.length === 0) break;
-        if (newGrid[r].length < seatsPerTable) {
+        // Chỉ điền khi đây đúng là vị trí ghế tiếp theo còn trống của bàn (bỏ qua nếu đã có card sẵn)
+        if (newGrid[r].length === seatIdx) {
           const player = currentWaiting.shift();
           if (player) {
             newGrid[r].push(player);
-            moved = true;
           }
         }
       }
@@ -782,7 +787,7 @@ export const EditableGrid: FC<EditableGridProps> = ({ eventId, show, allShows, c
                     <ListPlusIcon size={16} weight="bold" />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Tự động xếp chỗ (chia đều)" placement="top" arrow>
+                <Tooltip title="Tự động xếp chỗ" placement="top" arrow>
                   <IconButton size="small" onClick={handleAutoFill} color="primary" sx={{ bgcolor: 'rgba(24, 119, 242, 0.1)' }}>
                     <MagicWandIcon size={16} weight="bold" />
                   </IconButton>
