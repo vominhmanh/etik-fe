@@ -36,11 +36,11 @@ interface EditableGridProps {
   onTableCountChange?: (count: number) => void;
 }
 
-export const EditableGrid: FC<EditableGridProps> = ({ 
-  eventId, 
-  show, 
-  cardFields = [], 
-  tooltipFields = [], 
+export const EditableGrid: FC<EditableGridProps> = ({
+  eventId,
+  show,
+  cardFields = [],
+  tooltipFields = [],
   viewMode = 'transaction',
   onTableCountChange,
 }) => {
@@ -358,7 +358,10 @@ const PlayerCard: FC<{
       <Box sx={{ p: 0.5, display: 'flex', alignItems: 'flex-start', gap: 0.75, width: '100%' }}>
         <Tooltip title={tooltipContent} placement="top" arrow disableInteractive>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, flexGrow: 1, minWidth: 0 }}>
-            <Avatar sx={{ mt: 0.2, width: 18, height: 18, fontSize: '0.6rem', bgcolor: '#52426d', flexShrink: 0 }}>
+            <Avatar
+              src="https://media.etik.vn/tft-2026/teamfight-tactics.png"
+              sx={{ mt: 0.2, width: 18, height: 18, fontSize: '0.6rem', bgcolor: '#fff', flexShrink: 0 }}
+            >
               {player.name.charAt(0)}
             </Avatar>
             <Box sx={{ minWidth: 0, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
