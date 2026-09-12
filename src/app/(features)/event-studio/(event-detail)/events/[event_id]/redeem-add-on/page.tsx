@@ -2,11 +2,11 @@
 
 import NotificationContext from '@/contexts/notification-context';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
-import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Chip, CircularProgress, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, MenuItem, Modal, OutlinedInput, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, styled, SwipeableDrawer, Typography, List, ListItem, ListItemText } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Card, CardActions, CardContent, CardHeader, Checkbox, Chip, CircularProgress, Container, Divider, FormControl, FormControlLabel, Grid, IconButton, InputLabel, MenuItem, Modal, OutlinedInput, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, styled, SwipeableDrawer, Tooltip, Typography, List, ListItem, ListItemText } from '@mui/material';
 import type { ChipProps } from '@mui/material/Chip';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import { grey } from '@mui/material/colors';
-import { Armchair, ArrowClockwise, ArrowSquareIn, Bank, CaretDown, CheckCircle, CheckFat, Clock, Info, Lightning, Money, X, XCircle } from '@phosphor-icons/react/dist/ssr';
+import { Armchair, ArrowClockwise, ArrowSquareIn, Bank, CalendarBlank, CaretDown, CheckCircle, CheckFat, Clock, EnvelopeSimple, Info, Lightning, Money, Phone, Tag as TagIcon, X, XCircle } from '@phosphor-icons/react/dist/ssr';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { AxiosResponse } from 'axios';
 import dayjs from 'dayjs';
@@ -59,6 +59,14 @@ export interface TicketAddOn {
   } | null;
 }
 
+export interface TicketFormAnswer {
+  id: number;
+  internalName: string;
+  label: string;
+  fieldType: string;
+  value: any;
+}
+
 export interface Ticket {
   id: number;
   holderName: string;
@@ -72,6 +80,7 @@ export interface Ticket {
   audienceName: string | null;
   audienceCode: string | null;
   addOns?: TicketAddOn[];
+  formAnswers?: TicketFormAnswer[];
 }
 
 export type RecentScan = {
@@ -182,6 +191,48 @@ type MyDynamicObject = {
   [key: string]: boolean; // key is a string, and value is also a string
 };
 
+// Truncated text that only shows a Tooltip (and, optionally, an info icon) when the text is actually cut off
+function EllipsisText({
+  text,
+  variant = 'body2',
+  sx,
+  containerSx,
+  withInfoIcon = false,
+}: {
+  text: string;
+  variant?: 'body2' | 'caption';
+  sx?: Record<string, unknown>;
+  containerSx?: Record<string, unknown>;
+  withInfoIcon?: boolean;
+}) {
+  const textRef = React.useRef<HTMLSpanElement>(null);
+  const [isTruncated, setIsTruncated] = React.useState(false);
+
+  React.useEffect(() => {
+    const el = textRef.current;
+    if (el) {
+      setIsTruncated(el.scrollWidth > el.clientWidth + 1);
+    }
+  }, [text]);
+
+  const row = (
+    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 0, ...containerSx }}>
+      <Typography
+        ref={textRef}
+        variant={variant}
+        sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, ...sx }}
+      >
+        {text}
+      </Typography>
+      {withInfoIcon && isTruncated && (
+        <Info size={14} style={{ flexShrink: 0, color: 'var(--mui-palette-text-secondary)' }} />
+      )}
+    </Stack>
+  );
+
+  return isTruncated ? <Tooltip title={text}>{row}</Tooltip> : row;
+}
+
 // Component for displaying form fields with max height and "see more" button
 function FormFieldsSection({ formFieldsAnswers, tt }: { formFieldsAnswers: { label: string; value: string }[], tt: (vi: string, en: string) => string }) {
   const [expanded, setExpanded] = React.useState(false);
@@ -208,10 +259,19 @@ function FormFieldsSection({ formFieldsAnswers, tt }: { formFieldsAnswers: { lab
       >
         <Stack spacing={1}>
           {formFieldsAnswers.map((item, index) => (
-            <Grid container justifyContent="space-between" key={index}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>{item.label}:</Typography>
-              <Typography variant="body2" sx={{ textAlign: 'right', maxWidth: '60%', wordBreak: 'break-word' }}>{item.value || '-'}</Typography>
-            </Grid>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1} key={index} sx={{ minWidth: 0 }}>
+              <EllipsisText
+                text={`${item.label}:`}
+                sx={{ color: 'text.secondary' }}
+                containerSx={{ flex: '0 1 45%' }}
+                withInfoIcon
+              />
+              <EllipsisText
+                text={item.value || '-'}
+                sx={{ textAlign: 'right' }}
+                containerSx={{ flex: '1 1 auto', justifyContent: 'flex-end' }}
+              />
+            </Stack>
           ))}
         </Stack>
       </Box>
@@ -305,6 +365,10 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
   const [recentScansLoading, setRecentScansLoading] = React.useState<boolean>(false);
   const [activeAddOnDetail, setActiveAddOnDetail] = React.useState<TicketAddOn | null>(null);
   const [addOnDetailsModalOpen, setAddOnDetailsModalOpen] = React.useState(false);
+  const [expandedTicketIds, setExpandedTicketIds] = React.useState<Record<number, boolean>>({});
+  const toggleTicketDetail = (ticketId: number) => {
+    setExpandedTicketIds((prev) => ({ ...prev, [ticketId]: !prev[ticketId] }));
+  };
 
   const { ref, torch: { on, off, isOn, isAvailable } } = useZxing({
     onDecodeResult(result) {
@@ -902,23 +966,58 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                           onChange={() => toggleExpand(accordionKey)} // Use toggleExpand here
                         >
                           <AccordionSummary sx={{ backgroundColor: 'light' }} expandIcon={<CaretDown />}>
-                            <Grid container justifyContent="space-between">
-                              <Typography variant="body1">{tt('Show:', 'Show:')}</Typography>
-                              <Typography variant="body1">
-                                {category.ticketCategory.show.name} - {category.ticketCategory.name}
-                              </Typography>
-                            </Grid>
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, flexWrap: 'wrap', width: '100%', pr: 1 }}>
+                              <Tooltip title={tt('Show', 'Show')}>
+                                <CalendarBlank size={16} style={{ flexShrink: 0, color: 'var(--mui-palette-text-secondary)' }} />
+                              </Tooltip>
+                              <Tooltip title={category.ticketCategory.show.name}>
+                                <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
+                                  {category.ticketCategory.show.name}
+                                </Typography>
+                              </Tooltip>
+                              <Tooltip title={tt('Hạng vé', 'Ticket Category')}>
+                                <TagIcon size={16} style={{ flexShrink: 0, color: 'var(--mui-palette-text-secondary)' }} />
+                              </Tooltip>
+                              <Tooltip title={category.ticketCategory.name}>
+                                <Typography variant="body2" fontWeight="bold" noWrap sx={{ maxWidth: 150 }}>
+                                  {category.ticketCategory.name}
+                                </Typography>
+                              </Tooltip>
+                              <Chip
+                                size="small"
+                                label={category.tickets.length}
+                                sx={{ height: 18, fontSize: '0.65rem', ml: 'auto' }}
+                              />
+                            </Stack>
                           </AccordionSummary>
 
                           <AccordionDetails>
-                            {category.tickets.map((ticket) => {
+                            {category.tickets.map((ticket, ticketIdx) => {
                               const ticketKey = `${ticket.id}-${category.ticketCategory.show.id}-${category.ticketCategory.id}`
-
+                              const isExpanded = !!expandedTicketIds[ticket.id];
+                              const visibleFormAnswers = (ticket.formAnswers || []).filter((a) => {
+                                if (a.value === undefined || a.value === null || a.value === '') return false;
+                                if (Array.isArray(a.value) && a.value.length === 0) return false;
+                                return true;
+                              });
 
                               return (
-                                <Box key={ticketKey} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', ml: 2, mb: 2 }}>
+                                <Box
+                                  key={ticketKey}
+                                  sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'flex-start',
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    borderRadius: 1.5,
+                                    p: 1,
+                                    mb: ticketIdx < category.tickets.length - 1 ? 1 : 0,
+                                    backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'action.hover' : 'grey.50',
+                                  }}
+                                >
                                   <Stack direction="column" alignItems="flex-start" spacing={0.5} sx={{ width: '100%' }}>
-                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                    <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
                                       <Chip label={`TID-${ticket.id}`} size="small" variant="outlined" color="default" sx={{ height: 20, fontSize: '0.7rem' }} />
                                       {/* Seat Info */}
                                       {ticket.showSeat && (
@@ -938,15 +1037,58 @@ export default function Page({ params }: { params: { event_id: string } }): Reac
                                           sx={{ height: 20, fontSize: '0.7rem' }}
                                         />
                                       )}
+                                      {ticket.status && ticket.status !== 'normal' && (
+                                        <Chip size="small" label={getRowStatusDetails(ticket.status).label} color={getRowStatusDetails(ticket.status).color} sx={{ height: 20, fontSize: '0.7rem' }} />
+                                      )}
+                                      <IconButton size="small" onClick={() => toggleTicketDetail(ticket.id)} sx={{ p: 0.25, ml: 'auto' }}>
+                                        <CaretDown size={14} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                                      </IconButton>
                                     </Stack>
                                     <Stack direction="row" alignItems="center" spacing={1}>
-                                      <Typography variant="body2" fontWeight="bold">
+                                      <Typography variant="body2" fontWeight="bold" noWrap title={`${ticket.holderTitle} ${ticket.holderName}`}>
                                         {ticket.holderTitle} {ticket.holderName}
                                       </Typography>
                                     </Stack>
 
-                                    {ticket.status && ticket.status !== 'normal' && (
-                                      <Chip size="small" label={getRowStatusDetails(ticket.status).label} color={getRowStatusDetails(ticket.status).color} sx={{ height: 18, fontSize: '0.7rem' }} />
+                                    {isExpanded && (
+                                      <Stack spacing={0.5} sx={{ mt: 0.5, pl: 1, borderLeft: '2px solid', borderColor: 'divider', width: '100%' }}>
+                                        {ticket.holderEmail && (
+                                          <Stack direction="row" spacing={0.5} alignItems="center">
+                                            <EnvelopeSimple size={14} style={{ flexShrink: 0, color: 'var(--mui-palette-text-secondary)' }} />
+                                            <Typography variant="caption" noWrap>{ticket.holderEmail}</Typography>
+                                          </Stack>
+                                        )}
+                                        {ticket.holderPhone && (
+                                          <Stack direction="row" spacing={0.5} alignItems="center">
+                                            <Phone size={14} style={{ flexShrink: 0, color: 'var(--mui-palette-text-secondary)' }} />
+                                            <Typography variant="caption" noWrap>{ticket.holderPhone}</Typography>
+                                          </Stack>
+                                        )}
+                                        {visibleFormAnswers.map((answer) => {
+                                          const displayValue = Array.isArray(answer.value) ? answer.value.join(', ') : String(answer.value);
+                                          return (
+                                            <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1} key={answer.id} sx={{ minWidth: 0 }}>
+                                              <EllipsisText
+                                                text={`${answer.label}:`}
+                                                variant="caption"
+                                                sx={{ color: 'text.secondary' }}
+                                                containerSx={{ flex: '0 1 45%' }}
+                                                withInfoIcon
+                                              />
+                                              <EllipsisText
+                                                text={displayValue}
+                                                variant="caption"
+                                                containerSx={{ flex: '1 1 auto', justifyContent: 'flex-end' }}
+                                              />
+                                            </Stack>
+                                          );
+                                        })}
+                                        {!ticket.holderEmail && !ticket.holderPhone && visibleFormAnswers.length === 0 && (
+                                          <Typography variant="caption" color="text.secondary">
+                                            {tt('Không có thêm thông tin', 'No additional information')}
+                                          </Typography>
+                                        )}
+                                      </Stack>
                                     )}
 
                                     <Stack direction="column" spacing={1} sx={{ mt: 1.5, width: '100%', maxWidth: 400 }}>
