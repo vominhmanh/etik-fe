@@ -79,14 +79,10 @@ export function GuestGuard({ children }: GuestGuardProps): React.JSX.Element | n
       // noop
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Expected
-  }, [error, isLoading, locale, pathname]);
+  }, [error, isLoading, locale, pathname, user]);
 
-  if (isChecking) {
+  if (isChecking || isLoading) {
     return null;
-  }
-
-  if (error) {
-    return <Alert color="error">{error}</Alert>;
   }
 
   return <React.Fragment>{children}</React.Fragment>;

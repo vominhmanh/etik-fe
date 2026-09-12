@@ -103,9 +103,14 @@ export function SignInForm(): React.JSX.Element {
         // returnUrl already has correct locale preserved, use it directly
         router.push(returnUrl);
       } catch (error: any) {
+        const errorMsg =
+          error?.response?.data?.message ||
+          error?.response?.data?.detail ||
+          error?.message ||
+          tt('Có lỗi xảy ra, vui lòng thử lại sau', 'An error occurred, please try again later');
         setPopupContent({
           type: 'error',
-          message: error.message || tt('Có lỗi xảy ra, vui lòng thử lại sau', 'An error occurred, please try again later'),
+          message: errorMsg,
         });
         setIsPending(false);
       }
