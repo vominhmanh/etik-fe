@@ -16,15 +16,18 @@ type EventMeta = {
 };
 
 // 2. Bọc hàm fetch bằng cache()
+// QUAN TRỌNG: không được nuốt lỗi thành `null` ở đây. Trang này dùng ISR
+// (`revalidate = 60`) - nếu fetch lỗi/timeout trong lúc Next.js revalidate
+// nền mà hàm này trả về `null` thay vì throw, Next.js sẽ hiểu là "regenerate
+// thành công với dữ liệu null" và LƯU LUÔN bản null đó vào cache cho mọi
+// người xem trong 60 giây tiếp theo. Để hàm throw ra ngoài thì Next.js sẽ
+// giữ nguyên bản cache tốt gần nhất (stale-while-error) và tự thử lại ở lần
+// revalidate kế tiếp, thay vì phát tán một trang toàn giá trị null.
 const fetchEvent = cache(async (eventSlug: string) => {
-    try {
-        const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
-            `/marketplace/events/${eventSlug}`
-        );
-        return response.data;
-    } catch (_err) {
-        return null;
-    }
+    const response: AxiosResponse<EventResponse> = await baseHttpServiceInstance.get(
+        `/marketplace/events/${eventSlug}`
+    );
+    return response.data;
 });
 
 export async function generateMetadata(
