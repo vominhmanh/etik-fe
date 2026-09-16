@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { AxiosResponse } from 'axios';
 import { cache } from 'react'; // 1. Import cache từ react
+import { notFound } from 'next/navigation';
 import EventDetail from './event-detail';
 import { baseHttpServiceInstance } from '@/services/BaseHttp.service';
 import { EventResponse } from '@/components/transactions/create-steps/types';
@@ -34,7 +35,9 @@ export async function generateMetadata(
     { params, searchParams }: { params: { event_slug: string }; searchParams: { lang?: string } }
 ): Promise<Metadata> {
     // Lần gọi đầu tiên: cache() sẽ thực thi axios và lưu kết quả vào bộ nhớ tạm của server
-    const event = await fetchEvent(params.event_slug) as EventMeta;
+    // Không để lỗi ở đây làm crash việc generate metadata - trang chính (EventPage) mới là nơi
+    // quyết định hiển thị 404 hay toast lỗi.
+    const event = await fetchEvent(params.event_slug).catch(() => null) as EventMeta | null;
 
     const isEn = (searchParams?.lang === 'en');
     const siteSlogan = isEn ? 'E-tickets & Event Management' : 'Vé điện tử & Quản lý sự kiện';
@@ -66,7 +69,21 @@ export async function generateMetadata(
 export default async function EventPage({ params }: { params: { event_slug: string } }) {
     // Lần gọi thứ hai: cache() phát hiện params.event_slug giống hệt lần 1
     // Nó sẽ trả về kết quả ngay lập tức mà KHÔNG gọi axios thêm lần nào nữa!
-    const event = await fetchEvent(params.event_slug);
+    let event: EventResponse | null = null;
+    let fetchError: string | null = null;
+    try {
+        event = await fetchEvent(params.event_slug);
+    } catch (err: any) {
+        // Event thực sự không tồn tại (404 từ backend) -> hiển thị trang not-found chuẩn,
+        // không phải crash toàn trang.
+        if (err?.status === 404) {
+            notFound();
+        }
+        // Các lỗi khác (rate-limit, mất kết nối backend, 500...) -> không throw để tránh
+        // Next.js hiển thị "Application error"; thay vào đó đẩy message xuống để EventDetail
+        // hiện toast thông báo cho người dùng.
+        fetchError = err?.message || 'Đã xảy ra lỗi khi tải thông tin sự kiện.';
+    }
 
-    return <EventDetail params={params} initialEvent={event} />;
+    return <EventDetail params={params} initialEvent={event} fetchError={fetchError} />;
 }
