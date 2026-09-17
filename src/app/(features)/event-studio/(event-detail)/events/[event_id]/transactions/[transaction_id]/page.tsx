@@ -15,6 +15,7 @@ import Grid from '@mui/material/Unstable_Grid2';
 import { alpha } from '@mui/material/styles';
 import { Bank as BankIcon, CaretDoubleRight, CaretLeft, Check, CheckFat, Clock, DeviceMobile, DotsThreeOutline, DotsThreeOutlineVertical, EnvelopeSimple, Gift, HouseLine, ImageSquare, Info, Lightning, Lightning as LightningIcon, MapPin, Money as MoneyIcon, Plus, Printer, SignIn, SignOut, WarningCircle, X, Chair, CalendarBlank, IdentificationCard, CheckCircle, User as UserIcon, Users, CirclesThreePlus, Trash } from '@phosphor-icons/react/dist/ssr'; // Example icons
 import { LocalizedLink } from '@/components/homepage/localized-link';
+import { DobDatePicker } from '@/components/core/dob-date-picker';
 
 import * as React from 'react';
 import { useEffect, useState } from 'react';
@@ -41,6 +42,11 @@ import AdminGiftTicketModal from './admin-gift-ticket-modal';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone, formatToE164 } from '@/config/phone-countries';
 import { useTranslation } from '@/contexts/locale-context';
 import { EmailMarketingSelectModal } from '../_components/EmailMarketingSelectModal';
+
+function formatDob(isoDob: string): string {
+  const parsed = dayjs(isoDob, 'YYYY-MM-DD', true);
+  return parsed.isValid() ? parsed.format('DD/MM/YYYY') : isoDob;
+}
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -2097,7 +2103,7 @@ export default function Page({ params }: { params: { event_id: number; transacti
                                             <Grid xs={12} md={3}>
                                               <Box>
                                                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>{dobCfg?.label || 'DOB'}</Typography>
-                                                <Typography variant="body2">{ticket.holderDob || '-'}</Typography>
+                                                <Typography variant="body2">{ticket.holderDob ? formatDob(ticket.holderDob) : '-'}</Typography>
                                               </Box>
                                             </Grid>
                                           );
@@ -2391,17 +2397,12 @@ export default function Page({ params }: { params: { event_id: number; transacti
                       return (
                         visible && (
                           <Grid md={6} xs={12}>
-                            <FormControl fullWidth required={!!dobCfg?.required}>
-                              <InputLabel shrink>{label}</InputLabel>
-                              <OutlinedInput
-                                label={label}
-                                name="dob"
-                                type="date"
-                                value={formData.dob || ''}
-                                onChange={(event: any) => handleFormChange(event)}
-                                inputProps={{ max: new Date().toISOString().slice(0, 10) }}
-                              />
-                            </FormControl>
+                            <DobDatePicker
+                              label={label}
+                              required={!!dobCfg?.required}
+                              value={formData.dob}
+                              onChange={(dob) => setFormData({ ...formData, dob })}
+                            />
                           </Grid>
                         )
                       );
@@ -2909,17 +2910,12 @@ export default function Page({ params }: { params: { event_id: number; transacti
                               return (
                                 visible && (
                                   <Grid xs={12}>
-                                    <FormControl fullWidth required={required} size="small">
-                                      <TextField
-                                        label={tt("Ngày sinh", "Date of Birth")}
-                                        type="date"
-                                        size="small"
-                                        InputLabelProps={{ shrink: true }}
-                                        required={required}
-                                        value={editingHolderInfo.dob || ''}
-                                        onChange={(e) => setEditingHolderInfo(prev => prev ? { ...prev, dob: e.target.value } : null)}
-                                      />
-                                    </FormControl>
+                                    <DobDatePicker
+                                      label={tt("Ngày sinh", "Date of Birth")}
+                                      required={required}
+                                      value={editingHolderInfo.dob}
+                                      onChange={(dob) => setEditingHolderInfo(prev => prev ? { ...prev, dob } : null)}
+                                    />
                                   </Grid>
                                 )
                               );

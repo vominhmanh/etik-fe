@@ -252,8 +252,17 @@ type CheckoutRuntimeField = {
 };
 
 
+export interface TicketECodeItem {
+  id: number;
+  eCode: string;
+  holderTitle?: string | null;
+  holderName: string;
+}
+
 export interface ECodeResponse {
   eCode: string;
+  qrOption: string;
+  tickets: TicketECodeItem[];
 }
 
 interface CancelTransactionResponse {
@@ -265,6 +274,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
   const { tt, locale } = useTranslation();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [eCode, setECode] = useState<string | null>(null);
+  const [ticketECodes, setTicketECodes] = useState<TicketECodeItem[]>([]);
   const { transaction_id } = params;
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -348,6 +358,7 @@ export default function Page({ params }: { params: { transaction_id: number } })
           `/account/transactions/${transaction_id}/check-in-e-code`
         );
         setECode(response.data.eCode);
+        setTicketECodes(response.data.tickets || []);
       } catch (error) {
         // notificationCtx.error('Error fetching ecode', error);
       } finally {
@@ -627,10 +638,22 @@ export default function Page({ params }: { params: { transaction_id: number } })
                       </Stack>
                       {transactionTicketCategory.tickets.length > 0 && (
                         <Stack spacing={2}>
-                          {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
-                            <Stack direction="row" spacing={0} alignItems="center">
-                              <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
-                                <>
+                          {transactionTicketCategory.tickets.map((ticket, ticketIndex) => {
+                            const ticketECode = ticketECodes.find((item) => item.id === ticket.id);
+                            return (
+                              <Stack key={ticketIndex} direction="row" spacing={2} alignItems="center">
+                                {transaction.qrOption === 'separate' && ticketECode && (
+                                  <Box sx={{ flexShrink: 0, textAlign: 'center' }}>
+                                    <img
+                                      src={`${process.env.NEXT_PUBLIC_BASE_URL}/common/qr?margin=16&size=96x96&data=${encodeURIComponent(ticketECode.eCode)}`}
+                                      alt={tt('Mã QR vé', 'Ticket QR code')}
+                                      width={96}
+                                      height={96}
+                                    />
+                                    <Typography variant="caption" sx={{ display: 'block', fontFamily: 'monospace' }}>{ticketECode.eCode}</Typography>
+                                  </Box>
+                                )}
+                                <Box sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
                                   <Stack direction="row" spacing={1} alignItems="center">
                                     <div>
                                       <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
@@ -655,18 +678,18 @@ export default function Page({ params }: { params: { transaction_id: number } })
                                       )}
                                     </div>
                                   </Stack>
-                                </>
-                                <div>
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    TID-{ticket.id} {ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}
-                                    {ticket.status && ticket.status !== 'normal' && (
-                                      <> - <Chip size="small" label={getRowStatusDetails(ticket.status, tt).label} color={getRowStatusDetails(ticket.status, tt).color} sx={{ height: 18, fontSize: '0.7rem' }} /></>
-                                    )}
-                                  </Typography>
-                                </div>
-                              </Box>
-                            </Stack>
-                          ))}
+                                  <div>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                      TID-{ticket.id} {ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}
+                                      {ticket.status && ticket.status !== 'normal' && (
+                                        <> - <Chip size="small" label={getRowStatusDetails(ticket.status, tt).label} color={getRowStatusDetails(ticket.status, tt).color} sx={{ height: 18, fontSize: '0.7rem' }} /></>
+                                      )}
+                                    </Typography>
+                                  </div>
+                                </Box>
+                              </Stack>
+                            );
+                          })}
                         </Stack>
                       )}
                     </div>
@@ -976,13 +999,22 @@ export default function Page({ params }: { params: { transaction_id: number } })
                 </Stack>
               </CardContent>
             </Card>
-            {Boolean(eCode) && (
+            {Boolean(eCode) && transaction.qrOption !== 'separate' && (
               <Card>
                 <CardHeader title={tt('Mã QR check-in', 'Check-in QR Code')} />
                 <Divider />
                 <CardContent>
                   <Stack spacing={1} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography sx={{ textAlign: 'center' }}>Vui lòng kiểm tra email để nhận mã</Typography>
+                    <img
+                      src={`${process.env.NEXT_PUBLIC_BASE_URL}/common/qr?margin=16&size=200x200&data=${encodeURIComponent(eCode || '')}`}
+                      alt={tt('Mã QR check-in', 'Check-in QR code')}
+                      width={200}
+                      height={200}
+                    />
+                    <Typography sx={{ textAlign: 'center', fontFamily: 'monospace' }}>{eCode}</Typography>
+                    <Typography variant="caption" sx={{ textAlign: 'center', color: 'text.secondary' }}>
+                      {tt('Mã QR này có thể check-in cho tất cả vé trong đơn.', 'This QR can check in for all tickets in the order.')}
+                    </Typography>
                   </Stack>
                 </CardContent>
               </Card>

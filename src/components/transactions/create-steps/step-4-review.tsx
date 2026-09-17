@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from 'react';
-import { Avatar, Box, Stack, Typography } from '@mui/material';
+import dayjs from 'dayjs';
+import { Avatar, Box, Chip, Stack, Typography } from '@mui/material';
 import Grid from '@mui/material/Unstable_Grid2';
 import { alpha } from '@mui/material/styles';
 import Button from '@mui/material/Button';
@@ -9,12 +10,17 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
-import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
-import { Armchair, User } from '@phosphor-icons/react/dist/ssr';
+import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
+import { Armchair, CalendarBlank, CheckCircle, User, Users, WarningCircle } from '@phosphor-icons/react/dist/ssr';
 import ReCAPTCHA from "react-google-recaptcha";
 
 import type { CheckoutRuntimeField, Show, TicketHolderInfo, Order, TicketInfo } from './types';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, parseE164Phone } from '@/config/phone-countries';
+
+function formatDob(isoDob: string): string {
+  const parsed = dayjs(isoDob, 'YYYY-MM-DD', true);
+  return parsed.isValid() ? parsed.format('DD/MM/YYYY') : isoDob;
+}
 
 export type Step4ReviewProps = {
   tt: (vi: string, en: string) => string;
@@ -114,7 +120,7 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
   return (
     <Stack spacing={3}>
       <Box sx={{ px: { xs: 0, md: 20 } }} >
-        <Card>
+        <Card sx={{ borderTop: 3, borderColor: 'primary.main' }}>
           <CardHeader title={tt("Xem lại đơn hàng", "Review Order")} />
           <Divider />
           <CardContent>
@@ -131,16 +137,33 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                 {ticketGroups.map((group) => (
                   <Box key={`review-${group.key}`}>
                     {/* Group Header */}
-                    <Stack direction={{ xs: 'column', md: 'row' }} sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: 'rgba(0,0,0,0.03)', p: 1.5, borderRadius: 1, mb: 2 }}>
-                      <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {group.showName} - {group.categoryName}
-                        </Typography>
+                    <Stack
+                      direction={{ xs: 'column', md: 'row' }}
+                      spacing={1}
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: { xs: 'flex-start', md: 'center' },
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+                        p: 1.5,
+                        borderRadius: 1.5,
+                        mb: 2,
+                      }}
+                    >
+                      <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
+                        <Stack direction="row" spacing={0.5} alignItems="center">
+                          <CalendarBlank size={16} weight="duotone" style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>{group.showName}</Typography>
+                        </Stack>
+                        <Typography variant="body2" sx={{ color: 'text.disabled' }}>•</Typography>
+                        <Stack direction="row" spacing={0.5} alignItems="center">
+                          <TagIcon size={16} weight="duotone" style={{ color: 'var(--mui-palette-primary-main)' }} />
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>{group.categoryName}</Typography>
+                        </Stack>
                       </Stack>
-                      <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                        <Typography variant="caption">x {group.quantity}</Typography>
-                        <Typography variant="caption">= {formatPrice(group.total)}</Typography>
+                      <Stack spacing={1.5} direction="row" alignItems="center" sx={{ pl: { xs: 5, md: 0 } }}>
+                        <Typography variant="caption" color="text.secondary">x {group.quantity}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>{formatPrice(group.total)}</Typography>
                       </Stack>
                     </Stack>
 
@@ -159,8 +182,6 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                               borderColor: 'divider',
                               borderRadius: 1,
                               backgroundColor: 'background.paper',
-                              backgroundImage: (theme) =>
-                                `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.06)}, ${alpha(theme.palette.secondary.main, 0.04)})`,
                             }}
                           >
                             {/* Ticket Header */}
@@ -171,26 +192,40 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                                 alignItems={{ xs: 'flex-start', md: 'center' }}
                                 sx={{ width: '100%', minWidth: 0 }}
                               >
-                                <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ minWidth: 0, flex: 1 }}>
                                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                                     {tt(`Vé ${ticketIndex + 1}`, `Ticket ${ticketIndex + 1}`)}
                                   </Typography>
+                                  {holderInfo?.name ? (
+                                    <Chip
+                                      size="small"
+                                      icon={<CheckCircle size={13} weight="fill" />}
+                                      color="success"
+                                      variant="outlined"
+                                      label={`${holderInfo?.title || ''} ${holderInfo?.name}`.trim()}
+                                      sx={{ maxWidth: 200, '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}
+                                    />
+                                  ) : (
+                                    <Chip
+                                      size="small"
+                                      icon={<WarningCircle size={13} weight="fill" />}
+                                      color="warning"
+                                      variant="outlined"
+                                      label={tt('Chưa có thông tin', 'No information')}
+                                    />
+                                  )}
+                                  {ticket?.audienceName && (
+                                    <Stack direction="row" spacing={0.5} alignItems="center">
+                                      <Users size={16} weight="duotone" style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                      <Typography variant="body2" sx={{ fontWeight: 700 }}>{ticket.audienceName}</Typography>
+                                    </Stack>
+                                  )}
                                   {ticket?.seatLabel && (
                                     <Stack direction="row" spacing={0.5} alignItems="center">
                                       <Armchair size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
-                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        {ticket.seatLabel}
-                                      </Typography>
+                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.seatLabel}</Typography>
                                     </Stack>
                                   )}
-                                  {ticket?.audienceName && (
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                                      ({ticket.audienceName})
-                                    </Typography>
-                                  )}
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-                                    {holderInfo?.name ? `${holderInfo?.title || ''} ${holderInfo?.name}`.trim() : tt('Chưa có thông tin', 'No information')}
-                                  </Typography>
                                   <Box sx={{ flexGrow: 1 }} />
                                   <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
                                     {formatPrice(ticket.price ?? 0)}
@@ -280,7 +315,7 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                                               {tt('Ngày sinh', 'DOB')}
                                             </Typography>
                                             <Typography variant="body2">
-                                              {holderInfo.dob}
+                                              {formatDob(holderInfo.dob)}
                                             </Typography>
                                           </Box>
                                         </Grid>
@@ -421,7 +456,7 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                     return (
                       <Box key={field.internalName} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="body2" color="text.secondary">{tt("Ngày tháng năm sinh", "Date of Birth")}</Typography>
-                        <Typography variant="subtitle2">{customer.dob || '-'}</Typography>
+                        <Typography variant="subtitle2">{customer.dob ? formatDob(customer.dob) : '-'}</Typography>
                       </Box>
                     );
                   }

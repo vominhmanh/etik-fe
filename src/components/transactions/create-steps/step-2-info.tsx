@@ -7,6 +7,7 @@ import {
   AccordionSummary,
   Avatar,
   Box,
+  Chip,
   Container,
   Grid,
   IconButton,
@@ -28,15 +29,16 @@ import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import Radio from '@mui/material/Radio';
-import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
 import { alpha } from '@mui/material/styles';
-import { CaretDown, DotsThreeOutlineVertical, Pencil, Plus, Copy, User, EnvelopeSimple, Phone, MapPin, IdentificationCard, CalendarBlank, Armchair, CheckCircle, X } from '@phosphor-icons/react/dist/ssr';
-import { Ticket as TicketIcon } from '@phosphor-icons/react/dist/ssr/Ticket';
+import { CaretDown, DotsThreeOutlineVertical, Pencil, Plus, Copy, User, EnvelopeSimple, Phone, MapPin, IdentificationCard, Armchair, CheckCircle, X, CalendarBlank, Users, WarningCircle } from '@phosphor-icons/react/dist/ssr';
+import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
 
 import { LocalizedLink } from '@/components/homepage/localized-link';
+import { DobDatePicker } from '@/components/core/dob-date-picker';
+import { FormFieldLabel } from '@/components/core/form-field-label';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from '@/config/phone-countries';
 
 import { Order, TicketInfo, TicketHolderInfo, CheckoutRuntimeField, Show, CustomerInfo } from './types';
@@ -220,6 +222,12 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     setCustomerLinkedToTicket1(true);
   };
 
+  // Break the auto-sync link so the user can edit the buyer's info independently -
+  // keeps the values already copied from ticket 1 (just stops mirroring further edits).
+  const unlinkCustomerToEdit = () => {
+    setCustomerLinkedToTicket1(false);
+  };
+
   // Clear all buyer fields for a fresh manual entry, breaking the link with ticket 1
   const clearCustomerInfo = () => {
     setCustomerLinkedToTicket1(false);
@@ -286,10 +294,10 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
 
   if (showInvitationCard) {
     const pf = invitation.preFilledInfo; // pre-filled info shorthand
-    
 
 
-                            return (
+
+    return (
       <Stack spacing={2} sx={{ width: '100%' }}>
         {invitation && (
           <Alert
@@ -501,7 +509,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
           <Stack spacing={3}>
             {/* Ticket holders input (accordion) */}
             {order.tickets.length > 0 && (
-              <Card>
+              <Card sx={{ borderTop: 3, borderColor: 'primary.main' }}>
                 <CardHeader
                   title={tt(
                     `Thông tin người sở hữu vé: ${order.tickets.length} vé`,
@@ -516,26 +524,41 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                     {ticketSummary.map((group, groupIdx) => (
                       <Stack spacing={2} key={`group-${groupIdx}`}>
                         {/* Group Header */}
-                        <Stack direction={{ xs: 'column', md: 'row' }} sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: 'rgba(0,0,0,0.03)', p: 1.5, borderRadius: 1 }}>
-                          <Stack spacing={2} direction={'row'} sx={{ display: 'flex', alignItems: 'center' }}>
-                            <TicketIcon fontSize="var(--icon-fontSize-md)" />
-                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                              {group.showName} - {group.categoryName}
-                            </Typography>
+                        <Stack
+                          direction={{ xs: 'column', md: 'row' }}
+                          spacing={1}
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: { xs: 'flex-start', md: 'center' },
+                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+                            p: 1.5,
+                            borderRadius: 1.5,
+                          }}
+                        >
+                          <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
+                            <Stack direction="row" spacing={0.5} alignItems="center">
+                              <CalendarBlank size={16} weight="duotone" style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                              <Typography variant="body2" sx={{ fontWeight: 700 }}>{group.showName}</Typography>
+                            </Stack>
+                            <Typography variant="body2" sx={{ color: 'text.disabled' }}>•</Typography>
+                            <Stack direction="row" spacing={0.5} alignItems="center">
+                              <TagIcon size={16} weight="duotone" style={{ color: 'var(--mui-palette-primary-main)' }} />
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>{group.categoryName}</Typography>
+                            </Stack>
                             <IconButton
                               size="small"
-                              sx={{ ml: 1, alignSelf: 'flex-start' }}
                               onClick={() => {
                                 setActiveScheduleId(group.showId);
                                 setRequestedCategoryModalId(group.categoryId);
                               }}
                             >
-                              <Pencil />
+                              <Pencil size={16} />
                             </IconButton>
                           </Stack>
-                          <Stack spacing={2} direction={'row'} sx={{ pl: { xs: 5, md: 0 } }}>
-                            <Typography variant="caption">x {group.quantity}</Typography>
-                            <Typography variant="caption">= {formatPrice(group.total)}</Typography>
+                          <Stack spacing={1.5} direction="row" alignItems="center" sx={{ pl: { xs: 5, md: 0 } }}>
+                            <Typography variant="caption" color="text.secondary">x {group.quantity}</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>{formatPrice(group.total)}</Typography>
                           </Stack>
                         </Stack>
 
@@ -582,8 +605,6 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                   borderColor: 'divider',
                                   borderRadius: 1,
                                   backgroundColor: 'background.paper',
-                                  backgroundImage: (theme) =>
-                                    `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.06)}, ${alpha(theme.palette.secondary.main, 0.04)})`,
                                   '&:before': { display: 'none' },
                                 }}
                               >
@@ -600,26 +621,40 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                     alignItems={{ xs: 'flex-start', md: 'center' }}
                                     sx={{ width: '100%', minWidth: 0, flex: 1 }}
                                   >
-                                    <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ minWidth: 0 }}>
                                       <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                                        {tt(`Vé ${ticketIndex + 1}`, `Ticket ${ticketIndex + 1}`)}
+                                        {tt(`${ticketIndex + 1}`, `Ticket ${ticketIndex + 1}`)}
                                       </Typography>
+                                      {holderInfo.name ? (
+                                        <Chip
+                                          size="small"
+                                          icon={<CheckCircle size={13} weight="fill" />}
+                                          color="success"
+                                          variant="outlined"
+                                          label={`${holderInfo.title ? `${holderInfo.title} ` : ''}${holderInfo.name}`}
+                                          sx={{ maxWidth: 200, '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}
+                                        />
+                                      ) : (
+                                        <Chip
+                                          size="small"
+                                          icon={<WarningCircle size={13} weight="fill" />}
+                                          color="warning"
+                                          variant="outlined"
+                                          label={tt('Chưa có thông tin', 'No information')}
+                                        />
+                                      )}
+                                      {ticket.audienceName && (
+                                        <Stack direction="row" spacing={0.5} alignItems="center">
+                                          <Users size={16} weight="duotone" style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                          <Typography variant="body2" sx={{ fontWeight: 700 }}>{ticket.audienceName}</Typography>
+                                        </Stack>
+                                      )}
                                       {ticket.seatLabel && (
                                         <Stack direction="row" spacing={0.5} alignItems="center">
                                           <Armchair size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
-                                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                            {ticket.seatLabel}
-                                          </Typography>
+                                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.seatLabel}</Typography>
                                         </Stack>
                                       )}
-                                      {ticket.audienceName && (
-                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                          ({ticket.audienceName})
-                                        </Typography>
-                                      )}
-                                      <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-                                        {holderInfo.name ? `${holderInfo.title ? `${holderInfo.title} ` : ''}${holderInfo.name}` : tt('Chưa có thông tin', 'No information')}
-                                      </Typography>
                                     </Stack>
                                     <Box sx={{ flex: 1, display: { xs: 'none', md: 'block' } }} />
                                     <Stack
@@ -745,43 +780,39 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                     </Grid>
 
                                     <Grid item xs={12} md={4}>
-                                      <FormControl fullWidth required size="small">
-                                        <InputLabel>
-                                          {tt(`Danh xưng*    Họ và tên`, `Title*    Full Name`)}
-                                        </InputLabel>
-                                        <OutlinedInput
-                                          label={tt(`Danh xưng*    Họ và tên`, `Title*    Full Name`)}
-                                          size="small"
-                                          autoComplete="name"
-                                          value={holderInfo.name}
-                                          onChange={(e) => setHolderInfo({ name: e.target.value })}
-                                          startAdornment={
-                                            <InputAdornment position="start">
-                                              <Select
-                                                variant="standard"
-                                                disableUnderline
-                                                value={holderInfo.title || ''}
-                                                onChange={(e) => setHolderInfo({ title: e.target.value })}
-                                                sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
-                                              >
-                                                <MenuItem value=""><em>...</em></MenuItem>
-                                                <MenuItem value="Anh">Anh</MenuItem>
-                                                <MenuItem value="Chị">Chị</MenuItem>
-                                                <MenuItem value="Bạn">Bạn</MenuItem>
-                                                {source !== 'marketplace' && <MenuItem value="Em">Em</MenuItem>}
-                                                {source !== 'marketplace' && <MenuItem value="Ông">Ông</MenuItem>}
-                                                {source !== 'marketplace' && <MenuItem value="Bà">Bà</MenuItem>}
-                                                {source !== 'marketplace' && <MenuItem value="Cô">Cô</MenuItem>}
-                                                {source !== 'marketplace' && <MenuItem value="Thầy">Thầy</MenuItem>}
-                                                <MenuItem value="Mr.">Mr.</MenuItem>
-                                                <MenuItem value="Ms.">Ms.</MenuItem>
-                                                <MenuItem value="Mx.">Mx.</MenuItem>
-                                                {source !== 'marketplace' && <MenuItem value="Miss">Miss</MenuItem>}
-                                              </Select>
-                                            </InputAdornment>
-                                          }
-                                        />
-                                      </FormControl>
+                                      <FormFieldLabel label={tt('Danh xưng - Họ và tên', 'Title - Full Name')} required />
+                                      <OutlinedInput
+                                        fullWidth
+                                        size="small"
+                                        autoComplete="name"
+                                        value={holderInfo.name}
+                                        onChange={(e) => setHolderInfo({ name: e.target.value })}
+                                        startAdornment={
+                                          <InputAdornment position="start">
+                                            <Select
+                                              variant="standard"
+                                              disableUnderline
+                                              value={holderInfo.title || ''}
+                                              onChange={(e) => setHolderInfo({ title: e.target.value })}
+                                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                                            >
+                                              <MenuItem value=""><em>...</em></MenuItem>
+                                              <MenuItem value="Anh">Anh</MenuItem>
+                                              <MenuItem value="Chị">Chị</MenuItem>
+                                              <MenuItem value="Bạn">Bạn</MenuItem>
+                                              {source !== 'marketplace' && <MenuItem value="Em">Em</MenuItem>}
+                                              {source !== 'marketplace' && <MenuItem value="Ông">Ông</MenuItem>}
+                                              {source !== 'marketplace' && <MenuItem value="Bà">Bà</MenuItem>}
+                                              {source !== 'marketplace' && <MenuItem value="Cô">Cô</MenuItem>}
+                                              {source !== 'marketplace' && <MenuItem value="Thầy">Thầy</MenuItem>}
+                                              <MenuItem value="Mr.">Mr.</MenuItem>
+                                              <MenuItem value="Ms.">Ms.</MenuItem>
+                                              <MenuItem value="Mx.">Mx.</MenuItem>
+                                              {source !== 'marketplace' && <MenuItem value="Miss">Miss</MenuItem>}
+                                            </Select>
+                                          </InputAdornment>
+                                        }
+                                      />
                                       {ticketCombinedNameNote && (
                                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                                           {ticketCombinedNameNote}
@@ -790,18 +821,15 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                     </Grid>
 
                                     <Grid item xs={12} md={3}>
-                                      <FormControl fullWidth size="small">
-                                        <InputLabel>{tt(`Email vé ${ticketIndex + 1}`, `Email ticket ${ticketIndex + 1}`)}</InputLabel>
-                                        <OutlinedInput
-                                          label={tt(`Email vé ${ticketIndex + 1}`, `Email ticket ${ticketIndex + 1}`)}
-                                          size="small"
-                                          autoComplete="email"
-                                          type="email"
-                                          value={holderInfo.email || ''}
-                                          onChange={(e) => setHolderInfo({ email: e.target.value })}
-
-                                        />
-                                      </FormControl>
+                                      <FormFieldLabel label={tt(`Email vé ${ticketIndex + 1}`, `Email ticket ${ticketIndex + 1}`)} />
+                                      <OutlinedInput
+                                        fullWidth
+                                        size="small"
+                                        autoComplete="email"
+                                        type="email"
+                                        value={holderInfo.email || ''}
+                                        onChange={(e) => setHolderInfo({ email: e.target.value })}
+                                      />
                                       {ticketEmailNote && (
                                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                                           {ticketEmailNote}
@@ -810,38 +838,36 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                     </Grid>
 
                                     <Grid item xs={12} md={3}>
-                                      <FormControl fullWidth size="small">
-                                        <InputLabel>{tt(`SĐT vé ${ticketIndex + 1}`, `Phone ticket ${ticketIndex + 1}`)}</InputLabel>
-                                        <OutlinedInput
-                                          label={tt(`SĐT vé ${ticketIndex + 1}`, `Phone ticket ${ticketIndex + 1}`)}
-                                          size="small"
-                                          autoComplete="tel-national"
-                                          type="tel"
-                                          value={holderInfo.nationalPhone || ''}
-                                          onChange={(e) => setHolderInfo({ nationalPhone: e.target.value })}
-                                          startAdornment={
-                                            <InputAdornment position="start">
-                                              <Select
-                                                variant="standard"
-                                                disableUnderline
-                                                value={holderInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
-                                                onChange={(event) => setHolderInfo({ phoneCountryIso2: event.target.value })}
-                                                sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
-                                                renderValue={(value) => {
-                                                  const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
-                                                  return country.dialCode;
-                                                }}
-                                              >
-                                                {PHONE_COUNTRIES.map((country) => (
-                                                  <MenuItem key={country.iso2} value={country.iso2}>
-                                                    {country.nameVi} ({country.dialCode})
-                                                  </MenuItem>
-                                                ))}
-                                              </Select>
-                                            </InputAdornment>
-                                          }
-                                        />
-                                      </FormControl>
+                                      <FormFieldLabel label={tt(`SĐT vé ${ticketIndex + 1}`, `Phone ticket ${ticketIndex + 1}`)} />
+                                      <OutlinedInput
+                                        fullWidth
+                                        size="small"
+                                        autoComplete="tel-national"
+                                        type="tel"
+                                        value={holderInfo.nationalPhone || ''}
+                                        onChange={(e) => setHolderInfo({ nationalPhone: e.target.value })}
+                                        startAdornment={
+                                          <InputAdornment position="start">
+                                            <Select
+                                              variant="standard"
+                                              disableUnderline
+                                              value={holderInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
+                                              onChange={(event) => setHolderInfo({ phoneCountryIso2: event.target.value })}
+                                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                                              renderValue={(value) => {
+                                                const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                                return country.dialCode;
+                                              }}
+                                            >
+                                              {PHONE_COUNTRIES.map((country) => (
+                                                <MenuItem key={country.iso2} value={country.iso2}>
+                                                  {country.nameVi} ({country.dialCode})
+                                                </MenuItem>
+                                              ))}
+                                            </Select>
+                                          </InputAdornment>
+                                        }
+                                      />
                                       {ticketPhoneNote && (
                                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                                           {ticketPhoneNote}
@@ -849,7 +875,6 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                       )}
                                     </Grid>
 
-                                    
                                     {/* Additional Built-in Fields */}
                                     {(() => {
                                       const idcardCfg = ticketFormFields.find((f) => f.internalName === 'idcard_number');
@@ -857,16 +882,14 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                       const required = !!idcardCfg?.required;
                                       return (
                                         visible && (
-                                          <Grid item xs={12}>
-                                            <FormControl fullWidth required={required} size="small">
-                                              <InputLabel>{tt("Số Căn cước công dân", "ID Card Number")}</InputLabel>
-                                              <OutlinedInput
-                                                label={tt("Số Căn cước công dân", "ID Card Number")}
-                                                size="small"
-                                                value={holderInfo.idcard_number || ''}
-                                                onChange={(e) => setHolderInfo({ idcard_number: e.target.value })}
-                                              />
-                                            </FormControl>
+                                          <Grid item xs={12} md={6}>
+                                            <FormFieldLabel label={tt('Số Căn cước công dân', 'ID Card Number')} required={required} />
+                                            <OutlinedInput
+                                              fullWidth
+                                              size="small"
+                                              value={holderInfo.idcard_number || ''}
+                                              onChange={(e) => setHolderInfo({ idcard_number: e.target.value })}
+                                            />
                                             {idcardCfg?.note && (
                                               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                                                 {idcardCfg.note}
@@ -883,18 +906,13 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                       const required = !!dobCfg?.required;
                                       return (
                                         visible && (
-                                          <Grid item xs={12}>
-                                            <FormControl fullWidth required={required} size="small">
-                                              <TextField
-                                                label={tt("Ngày sinh", "Date of Birth")}
-                                                type="date"
-                                                size="small"
-                                                InputLabelProps={{ shrink: true }}
-                                                required={required}
-                                                value={holderInfo.dob || ''}
-                                                onChange={(e) => setHolderInfo({ dob: e.target.value })}
-                                              />
-                                            </FormControl>
+                                          <Grid item xs={12} md={6}>
+                                            <FormFieldLabel label={tt('Ngày sinh', 'Date of Birth')} required={required} />
+                                            <DobDatePicker
+                                              required={required}
+                                              value={holderInfo.dob}
+                                              onChange={(dob) => setHolderInfo({ dob })}
+                                            />
                                             {dobCfg?.note && (
                                               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                                                 {dobCfg.note}
@@ -912,15 +930,13 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                       return (
                                         visible && (
                                           <Grid item xs={12}>
-                                            <FormControl fullWidth required={required} size="small">
-                                              <InputLabel>{tt("Địa chỉ", "Address")}</InputLabel>
-                                              <OutlinedInput
-                                                label={tt("Địa chỉ", "Address")}
-                                                size="small"
-                                                value={holderInfo.address || ''}
-                                                onChange={(e) => setHolderInfo({ address: e.target.value })}
-                                              />
-                                            </FormControl>
+                                            <FormFieldLabel label={tt('Địa chỉ', 'Address')} required={required} />
+                                            <OutlinedInput
+                                              fullWidth
+                                              size="small"
+                                              value={holderInfo.address || ''}
+                                              onChange={(e) => setHolderInfo({ address: e.target.value })}
+                                            />
                                             {addrCfg?.note && (
                                               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                                                 {addrCfg.note}
@@ -935,10 +951,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                                     {customTicketFields.map((field) => (
                                       <Grid item xs={12} key={field.internalName}>
                                         <Stack spacing={0.5}>
-                                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                            {field.label}
-                                            {field.required && ' *'}
-                                          </Typography>
+                                          <FormFieldLabel label={field.label} required={field.required} />
                                           {field.note && (
                                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                               {field.note}
@@ -1047,7 +1060,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
         <Grid item xs={12} md={5}>
           <Stack spacing={3}>
             {/* Customer Information Card */}
-            <Card>
+            <Card sx={{ borderTop: 3, borderColor: 'primary.main' }}>
               <CardHeader
                 title={tt("Thông tin người mua", "Buyer Information")}
                 action={
@@ -1067,22 +1080,31 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                           </Button>
                           <IconButton
                             size="small"
-                            onClick={clearCustomerInfo}
-                            aria-label={tt('Xóa thông tin để nhập lại', 'Clear to re-enter')}
+                            onClick={unlinkCustomerToEdit}
+                            aria-label={tt('Nhập thông tin người mua khác', 'Enter different buyer information')}
                           >
                             <X size={14} />
                           </IconButton>
                         </Stack>
                       ) : (
-                        <Button
-                          size="small"
-                          variant="text"
-                          startIcon={<Copy size={12} />}
-                          sx={{ mr: 1, textTransform: 'none' }}
-                          onClick={relinkCustomerToTicket1}
-                        >
-                          {tt('Copy từ vé 1', 'Copy from ticket 1')}
-                        </Button>
+                        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mr: 1 }}>
+                          <Button
+                            size="small"
+                            variant="text"
+                            startIcon={<Copy size={12} />}
+                            sx={{ textTransform: 'none' }}
+                            onClick={relinkCustomerToTicket1}
+                          >
+                            {tt('Copy từ vé 1', 'Copy from ticket 1')}
+                          </Button>
+                          <IconButton
+                            size="small"
+                            onClick={clearCustomerInfo}
+                            aria-label={tt('Xoá trắng', 'Clear all')}
+                          >
+                            <X size={14} />
+                          </IconButton>
+                        </Stack>
                       )
                     )}
                     {source !== 'marketplace' && (
@@ -1115,138 +1137,147 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
               <CardContent sx={{ pt: 1.5, pb: 1.5 }}>
                 <Box sx={{ pointerEvents: readonly ? 'none' : 'auto', opacity: readonly ? 0.8 : 1 }}>
                   <Grid container spacing={2}>
-                    <Grid item lg={12} xs={12}>
-                      <FormControl fullWidth required size="small">
-                        <InputLabel htmlFor="customer-name">{tt("Danh xưng*   Họ và tên", "Title*   Full Name")}</InputLabel>
-                        <OutlinedInput
-                          id="customer-name"
-                          size="small"
-                          autoComplete="name"
-                          label={tt("Danh xưng*    Họ và tên", "Title*    Full Name")}
-                          name="customer_name"
-                          value={customer.name}
-                          onChange={(e) => setCustomerField({ name: e.target.value })}
-                          startAdornment={
-                            <InputAdornment position="start">
-                              <Select
-                                variant="standard"
-                                disableUnderline
-                                value={customer.title || ''}
-                                onChange={(e) => setCustomerField({ title: e.target.value })}
-                                sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
-                              >
-                                <MenuItem value=""><em>...</em></MenuItem>
-                                <MenuItem value="Anh">Anh</MenuItem>
-                                <MenuItem value="Chị">Chị</MenuItem>
-                                <MenuItem value="Bạn">Bạn</MenuItem>
-                                {source !== 'marketplace' && <MenuItem value="Em">Em</MenuItem>}
-                                {source !== 'marketplace' && <MenuItem value="Ông">Ông</MenuItem>}
-                                {source !== 'marketplace' && <MenuItem value="Bà">Bà</MenuItem>}
-                                {source !== 'marketplace' && <MenuItem value="Cô">Cô</MenuItem>}
-                                {source !== 'marketplace' && <MenuItem value="Thầy">Thầy</MenuItem>}
-                                <MenuItem value="Mr.">Mr.</MenuItem>
-                                <MenuItem value="Ms.">Ms.</MenuItem>
-                                <MenuItem value="Mx.">Mx.</MenuItem>
-                                {source !== 'marketplace' && <MenuItem value="Miss">Miss</MenuItem>}
-                              </Select>
-                            </InputAdornment>
-                          }
-                        />
-                      </FormControl>
-                      {customerCombinedNameNote && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                          {customerCombinedNameNote}
-                        </Typography>
-                      )}
-                    </Grid>
+                    {/* Đã copy từ vé 1: ẩn các field trùng với vé 1 (đã có sẵn giá trị),
+                        chỉ hiện tóm tắt cho gọn - bấm "X" ở header (clearCustomerInfo) mới
+                        hiện lại để nhập thủ công. Câu hỏi riêng của checkout (không có ở vé)
+                        vẫn luôn hiện vì chưa được copy từ đâu cả. */}
+                    {customerLinkedToTicket1 && (
+                      <Grid item xs={12}>
+                        <Stack spacing={0.5}>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            {customer.title} {customer.name || tt('(Chưa có thông tin)', '(No information)')}
+                          </Typography>
+                          {(customer.email || customer.nationalPhone) && (
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {[customer.email, customer.nationalPhone].filter(Boolean).join(' • ')}
+                            </Typography>
+                          )}
+                        </Stack>
+                      </Grid>
+                    )}
 
-                    <Grid item lg={6} xs={12}>
-                      <FormControl fullWidth required size="small">
-                        <InputLabel>{tt("Địa chỉ Email", "Email Address")}</InputLabel>
-                        <OutlinedInput
-                          label={tt("Địa chỉ Email", "Email Address")}
-                          size="small"
-                          autoComplete="email"
-                          name="customer_email"
-                          type="email"
-                          value={customer.email}
-                          onChange={(e) => setCustomerField({ email: e.target.value })}
-                        />
-                      </FormControl>
-                      {customerEmailNote && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                          {customerEmailNote}
-                        </Typography>
-                      )}
-                    </Grid>
+                    {!customerLinkedToTicket1 && (
+                      <>
+                        <Grid item lg={12} xs={12}>
+                          <FormFieldLabel label={tt('Danh xưng - Họ và tên', 'Title - Full Name')} required />
+                          <OutlinedInput
+                            id="customer-name"
+                            fullWidth
+                            size="small"
+                            autoComplete="name"
+                            name="customer_name"
+                            value={customer.name}
+                            onChange={(e) => setCustomerField({ name: e.target.value })}
+                            startAdornment={
+                              <InputAdornment position="start">
+                                <Select
+                                  variant="standard"
+                                  disableUnderline
+                                  value={customer.title || ''}
+                                  onChange={(e) => setCustomerField({ title: e.target.value })}
+                                  sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                                >
+                                  <MenuItem value=""><em>...</em></MenuItem>
+                                  <MenuItem value="Anh">Anh</MenuItem>
+                                  <MenuItem value="Chị">Chị</MenuItem>
+                                  <MenuItem value="Bạn">Bạn</MenuItem>
+                                  {source !== 'marketplace' && <MenuItem value="Em">Em</MenuItem>}
+                                  {source !== 'marketplace' && <MenuItem value="Ông">Ông</MenuItem>}
+                                  {source !== 'marketplace' && <MenuItem value="Bà">Bà</MenuItem>}
+                                  {source !== 'marketplace' && <MenuItem value="Cô">Cô</MenuItem>}
+                                  {source !== 'marketplace' && <MenuItem value="Thầy">Thầy</MenuItem>}
+                                  <MenuItem value="Mr.">Mr.</MenuItem>
+                                  <MenuItem value="Ms.">Ms.</MenuItem>
+                                  <MenuItem value="Mx.">Mx.</MenuItem>
+                                  {source !== 'marketplace' && <MenuItem value="Miss">Miss</MenuItem>}
+                                </Select>
+                              </InputAdornment>
+                            }
+                          />
+                          {customerCombinedNameNote && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                              {customerCombinedNameNote}
+                            </Typography>
+                          )}
+                        </Grid>
 
-                    <Grid item lg={6} xs={12}>
-                      <FormControl fullWidth required size="small">
-                        <InputLabel>{tt("Số điện thoại", "Phone Number")}</InputLabel>
-                        <OutlinedInput
-                          label={tt("Số điện thoại", "Phone Number")}
-                          size="small"
-                          autoComplete="tel-national"
-                          name="customer_national_phone"
-                          type="tel"
-                          value={customer.nationalPhone}
-                          onChange={(e) => setCustomerField({ nationalPhone: e.target.value })}
-                          startAdornment={
-                            <InputAdornment position="start">
-                              <Select
-                                variant="standard"
-                                disableUnderline
-                                value={customer.phoneCountryIso2}
-                                onChange={(e) => setCustomerField({ phoneCountryIso2: e.target.value as string })}
-                                sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
-                                renderValue={(value) => {
-                                  const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
-                                  return country.dialCode;
-                                }}
-                              >
-                                {PHONE_COUNTRIES.map((country) => (
-                                  <MenuItem key={country.iso2} value={country.iso2}>
-                                    {tt(country.nameVi, country.nameEn)} ({country.dialCode})
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                            </InputAdornment>
-                          }
-                        />
-                      </FormControl>
-                      {customerPhoneNote && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                          {customerPhoneNote}
-                        </Typography>
-                      )}
-                    </Grid>
+                        <Grid item lg={6} xs={12}>
+                          <FormFieldLabel label={tt('Địa chỉ Email', 'Email Address')} required />
+                          <OutlinedInput
+                            fullWidth
+                            size="small"
+                            autoComplete="email"
+                            name="customer_email"
+                            type="email"
+                            value={customer.email}
+                            onChange={(e) => setCustomerField({ email: e.target.value })}
+                          />
+                          {customerEmailNote && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                              {customerEmailNote}
+                            </Typography>
+                          )}
+                        </Grid>
 
-                    {/* Builtin optional fields controlled by checkout form config */}
+                        <Grid item lg={6} xs={12}>
+                          <FormFieldLabel label={tt('Số điện thoại', 'Phone Number')} required />
+                          <OutlinedInput
+                            fullWidth
+                            size="small"
+                            autoComplete="tel-national"
+                            name="customer_national_phone"
+                            type="tel"
+                            value={customer.nationalPhone}
+                            onChange={(e) => setCustomerField({ nationalPhone: e.target.value })}
+                            startAdornment={
+                              <InputAdornment position="start">
+                                <Select
+                                  variant="standard"
+                                  disableUnderline
+                                  value={customer.phoneCountryIso2}
+                                  onChange={(e) => setCustomerField({ phoneCountryIso2: e.target.value as string })}
+                                  sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                                  renderValue={(value) => {
+                                    const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                    return country.dialCode;
+                                  }}
+                                >
+                                  {PHONE_COUNTRIES.map((country) => (
+                                    <MenuItem key={country.iso2} value={country.iso2}>
+                                      {tt(country.nameVi, country.nameEn)} ({country.dialCode})
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </InputAdornment>
+                            }
+                          />
+                          {customerPhoneNote && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                              {customerPhoneNote}
+                            </Typography>
+                          )}
+                        </Grid>
+                      </>
+                    )}
+
+                    {/* Builtin optional fields controlled by checkout form config. Chỉ ẩn khi
+                        đang linked VÀ field này thực sự tồn tại ở form vé (nên đã được copy) -
+                        nếu form vé không có field này thì chưa từng được copy, vẫn phải hiện
+                        ra để nhập, kể cả khi đang linked. */}
                     {(() => {
                       const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
                       const visible = !!dobCfg && dobCfg.visible;
                       const required = !!dobCfg?.required;
+                      const copiedFromTicket = !!ticketFormFields.find((f) => f.internalName === 'dob')?.visible;
+                      const hidden = customerLinkedToTicket1 && copiedFromTicket;
                       return (
-                        visible && (
+                        visible && !hidden && (
                           <Grid item lg={6} xs={12}>
-                            <TextField
-                              fullWidth
-                              size="small"
-                              label={tt("Ngày tháng năm sinh", "Date of Birth")}
-                              name="customer_dob"
-                              type="date"
+                            <FormFieldLabel label={tt('Ngày tháng năm sinh', 'Date of Birth')} required={required} />
+                            <DobDatePicker
                               required={required}
-                              value={customer.dob || ""}
-                              onChange={(e) => setCustomerField({ dob: e.target.value })}
-                              InputLabelProps={{ shrink: true }}
-                              InputProps={{
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <CalendarBlank size={18} weight="duotone" style={{ opacity: 0.7 }} />
-                                  </InputAdornment>
-                                ),
-                              }}
-                              inputProps={{ max: new Date().toISOString().slice(0, 10) }}
+                              value={customer.dob}
+                              onChange={(dob) => (copiedFromTicket ? setCustomerField({ dob }) : setCustomer({ dob }))}
                             />
                             {dobCfg?.note && (
                               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
@@ -1262,24 +1293,24 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                       const idCfg = checkoutFormFields.find((f) => f.internalName === 'idcard_number');
                       const visible = !!idCfg && idCfg.visible;
                       const required = !!idCfg?.required;
+                      const copiedFromTicket = !!ticketFormFields.find((f) => f.internalName === 'idcard_number')?.visible;
+                      const hidden = customerLinkedToTicket1 && copiedFromTicket;
                       return (
-                        visible && (
+                        visible && !hidden && (
                           <Grid item lg={6} xs={12}>
-                            <FormControl fullWidth required={required} size="small">
-                              <InputLabel>{tt("Số Căn cước công dân", "ID Card Number")}</InputLabel>
-                              <OutlinedInput
-                                label={tt("Số Căn cước công dân", "ID Card Number")}
-                                size="small"
-                                name="customer_idcard_number"
-                                value={customer.idcard_number}
-                                onChange={(e) => setCustomerField({ idcard_number: e.target.value })}
-                                startAdornment={
-                                  <InputAdornment position="start">
-                                    <IdentificationCard size={18} weight="duotone" style={{ opacity: 0.7 }} />
-                                  </InputAdornment>
-                                }
-                              />
-                            </FormControl>
+                            <FormFieldLabel label={tt('Số Căn cước công dân', 'ID Card Number')} required={required} />
+                            <OutlinedInput
+                              fullWidth
+                              size="small"
+                              name="customer_idcard_number"
+                              value={customer.idcard_number}
+                              onChange={(e) => (copiedFromTicket ? setCustomerField({ idcard_number: e.target.value }) : setCustomer({ idcard_number: e.target.value }))}
+                              startAdornment={
+                                <InputAdornment position="start">
+                                  <IdentificationCard size={18} weight="duotone" style={{ opacity: 0.7 }} />
+                                </InputAdornment>
+                              }
+                            />
                             {idCfg?.note && (
                               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                                 {idCfg.note}
@@ -1294,25 +1325,25 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                       const addrCfg = checkoutFormFields.find((f) => f.internalName === 'address');
                       const visible = !!addrCfg && addrCfg.visible;
                       const required = !!addrCfg?.required;
+                      const copiedFromTicket = !!ticketFormFields.find((f) => f.internalName === 'address')?.visible;
+                      const hidden = customerLinkedToTicket1 && copiedFromTicket;
                       return (
-                        visible && (
+                        visible && !hidden && (
                           <Grid item lg={12} xs={12}>
-                            <FormControl fullWidth required={required} size="small">
-                              <InputLabel>{tt("Địa chỉ", "Address")}</InputLabel>
-                              <OutlinedInput
-                                label={tt("Địa chỉ", "Address")}
-                                size="small"
-                                autoComplete="street-address"
-                                name="customer_address"
-                                value={customer.address}
-                                onChange={(e) => setCustomerField({ address: e.target.value })}
-                                startAdornment={
-                                  <InputAdornment position="start">
-                                    <MapPin size={18} weight="duotone" style={{ opacity: 0.7 }} />
-                                  </InputAdornment>
-                                }
-                              />
-                            </FormControl>
+                            <FormFieldLabel label={tt('Địa chỉ', 'Address')} required={required} />
+                            <OutlinedInput
+                              fullWidth
+                              size="small"
+                              autoComplete="street-address"
+                              name="customer_address"
+                              value={customer.address}
+                              onChange={(e) => (copiedFromTicket ? setCustomerField({ address: e.target.value }) : setCustomer({ address: e.target.value }))}
+                              startAdornment={
+                                <InputAdornment position="start">
+                                  <MapPin size={18} weight="duotone" style={{ opacity: 0.7 }} />
+                                </InputAdornment>
+                              }
+                            />
                             {addrCfg?.note && (
                               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                                 {addrCfg.note}
@@ -1323,14 +1354,11 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                       );
                     })()}
 
-                    {/* Custom checkout fields */}
+                    {/* Custom checkout fields - luôn hiện vì không có tương ứng ở vé để copy */}
                     {customCheckoutFields.map((field) => (
                       <Grid item key={field.internalName} xs={12}>
                         <Stack spacing={0.5}>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {field.label}
-                            {field.required && ' *'}
-                          </Typography>
+                          <FormFieldLabel label={field.label} required={field.required} />
                           {field.note && (
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                               {field.note}

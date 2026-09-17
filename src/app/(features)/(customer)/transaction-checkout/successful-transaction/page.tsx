@@ -117,8 +117,17 @@ export interface Transaction {
 }
 
 
+export interface TicketECodeItem {
+  id: number;
+  eCode: string;
+  holderTitle?: string | null;
+  holderName: string;
+}
+
 export interface ECodeResponse {
   eCode: string;
+  qrOption: string;
+  tickets: TicketECodeItem[];
 }
 
 type CheckoutRuntimeFieldOption = {
@@ -146,6 +155,7 @@ export default function Page(): React.JSX.Element {
 
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [eCode, setECode] = useState<string | null>(null);
+  const [ticketECodes, setTicketECodes] = useState<TicketECodeItem[]>([]);
   const notificationCtx = React.useContext(NotificationContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [checkoutFormFields, setCheckoutFormFields] = useState<CheckoutRuntimeField[]>([]);
@@ -271,6 +281,7 @@ export default function Page(): React.JSX.Element {
           `/customers/transactions/${transactionId}/check-in-e-code?token=${token}`
         );
         setECode(response.data.eCode);
+        setTicketECodes(response.data.tickets || []);
       } catch (error) {
         // notificationCtx.error('Error fetching eCode', error);
       } finally {
@@ -377,7 +388,7 @@ export default function Page(): React.JSX.Element {
                     </Stack>
                   </CardContent>
                 </Card>
-                {eCode && (
+                {eCode && transaction.qrOption !== 'separate' && (
                   <Card sx={{
                     scrollBehavior: 'smooth',
                     backgroundColor: '#d1f9db',
@@ -387,7 +398,16 @@ export default function Page(): React.JSX.Element {
                     <Divider />
                     <CardContent>
                       <Stack spacing={1} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography sx={{ textAlign: 'center' }}>Vui lòng kiểm tra email để nhận mã</Typography>
+                        <img
+                          src={`${process.env.NEXT_PUBLIC_BASE_URL}/common/qr?margin=16&size=200x200&data=${encodeURIComponent(eCode)}`}
+                          alt={tt('Mã QR check-in', 'Check-in QR code')}
+                          width={200}
+                          height={200}
+                        />
+                        <Typography sx={{ textAlign: 'center', fontFamily: 'monospace' }}>{eCode}</Typography>
+                        <Typography variant="caption" sx={{ textAlign: 'center', color: 'text.secondary' }}>
+                          {tt('Mã QR này có thể check-in cho tất cả vé trong đơn.', 'This QR can check in for all tickets in the order.')}
+                        </Typography>
                       </Stack>
                     </CardContent>
                   </Card>
@@ -532,39 +552,55 @@ export default function Page(): React.JSX.Element {
                           </Stack>
                           {transactionTicketCategory.tickets.length > 0 && (
                             <Stack spacing={2}>
-                              {transactionTicketCategory.tickets.map((ticket, ticketIndex) => (
-                                <Box key={ticketIndex} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
-                                  {transaction.qrOption === 'separate' && (
-                                    <>
+                              {transactionTicketCategory.tickets.map((ticket, ticketIndex) => {
+                                const ticketECode = ticketECodes.find((item) => item.id === ticket.id);
+                                return (
+                                  <Stack key={ticketIndex} direction="row" spacing={2} sx={{ ml: 3, pl: 1, borderLeft: '2px solid', borderColor: 'divider', alignItems: 'center' }}>
+                                    {transaction.qrOption === 'separate' && ticketECode && (
+                                      <Box sx={{ flexShrink: 0, textAlign: 'center' }}>
+                                        <img
+                                          src={`${process.env.NEXT_PUBLIC_BASE_URL}/common/qr?margin=16&size=96x96&data=${encodeURIComponent(ticketECode.eCode)}`}
+                                          alt={tt('Mã QR vé', 'Ticket QR code')}
+                                          width={96}
+                                          height={96}
+                                        />
+                                        <Typography variant="caption" sx={{ display: 'block', fontFamily: 'monospace' }}>{ticketECode.eCode}</Typography>
+                                      </Box>
+                                    )}
+                                    <Box sx={{ flex: 1 }}>
+                                      {transaction.qrOption === 'separate' && (
+                                        <>
+                                          <div>
+                                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
+                                              {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : tt('Chưa có thông tin', 'No information')}
+                                            </Typography>
+                                          </div>
+                                          <div>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                              {(() => {
+                                                const email = ticket.holderEmail || tt('Chưa có email', 'No email');
+                                                if (!ticket.holderPhone) {
+                                                  return `${email} - ${tt('Chưa có SĐT', 'No phone')}`;
+                                                }
+                                                // Parse E.164 phone to get country code and national number
+                                                const parsedPhone = parseE164Phone(ticket.holderPhone);
+                                                if (parsedPhone) {
+                                                  const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
+                                                  return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
+                                                }
+                                                return `${email} - ${ticket.holderPhone}`;
+                                              })()}
+                                            </Typography>
+                                          </div>
+                                        </>
+                                      )}
                                       <div>
-                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
-                                          {ticketIndex + 1}. {ticket.holderName ? `${ticket.holderTitle || ''} ${ticket.holderName}`.trim() : tt('Chưa có thông tin', 'No information')}
-                                        </Typography>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>TID-{ticket.id} {ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}</Typography>
                                       </div>
-                                      <div>
-                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                          {(() => {
-                                            const email = ticket.holderEmail || tt('Chưa có email', 'No email');
-                                            if (!ticket.holderPhone) {
-                                              return `${email} - ${tt('Chưa có SĐT', 'No phone')}`;
-                                            }
-                                            // Parse E.164 phone to get country code and national number
-                                            const parsedPhone = parseE164Phone(ticket.holderPhone);
-                                            if (parsedPhone) {
-                                              const country = PHONE_COUNTRIES.find(c => c.iso2 === parsedPhone.countryCode) || DEFAULT_PHONE_COUNTRY;
-                                              return `${email} - ${country.dialCode} ${parsedPhone.nationalNumber}`;
-                                            }
-                                            return `${email} - ${ticket.holderPhone}`;
-                                          })()}
-                                        </Typography>
-                                      </div>
-                                    </>
-                                  )}
-                                  <div>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>TID-{ticket.id} {ticket.checkInAt ? `${tt('Check-in lúc', 'Checked in at')} ${dayjs(ticket.checkInAt || 0).format('HH:mm:ss DD/MM/YYYY')}` : tt('Chưa check-in', 'Not checked in')}</Typography>
-                                  </div>
-                                </Box>
-                              ))}
+                                    </Box>
+                                  </Stack>
+                                );
+                              })}
                             </Stack>
                           )}
                         </div>

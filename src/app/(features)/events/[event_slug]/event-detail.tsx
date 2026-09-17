@@ -592,6 +592,20 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
     return quantities;
   }, [activeScheduleId, order.tickets]);
 
+  // Same as above, but broken down per audience so reopening the quantity modal for a
+  // multi-audience category restores each audience's quantity instead of showing 0.
+  const cartAudienceQuantitiesForActiveSchedule = React.useMemo(() => {
+    if (!activeScheduleId) return {};
+    const quantities: Record<number, Record<number, number>> = {};
+    order.tickets.forEach(t => {
+      if (t.showId === activeScheduleId && t.audienceId != null) {
+        const byAudience = quantities[t.ticketCategoryId] || (quantities[t.ticketCategoryId] = {});
+        byAudience[t.audienceId] = (byAudience[t.audienceId] || 0) + 1;
+      }
+    });
+    return quantities;
+  }, [activeScheduleId, order.tickets]);
+
   const builtinInternalNames = React.useMemo(
     () => new Set(['title', 'name', 'email', 'phone', 'phone_number', 'address', 'dob', 'gender', 'nationality', 'idcard_number']),
     []
@@ -1093,6 +1107,57 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
   };
 
   const validateStep2 = () => {
+    // Validate ticket holders first (vé 1 trở đi), trước khi validate thông tin người mua
+    for (let i = 0; i < order.tickets.length; i++) {
+      const t = order.tickets[i];
+      const holder = t.holderInfo;
+      if (!holder || !holder.name) {
+        notificationCtx.warning(tt(`Vui lòng nhập tên cho vé thứ ${i + 1}`, `Please enter name for ticket #${i + 1}`));
+        return false;
+      }
+      if (order.qrOption === 'separate') {
+        if (!holder.email) {
+          notificationCtx.warning(tt(`Vui lòng nhập email cho vé thứ ${i + 1}`, `Please enter email for ticket #${i + 1}`));
+          return false;
+        }
+        if (!holder.nationalPhone) {
+          notificationCtx.warning(tt(`Vui lòng nhập số điện thoại cho vé thứ ${i + 1}`, `Please enter phone number for ticket #${i + 1}`));
+          return false;
+        }
+      }
+
+      // Built-in optional (idcard/dob/address) và custom field của form vé - theo cấu hình required trong ticketFormFields
+      for (const field of (event?.ticketFormFields || [])) {
+        if (!field.visible || !field.required) continue;
+
+        if (field.internalName === 'idcard_number' && !holder.idcard_number) {
+          notificationCtx.warning(tt(`Vui lòng nhập Số Căn cước công dân cho vé thứ ${i + 1}`, `Please enter ID card number for ticket #${i + 1}`));
+          return false;
+        }
+        if (field.internalName === 'dob' && !holder.dob) {
+          notificationCtx.warning(tt(`Vui lòng nhập ngày sinh cho vé thứ ${i + 1}`, `Please enter date of birth for ticket #${i + 1}`));
+          return false;
+        }
+        if (field.internalName === 'address' && !holder.address) {
+          notificationCtx.warning(tt(`Vui lòng nhập địa chỉ cho vé thứ ${i + 1}`, `Please enter address for ticket #${i + 1}`));
+          return false;
+        }
+
+        if (!builtinInternalNames.has(field.internalName)) {
+          const value = t.formAnswers?.[field.internalName];
+          if (field.fieldType === 'checkbox') {
+            if (!Array.isArray(value) || value.length === 0) {
+              notificationCtx.warning(tt(`Vui lòng chọn ít nhất một lựa chọn cho "${field.label}" (vé thứ ${i + 1})`, `Please choose at least one option for "${field.label}" (ticket #${i + 1})`));
+              return false;
+            }
+          } else if (!value) {
+            notificationCtx.warning(tt(`Vui lòng nhập thông tin cho "${field.label}" (vé thứ ${i + 1})`, `Please fill in "${field.label}" (ticket #${i + 1})`));
+            return false;
+          }
+        }
+      }
+    }
+
     // Validate required fields based on checkout form configuration
     for (const field of checkoutFormFields) {
       if (!field.visible || !field.required) continue;
@@ -1143,27 +1208,6 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
       }
     }
 
-    // Validate ticket holders
-    if (true) {
-      for (let i = 0; i < order.tickets.length; i++) {
-        const t = order.tickets[i];
-        const holder = t.holderInfo;
-        if (!holder || !holder.name) {
-          notificationCtx.warning(tt(`Vui lòng nhập tên cho vé thứ ${i + 1}`, `Please enter name for ticket #${i + 1}`));
-          return false;
-        }
-        if (order.qrOption === 'separate') {
-          if (!holder.email) {
-            notificationCtx.warning(tt(`Vui lòng nhập email cho vé thứ ${i + 1}`, `Please enter email for ticket #${i + 1}`));
-            return false;
-          }
-          if (!holder.nationalPhone) {
-            notificationCtx.warning(tt(`Vui lòng nhập số điện thoại cho vé thứ ${i + 1}`, `Please enter phone number for ticket #${i + 1}`));
-            return false;
-          }
-        }
-      }
-    }
     return true;
   };
 
@@ -1515,6 +1559,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               order={order}
               setOrder={setOrder}
               cartQuantitiesForActiveSchedule={cartQuantitiesForActiveSchedule}
+              cartAudienceQuantitiesForActiveSchedule={cartAudienceQuantitiesForActiveSchedule}
               tt={tt}
               onNext={() => {
                 if (validateStep1()) setActiveStep(1);
