@@ -95,7 +95,7 @@ export default class BaseHttpService {
 
     // Non-401: Bubble up an error
     if (httpStatus !== 401 && statusCode !== 401) {
-      throw new Error(resolvedMessage);
+      throw Object.assign(new Error(resolvedMessage), { status: httpStatus ?? statusCode });
     }
 
     // Avoid infinite loop on refresh/login endpoints
