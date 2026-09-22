@@ -39,10 +39,10 @@ import { useTranslation } from '@/contexts/locale-context';
 import NotificationContext from '@/contexts/notification-context';
 import { getPaymentMethodLabel } from '@/utils/payment';
 
-import { Step1SelectTickets } from '@/components/transactions/create-steps/step-1-select-tickets';
-import { Step2Info } from '@/components/transactions/create-steps/step-2-info';
-import { Step3Payment } from '@/components/transactions/create-steps/step-3-payment';
-import { Step4Review } from '@/components/transactions/create-steps/step-4-review';
+import { Step1SelectTickets } from './create-steps/step-1-select-tickets';
+import { Step2Info } from './create-steps/step-2-info';
+import { Step3Payment } from './create-steps/step-3-payment';
+import { Step4Review } from './create-steps/step-4-review';
 import {
   CheckoutRuntimeField,
   EventResponse,
@@ -51,7 +51,7 @@ import {
   Show,
   TicketInfo,
   Transaction
-} from '@/components/transactions/create-steps/types';
+} from './create-steps/types';
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES, formatToE164, parseE164Phone } from '@/config/phone-countries';
 import { calculateVoucherDiscount } from '@/utils/voucher-discount';
 import Backdrop from '@mui/material/Backdrop';
@@ -63,6 +63,9 @@ const formatDateTime = (date: string | Date | null) => {
   if (!date) return '';
   return dayjs(date).format('HH:mm DD/MM/YYYY');
 };
+
+// Trang này được tinh chỉnh riêng cho sự kiện Kawaii Mama, slug luôn cố định.
+const EVENT_SLUG = 'kawaiimama-2026';
 
 
 export default function EventDetail({ params, initialEvent }: { params: { event_slug: string }, initialEvent: EventResponse | null }): React.JSX.Element {
@@ -499,7 +502,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
     setOpenNotifModal(false);
     if (prevent24h) {
       if (typeof window !== 'undefined') {
-        localStorage.setItem(`notif_modal_${params.event_slug}`, new Date().toISOString());
+        localStorage.setItem(`notif_modal_${EVENT_SLUG}`, new Date().toISOString());
       }
     }
   }
@@ -507,7 +510,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
   React.useEffect(() => {
     if (event) {
       if (typeof window !== 'undefined') {
-        const lastClosed = localStorage.getItem(`notif_modal_${params.event_slug}`);
+        const lastClosed = localStorage.getItem(`notif_modal_${EVENT_SLUG}`);
         if (lastClosed) {
           const lastDate = new Date(lastClosed);
           const now = new Date();
@@ -522,7 +525,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
         setOpenNotifModal(true);
       }
     }
-  }, [event, params.event_slug]);
+  }, [event]);
 
   React.useEffect(() => {
     console.log('[DEBUG] Order Changed:', order.concessions);
@@ -939,7 +942,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
     }
     try {
       const response = await baseHttpServiceInstance.get(
-        `/marketplace/events/${params.event_slug}/voucher-campaigns/validate-voucher`,
+        `/marketplace/events/${EVENT_SLUG}/voucher-campaigns/validate-voucher`,
         { params: { code: manualDiscountCode.trim() } }
       );
       const voucher = response.data;
@@ -957,12 +960,12 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
       notificationCtx.error(errorMessage);
       setAppliedVoucher(null);
     }
-  }, [validateVoucher, notificationCtx, tt, params.event_slug, manualDiscountCode]);
+  }, [validateVoucher, notificationCtx, tt, manualDiscountCode]);
 
   const validateVoucherByApi = React.useCallback(async (code: string) => {
     try {
       const response = await baseHttpServiceInstance.get(
-        `/marketplace/events/${params.event_slug}/voucher-campaigns/validate-voucher`,
+        `/marketplace/events/${EVENT_SLUG}/voucher-campaigns/validate-voucher`,
         { params: { code: code.trim() } }
       );
       return response.data || null;
@@ -971,7 +974,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
       notificationCtx.error(errorMessage);
       return null;
     }
-  }, [params.event_slug, notificationCtx, tt]);
+  }, [notificationCtx, tt]);
 
   // Parse promoCode from url parameter on mount
   React.useEffect(() => {
@@ -1352,7 +1355,7 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
 
       // Marketplace API
       const response: AxiosResponse<Transaction> = await baseHttpServiceInstance.post(
-        `/marketplace/events/${params.event_slug}/transactions`,
+        `/marketplace/events/${EVENT_SLUG}/transactions`,
         transactionData
       );
 
@@ -1562,7 +1565,11 @@ export default function EventDetail({ params, initialEvent }: { params: { event_
               cartAudienceQuantitiesForActiveSchedule={cartAudienceQuantitiesForActiveSchedule}
               tt={tt}
               onNext={() => {
-                if (validateStep1()) setActiveStep(1);
+                // Step1SelectTickets đã tự validate (đối tượng khán giả, ngày tham dự,
+                // tồn kho, giới hạn) trước khi gọi onNext. Không gọi lại validateStep1()
+                // ở đây vì `order` trong closure này chưa kịp cập nhật ngay sau setOrder
+                // của Step1 (state batching) nên sẽ báo sai "chưa chọn vé".
+                setActiveStep(1);
               }}
               invitation={invitation}
               onClearAndReselect={() => setHasEditedTickets(true)}

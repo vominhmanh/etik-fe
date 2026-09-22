@@ -5,7 +5,6 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Avatar,
   Box,
   Chip,
   Container,
@@ -32,9 +31,7 @@ import Radio from '@mui/material/Radio';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
-import { alpha } from '@mui/material/styles';
-import { CaretDown, DotsThreeOutlineVertical, Pencil, Plus, Copy, User, EnvelopeSimple, Phone, MapPin, IdentificationCard, Armchair, CheckCircle, X, CalendarBlank, Users, WarningCircle } from '@phosphor-icons/react/dist/ssr';
-import { Tag as TagIcon } from '@phosphor-icons/react/dist/ssr/Tag';
+import { CaretDown, DotsThreeOutlineVertical, Pencil, Copy, User, EnvelopeSimple, Phone, MapPin, IdentificationCard, Armchair, CheckCircle, X, CalendarBlank, Users, WarningCircle } from '@phosphor-icons/react/dist/ssr';
 
 import { LocalizedLink } from '@/components/homepage/localized-link';
 import { DobDatePicker } from '@/components/core/dob-date-picker';
@@ -53,6 +50,17 @@ function mapHolderPatchToCustomer(patch: Partial<TicketHolderInfo>): Partial<Cus
     });
   return out;
 }
+
+// Không có đối tượng khán giả riêng (chỉ 1 loại vé, không chia audience) thì gom vào key này.
+const NO_AUDIENCE_KEY = -1;
+
+type AttendeeGroup = {
+  key: string;
+  audienceKey: number;
+  slotIndex: number;
+  ticketIndices: number[]; // index 0 luôn thuộc "show đầu tiên" (show được thêm vào order.tickets trước nhất)
+  isAdult: boolean;
+};
 
 export type Step2InfoProps = {
   tt: (vi: string, en: string) => string;
@@ -95,12 +103,6 @@ export type Step2InfoProps = {
 export function Step2Info(props: Step2InfoProps): React.JSX.Element {
   const {
     tt,
-    locale,
-    defaultTitle,
-    paramsEventId,
-    formMenuAnchorEl,
-    onOpenFormMenu,
-    onCloseFormMenu,
     order,
     setOrder,
     checkoutFormFields,
@@ -111,11 +113,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     setCheckoutCustomAnswers,
 
     shows,
-    handleCustomerAvatarFile,
-    handleTicketHolderAvatarFile,
     formatPrice,
-    setActiveScheduleId,
-    setRequestedCategoryModalId,
     onBack,
     onNext,
     source = 'marketplace',
@@ -126,7 +124,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
 
   const [isEditingInfo, setIsEditingInfo] = React.useState<boolean>(false);
 
-  // Whether the buyer's info is currently auto-synced from ticket 1's holder info
+  // Whether the buyer's info is currently auto-synced from the first adult attendee's info
   const [customerLinkedToTicket1, setCustomerLinkedToTicket1] = React.useState<boolean>(true);
 
   React.useEffect(() => {
@@ -165,31 +163,118 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order.tickets.length]);
 
-  // State to control expanded accordions
-  const [expandedAccordions, setExpandedAccordions] = React.useState<Record<number, boolean>>(() => {
-    const initial: Record<number, boolean> = {};
-    order.tickets.forEach((_, index) => {
-      initial[index] = true; // Default expanded
+  // Vé của sự kiện này được nhân bản theo từng ngày (show) đã chọn ở bước 1: cùng 1 khán
+  // giả sẽ có N vé (N = số ngày). Gom các vé đó lại thành 1 "khán giả" duy nhất để chỉ
+  // phải nhập thông tin 1 lần, rồi tự nhân bản sang các ngày còn lại.
+  const referenceCategory = shows?.[0]?.ticketCategories?.[0] || null;
+  const audienceCodeMap = React.useMemo(() => {
+    const map: Record<number, string> = {};
+    referenceCategory?.categoryAudiences?.forEach((ca) => {
+      map[ca.audienceId] = ca.audience.code;
     });
-    return initial;
-  });
+    return map;
+  }, [referenceCategory]);
 
-  // Update expanded state when tickets count changes
+  const attendeeGroups = React.useMemo<AttendeeGroup[]>(() => {
+    const showOrder: number[] = [];
+    const perShowByAudience: Record<number, Record<number, number[]>> = {};
+
+    order.tickets.forEach((t, idx) => {
+      if (!perShowByAudience[t.showId]) {
+        perShowByAudience[t.showId] = {};
+        showOrder.push(t.showId);
+      }
+      const audienceKey = t.audienceId ?? NO_AUDIENCE_KEY;
+      if (!perShowByAudience[t.showId][audienceKey]) perShowByAudience[t.showId][audienceKey] = [];
+      perShowByAudience[t.showId][audienceKey].push(idx);
+    });
+
+    const audienceKeys = new Set<number>();
+    Object.values(perShowByAudience).forEach((byAud) => Object.keys(byAud).forEach((k) => audienceKeys.add(Number(k))));
+
+    const groups: AttendeeGroup[] = [];
+    audienceKeys.forEach((audienceKey) => {
+      let maxCount = 0;
+      showOrder.forEach((showId) => {
+        maxCount = Math.max(maxCount, (perShowByAudience[showId][audienceKey] || []).length);
+      });
+      const isAdult = audienceKey === NO_AUDIENCE_KEY ? true : audienceCodeMap[audienceKey] === 'adult';
+
+      for (let slot = 0; slot < maxCount; slot++) {
+        const indices: number[] = [];
+        showOrder.forEach((showId) => {
+          const arr = perShowByAudience[showId][audienceKey] || [];
+          if (arr[slot] !== undefined) indices.push(arr[slot]);
+        });
+        groups.push({ key: `${audienceKey}-${slot}`, audienceKey, slotIndex: slot, ticketIndices: indices, isAdult });
+      }
+    });
+
+    // Khán giả người lớn hiển thị trước, rồi tới các đối tượng khác
+    groups.sort((a, b) => {
+      if (a.isAdult !== b.isAdult) return a.isAdult ? -1 : 1;
+      if (a.audienceKey !== b.audienceKey) return a.audienceKey - b.audienceKey;
+      return a.slotIndex - b.slotIndex;
+    });
+
+    return groups;
+  }, [order.tickets, audienceCodeMap]);
+
+  const primaryGroupIndex = React.useMemo(() => {
+    const idx = attendeeGroups.findIndex((g) => g.isAdult);
+    return idx >= 0 ? idx : 0;
+  }, [attendeeGroups]);
+
+  const primaryTicket = attendeeGroups[primaryGroupIndex]
+    ? order.tickets[attendeeGroups[primaryGroupIndex].ticketIndices[0]]
+    : undefined;
+
+  // Vé trẻ em (đối tượng khác "adult"): không nhập email/SĐT/danh xưng riêng, luôn dùng
+  // "Bạn" làm danh xưng và tự động lấy email/SĐT của khán giả người lớn đầu tiên.
+  React.useEffect(() => {
+    const adultHolder = primaryTicket?.holderInfo;
+    if (!adultHolder) return;
+    const { email, phone, nationalPhone, phoneCountryIso2 } = adultHolder;
+
+    setOrder(prev => {
+      let changed = false;
+      const newTickets = [...prev.tickets];
+      attendeeGroups.forEach((group) => {
+        if (group.isAdult) return;
+        group.ticketIndices.forEach((idx) => {
+          const t = newTickets[idx];
+          const h = t.holderInfo;
+          const needsUpdate = !h || h.email !== email || h.nationalPhone !== nationalPhone
+            || h.phoneCountryIso2 !== phoneCountryIso2 || h.title !== 'Bạn';
+          if (needsUpdate) {
+            changed = true;
+            newTickets[idx] = {
+              ...t,
+              holderInfo: { ...(h || { name: '' }), title: 'Bạn', email, phone, nationalPhone, phoneCountryIso2 },
+            };
+          }
+        });
+      });
+      return changed ? { ...prev, tickets: newTickets } : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [primaryTicket?.holderInfo?.email, primaryTicket?.holderInfo?.nationalPhone, primaryTicket?.holderInfo?.phoneCountryIso2, attendeeGroups]);
+
+  // State to control expanded accordions (keyed by attendee group key, not raw ticket index)
+  const [expandedAccordions, setExpandedAccordions] = React.useState<Record<string, boolean>>({});
+
   React.useEffect(() => {
     setExpandedAccordions(prev => {
       const updated = { ...prev };
-      order.tickets.forEach((_, index) => {
-        if (!(index in updated)) {
-          updated[index] = true; // Default expanded for new tickets
-        }
+      attendeeGroups.forEach((group) => {
+        if (!(group.key in updated)) updated[group.key] = true;
       });
       return updated;
     });
-  }, [order.tickets.length]);
+  }, [attendeeGroups]);
 
-
-  const handleAccordionChange = (index: number) => (event: React.SyntheticEvent, isExpanded: boolean) => {
-    setExpandedAccordions(prev => ({ ...prev, [index]: isExpanded }));
+  const handleAccordionChange = (key: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    setExpandedAccordions(prev => ({ ...prev, [key]: isExpanded }));
   };
 
   const customer = order.customer;
@@ -197,7 +282,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     setOrder(prev => ({ ...prev, customer: { ...prev.customer, ...patch } }));
   };
 
-  // Manual edits to the buyer's info break the auto-sync link with ticket 1
+  // Manual edits to the buyer's info break the auto-sync link with the first adult attendee
   const setCustomerField = (patch: any) => {
     setCustomerLinkedToTicket1(false);
     setCustomer(patch);
@@ -205,7 +290,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
 
   // One-shot full copy, used only when the user re-links via the button
   const relinkCustomerToTicket1 = () => {
-    const firstHolder = order.tickets[0]?.holderInfo;
+    const firstHolder = primaryTicket?.holderInfo;
     if (firstHolder) {
       setCustomer({
         title: firstHolder.title || 'Bạn',
@@ -223,12 +308,12 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
   };
 
   // Break the auto-sync link so the user can edit the buyer's info independently -
-  // keeps the values already copied from ticket 1 (just stops mirroring further edits).
+  // keeps the values already copied from the first attendee (just stops mirroring further edits).
   const unlinkCustomerToEdit = () => {
     setCustomerLinkedToTicket1(false);
   };
 
-  // Clear all buyer fields for a fresh manual entry, breaking the link with ticket 1
+  // Clear all buyer fields for a fresh manual entry, breaking the link with the first attendee
   const clearCustomerInfo = () => {
     setCustomerLinkedToTicket1(false);
     setCustomer({
@@ -244,14 +329,39 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
     });
   };
 
-  const setTicketFormAnswer = (ticketIndex: number, internalName: string, value: any) => {
+  // Cập nhật thông tin cho MỘT khán giả - tự động ghi đè vào toàn bộ vé cùng nhóm
+  // (tức là cùng khán giả đó ở mọi ngày đã chọn).
+  const setHolderInfoForGroup = (group: AttendeeGroup, patch: Partial<TicketHolderInfo>) => {
     setOrder(prev => {
       const newTickets = [...prev.tickets];
-      const currentAnswers = newTickets[ticketIndex].formAnswers || {};
-      newTickets[ticketIndex] = {
-        ...newTickets[ticketIndex],
-        formAnswers: { ...currentAnswers, [internalName]: value }
+      const repIndex = group.ticketIndices[0];
+      const currentHolder = newTickets[repIndex]?.holderInfo || {
+        title: '', name: '', email: '', phone: '', nationalPhone: '',
+        phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2, avatar: '',
       };
+      const mergedHolder = { ...currentHolder, ...patch };
+      group.ticketIndices.forEach((idx) => {
+        newTickets[idx] = { ...newTickets[idx], holderInfo: { ...mergedHolder } };
+      });
+
+      const isPrimaryGroup = attendeeGroups[primaryGroupIndex]?.key === group.key;
+      const customerPatch = isPrimaryGroup && customerLinkedToTicket1
+        ? { ...prev.customer, ...mapHolderPatchToCustomer(patch) }
+        : prev.customer;
+
+      return { ...prev, tickets: newTickets, customer: customerPatch };
+    });
+  };
+
+  // Cập nhật câu trả lời form tuỳ chỉnh cho MỘT khán giả - tự động nhân bản sang các
+  // ngày còn lại của cùng khán giả đó.
+  const setTicketFormAnswerForGroup = (group: AttendeeGroup, internalName: string, value: any) => {
+    setOrder(prev => {
+      const newTickets = [...prev.tickets];
+      group.ticketIndices.forEach((idx) => {
+        const currentAnswers = newTickets[idx].formAnswers || {};
+        newTickets[idx] = { ...newTickets[idx], formAnswers: { ...currentAnswers, [internalName]: value } };
+      });
       return { ...prev, tickets: newTickets };
     });
   };
@@ -271,21 +381,6 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
   const customerEmailNote = checkoutFormFields.find((f) => f.internalName === 'email')?.note || undefined;
   const customerPhoneNote = checkoutFormFields.find((f) => f.internalName === 'phone_number')?.note || undefined;
 
-  // Group tickets for summary
-  const ticketSummary = React.useMemo(() => {
-    const groups: Record<string, { showId: number, categoryId: number, showName: string, categoryName: string, quantity: number, total: number, indices: number[] }> = {};
-    order.tickets.forEach((t, index) => {
-      const key = `${t.showId}-${t.ticketCategoryId}`;
-      if (!groups[key]) {
-        groups[key] = { showId: t.showId, categoryId: t.ticketCategoryId, showName: t.showName || `Suất ID ${t.showId}`, categoryName: t.ticketCategoryName || `Loại vé ID ${t.ticketCategoryId}`, quantity: 0, total: 0, indices: [] };
-      }
-      groups[key].quantity += 1;
-      groups[key].total += (t.price ?? 0);
-      groups[key].indices.push(index);
-    });
-    return Object.values(groups);
-  }, [order.tickets, shows]);
-
   // Show invitation summary card only when invitation has pre-filled info AND guest hasn't chosen to re-enter
   const hasPreFilledInfo = !!(invitation && !invitation.letCustomerFillInfo && invitation.preFilledInfo && (
     invitation.preFilledInfo.customer?.name || invitation.preFilledInfo.customer?.email
@@ -293,10 +388,6 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
   const showInvitationCard = hasPreFilledInfo && !isEditingInfo;
 
   if (showInvitationCard) {
-    const pf = invitation.preFilledInfo; // pre-filled info shorthand
-
-
-
     return (
       <Stack spacing={2} sx={{ width: '100%' }}>
         {invitation && (
@@ -507,548 +598,445 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
       <Grid container spacing={3}>
         <Grid item xs={12} md={7}>
           <Stack spacing={3}>
-            {/* Ticket holders input (accordion) */}
-            {order.tickets.length > 0 && (
+            {/* Ticket holders input (accordion) - 1 form / khán giả, tự nhân bản cho các ngày còn lại */}
+            {attendeeGroups.length > 0 && (
               <Card sx={{ borderTop: 3, borderColor: 'primary.main' }}>
                 <CardHeader
                   title={tt(
-                    `Thông tin người sở hữu vé: ${order.tickets.length} vé`,
-                    `Ticket List: ${order.tickets.length} tickets`
+                    `Thông tin người tham gia: ${attendeeGroups.length} người`,
+                    `Attendee Information: ${attendeeGroups.length} people`
                   )}
                 />
                 <Divider />
                 <CardContent sx={{ pt: 1.5, pb: 1.5, pointerEvents: readonly ? 'none' : 'auto', opacity: readonly ? 0.8 : 1 }}>
-                  <Stack spacing={2}>
-                    {/* Summary of categories */}
-                    {/* Summary and Ticket Holders Combined */}
-                    {ticketSummary.map((group, groupIdx) => (
-                      <Stack spacing={2} key={`group-${groupIdx}`}>
-                        {/* Group Header */}
-                        <Stack
-                          direction={{ xs: 'column', md: 'row' }}
-                          spacing={1}
+                  <Stack spacing={3}>
+                    {attendeeGroups.map((group, groupIndex) => {
+                      const repIndex = group.ticketIndices[0];
+                      const ticket = order.tickets[repIndex];
+                      const holderInfo = ticket.holderInfo || {
+                        title: '',
+                        name: '',
+                        email: '',
+                        phone: '',
+                        nationalPhone: '',
+                        phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
+                        avatar: '',
+                      };
+                      const isAdultGroup = group.isAdult;
+                      // Dữ liệu gửi lên backend luôn là "Bạn" cho vé không phải người lớn, chỉ
+                      // hiển thị "Bé" trên UI cho dễ phân biệt.
+                      const displayTitle = isAdultGroup ? holderInfo.title : tt('Bé', 'Kid');
+                      const showNames = Array.from(new Set(group.ticketIndices.map((idx) => order.tickets[idx].showName).filter(Boolean)));
+
+                      const setHolderInfo = (patch: Partial<TicketHolderInfo>) => setHolderInfoForGroup(group, patch);
+
+                      return (
+                        <Accordion
+                          key={group.key}
+                          expanded={expandedAccordions[group.key] ?? true}
+                          onChange={handleAccordionChange(group.key)}
+                          disableGutters
+                          elevation={0}
                           sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: { xs: 'flex-start', md: 'center' },
-                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-                            p: 1.5,
-                            borderRadius: 1.5,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            borderRadius: 1,
+                            backgroundColor: 'background.paper',
+                            '&:before': { display: 'none' },
                           }}
                         >
-                          <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
-                            <Stack direction="row" spacing={0.5} alignItems="center">
-                              <CalendarBlank size={16} weight="duotone" style={{ color: 'var(--mui-palette-text-secondary)' }} />
-                              <Typography variant="body2" sx={{ fontWeight: 700 }}>{group.showName}</Typography>
-                            </Stack>
-                            <Typography variant="body2" sx={{ color: 'text.disabled' }}>•</Typography>
-                            <Stack direction="row" spacing={0.5} alignItems="center">
-                              <TagIcon size={16} weight="duotone" style={{ color: 'var(--mui-palette-primary-main)' }} />
-                              <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>{group.categoryName}</Typography>
-                            </Stack>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setActiveScheduleId(group.showId);
-                                setRequestedCategoryModalId(group.categoryId);
-                              }}
+                          <AccordionSummary
+                            expandIcon={<CaretDown />}
+                            sx={{
+                              minHeight: 44,
+                              '& .MuiAccordionSummary-content': { my: 0.5, alignItems: 'center' },
+                            }}
+                          >
+                            <Stack
+                              direction={{ xs: 'column', md: 'row' }}
+                              spacing={1}
+                              alignItems={{ xs: 'flex-start', md: 'center' }}
+                              sx={{ width: '100%', minWidth: 0, flex: 1 }}
                             >
-                              <Pencil size={16} />
-                            </IconButton>
-                          </Stack>
-                          <Stack spacing={1.5} direction="row" alignItems="center" sx={{ pl: { xs: 5, md: 0 } }}>
-                            <Typography variant="caption" color="text.secondary">x {group.quantity}</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>{formatPrice(group.total)}</Typography>
-                          </Stack>
-                        </Stack>
-
-                        {/* Valid Tickets in this Group */}
-                        <Stack spacing={3} sx={{ pl: { md: 2 } }}>
-                          {group.indices.map((ticketIndex, i) => {
-                            const ticket = order.tickets[ticketIndex];
-                            const holderInfo = ticket.holderInfo || {
-                              title: '',
-                              name: '',
-                              email: '',
-                              phone: '',
-                              nationalPhone: '',
-                              phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
-                              avatar: '',
-                            };
-
-                            const setHolderInfo = (patch: Partial<TicketHolderInfo>) => {
-                              setOrder(prev => {
-                                const newTickets = [...prev.tickets];
-                                newTickets[ticketIndex] = {
-                                  ...newTickets[ticketIndex],
-                                  holderInfo: { ...holderInfo, ...patch } as any,
-                                  formAnswers: ticket.formAnswers || {}
-                                };
-                                // Ticket 1 is the source of truth for the buyer while linked:
-                                // propagate only what the user just edited, in the same update.
-                                const customer = ticketIndex === 0 && customerLinkedToTicket1
-                                  ? { ...prev.customer, ...mapHolderPatchToCustomer(patch) }
-                                  : prev.customer;
-                                return { ...prev, tickets: newTickets, customer };
-                              });
-                            };
-
-                            return (
-                              <Accordion
-                                key={`ticket-${ticketIndex}`}
-                                expanded={expandedAccordions[ticketIndex] ?? true}
-                                onChange={handleAccordionChange(ticketIndex)}
-                                disableGutters
-                                elevation={0}
-                                sx={{
-                                  border: '1px solid',
-                                  borderColor: 'divider',
-                                  borderRadius: 1,
-                                  backgroundColor: 'background.paper',
-                                  '&:before': { display: 'none' },
-                                }}
-                              >
-                                <AccordionSummary
-                                  expandIcon={<CaretDown />}
+                              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ minWidth: 0 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                  {tt(`${groupIndex + 1}`, `Attendee ${groupIndex + 1}`)}
+                                </Typography>
+                                {holderInfo.name ? (
+                                  <Chip
+                                    size="small"
+                                    icon={<CheckCircle size={13} weight="fill" />}
+                                    color="success"
+                                    variant="outlined"
+                                    label={`${displayTitle ? `${displayTitle} ` : ''}${holderInfo.name}`}
+                                    sx={{ maxWidth: 200, '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}
+                                  />
+                                ) : (
+                                  <Chip
+                                    size="small"
+                                    icon={<WarningCircle size={13} weight="fill" />}
+                                    color="warning"
+                                    variant="outlined"
+                                    label={tt('Chưa có thông tin', 'No information')}
+                                  />
+                                )}
+                                {ticket.audienceName && (
+                                  <Stack direction="row" spacing={0.5} alignItems="center">
+                                    <Users size={16} weight="duotone" style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                    <Typography variant="body2" sx={{ fontWeight: 700 }}>{ticket.audienceName}</Typography>
+                                  </Stack>
+                                )}
+                                {ticket.seatLabel && (
+                                  <Stack direction="row" spacing={0.5} alignItems="center">
+                                    <Armchair size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.seatLabel}</Typography>
+                                  </Stack>
+                                )}
+                                {showNames.length > 0 && (
+                                  <Stack direction="row" spacing={0.5} alignItems="center">
+                                    <CalendarBlank size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                      {tt('Áp dụng:', 'Applies to:')} {showNames.join(', ')}
+                                    </Typography>
+                                  </Stack>
+                                )}
+                              </Stack>
+                              <Box sx={{ flex: 1, display: { xs: 'none', md: 'block' } }} />
+                              {isAdultGroup && groupIndex !== primaryGroupIndex && (
+                                <Stack
+                                  direction="row"
+                                  spacing={0.5}
                                   sx={{
-                                    minHeight: 44,
-                                    '& .MuiAccordionSummary-content': { my: 0.5, alignItems: 'center' },
+                                    ml: { xs: 0, md: 'auto' },
+                                    mt: { xs: 0.5, md: 0 }
                                   }}
                                 >
-                                  <Stack
-                                    direction={{ xs: 'column', md: 'row' }}
-                                    spacing={1}
-                                    alignItems={{ xs: 'flex-start', md: 'center' }}
-                                    sx={{ width: '100%', minWidth: 0, flex: 1 }}
+                                  <Button
+                                    size="small"
+                                    variant="text"
+                                    startIcon={<Copy size={12} />}
+                                    sx={{
+                                      minWidth: 'auto',
+                                      px: 1,
+                                      py: 0.25,
+                                      fontSize: '0.75rem',
+                                      textTransform: 'none',
+                                      '&:hover': { backgroundColor: 'action.hover' }
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExpandedAccordions(prev => ({ ...prev, [group.key]: true }));
+
+                                      const firstGroup = attendeeGroups[primaryGroupIndex];
+                                      const firstTicket = order.tickets[firstGroup.ticketIndices[0]];
+                                      const firstHolder = firstTicket.holderInfo || {
+                                        title: '', name: '', email: '', phone: '', nationalPhone: '',
+                                        phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2, avatar: '',
+                                        address: '', dob: '', idcard_number: '',
+                                      };
+
+                                      setHolderInfo({
+                                        title: firstHolder.title,
+                                        name: firstHolder.name,
+                                        email: firstHolder.email,
+                                        nationalPhone: firstHolder.nationalPhone || '',
+                                        phoneCountryIso2: firstHolder.phoneCountryIso2,
+                                        avatar: firstHolder.avatar,
+                                        address: firstHolder.address,
+                                        dob: firstHolder.dob,
+                                        idcard_number: firstHolder.idcard_number,
+                                      });
+
+                                      if (firstTicket.formAnswers) {
+                                        setOrder(prev => {
+                                          const newTickets = [...prev.tickets];
+                                          group.ticketIndices.forEach((idx) => {
+                                            newTickets[idx] = { ...newTickets[idx], formAnswers: { ...firstTicket.formAnswers } };
+                                          });
+                                          return { ...prev, tickets: newTickets };
+                                        });
+                                      }
+                                    }}
                                   >
-                                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ minWidth: 0 }}>
-                                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                                        {tt(`${ticketIndex + 1}`, `Ticket ${ticketIndex + 1}`)}
+                                    {tt('Copy từ vé 1', 'Copy from attendee 1')}
+                                  </Button>
+                                </Stack>
+                              )}
+                            </Stack>
+                          </AccordionSummary>
+                          <AccordionDetails sx={{ pt: 0, pb: 1.5 }}>
+                            <Grid container spacing={1.5} alignItems="center">
+                              <Grid item xs={12} md={5}>
+                                <FormFieldLabel label={tt(isAdultGroup ? 'Danh xưng - Họ và tên' : 'Họ và tên', isAdultGroup ? 'Title - Full Name' : 'Full Name')} required />
+                                <OutlinedInput
+                                  fullWidth
+                                  size="small"
+                                  autoComplete="name"
+                                  value={holderInfo.name}
+                                  onChange={(e) => setHolderInfo({ name: e.target.value })}
+                                  startAdornment={isAdultGroup ? (
+                                    <InputAdornment position="start">
+                                      <Select
+                                        variant="standard"
+                                        disableUnderline
+                                        value={holderInfo.title || ''}
+                                        onChange={(e) => setHolderInfo({ title: e.target.value })}
+                                        sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                                      >
+                                        <MenuItem value=""><em>...</em></MenuItem>
+                                        <MenuItem value="Anh">Anh</MenuItem>
+                                        <MenuItem value="Chị">Chị</MenuItem>
+                                        <MenuItem value="Bạn">Bạn</MenuItem>
+                                        {source !== 'marketplace' && <MenuItem value="Em">Em</MenuItem>}
+                                        {source !== 'marketplace' && <MenuItem value="Ông">Ông</MenuItem>}
+                                        {source !== 'marketplace' && <MenuItem value="Bà">Bà</MenuItem>}
+                                        {source !== 'marketplace' && <MenuItem value="Cô">Cô</MenuItem>}
+                                        {source !== 'marketplace' && <MenuItem value="Thầy">Thầy</MenuItem>}
+                                        <MenuItem value="Mr.">Mr.</MenuItem>
+                                        <MenuItem value="Ms.">Ms.</MenuItem>
+                                        <MenuItem value="Mx.">Mx.</MenuItem>
+                                        {source !== 'marketplace' && <MenuItem value="Miss">Miss</MenuItem>}
+                                      </Select>
+                                    </InputAdornment>
+                                  ) : undefined}
+                                />
+                                {ticketCombinedNameNote && (
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                    {ticketCombinedNameNote}
+                                  </Typography>
+                                )}
+                              </Grid>
+
+                              {isAdultGroup && (
+                                <>
+                                  <Grid item xs={12} md={3}>
+                                    <FormFieldLabel label={tt(`Email`, `Email`)} />
+                                    <OutlinedInput
+                                      fullWidth
+                                      size="small"
+                                      autoComplete="email"
+                                      type="email"
+                                      value={holderInfo.email || ''}
+                                      onChange={(e) => setHolderInfo({ email: e.target.value })}
+                                    />
+                                    {ticketEmailNote && (
+                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                        {ticketEmailNote}
                                       </Typography>
-                                      {holderInfo.name ? (
-                                        <Chip
-                                          size="small"
-                                          icon={<CheckCircle size={13} weight="fill" />}
-                                          color="success"
-                                          variant="outlined"
-                                          label={`${holderInfo.title ? `${holderInfo.title} ` : ''}${holderInfo.name}`}
-                                          sx={{ maxWidth: 200, '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}
-                                        />
-                                      ) : (
-                                        <Chip
-                                          size="small"
-                                          icon={<WarningCircle size={13} weight="fill" />}
-                                          color="warning"
-                                          variant="outlined"
-                                          label={tt('Chưa có thông tin', 'No information')}
-                                        />
-                                      )}
-                                      {ticket.audienceName && (
-                                        <Stack direction="row" spacing={0.5} alignItems="center">
-                                          <Users size={16} weight="duotone" style={{ color: 'var(--mui-palette-text-secondary)' }} />
-                                          <Typography variant="body2" sx={{ fontWeight: 700 }}>{ticket.audienceName}</Typography>
-                                        </Stack>
-                                      )}
-                                      {ticket.seatLabel && (
-                                        <Stack direction="row" spacing={0.5} alignItems="center">
-                                          <Armchair size={14} style={{ color: 'var(--mui-palette-text-secondary)' }} />
-                                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>{ticket.seatLabel}</Typography>
-                                        </Stack>
-                                      )}
-                                    </Stack>
-                                    <Box sx={{ flex: 1, display: { xs: 'none', md: 'block' } }} />
-                                    <Stack
-                                      direction="row"
-                                      spacing={0.5}
-                                      sx={{
-                                        ml: { xs: 0, md: 'auto' },
-                                        mt: { xs: 0.5, md: 0 }
-                                      }}
-                                    >
-
-                                      {ticketIndex > 0 && (
-                                        <Button
-                                          size="small"
-                                          variant="text"
-                                          startIcon={<Copy size={12} />}
-                                          sx={{
-                                            minWidth: 'auto',
-                                            px: 1,
-                                            py: 0.25,
-                                            fontSize: '0.75rem',
-                                            textTransform: 'none',
-                                            '&:hover': { backgroundColor: 'action.hover' }
-                                          }}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            // Always expand accordion
-                                            setExpandedAccordions(prev => ({ ...prev, [ticketIndex]: true }));
-                                            // Copy from ticket 1 (index 0)
-                                            const firstTicket = order.tickets[0];
-                                            const firstHolder = firstTicket.holderInfo || {
-                                              title: '',
-                                              name: '',
-                                              email: '',
-                                              phone: '',
-                                              nationalPhone: '',
-                                              phoneCountryIso2: DEFAULT_PHONE_COUNTRY.iso2,
-                                              avatar: '',
-                                              address: '',
-                                              dob: '',
-                                              idcard_number: '',
-                                            };
-
-                                            // Copy from ticket 1 - copy nationalPhone and phoneCountryIso2
-                                            setHolderInfo({
-                                              title: firstHolder.title,
-                                              name: firstHolder.name,
-                                              email: firstHolder.email,
-                                              nationalPhone: firstHolder.nationalPhone || '',
-                                              phoneCountryIso2: firstHolder.phoneCountryIso2,
-                                              avatar: firstHolder.avatar,
-                                              address: firstHolder.address,
-                                              dob: firstHolder.dob,
-                                              idcard_number: firstHolder.idcard_number,
-                                            });
-
-                                            // Copy custom form answers from ticket 1
-                                            if (firstTicket.formAnswers) {
-                                              setOrder(prev => {
-                                                const newTickets = [...prev.tickets];
-                                                newTickets[ticketIndex] = {
-                                                  ...newTickets[ticketIndex],
-                                                  formAnswers: { ...firstTicket.formAnswers }
-                                                };
-                                                return { ...prev, tickets: newTickets };
-                                              });
-                                            }
-                                          }}
-                                        >
-                                          {tt('Copy từ vé 1', 'Copy from ticket 1')}
-                                        </Button>
-                                      )}
-                                    </Stack>
-                                  </Stack>
-                                </AccordionSummary>
-                                <AccordionDetails sx={{ pt: 0, pb: 1.5 }}>
-                                  <Grid container spacing={1.5} alignItems="center">
-                                    <Grid item xs={12} md={2}>
-                                      <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'center' }, width: 48 }}>
-                                        <Box sx={{ position: 'relative', width: 48, height: 48, '&:hover .avatarUploadBtn': { opacity: 1, visibility: 'visible' } }}>
-                                          <Avatar src={holderInfo.avatar || ''} sx={{ width: 48, height: 48 }} />
-                                          <IconButton
-                                            className="avatarUploadBtn"
-                                            size="small"
-                                            sx={{
-                                              position: 'absolute',
-                                              top: 0,
-                                              left: 0,
-                                              width: '100%',
-                                              height: '100%',
-                                              borderRadius: '50%',
-                                              opacity: 0,
-                                              visibility: 'hidden',
-                                              backdropFilter: 'blur(6px)',
-                                              backgroundColor: 'rgba(0,0,0,0.35)',
-                                              color: 'white',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              zIndex: 1,
-                                            }}
-                                            onClick={() => {
-                                              const input = document.getElementById(`upload-holder-${ticketIndex}`) as HTMLInputElement | null;
-                                              input?.click();
-                                            }}
-                                            aria-label={tt('Tải ảnh đại diện', 'Upload avatar')}
-                                          >
-                                            <Plus size={14} />
-                                          </IconButton>
-                                          <input
-                                            id={`upload-holder-${ticketIndex}`}
-                                            type="file"
-                                            accept="image/*"
-                                            hidden
-                                            onChange={(e) => {
-                                              const f = e.target.files?.[0];
-                                              handleTicketHolderAvatarFile(ticketIndex, f);
-                                              e.currentTarget.value = '';
-                                            }}
-                                          />
-                                        </Box>
-                                      </Box>
-                                    </Grid>
-
-                                    <Grid item xs={12} md={4}>
-                                      <FormFieldLabel label={tt('Danh xưng - Họ và tên', 'Title - Full Name')} required />
-                                      <OutlinedInput
-                                        fullWidth
-                                        size="small"
-                                        autoComplete="name"
-                                        value={holderInfo.name}
-                                        onChange={(e) => setHolderInfo({ name: e.target.value })}
-                                        startAdornment={
-                                          <InputAdornment position="start">
-                                            <Select
-                                              variant="standard"
-                                              disableUnderline
-                                              value={holderInfo.title || ''}
-                                              onChange={(e) => setHolderInfo({ title: e.target.value })}
-                                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
-                                            >
-                                              <MenuItem value=""><em>...</em></MenuItem>
-                                              <MenuItem value="Anh">Anh</MenuItem>
-                                              <MenuItem value="Chị">Chị</MenuItem>
-                                              <MenuItem value="Bạn">Bạn</MenuItem>
-                                              {source !== 'marketplace' && <MenuItem value="Em">Em</MenuItem>}
-                                              {source !== 'marketplace' && <MenuItem value="Ông">Ông</MenuItem>}
-                                              {source !== 'marketplace' && <MenuItem value="Bà">Bà</MenuItem>}
-                                              {source !== 'marketplace' && <MenuItem value="Cô">Cô</MenuItem>}
-                                              {source !== 'marketplace' && <MenuItem value="Thầy">Thầy</MenuItem>}
-                                              <MenuItem value="Mr.">Mr.</MenuItem>
-                                              <MenuItem value="Ms.">Ms.</MenuItem>
-                                              <MenuItem value="Mx.">Mx.</MenuItem>
-                                              {source !== 'marketplace' && <MenuItem value="Miss">Miss</MenuItem>}
-                                            </Select>
-                                          </InputAdornment>
-                                        }
-                                      />
-                                      {ticketCombinedNameNote && (
-                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                          {ticketCombinedNameNote}
-                                        </Typography>
-                                      )}
-                                    </Grid>
-
-                                    <Grid item xs={12} md={3}>
-                                      <FormFieldLabel label={tt(`Email vé ${ticketIndex + 1}`, `Email ticket ${ticketIndex + 1}`)} />
-                                      <OutlinedInput
-                                        fullWidth
-                                        size="small"
-                                        autoComplete="email"
-                                        type="email"
-                                        value={holderInfo.email || ''}
-                                        onChange={(e) => setHolderInfo({ email: e.target.value })}
-                                      />
-                                      {ticketEmailNote && (
-                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                          {ticketEmailNote}
-                                        </Typography>
-                                      )}
-                                    </Grid>
-
-                                    <Grid item xs={12} md={3}>
-                                      <FormFieldLabel label={tt(`SĐT vé ${ticketIndex + 1}`, `Phone ticket ${ticketIndex + 1}`)} />
-                                      <OutlinedInput
-                                        fullWidth
-                                        size="small"
-                                        autoComplete="tel-national"
-                                        type="tel"
-                                        value={holderInfo.nationalPhone || ''}
-                                        onChange={(e) => setHolderInfo({ nationalPhone: e.target.value })}
-                                        startAdornment={
-                                          <InputAdornment position="start">
-                                            <Select
-                                              variant="standard"
-                                              disableUnderline
-                                              value={holderInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
-                                              onChange={(event) => setHolderInfo({ phoneCountryIso2: event.target.value })}
-                                              sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
-                                              renderValue={(value) => {
-                                                const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
-                                                return country.dialCode;
-                                              }}
-                                            >
-                                              {PHONE_COUNTRIES.map((country) => (
-                                                <MenuItem key={country.iso2} value={country.iso2}>
-                                                  {country.nameVi} ({country.dialCode})
-                                                </MenuItem>
-                                              ))}
-                                            </Select>
-                                          </InputAdornment>
-                                        }
-                                      />
-                                      {ticketPhoneNote && (
-                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                          {ticketPhoneNote}
-                                        </Typography>
-                                      )}
-                                    </Grid>
-
-                                    {/* Additional Built-in Fields */}
-                                    {(() => {
-                                      const idcardCfg = ticketFormFields.find((f) => f.internalName === 'idcard_number');
-                                      const visible = !!idcardCfg && idcardCfg.visible;
-                                      const required = !!idcardCfg?.required;
-                                      return (
-                                        visible && (
-                                          <Grid item xs={12} md={6}>
-                                            <FormFieldLabel label={tt('Số Căn cước công dân', 'ID Card Number')} required={required} />
-                                            <OutlinedInput
-                                              fullWidth
-                                              size="small"
-                                              value={holderInfo.idcard_number || ''}
-                                              onChange={(e) => setHolderInfo({ idcard_number: e.target.value })}
-                                            />
-                                            {idcardCfg?.note && (
-                                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                                {idcardCfg.note}
-                                              </Typography>
-                                            )}
-                                          </Grid>
-                                        )
-                                      );
-                                    })()}
-
-                                    {(() => {
-                                      const dobCfg = ticketFormFields.find((f) => f.internalName === 'dob');
-                                      const visible = !!dobCfg && dobCfg.visible;
-                                      const required = !!dobCfg?.required;
-                                      return (
-                                        visible && (
-                                          <Grid item xs={12} md={6}>
-                                            <FormFieldLabel label={tt('Ngày sinh', 'Date of Birth')} required={required} />
-                                            <DobDatePicker
-                                              required={required}
-                                              value={holderInfo.dob}
-                                              onChange={(dob) => setHolderInfo({ dob })}
-                                            />
-                                            {dobCfg?.note && (
-                                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                                {dobCfg.note}
-                                              </Typography>
-                                            )}
-                                          </Grid>
-                                        )
-                                      );
-                                    })()}
-
-                                    {(() => {
-                                      const addrCfg = ticketFormFields.find((f) => f.internalName === 'address');
-                                      const visible = !!addrCfg && addrCfg.visible;
-                                      const required = !!addrCfg?.required;
-                                      return (
-                                        visible && (
-                                          <Grid item xs={12}>
-                                            <FormFieldLabel label={tt('Địa chỉ', 'Address')} required={required} />
-                                            <OutlinedInput
-                                              fullWidth
-                                              size="small"
-                                              value={holderInfo.address || ''}
-                                              onChange={(e) => setHolderInfo({ address: e.target.value })}
-                                            />
-                                            {addrCfg?.note && (
-                                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                                {addrCfg.note}
-                                              </Typography>
-                                            )}
-                                          </Grid>
-                                        )
-                                      );
-                                    })()}
-
-                                    {/* Ticket Custom Fields */}
-                                    {customTicketFields.map((field) => (
-                                      <Grid item xs={12} key={field.internalName}>
-                                        <Stack spacing={0.5}>
-                                          <FormFieldLabel label={field.label} required={field.required} />
-                                          {field.note && (
-                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                              {field.note}
-                                            </Typography>
-                                          )}
-
-                                          {['text', 'number'].includes(field.fieldType) && (
-                                            <TextField
-                                              fullWidth
-                                              size="small"
-                                              type={field.fieldType === 'number' ? 'number' : 'text'}
-                                              value={(ticket.formAnswers?.[field.internalName]) ?? ''}
-                                              onChange={(e) => setTicketFormAnswer(ticketIndex, field.internalName, e.target.value)}
-                                            />
-                                          )}
-
-                                          {['date', 'time', 'datetime'].includes(field.fieldType) && (
-                                            <TextField
-                                              fullWidth
-                                              size="small"
-                                              type={
-                                                field.fieldType === 'date'
-                                                  ? 'date'
-                                                  : field.fieldType === 'time'
-                                                    ? 'time'
-                                                    : 'datetime-local'
-                                              }
-                                              InputLabelProps={{ shrink: true }}
-                                              value={(ticket.formAnswers?.[field.internalName]) ?? ''}
-                                              onChange={(e) => setTicketFormAnswer(ticketIndex, field.internalName, e.target.value)}
-                                            />
-                                          )}
-
-                                          {field.fieldType === 'radio' && field.options && (
-                                            <FormControl component="fieldset" variant="standard">
-                                              <Stack spacing={0.5}>
-                                                {field.options.map((opt) => (
-                                                  <FormControlLabel
-                                                    key={opt.value}
-                                                    value={opt.value}
-                                                    control={
-                                                      <Radio
-                                                        size="small"
-                                                        sx={{ p: 0.5 }}
-                                                        checked={(ticket.formAnswers?.[field.internalName]) === opt.value}
-                                                        onChange={() => setTicketFormAnswer(ticketIndex, field.internalName, opt.value)}
-                                                      />
-                                                    }
-                                                    label={opt.label}
-                                                    componentsProps={{ typography: { variant: 'body2', fontSize: '0.875rem' } }}
-                                                  />
-                                                ))}
-                                              </Stack>
-                                            </FormControl>
-                                          )}
-
-                                          {field.fieldType === 'checkbox' && field.options && (
-                                            <FormGroup>
-                                              <Stack spacing={0.5}>
-                                                {field.options.map((opt) => {
-                                                  const current: string[] = ticket.formAnswers?.[field.internalName] ?? [];
-                                                  const checked = current.includes(opt.value);
-                                                  return (
-                                                    <FormControlLabel
-                                                      key={opt.value}
-                                                      control={
-                                                        <Checkbox
-                                                          size="small"
-                                                          sx={{ p: 0.5 }}
-                                                          checked={checked}
-                                                          onChange={(e) => {
-                                                            const nextArr = e.target.checked
-                                                              ? Array.from(new Set([...current, opt.value]))
-                                                              : current.filter((v) => v !== opt.value);
-                                                            setTicketFormAnswer(ticketIndex, field.internalName, nextArr);
-                                                          }}
-                                                        />
-                                                      }
-                                                      label={opt.label}
-                                                      componentsProps={{ typography: { variant: 'body2', fontSize: '0.875rem' } }}
-                                                    />
-                                                  );
-                                                })}
-                                              </Stack>
-                                            </FormGroup>
-                                          )}
-                                        </Stack>
-                                      </Grid>
-                                    ))}
+                                    )}
                                   </Grid>
-                                </AccordionDetails>
-                              </Accordion>
-                            );
-                          })}
-                        </Stack>
-                      </Stack>
-                    ))}
+
+                                  <Grid item xs={12} md={3}>
+                                    <FormFieldLabel label={tt(`Số điện thoại`, `Phone`)} />
+                                    <OutlinedInput
+                                      fullWidth
+                                      size="small"
+                                      autoComplete="tel-national"
+                                      type="tel"
+                                      value={holderInfo.nationalPhone || ''}
+                                      onChange={(e) => setHolderInfo({ nationalPhone: e.target.value })}
+                                      startAdornment={
+                                        <InputAdornment position="start">
+                                          <Select
+                                            variant="standard"
+                                            disableUnderline
+                                            value={holderInfo.phoneCountryIso2 || DEFAULT_PHONE_COUNTRY.iso2}
+                                            onChange={(event) => setHolderInfo({ phoneCountryIso2: event.target.value })}
+                                            sx={{ minWidth: 50, '& .MuiSelect-select': { py: 0 } }}
+                                            renderValue={(value) => {
+                                              const country = PHONE_COUNTRIES.find((c) => c.iso2 === value) || DEFAULT_PHONE_COUNTRY;
+                                              return country.dialCode;
+                                            }}
+                                          >
+                                            {PHONE_COUNTRIES.map((country) => (
+                                              <MenuItem key={country.iso2} value={country.iso2}>
+                                                {country.nameVi} ({country.dialCode})
+                                              </MenuItem>
+                                            ))}
+                                          </Select>
+                                        </InputAdornment>
+                                      }
+                                    />
+                                    {ticketPhoneNote && (
+                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                        {ticketPhoneNote}
+                                      </Typography>
+                                    )}
+                                  </Grid>
+                                </>
+                              )}
+
+                              {/* Additional Built-in Fields */}
+                              {(() => {
+                                const idcardCfg = ticketFormFields.find((f) => f.internalName === 'idcard_number');
+                                const visible = !!idcardCfg && idcardCfg.visible;
+                                const required = !!idcardCfg?.required;
+                                return (
+                                  visible && (
+                                    <Grid item xs={12} md={6}>
+                                      <FormFieldLabel label={tt('Số Căn cước công dân', 'ID Card Number')} required={required} />
+                                      <OutlinedInput
+                                        fullWidth
+                                        size="small"
+                                        value={holderInfo.idcard_number || ''}
+                                        onChange={(e) => setHolderInfo({ idcard_number: e.target.value })}
+                                      />
+                                      {idcardCfg?.note && (
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                          {idcardCfg.note}
+                                        </Typography>
+                                      )}
+                                    </Grid>
+                                  )
+                                );
+                              })()}
+
+                              {(() => {
+                                const dobCfg = ticketFormFields.find((f) => f.internalName === 'dob');
+                                const visible = !!dobCfg && dobCfg.visible;
+                                const required = !!dobCfg?.required;
+                                return (
+                                  visible && (
+                                    <Grid item xs={12} md={5}>
+                                      <FormFieldLabel label={tt('Ngày sinh', 'Date of Birth')} required={required} />
+                                      <DobDatePicker
+                                        required={required}
+                                        value={holderInfo.dob}
+                                        onChange={(dob) => setHolderInfo({ dob })}
+                                      />
+                                      {dobCfg?.note && (
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                          {dobCfg.note}
+                                        </Typography>
+                                      )}
+                                    </Grid>
+                                  )
+                                );
+                              })()}
+
+                              {(() => {
+                                const addrCfg = ticketFormFields.find((f) => f.internalName === 'address');
+                                const visible = !!addrCfg && addrCfg.visible;
+                                const required = !!addrCfg?.required;
+                                return (
+                                  visible && (
+                                    <Grid item xs={12}>
+                                      <FormFieldLabel label={tt('Địa chỉ', 'Address')} required={required} />
+                                      <OutlinedInput
+                                        fullWidth
+                                        size="small"
+                                        value={holderInfo.address || ''}
+                                        onChange={(e) => setHolderInfo({ address: e.target.value })}
+                                      />
+                                      {addrCfg?.note && (
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                          {addrCfg.note}
+                                        </Typography>
+                                      )}
+                                    </Grid>
+                                  )
+                                );
+                              })()}
+
+                              {/* Ticket Custom Fields */}
+                              {customTicketFields.map((field) => (
+                                <Grid item xs={12} key={field.internalName}>
+                                  <Stack spacing={0.5}>
+                                    <FormFieldLabel label={field.label} required={field.required} />
+                                    {field.note && (
+                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                        {field.note}
+                                      </Typography>
+                                    )}
+
+                                    {['text', 'number'].includes(field.fieldType) && (
+                                      <TextField
+                                        fullWidth
+                                        size="small"
+                                        type={field.fieldType === 'number' ? 'number' : 'text'}
+                                        value={(ticket.formAnswers?.[field.internalName]) ?? ''}
+                                        onChange={(e) => setTicketFormAnswerForGroup(group, field.internalName, e.target.value)}
+                                      />
+                                    )}
+
+                                    {['date', 'time', 'datetime'].includes(field.fieldType) && (
+                                      <TextField
+                                        fullWidth
+                                        size="small"
+                                        type={
+                                          field.fieldType === 'date'
+                                            ? 'date'
+                                            : field.fieldType === 'time'
+                                              ? 'time'
+                                              : 'datetime-local'
+                                        }
+                                        InputLabelProps={{ shrink: true }}
+                                        value={(ticket.formAnswers?.[field.internalName]) ?? ''}
+                                        onChange={(e) => setTicketFormAnswerForGroup(group, field.internalName, e.target.value)}
+                                      />
+                                    )}
+
+                                    {field.fieldType === 'radio' && field.options && (
+                                      <FormControl component="fieldset" variant="standard">
+                                        <Stack spacing={0.5}>
+                                          {field.options.map((opt) => (
+                                            <FormControlLabel
+                                              key={opt.value}
+                                              value={opt.value}
+                                              control={
+                                                <Radio
+                                                  size="small"
+                                                  sx={{ p: 0.5 }}
+                                                  checked={(ticket.formAnswers?.[field.internalName]) === opt.value}
+                                                  onChange={() => setTicketFormAnswerForGroup(group, field.internalName, opt.value)}
+                                                />
+                                              }
+                                              label={opt.label}
+                                              componentsProps={{ typography: { variant: 'body2', fontSize: '0.875rem' } }}
+                                            />
+                                          ))}
+                                        </Stack>
+                                      </FormControl>
+                                    )}
+
+                                    {field.fieldType === 'checkbox' && field.options && (
+                                      <FormGroup>
+                                        <Stack spacing={0.5}>
+                                          {field.options.map((opt) => {
+                                            const current: string[] = ticket.formAnswers?.[field.internalName] ?? [];
+                                            const checked = current.includes(opt.value);
+                                            return (
+                                              <FormControlLabel
+                                                key={opt.value}
+                                                control={
+                                                  <Checkbox
+                                                    size="small"
+                                                    sx={{ p: 0.5 }}
+                                                    checked={checked}
+                                                    onChange={(e) => {
+                                                      const nextArr = e.target.checked
+                                                        ? Array.from(new Set([...current, opt.value]))
+                                                        : current.filter((v) => v !== opt.value);
+                                                      setTicketFormAnswerForGroup(group, field.internalName, nextArr);
+                                                    }}
+                                                  />
+                                                }
+                                                label={opt.label}
+                                                componentsProps={{ typography: { variant: 'body2', fontSize: '0.875rem' } }}
+                                              />
+                                            );
+                                          })}
+                                        </Stack>
+                                      </FormGroup>
+                                    )}
+                                  </Stack>
+                                </Grid>
+                              ))}
+                            </Grid>
+                          </AccordionDetails>
+                        </Accordion>
+                      );
+                    })}
                   </Stack>
                 </CardContent>
               </Card>
@@ -1076,7 +1064,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                             startIcon={<CheckCircle size={14} weight="fill" />}
                             sx={{ textTransform: 'none', '&.Mui-disabled': { color: 'success.main' } }}
                           >
-                            {tt('Đã copy từ vé 1', 'Copied from ticket 1')}
+                            {tt('Đã copy từ khán giả 1', 'Copied from attendee 1')}
                           </Button>
                           <IconButton
                             size="small"
@@ -1095,7 +1083,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                             sx={{ textTransform: 'none' }}
                             onClick={relinkCustomerToTicket1}
                           >
-                            {tt('Copy từ vé 1', 'Copy from ticket 1')}
+                            {tt('Copy từ khán giả 1', 'Copy from attendee 1')}
                           </Button>
                           <IconButton
                             size="small"
@@ -1109,20 +1097,20 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                     )}
                     {source !== 'marketplace' && (
                       <>
-                        <IconButton onClick={onOpenFormMenu} size='small'>
+                        <IconButton onClick={props.onOpenFormMenu} size='small'>
                           <DotsThreeOutlineVertical />
                         </IconButton>
                         <Menu
-                          anchorEl={formMenuAnchorEl}
-                          open={Boolean(formMenuAnchorEl)}
-                          onClose={onCloseFormMenu}
+                          anchorEl={props.formMenuAnchorEl}
+                          open={Boolean(props.formMenuAnchorEl)}
+                          onClose={props.onCloseFormMenu}
                           anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
                           transformOrigin={{ vertical: 'top', horizontal: 'left' }}
                         >
-                          <MenuItem onClick={onCloseFormMenu}>
+                          <MenuItem onClick={props.onCloseFormMenu}>
                             <LocalizedLink
                               style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
-                              href={`/event-studio/events/${paramsEventId}/etik-forms/checkout-form?back_to=/event-studio/events/${paramsEventId}/transactions/create`}
+                              href={`/event-studio/events/${props.paramsEventId}/etik-forms/checkout-form?back_to=/event-studio/events/${props.paramsEventId}/transactions/create`}
                             >
                               {tt("Thêm câu hỏi vào biểu mẫu này", "Add questions to this form")}
                             </LocalizedLink>
@@ -1137,10 +1125,10 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
               <CardContent sx={{ pt: 1.5, pb: 1.5 }}>
                 <Box sx={{ pointerEvents: readonly ? 'none' : 'auto', opacity: readonly ? 0.8 : 1 }}>
                   <Grid container spacing={2}>
-                    {/* Đã copy từ vé 1: ẩn các field trùng với vé 1 (đã có sẵn giá trị),
-                        chỉ hiện tóm tắt cho gọn - bấm "X" ở header (clearCustomerInfo) mới
-                        hiện lại để nhập thủ công. Câu hỏi riêng của checkout (không có ở vé)
-                        vẫn luôn hiện vì chưa được copy từ đâu cả. */}
+                    {/* Đã copy từ khán giả 1: ẩn các field trùng (đã có sẵn giá trị), chỉ hiện
+                        tóm tắt cho gọn - bấm "X" ở header (clearCustomerInfo) mới hiện lại để
+                        nhập thủ công. Câu hỏi riêng của checkout (không có ở vé) vẫn luôn hiện
+                        vì chưa được copy từ đâu cả. */}
                     {customerLinkedToTicket1 && (
                       <Grid item xs={12}>
                         <Stack spacing={0.5}>
