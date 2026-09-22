@@ -809,7 +809,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
 
                               {isAdultGroup && (
                                 <>
-                                  <Grid item xs={12} md={3}>
+                                  <Grid item xs={12} md={4}>
                                     <FormFieldLabel label={tt(`Email`, `Email`)} />
                                     <OutlinedInput
                                       fullWidth
@@ -1050,22 +1050,20 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
             {/* Customer Information Card */}
             <Card sx={{ borderTop: 3, borderColor: 'primary.main' }}>
               <CardHeader
-                title={tt("Thông tin người mua", "Buyer Information")}
+                title={tt("Thông tin thêm", "Other Information")}
                 action={
                   <>
                     {order.tickets.length > 0 && (
                       customerLinkedToTicket1 ? (
                         <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mr: 1 }}>
-                          <Button
+                          <IconButton
                             size="small"
-                            variant="text"
-                            color="success"
                             disabled
-                            startIcon={<CheckCircle size={14} weight="fill" />}
-                            sx={{ textTransform: 'none', '&.Mui-disabled': { color: 'success.main' } }}
+                            aria-label={tt('Đã copy từ khán giả 1', 'Copied from attendee 1')}
+                            sx={{ '&.Mui-disabled': { color: 'success.main' } }}
                           >
-                            {tt('Đã copy từ khán giả 1', 'Copied from attendee 1')}
-                          </Button>
+                            <CheckCircle size={16} weight="fill" />
+                          </IconButton>
                           <IconButton
                             size="small"
                             onClick={unlinkCustomerToEdit}
@@ -1125,25 +1123,6 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
               <CardContent sx={{ pt: 1.5, pb: 1.5 }}>
                 <Box sx={{ pointerEvents: readonly ? 'none' : 'auto', opacity: readonly ? 0.8 : 1 }}>
                   <Grid container spacing={2}>
-                    {/* Đã copy từ khán giả 1: ẩn các field trùng (đã có sẵn giá trị), chỉ hiện
-                        tóm tắt cho gọn - bấm "X" ở header (clearCustomerInfo) mới hiện lại để
-                        nhập thủ công. Câu hỏi riêng của checkout (không có ở vé) vẫn luôn hiện
-                        vì chưa được copy từ đâu cả. */}
-                    {customerLinkedToTicket1 && (
-                      <Grid item xs={12}>
-                        <Stack spacing={0.5}>
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            {customer.title} {customer.name || tt('(Chưa có thông tin)', '(No information)')}
-                          </Typography>
-                          {(customer.email || customer.nationalPhone) && (
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {[customer.email, customer.nationalPhone].filter(Boolean).join(' • ')}
-                            </Typography>
-                          )}
-                        </Stack>
-                      </Grid>
-                    )}
-
                     {!customerLinkedToTicket1 && (
                       <>
                         <Grid item lg={12} xs={12}>
@@ -1248,10 +1227,7 @@ export function Step2Info(props: Step2InfoProps): React.JSX.Element {
                       </>
                     )}
 
-                    {/* Builtin optional fields controlled by checkout form config. Chỉ ẩn khi
-                        đang linked VÀ field này thực sự tồn tại ở form vé (nên đã được copy) -
-                        nếu form vé không có field này thì chưa từng được copy, vẫn phải hiện
-                        ra để nhập, kể cả khi đang linked. */}
+                    {/* Builtin optional fields controlled by checkout form config. */}
                     {(() => {
                       const dobCfg = checkoutFormFields.find((f) => f.internalName === 'dob');
                       const visible = !!dobCfg && dobCfg.visible;

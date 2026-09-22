@@ -162,7 +162,7 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
     <Stack spacing={3}>
       <Box sx={{ px: { xs: 0, md: 20 } }} >
         <Card sx={{ borderTop: 3, borderColor: 'primary.main' }}>
-          <CardHeader title={tt("Xem lại đơn hàng", "Review Order")} />
+          <CardHeader title={tt("Xem lại thông tin", "Review Order")} />
           <Divider />
           <CardContent>
 
@@ -315,41 +315,41 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
                           <Grid xs={12} md={12}>
                             <Grid container spacing={2}>
                               {holderInfo?.idcard_number && (
-                                  <Grid xs={12} md={3}>
-                                    <Box>
-                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        {tt('CCCD', 'ID Card')}
-                                      </Typography>
-                                      <Typography variant="body2">
-                                        {holderInfo.idcard_number}
-                                      </Typography>
-                                    </Box>
-                                  </Grid>
-                                )}
-                                {holderInfo?.dob && (
-                                  <Grid xs={12} md={3}>
-                                    <Box>
-                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        {tt('Ngày sinh', 'DOB')}
-                                      </Typography>
-                                      <Typography variant="body2">
-                                        {formatDob(holderInfo.dob)}
-                                      </Typography>
-                                    </Box>
-                                  </Grid>
-                                )}
-                                {holderInfo?.address && (
-                                  <Grid xs={12} md={3}>
-                                    <Box>
-                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        {tt('Địa chỉ', 'Address')}
-                                      </Typography>
-                                      <Typography variant="body2">
-                                        {holderInfo.address}
-                                      </Typography>
-                                    </Box>
-                                  </Grid>
-                                )}
+                                <Grid xs={12} md={3}>
+                                  <Box>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                      {tt('CCCD', 'ID Card')}
+                                    </Typography>
+                                    <Typography variant="body2">
+                                      {holderInfo.idcard_number}
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                              )}
+                              {holderInfo?.dob && (
+                                <Grid xs={12} md={3}>
+                                  <Box>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                      {tt('Ngày sinh', 'DOB')}
+                                    </Typography>
+                                    <Typography variant="body2">
+                                      {formatDob(holderInfo.dob)}
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                              )}
+                              {holderInfo?.address && (
+                                <Grid xs={12} md={3}>
+                                  <Box>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                      {tt('Địa chỉ', 'Address')}
+                                    </Typography>
+                                    <Typography variant="body2">
+                                      {holderInfo.address}
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                              )}
                               {ticketFormFields.filter(f => !builtinInternalNames.has(f.internalName) && f.visible).map((field, idx) => {
                                 const answer = ticket?.formAnswers ? ticket.formAnswers[field.internalName] : undefined;
                                 if (answer === undefined || answer === null || answer === '') return null;
@@ -582,10 +582,10 @@ export function Step4Review(props: Step4ReviewProps): React.JSX.Element {
       <Stack spacing={1} alignItems="center">
         <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <input 
-              type="checkbox" 
-              checked={receiveMarketingEmails} 
-              onChange={(e) => setReceiveMarketingEmails(e.target.checked)} 
+            <input
+              type="checkbox"
+              checked={receiveMarketingEmails}
+              onChange={(e) => setReceiveMarketingEmails(e.target.checked)}
               style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }}
             />
           </Box>
